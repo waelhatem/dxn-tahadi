@@ -28,8 +28,21 @@ async function rpc(fn,args){if(!sb)throw Error('لم يتم إعداد Supabase'
 async function boot(){if(!ready()){renderSetup();return}sb=supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY);if(!token){renderLogin();return}try{const d=await rpc('bootstrap',{p_token:token});data=d;role=d.role;me=(d.members||[])[0]||null;render()}catch(e){localStorage.removeItem('dxn_session');token='';renderLogin();toast(e.message||'انتهت الجلسة')}}
 function renderSetup(){ $('app').innerHTML=`<div class="login card"><img class="logo" src="logo.png"><h1>لعبة تحديات DXN</h1><h2>إعداد النسخة Online</h2><p class="muted">النسخة جاهزة للربط بقاعدة بيانات Supabase. افتح ملف <b>config.js</b> وضع رابط المشروع وPublic anon key، ثم ارفع المجلد إلى Vercel أو أي استضافة ثابتة.</p><div class="card leaderbox"><b>الخطوات:</b><ol><li>أنشئ مشروع Supabase.</li><li>نفّذ ملف schema.sql بالكامل في SQL Editor.</li><li>ضع بيانات المشروع في config.js.</li><li>ارفع المجلد إلى Vercel.</li></ol></div></div>`}
 function renderLogin(){ $('app').innerHTML=`<div class="view-switch" id="viewSwitch"></div><div class="login card"><div style="text-align:center"><img class="logo" src="logo.png"><h1>لعبة تحديات DXN</h1><p class="muted">دخول موحد من أي جهاز</p></div><label>نوع الدخول</label><select id="role"><option value="member">👤 دخول العضو</option><option value="leader">👑 دخول القائد</option></select><label>رقم العضوية / رمز القائد</label><input id="loginNo" placeholder="مثال: 820426486 أو LEADER"><label>رمز الدخول PIN</label><input id="pin" type="text" autocomplete="current-password" inputmode="text" autocapitalize="characters" spellcheck="false" placeholder="PIN"><button class="primary" style="width:100%" onclick="login()">🔐 دخول</button><p class="muted small">بيانات القائد التجريبية بعد تنفيذ schema.sql: LEADER / 123456 — غيّرها فوراً.</p></div>`}
-renderViewSwitch();
-renderViewSwitch();
+function renderViewSwitch(){
+  const el=document.getElementById('viewSwitch');
+  const saved=localStorage.getItem('dxn_view_mode');
+  const mode=saved || (window.innerWidth>=800 ? 'desktop' : 'mobile');
+  document.body.classList.toggle('desktop-mode',mode==='desktop');
+  document.body.classList.toggle('mobile-mode',mode==='mobile');
+  if(!el)return;
+  el.innerHTML=`<button class="${mode==='mobile'?'active':''}" onclick="setViewMode('mobile')">📱 واجهة الموبايل</button><button class="${mode==='desktop'?'active':''}" onclick="setViewMode('desktop')">🖥️ واجهة الحاسوب</button>`;
+}
+function setViewMode(mode){
+  localStorage.setItem('dxn_view_mode',mode);
+  document.body.classList.remove('mobile-mode','desktop-mode');
+  document.body.classList.add(mode==='desktop'?'desktop-mode':'mobile-mode');
+  renderViewSwitch();
+}
 async function login(){try{const r=await rpc('login',{p_login_no:$('loginNo').value.trim(),p_pin:$('pin').value.trim()});token=r.token;localStorage.setItem('dxn_session',token);await boot()}catch(e){toast(e.message||'تعذر الدخول')}}
 async function logout(){try{await rpc('logout',{p_token:token})}catch{}localStorage.removeItem('dxn_session');token='';me=null;data=null;renderLogin()}
 function nav(){return `<div class="nav"><button onclick="tab='home';render()">🏠<br><span class="small">الرئيسية</span></button><button onclick="tab='ch';render()">🎯<br><span class="small">التحديات</span></button><button onclick="tab='teams';render()">👥<br><span class="small">الأعضاء والفرق</span></button><button onclick="tab='leader';render()">👑<br><span class="small">القائد</span></button></div>`}
