@@ -69,7 +69,78 @@ function challengeCard(c){const mine=(data.my_submissions||[]).filter(x=>String(
 function openChallengeSubmission(id){const c=(data.challenges||[]).find(x=>String(x.id)===String(id));if(!c)return;const title=(c.title||'')+' '+(c.type||'');const isConsume=/استهلاك|منتج/i.test(title);const isContact=/تواصل|استقطاب/i.test(title);const today=new Date().toISOString().slice(0,10);const body=isConsume?`<label>📦 اسم المنتج</label><input id="ev_product" placeholder="مثال: قهوة لينجزي"><label>📅 تاريخ الاستهلاك</label><input id="ev_date" type="date" value="${today}"><label>📝 ملاحظة</label><textarea id="ev_note" placeholder="ملاحظة مختصرة (اختياري)"></textarea><label>📷 صورة الإثبات <span class="muted">(حتى 5 MB)</span></label><input id="ev_file" type="file" accept="image/jpeg,image/png,image/webp" onchange="previewEvidence()"><div id="ev_preview"></div>`:isContact?`<label>👤 اسم الشخص المحتمل</label><input id="ev_person" placeholder="اسم الشخص"><label>🌍 البلد</label><input id="ev_country" placeholder="مثال: العراق"><label>📱 طريقة التواصل</label><select id="ev_method"><option>واتساب</option><option>اتصال هاتفي</option><option>لقاء مباشر</option><option>فيسبوك</option><option>أخرى</option></select><label>📅 تاريخ التواصل</label><input id="ev_date" type="date" value="${today}"><label>📝 ماذا حدث في التواصل؟</label><textarea id="ev_note" placeholder="اكتب نتيجة التواصل باختصار"></textarea><label>📷 صورة الإثبات <span class="muted">(حتى 5 MB)</span></label><input id="ev_file" type="file" accept="image/jpeg,image/png,image/webp" onchange="previewEvidence()"><div id="ev_preview"></div>`:`<label>📝 وصف الإنجاز</label><textarea id="ev_note" placeholder="اكتب وصفاً مختصراً لما أنجزته..."></textarea><label>📷 صورة الإثبات <span class="muted">(حتى 5 MB، إن وجدت)</span></label><input id="ev_file" type="file" accept="image/jpeg,image/png,image/webp" onchange="previewEvidence()"><div id="ev_preview"></div>`;const modal=document.createElement('div');modal.id='evidenceModal';modal.innerHTML=`<div class="evidence-backdrop" onclick="closeEvidenceModal()"></div><div class="evidence-modal card"><div class="row"><div><h2 style="margin:0">🎯 ${esc(c.title)}</h2><div class="muted">⭐${c.stars} · أرسل التفاصيل والإثبات للقائد للمراجعة</div></div><button onclick="closeEvidenceModal()">✖️</button></div>${body}<div class="actions"><button class="primary" onclick="sendChallengeEvidence('${c.id}')">📤 إرسال الإنجاز</button><button onclick="closeEvidenceModal()">إلغاء</button></div></div>`;document.body.appendChild(modal)}
 function closeEvidenceModal(){const m=$('evidenceModal');if(m)m.remove()}
 function previewEvidence(){const f=$('ev_file')?.files?.[0],p=$('ev_preview');if(!p)return;p.innerHTML='';if(!f)return;if(!f.type.startsWith('image/'))return toast('اختر ملف صورة فقط.');if(f.size>5*1024*1024){$('ev_file').value='';return toast('حجم الصورة يجب ألا يتجاوز 5 MB.')}const img=document.createElement('img');img.src=URL.createObjectURL(f);img.style='max-width:180px;max-height:180px;border-radius:14px;margin:6px 0;display:block';p.appendChild(img)}
-async function sendChallengeEvidence(id){try{const c=(data.challenges||[]).find(x=>String(x.id)===String(id));if(!c)return;const title=(c.title||'')+' '+(c.type||'');const isConsume=/استهلاك|منتج/i.test(title);const isContact=/تواصل|استقطاب/i.test(title);const details={};if(isConsume){details.product=$('ev_product')?.value.trim();details.date=$('ev_date')?.value||'';if(!details.product)return toast('أدخل اسم المنتج.')}else if(isContact){details.person=$('ev_person')?.value.trim();details.country=$('ev_country')?.value.trim();details.method=$('ev_method')?.value||'';details.date=$('ev_date')?.value||'';if(!details.person)return toast('أدخل اسم الشخص المحتمل.');if(!details.country)return toast('أدخل بلد الشخص.')}details.note=$('ev_note')?.value.trim()||'';if(!isConsume&&!isContact&&!details.note)return toast('اكتب وصف الإنجاز أولاً.');const f=$('ev_file')?.files?.[0];if(f){if(!f.type.startsWith('image/'))return toast('اختر ملف صورة فقط.');if(f.size>5*1024*1024)return toast('حجم الصورة يجب ألا يتجاوز 5 MB.')}let path=null;if(f){const ext=(f.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg';const base=(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36));path=`evidence/${base}.${ext}`;const up=await sb.storage.from('challenge-evidence').upload(path,f,{contentType:f.type,upsert:false});if(up.error)throw up.error}await rpc('submit_challenge_details',{p_token:token,p_challenge:id,p_proof:details.note||'تم إرفاق تفاصيل الإنجاز.',p_details:details,p_evidence_path:path});closeEvidenceModal();toast('تم إرسال الإنجاز والإثبات للقائد.');await refresh()}catch(e){toast(e.message||'تعذر إرسال الإنجاز')}}
+async function sendChallengeEvidence(id){try{
+  const c=(data.challenges||[]).find(x=>String(x.id)===String(id));if(!c)return;
+  const title=(c.title||'')+' '+(c.type||'');
+  const isConsume=/استهلاك|منتج/i.test(title);
+  const isContact=/تواصل|استقطاب/i.test(title);
+  const details={};
+
+  if(isConsume){
+    details.product=$('ev_product')?.value.trim();
+    details.date=$('ev_date')?.value||'';
+    if(!details.product)return toast('أدخل اسم المنتج.');
+  }else if(isContact){
+    details.person=$('ev_person')?.value.trim();
+    details.country=$('ev_country')?.value.trim();
+    details.method=$('ev_method')?.value||'';
+    details.date=$('ev_date')?.value||'';
+    if(!details.person)return toast('أدخل اسم الشخص المحتمل.');
+    if(!details.country)return toast('أدخل بلد الشخص.');
+  }
+
+  details.note=$('ev_note')?.value.trim()||'';
+  if(!isConsume&&!isContact&&!details.note)return toast('اكتب وصف الإنجاز أولاً.');
+
+  const f=$('ev_file')?.files?.[0];
+  if(!f)return toast('أرفق صورة الإثبات.');
+  if(!f.type.startsWith('image/'))return toast('اختر ملف صورة فقط.');
+  if(!['image/jpeg','image/png','image/webp'].includes(f.type))return toast('استخدم JPG أو PNG أو WEBP فقط.');
+  if(f.size>5*1024*1024)return toast('حجم الصورة يجب ألا يتجاوز 5 MB.');
+
+  const fd=new FormData();
+  fd.append('action','upload');
+  fd.append('token',token);
+  fd.append('challenge_id',id);
+  fd.append('proof',details.note||'تم إرفاق تفاصيل الإنجاز.');
+  fd.append('details',JSON.stringify(details));
+  fd.append('file',f);
+
+  const endpoint=`${C.SUPABASE_URL}/functions/v1/challenge-evidence`;
+  const res=await fetch(endpoint,{
+    method:'POST',
+    headers:{'apikey':C.SUPABASE_ANON_KEY||''},
+    body:fd
+  });
+  let out={};
+  try{out=await res.json()}catch{}
+  if(!res.ok||!out.ok)throw new Error(out.error||`تعذر إرسال الإنجاز (${res.status})`);
+
+  closeEvidenceModal();
+  toast('تم إرسال الإنجاز والإثبات للقائد للمراجعة.');
+  await refresh();
+}catch(e){toast(e.message||'تعذر إرسال الإنجاز')}}
+
+async function openEvidence(path){try{
+  if(!path)return toast('لا توجد صورة إثبات.');
+  const fd=new FormData();
+  fd.append('action','view');
+  fd.append('token',token);
+  fd.append('path',path);
+
+  const endpoint=`${C.SUPABASE_URL}/functions/v1/challenge-evidence`;
+  const res=await fetch(endpoint,{
+    method:'POST',
+    headers:{'apikey':C.SUPABASE_ANON_KEY||''},
+    body:fd
+  });
+  let out={};
+  try{out=await res.json()}catch{}
+  if(!res.ok||!out.ok)throw new Error(out.error||`تعذر فتح صورة الإثبات (${res.status})`);
+
+  window.open(out.url,'_blank','noopener');
+}catch(e){toast(e.message||'تعذر فتح صورة الإثبات')}}
+
 async function openEvidence(path){try{const r=await sb.storage.from('challenge-evidence').download(path);if(r.error)throw r.error;const url=URL.createObjectURL(r.data);window.open(url,'_blank','noopener');setTimeout(()=>URL.revokeObjectURL(url),60000)}catch(e){toast(e.message||'تعذر فتح صورة الإثبات')}}
 function challenges(){return `<div class="card"><div class="title">🎯 التحديات الأساسية</div><p class="muted">التحدي لا يختفي بعد الإنجاز. التحديات المتكررة يمكن إنجازها مرة أخرى وفق قاعدتها، والنجوم لا تُضاف إلا بعد اعتماد القائد.</p>${role==='leader'?`<div class="leaderbox" style="margin:12px 0;padding:12px;border-radius:16px"><div class="title">⚙️ إدارة التحديات</div><div class="actions" style="margin-top:10px"><button class="primary" onclick="openChallengeEditor()">➕ إضافة تحدٍ جديد</button></div>${(data.challenges||[]).map(c=>challengeAdminCard(c)).join('')||'<div class="empty">لا توجد تحديات.</div>'}</div>`:(data.challenges||[]).map(challengeCard).join('')}</div>${role==='member'?questions():''}`}
 function questions(){const ans=data.my_answers||[];return `<div class="card"><div class="title">❓ أسئلة الشهر</div><p class="muted">خمسة أسئلة ثابتة طوال الشهر. كل عضو يجيب عن كل سؤال مرة واحدة فقط. بعد الإجابة يصبح السؤال مغلقاً ولا يظهر سؤال جديد حتى الشهر التالي.</p>${(data.questions||[]).map(q=>{const a=ans.find(x=>String(x.question_id)===String(q.id));return `<div class="question ${a?'ok':''}"><h3>${esc(q.question_no)}. ${esc(q.text)}</h3><div class="muted">${esc(q.category)} · ⭐1</div>${a?`<div class="answer"><b>إجابتك:</b><br>${esc(a.answer)}<br><span class="small">${a.status==='approved'?'✅ معتمدة — ⭐1':a.status==='pending'?'⏳ بانتظار اعتماد القائد':'❌ مرفوضة'}</span></div>`:`<textarea id="qa_${q.id}" placeholder="اكتب إجابتك..."></textarea><button class="primary" onclick="submitQuestion('${q.id}')">⭐1 · إرسال الإجابة للقائد</button>`}</div>`}).join('')}</div>`}
