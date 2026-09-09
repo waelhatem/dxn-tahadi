@@ -229,7 +229,7 @@ function trainings(){
           <div class="muted">${done?'✅ مكتمل':locked?'🔒 مغلق — أكمل التدريب السابق أولاً':'▶️ متاح الآن'}</div>
           ${p?`<div class="muted">📊 نسبة المشاهدة: ${Number(p.watch_percent||0).toFixed(0)}%</div>`:''}
         </div>
-        <div class="actions">${role==='leader'?`<button title="تعديل التدريب" onclick="editTrainingLesson('${l.id}')">✏️</button>`:''}<button class="${done?'':'primary'}" ${locked||done?'disabled':''} onclick="startTrainingLesson('${l.id}')">${done?'✅ مكتمل':locked?'🔒 مغلق':'▶️ بدء التدريب'}</button></div>
+        <button class="${done?'':'primary'}" ${locked||done?'disabled':''} onclick="startTrainingLesson('${l.id}')">${done?'✅ مكتمل':locked?'🔒 مغلق':'▶️ بدء التدريب'}</button>
       </div>
     </div>`;
   }).join('');
@@ -336,17 +336,19 @@ async function sampleTrainingWatch(lessonId){
 }
 async function finishTrainingWatch(lessonId,player){
   if(trainingWatch.invalid)return;
-  const duration=Number(player.getDuration()||0), current=Number(player.getCurrentTime()||0);
+  const duration=Number(player.getDuration()||0);
   if(!duration)return;
   try{
+    // عند انتهاء فيديو YouTube نرسل النهاية الفعلية. الخادم يتحقق من
+    // التقدم المتراكم وعدم وجود تقديم يدوي قبل اعتماد الإكمال.
     const result=await rpc('update_training_progress',{
-      p_token:token,p_lesson:lessonId,p_watch_percent:100,p_current_seconds:current,
+      p_token:token,p_lesson:lessonId,p_watch_percent:100,p_current_seconds:duration,
       p_duration_seconds:duration,p_completed:true
     });
     if(result?.completed){
       updateTrainingWatchStatus('🎉 اكتملت المشاهدة 100% — تم فتح التدريب التالي.',false,true);
       if(trainingWatch.timer){clearInterval(trainingWatch.timer);trainingWatch.timer=null;}
-      setTimeout(async()=>{closeTraining();await refresh()},1200);
+      setTimeout(async()=>{closeTraining();await refresh()},900);
     }else{
       trainingWatch.invalid=true;
       updateTrainingWatchStatus('⚠️ لم يتم اعتماد الإكمال لأن المشاهدة الكاملة لم تُثبت. أعد التدريب من البداية.',true);
