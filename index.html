@@ -391,6 +391,36 @@ function memberActivitySnapshot(){
  const pending={};subs.filter(x=>x.status==='pending').forEach(x=>{const id=x.member_id||x.memberId;if(id!=null)pending[String(id)]=(pending[String(id)]||0)+1});
  return members.map(m=>{const id=String(m.id||'');const last=latest[id]||0;const days=last?Math.floor(Math.max(0,now-last)/day):null;const pts=Number(targets[id]?.points??targets[id]?.dxn_points??m.dxn_points??0);const joined=new Date(m.joined_at||m.joinedAt||m.membership_date||m.membershipDate||m.created_at||m.createdAt||0).getTime();const joinedDays=joined?Math.floor(Math.max(0,now-joined)/day):null;return {...m,_last:last,_days:days,_pts:pts,_pending:pending[id]||0,_joinedDays:joinedDays};});
 }
+function memberRatingKey(id){return `dxn_member_rating_${String(id)}`;}
+function getMemberRating(id){
+ const raw=localStorage.getItem(memberRatingKey(id));
+ if(raw===null||raw==='')return null;
+ const n=Number(raw);
+ return Number.isFinite(n)?Math.max(0,Math.min(100,Math.round(n))):null;
+}
+function saveMemberRating(id){
+ if(role!=='leader')return toast('هذا التقييم متاح للقائد فقط.');
+ const input=$('memberRatingInput');
+ if(!input)return;
+ const n=Number(input.value);
+ if(!Number.isFinite(n)||n<0||n>100||!Number.isInteger(n))return toast('أدخل تقييمًا صحيحًا من 0 إلى 100.');
+ localStorage.setItem(memberRatingKey(id),String(n));
+ const value=$('memberRatingValue');
+ if(value)value.textContent=`${n}/100`;
+ const bar=$('memberRatingBar');
+ if(bar)bar.style.width=`${n}%`;
+ const label=$('memberRatingLabel');
+ if(label)label.textContent=memberRatingLabel(n);
+ toast('تم حفظ تقييم العضو.');
+}
+function memberRatingLabel(n){
+ if(n===null||n===undefined)return 'لم يتم التقييم بعد';
+ if(n>=90)return '🌟 ممتاز';
+ if(n>=75)return '🔥 جيد جدًا';
+ if(n>=60)return '👍 جيد';
+ if(n>=40)return '📈 يحتاج تطوير';
+ return '⚠️ يحتاج دعمًا مكثفًا';
+}
 function openMemberProfile(id){
  const m=(data.members||[]).find(x=>String(x.id)===String(id)); if(!m)return;
  const snap=memberActivitySnapshot().find(x=>String(x.id)===String(id))||m;
@@ -400,7 +430,10 @@ function openMemberProfile(id){
  const total=Number(mp?.total_lessons||0),done=Number(mp?.completed_lessons||0),pct=total?Math.round(done*100/total):0;
  const target=Math.max(0,100-snap._pts);
  const badgeCount=(()=>{const old=me;me=m;const n=getBadges().filter(b=>b.earned).length;me=old;return n;})();
- const modal=document.createElement('div');modal.id='memberProfileModal';modal.innerHTML=`<div class="evidence-backdrop" onclick="closeMemberProfile()"></div><div class="evidence-modal card" style="max-width:760px;max-height:90vh;overflow:auto"><div class="row"><div><h2 style="margin:0">👤 ${esc(m.name||'عضو')}</h2><div class="muted">🪪 ${esc(m.member_no||'')} · ${esc(m.team_name||'بدون فريق')}</div></div><button onclick="closeMemberProfile()">✖️</button></div><div class="command-grid"><div class="command-card"><div class="muted">⭐ النجوم</div><div class="command-big stars">${Number(m.stars||0)}</div><div class="muted">${esc(getLevel(m.stars).current.name)}</div></div><div class="command-card"><div class="muted">🎯 نقاط DXN</div><div class="command-big">${snap._pts}/100</div><div class="bar"><span style="width:${Math.min(100,snap._pts)}%"></span></div><div class="muted">${target?`باقي ${target} نقطة`:'🎉 التارجت محقق'}</div></div><div class="command-card"><div class="muted">📚 التدريب</div><div class="command-big">${done}/${total}</div><div class="bar"><span style="width:${pct}%"></span></div></div><div class="command-card"><div class="muted">🏅 الشارات</div><div class="command-big">${badgeCount}</div><div class="muted">شارات مكتسبة</div></div></div><div class="card" style="margin-top:10px"><b>📊 الحالة التشغيلية</b><div class="row"><span>آخر نشاط</span><b>${snap._days===null?'لم يبدأ بعد':snap._days===0?'اليوم':`منذ ${snap._days} أيام`}</b></div><div class="row"><span>⏳ إنجازات معلقة</span><b>${snap._pending}</b></div><div class="row"><span>✅ إنجازات معتمدة</span><b>${approved}</b></div><div class="row"><span>📅 مدة العضوية</span><b>${snap._joinedDays===null?'غير مسجلة':`${snap._joinedDays} يوم`}</b></div></div><div class="command-actions"><button class="primary" onclick="closeMemberProfile();switchTab('teams')">👥 إدارة العضو</button><button onclick="closeMemberProfile();switchTab('leader')">👑 العودة لمركز القيادة</button></div></div>`;document.body.appendChild(modal);
+ const rating=getMemberRating(id);
+ const ratingValue=rating===null?'—':`${rating}/100`;
+ const ratingBar=rating===null?0:rating;
+ const modal=document.createElement('div');modal.id='memberProfileModal';modal.innerHTML=`<div class="evidence-backdrop" onclick="closeMemberProfile()"></div><div class="evidence-modal card" style="max-width:760px;max-height:90vh;overflow:auto"><div class="row"><div><h2 style="margin:0">👤 ${esc(m.name||'عضو')}</h2><div class="muted">🪪 ${esc(m.member_no||'')} · ${esc(m.team_name||'بدون فريق')}</div></div><button onclick="closeMemberProfile()">✖️</button></div><div class="command-grid"><div class="command-card"><div class="muted">⭐ النجوم</div><div class="command-big stars">${Number(m.stars||0)}</div><div class="muted">${esc(getLevel(m.stars).current.name)}</div></div><div class="command-card"><div class="muted">🎯 نقاط DXN</div><div class="command-big">${snap._pts}/100</div><div class="bar"><span style="width:${Math.min(100,snap._pts)}%"></span></div><div class="muted">${target?`باقي ${target} نقطة`:'🎉 التارجت محقق'}</div></div><div class="command-card"><div class="muted">📚 التدريب</div><div class="command-big">${done}/${total}</div><div class="bar"><span style="width:${pct}%"></span></div></div><div class="command-card"><div class="muted">🏅 الشارات</div><div class="command-big">${badgeCount}</div><div class="muted">شارات مكتسبة</div></div></div><div class="card" style="margin-top:10px"><div class="row"><div><b>📋 تقييم العضو</b><div class="muted">تقييم القائد لأداء العضو من 100</div></div><div id="memberRatingValue" style="font-size:26px;font-weight:900">${ratingValue}</div></div><div class="bar" style="margin:12px 0 8px"><span id="memberRatingBar" style="width:${ratingBar}%"></span></div><div id="memberRatingLabel" class="muted" style="margin-bottom:10px">${esc(memberRatingLabel(rating))}</div>${role==='leader'?`<div class="row" style="gap:8px;align-items:center"><input id="memberRatingInput" type="number" min="0" max="100" step="1" value="${rating===null?'':rating}" placeholder="من 0 إلى 100" style="max-width:180px"><button class="primary" onclick="saveMemberRating('${String(id)}')">💾 حفظ التقييم</button></div>`:'<div class="muted">يتم تحديد التقييم من قبل القائد.</div>'}</div><div class="card" style="margin-top:10px"><b>📊 الحالة التشغيلية</b><div class="row"><span>آخر نشاط</span><b>${snap._days===null?'لم يبدأ بعد':snap._days===0?'اليوم':`منذ ${snap._days} أيام`}</b></div><div class="row"><span>⏳ إنجازات معلقة</span><b>${snap._pending}</b></div><div class="row"><span>✅ إنجازات معتمدة</span><b>${approved}</b></div><div class="row"><span>📅 مدة العضوية</span><b>${snap._joinedDays===null?'غير مسجلة':`${snap._joinedDays} يوم`}</b></div></div><div class="command-actions"><button class="primary" onclick="closeMemberProfile();switchTab('teams')">👥 إدارة العضو</button><button onclick="closeMemberProfile();switchTab('leader')">👑 العودة لمركز القيادة</button></div></div>`;document.body.appendChild(modal);
 }
 function closeMemberProfile(){const x=$('memberProfileModal');if(x)x.remove()}
 function advancedLeader(){
@@ -1101,7 +1134,7 @@ async function decide(id,q,ok){try{await rpc(q?'approve_question':'approve_chall
 async function setPoints(id){const v=prompt('أدخل نقاط DXN الفعلية لهذا العضو هذا الشهر:','100');if(v===null)return;try{await rpc('set_monthly_points',{p_token:token,p_member:id,p_points:Number(v)});if(Number(v)>=100&&confirm('العضو حقق 100 نقطة. هل تضيف مكافأة ⭐100؟'))await rpc('award_monthly_target',{p_token:token,p_member:id});toast('تم تحديث التارجت.');await refresh()}catch(e){toast(e.message||'تعذر تحديث التارجت')}}
 async function refresh(){const d=await rpc('bootstrap',{p_token:token});data=d;role=d.role;me=(d.members||[]).find(x=>role==='member')||null;try{trainingData=await rpc('get_training_data',{p_token:token})}catch(e){trainingData={lessons:[],my_progress:[],member_progress:[]}}if(role==='leader'){try{membershipRequests=await rpc('leader_dxn_membership_requests',{p_token:token})}catch(e){membershipRequests=[]}}render()}
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{}); boot();
-window.switchTab=switchTab;window.openMemberProgress=openMemberProgress;window.openMemberProfile=openMemberProfile;window.closeMemberProfile=closeMemberProfile;window.memberPathMap=memberPathMap;window.openTrainingManager=openTrainingManager;window.restartTrainingWatch=restartTrainingWatch;window.startTrainingLesson=startTrainingLesson;window.completeTrainingLesson=completeTrainingLesson;window.saveTrainingFromManager=saveTrainingFromManager;window.editTrainingLesson=editTrainingLesson;window.toggleTrainingLesson=toggleTrainingLesson;window.closeTraining=closeTraining;window.closeTrainingManager=closeTrainingManager;window.challenges=challenges;window.teams=teams;window.leader=leader;window.approvalCard=approvalCard;window.renderIdea=renderIdea;window.trainings=trainings;window.approveDXNMembershipRequest=approveDXNMembershipRequest;window.rejectDXNMembershipRequest=rejectDXNMembershipRequest;window.openDXNMembershipRequests=openDXNMembershipRequests;window.openApprovedDXNMembershipRequests=openApprovedDXNMembershipRequests;window.backToLeaderDashboard=backToLeaderDashboard;window.addEventListener('resize',()=>{if(!localStorage.getItem('dxn_view_mode'))renderViewSwitch()});
+window.switchTab=switchTab;window.openMemberProgress=openMemberProgress;window.openMemberProfile=openMemberProfile;window.closeMemberProfile=closeMemberProfile;window.saveMemberRating=saveMemberRating;window.memberPathMap=memberPathMap;window.openTrainingManager=openTrainingManager;window.restartTrainingWatch=restartTrainingWatch;window.startTrainingLesson=startTrainingLesson;window.completeTrainingLesson=completeTrainingLesson;window.saveTrainingFromManager=saveTrainingFromManager;window.editTrainingLesson=editTrainingLesson;window.toggleTrainingLesson=toggleTrainingLesson;window.closeTraining=closeTraining;window.closeTrainingManager=closeTrainingManager;window.challenges=challenges;window.teams=teams;window.leader=leader;window.approvalCard=approvalCard;window.renderIdea=renderIdea;window.trainings=trainings;window.approveDXNMembershipRequest=approveDXNMembershipRequest;window.rejectDXNMembershipRequest=rejectDXNMembershipRequest;window.openDXNMembershipRequests=openDXNMembershipRequests;window.openApprovedDXNMembershipRequests=openApprovedDXNMembershipRequests;window.backToLeaderDashboard=backToLeaderDashboard;window.addEventListener('resize',()=>{if(!localStorage.getItem('dxn_view_mode'))renderViewSwitch()});
 </script>
 <footer id="site-copyright" style="margin-top:40px;padding:22px 16px;text-align:center;border-top:1px solid var(--line);color:#667085;font-size:13px;line-height:1.8">
   <div>© 2026 <strong>مجتمع الصحة والثراء</strong></div>
