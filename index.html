@@ -229,7 +229,7 @@ function trainings(){
           <div class="muted">${done?'✅ مكتمل':locked?'🔒 مغلق — أكمل التدريب السابق أولاً':'▶️ متاح الآن'}</div>
           ${p?`<div class="muted">📊 نسبة المشاهدة: ${Number(p.watch_percent||0).toFixed(0)}%</div>`:''}
         </div>
-        <button class="${done?'':'primary'}" ${locked||done?'disabled':''} onclick="startTrainingLesson('${l.id}')">${done?'✅ مكتمل':locked?'🔒 مغلق':'▶️ بدء التدريب'}</button>
+        <div class="actions">${role==='leader'?`<button title="تعديل التدريب" onclick="editTrainingLesson('${l.id}')">✏️</button>`:''}<button class="${done?'':'primary'}" ${locked||done?'disabled':''} onclick="startTrainingLesson('${l.id}')">${done?'✅ مكتمل':locked?'🔒 مغلق':'▶️ بدء التدريب'}</button></div>
       </div>
     </div>`;
   }).join('');
