@@ -227,6 +227,7 @@ function trainings(){
           <div style="font-size:28px">📚</div>
           <h3 style="margin:5px 0">التدريب ${n} — ${esc(l.title)}</h3>
           <p>${esc(l.description||'')}</p>
+          <div class="muted">🎁 مكافأة الإكمال: <b>⭐${Number(l.reward_stars||0)}</b></div>
           <div class="muted">${done?'✅ مكتمل':locked?'🔒 مغلق — أكمل التدريب السابق أولاً':'▶️ متاح الآن'}</div>
           ${p?`<div class="muted">📊 نسبة المشاهدة: ${Number(p.watch_percent||0).toFixed(0)}%</div>`:''}
         </div>
@@ -240,6 +241,7 @@ function trainings(){
     <p class="muted">شاهد التدريبات بالترتيب. لا يفتح التدريب التالي إلا بعد إكمال التدريب السابق، ويمكنك إعادة مشاهدة أي تدريب أكملته في أي وقت.</p>
     <div style="background:#eef3f1;border-radius:999px;height:14px;overflow:hidden;margin:15px 0"><div style="width:${pct}%;height:100%;background:#0f513f"></div></div>
     <div style="text-align:center;font-weight:900">نسبة إكمالك: ${pct}% — ${completedNo.size} من ${lessons.length}</div>
+    <div class="muted" style="text-align:center;margin-top:8px">⭐ أكمل التدريب كاملًا لتحصل على مكافأة النجوم مرة واحدة.</div>
   </div>${cards}`;
 }
 function youtubeEmbed(url){
@@ -348,7 +350,8 @@ async function finishTrainingWatch(lessonId,player){
       p_duration_seconds:duration,p_completed:true
     });
     if(result?.completed){
-      updateTrainingWatchStatus('🎉 اكتملت المشاهدة 100% — تم فتح التدريب التالي في التسلسل.',false,true);
+      const rewardText=result?.stars_awarded ? ` 🎁 تمت إضافة ⭐${Number(result.reward_stars||0)} إلى رصيدك.` : '';
+      updateTrainingWatchStatus(`🎉 اكتملت المشاهدة 100% — تم فتح التدريب التالي في التسلسل.${rewardText}`,false,true);
       if(trainingWatch.timer){clearInterval(trainingWatch.timer);trainingWatch.timer=null;}
       setTimeout(async()=>{closeTraining();await refresh()},1200);
     }else{
@@ -378,10 +381,10 @@ async function completeTrainingLesson(id){
 function openTrainingManager(){
   if(role!=='leader')return toast('صلاحية القائد فقط.');
   const lessons=(trainingData.lessons||[]).sort((a,b)=>Number(a.lesson_no)-Number(b.lesson_no));
-  const rows=lessons.map(l=>`<div class="row" style="border-bottom:1px solid var(--line);padding:12px 0"><div><b>📚 ${esc(l.lesson_no)}. ${esc(l.title)}</b><div class="muted">${esc(l.youtube_url)}</div></div><div class="actions"><button onclick="editTrainingLesson('${l.id}')">✏️ تعديل</button><button class="danger" onclick="toggleTrainingLesson('${l.id}',false)">🗑️ إخفاء</button></div></div>`).join('');
+  const rows=lessons.map(l=>`<div class="row" style="border-bottom:1px solid var(--line);padding:12px 0"><div><b>📚 ${esc(l.lesson_no)}. ${esc(l.title)}</b><div class="muted">${esc(l.youtube_url)} · 🎁 ⭐${Number(l.reward_stars||0)}</div></div><div class="actions"><button onclick="editTrainingLesson('${l.id}')">✏️ تعديل</button><button class="danger" onclick="toggleTrainingLesson('${l.id}',false)">🗑️ إخفاء</button></div></div>`).join('');
   const modal=document.createElement('div'); modal.id='trainingManagerModal';
   modal.innerHTML=`<div class="evidence-backdrop" onclick="closeTrainingManager()"></div><div class="evidence-modal card" style="max-width:850px">
-    <div class="row"><div><h2 style="margin:0">👑 إدارة التدريبات</h2><div class="muted">أضف تدريباتك يدويًا باستخدام روابط YouTube. الترتيب يعتمد على رقم التدريب.</div></div><button onclick="closeTrainingManager()">✖️</button></div>
+    <div class="row"><div><h2 style="margin:0">👑 إدارة التدريبات</h2><div class="muted">أضف تدريباتك يدويًا باستخدام روابط YouTube. الترتيب يعتمد على رقم التدريب، ومكافأة النجوم محددة لكل تدريب.</div></div><button onclick="closeTrainingManager()">✖️</button></div>
     <div class="card" style="background:#f7fbf9">
       <div class="title">➕ إضافة تدريب جديد</div>
       <label>رقم التدريب</label><input id="trNo" type="number" min="1" placeholder="مثال: 1">
