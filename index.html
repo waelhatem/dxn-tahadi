@@ -22,7 +22,21 @@ body.mobile-mode .view-switch button{min-width:120px}
 
 .admin-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}.admin-stat{background:#fff;border:1px solid var(--line);border-radius:18px;padding:15px}.admin-stat .emoji{font-size:26px}.admin-stat .label{color:var(--muted);font-size:13px;font-weight:800}.admin-stat b{display:block;font-size:25px;margin-top:4px}.admin-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.admin-section-title{font-size:20px;font-weight:950;margin:0}.activity-item{padding:12px 0;border-bottom:1px solid var(--line)}.activity-item:last-child{border-bottom:0}.activity-time{color:var(--muted);font-size:12px}.mini-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.bar{height:9px;border-radius:99px;background:#e9efec;overflow:hidden;margin-top:7px}.bar>span{display:block;height:100%;background:var(--green);border-radius:99px}.admin-table{width:100%;border-collapse:collapse}.admin-table th,.admin-table td{padding:9px 7px;border-bottom:1px solid var(--line);text-align:right;font-size:13px}.admin-table th{color:var(--muted)}
 @media(max-width:799px){.admin-grid{grid-template-columns:repeat(2,1fr)}.mini-grid{grid-template-columns:1fr}.admin-table{display:block;overflow:auto;white-space:nowrap}}
-.evidence-backdrop{position:fixed;inset:0;background:#0008;z-index:80}.evidence-modal{position:fixed;z-index:81;top:4vh;left:50%;transform:translateX(-50%);width:min(620px,94vw);max-height:92vh;overflow:auto}.evidence-modal h2{font-size:20px}.evidence-modal label{font-weight:900;display:block;margin-top:7px}.evidence-modal .row{align-items:flex-start}.evidence-modal img{object-fit:contain}@media(max-width:799px){.evidence-modal{top:2vh;max-height:96vh}}</style></head><body><div id="app" class="app"></div><div id="toast" class="toast hidden"></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script>
+.evidence-backdrop{position:fixed;inset:0;background:#0008;z-index:80}.evidence-modal{position:fixed;z-index:81;top:4vh;left:50%;transform:translateX(-50%);width:min(620px,94vw);max-height:92vh;overflow:auto}.evidence-modal h2{font-size:20px}.evidence-modal label{font-weight:900;display:block;margin-top:7px}.evidence-modal .row{align-items:flex-start}.evidence-modal img{object-fit:contain}@media(max-width:799px){.evidence-modal{top:2vh;max-height:96vh}}</style></head><body><div id="app" class="app"></div><div id="toast" class="toast hidden"></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+function validateDXNAge18(birthDate){
+  if(!birthDate) return {ok:false, message:'يرجى إدخال تاريخ التولد.'};
+  const d = new Date(birthDate + 'T00:00:00');
+  if(Number.isNaN(d.getTime())) return {ok:false, message:'تاريخ التولد غير صحيح.'};
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if(m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+  return age >= 18
+    ? {ok:true, age}
+    : {ok:false, age, message:'⚠️ عذرًا، يشترط أن يكون عمر المتقدم 18 سنة أو أكثر للتسجيل.'};
+}
+
+</script><script src="config.js"></script><script>
 const C=window.DXN_CONFIG||{};let sb=null,token=localStorage.getItem('dxn_session')||'',me=null,role=null,data=null,tab='home',membershipRequests=[];
 const $=id=>document.getElementById(id); const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(s){$('toast').textContent=s;$('toast').classList.remove('hidden');setTimeout(()=>$('toast').classList.add('hidden'),2600)}
@@ -43,7 +57,19 @@ async function submitDXNMembershipRequest(){
   if(!$('dxnAgeConfirm').checked)return toast('يجب تأكيد أن العمر 18 سنة أو أكثر.');
   const d=new Date(birth_date+'T00:00:00'); const now=new Date(); let age=now.getFullYear()-d.getFullYear(); const md=now.getMonth()-d.getMonth(); if(md<0||(md===0&&now.getDate()<d.getDate()))age--;
   if(isNaN(d)||age<18)return toast('يشترط أن يكون العمر 18 سنة أو أكثر.');
-  try{await rpc('submit_dxn_membership_request',{p_full_name:full_name,p_residence_country:residence_country,p_birth_country:birth_country,p_birth_date:birth_date,p_mobile:mobile,p_email:email,p_address:address,p_id_or_passport:id_number,p_referred_by_member:sponsor_name,p_age_18_confirmed:$('dxnAgeConfirm').checked,p_no_active_membership_confirmed:$('dxnNoActiveMembership').checked});$('app').innerHTML=`<div class="login card"><div style="text-align:center"><img class="logo" src="logo.png"><h1>تم إرسال الطلب ✅</h1><p style="line-height:2">وصلت بيانات طلب العضوية بنجاح. سيتواصل معك الفريق لإكمال إجراءات عضوية DXN.</p><p class="muted">العضوية مجانية، ولا توجد شروط للبدء سوى أن يكون العمر 18 سنة أو أكثر، وألا تكون لديك عضوية DXN فعّالة.</p><button class="primary" style="width:100%" onclick="renderLogin()">🔐 العودة</button></div></div>`}catch(e){toast(e.message||'تعذر إرسال الطلب')}
+  try{
+  const birthField =
+    document.querySelector('#dxnBirthDate') ||
+    document.querySelector('[name="birth_date"]') ||
+    document.querySelector('[name="birthDate"]');
+  const birthValue = birthField ? birthField.value : '';
+  const ageCheck = validateDXNAge18(birthValue);
+  if(!ageCheck.ok){
+    toast(ageCheck.message || 'يشترط أن يكون العمر 18 سنة أو أكثر.');
+    if(birthField) birthField.focus();
+    return;
+  }
+await rpc('submit_dxn_membership_request',{p_full_name:full_name,p_residence_country:residence_country,p_birth_country:birth_country,p_birth_date:birth_date,p_mobile:mobile,p_email:email,p_address:address,p_id_or_passport:id_number,p_referred_by_member:sponsor_name,p_age_18_confirmed:$('dxnAgeConfirm').checked,p_no_active_membership_confirmed:$('dxnNoActiveMembership').checked});$('app').innerHTML=`<div class="login card"><div style="text-align:center"><img class="logo" src="logo.png"><h1>تم إرسال الطلب ✅</h1><p style="line-height:2">وصلت بيانات طلب العضوية بنجاح. سيتواصل معك الفريق لإكمال إجراءات عضوية DXN.</p><p class="muted">العضوية مجانية، ولا توجد شروط للبدء سوى أن يكون العمر 18 سنة أو أكثر، وألا تكون لديك عضوية DXN فعّالة.</p><button class="primary" style="width:100%" onclick="renderLogin()">🔐 العودة</button></div></div>`}catch(e){toast(e.message||'تعذر إرسال الطلب')}
 }
 
 async function selfRegister(){
