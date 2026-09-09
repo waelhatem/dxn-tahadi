@@ -109,12 +109,61 @@ function ideaStep(n){
   ];
   const x=steps[n]||steps[0];
   const prev=n>0?`<button onclick="ideaStep(${n-1})">⬅️ السابق</button>`:'';
-  const next=n<steps.length-1?`<button class="primary" onclick="ideaStep(${n+1})">التالي ➡️</button>`:`<button class="primary" onclick="ideaStep(0)">🔄 إعادة الرحلة</button>`;
+  const next=n<steps.length-1?`<button class="primary" onclick="ideaStep(${n+1})">التالي ➡️</button>`:`<button class="primary" onclick="ideaTrustVideos()">🎥 أريد الحصول على معلومات أكثر ومشاهدة فيديوهات تعطيني ثقة أكبر بالمشروع</button><button onclick="ideaStep(0)">🔄 إعادة الرحلة</button>`;
   $('app').innerHTML=`<div class="view-switch" id="viewSwitch"></div><div class="login card" style="max-width:900px;text-align:right"><div style="text-align:center"><img class="logo" src="logo.png"><h1>💡 طرح الفكرة</h1><p class="muted">تعرف على الفكرة خطوة بخطوة — بدون تسجيل أو إنشاء حساب.</p></div><div class="card" style="text-align:center;min-height:300px"><div style="font-size:52px;margin-bottom:10px">${x[0]}</div><div class="title">${x[1]}</div><p style="font-size:18px;line-height:2;max-width:720px;margin:20px auto">${x[2]}</p><div class="muted" style="margin-top:18px">الخطوة ${n+1} من ${steps.length}</div><div style="margin:12px auto;max-width:500px;height:7px;background:var(--line);border-radius:10px;overflow:hidden"><div style="height:100%;width:${((n+1)/steps.length)*100}%;background:var(--green);border-radius:10px"></div></div></div><div class="actions" style="justify-content:center">${prev}${next}</div><div class="card"><div class="title">🧭 المسار الكامل</div><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">${steps.map((z,i)=>`<button onclick="ideaStep(${i})" style="opacity:${i===n?1:.75}">${z[0]} ${z[1]}</button>`).join('')}</div></div><div class="actions"><button onclick="renderLogin()">🔐 لدي عضوية — تسجيل الدخول</button><button onclick="renderRegister()">📝 أريد طلب عضوية DXN</button></div></div>`;
   renderViewSwitch();
 }
 function renderIdea(){ideaStep(0)}
 
+function ideaTrustVideos(){
+  const videos=[
+    {
+      title:'🌍 مرحبًا بك في عالم DXN',
+      desc:'فيديو تعريفي يساعدك على تكوين صورة أولية عن الشركة وما تقدمه.',
+      id:'fvatB7JWHuE'
+    },
+    {
+      title:'🏢 التعرف على DXN والشركة',
+      desc:'مادة مرئية إضافية للتعرف على الشركة ونموذجها بصورة أوسع.',
+      id:'Vf8NoZah8WQ'
+    }
+  ];
+  $('app').innerHTML=`<div class="view-switch" id="viewSwitch"></div>
+  <div class="login card" style="max-width:1000px;text-align:right">
+    <div style="text-align:center">
+      <img class="logo" src="logo.png">
+      <h1>🎥 معلومات أكثر وفيديوهات تعطيك صورة أوضح</h1>
+      <p class="muted" style="line-height:1.9">إذا أكملت الخطوات السبعة وأردت أن تتعرف أكثر قبل اتخاذ أي خطوة، شاهد هذه المواد التعريفية أولًا. الهدف أن ترى الصورة بنفسك وتكوّن قناعتك بهدوء.</p>
+    </div>
+    <div class="card" style="background:#f7fbf9">
+      <div class="title">🔎 ماذا ستتعرف عليه؟</div>
+      <div class="grid">
+        <div><b>🏢 الشركة</b><p class="muted">خلفية الشركة وطبيعة نشاطها.</p></div>
+        <div><b>🌍 الانتشار</b><p class="muted">صورة أوسع عن حضور DXN حول العالم.</p></div>
+        <div><b>🛍️ المنتجات</b><p class="muted">التعرف على جانب المنتجات ونمط الاستخدام.</p></div>
+        <div><b>💼 الفكرة التجارية</b><p class="muted">فهم الفكرة قبل أن تقرر هل تريد معرفة المزيد.</p></div>
+      </div>
+    </div>
+    ${videos.map(v=>`<div class="card">
+      <div class="title">${v.title}</div>
+      <p class="muted">${v.desc}</p>
+      <div style="position:relative;width:100%;padding-top:56.25%;overflow:hidden;border-radius:16px;background:#000">
+        <iframe src="https://www.youtube.com/embed/${v.id}" title="${esc(v.title)}" style="position:absolute;inset:0;width:100%;height:100%;border:0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+      </div>
+    </div>`).join('')}
+    <div class="card">
+      <div class="title">🎬 المزيد من الفيديوهات الرسمية</div>
+      <p class="muted">يمكنك أيضًا مشاهدة مكتبة الفيديوهات في موقع DXN الرسمي، وتشمل فيديوهات الشركة والمنتجات والوحدات التدريبية.</p>
+      <a href="https://www.dxn2u.com/gallery/?lang=ar" target="_blank" rel="noopener" class="primary" style="display:inline-block;text-decoration:none">🌐 مشاهدة مكتبة فيديوهات DXN الرسمية</a>
+    </div>
+    <div class="actions" style="justify-content:center">
+      <button onclick="ideaStep(6)">⬅️ العودة إلى الخطوة السابعة</button>
+      <button class="primary" onclick="renderRegister()">📝 أريد طلب عضوية DXN</button>
+      <button onclick="renderLogin()">🔐 لدي عضوية — تسجيل الدخول</button>
+    </div>
+  </div>`;
+  renderViewSwitch();
+}
 function trainings(){
   if(role!=='member'||!me){renderLogin();return ''}
   const items=[
