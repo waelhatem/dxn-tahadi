@@ -70,6 +70,11 @@ body.mobile-mode .view-switch button{min-width:120px}
 body{top:0!important}
 @media(max-width:600px){.site-language-bar{padding:5px 8px}.site-language-inner{justify-content:center}.site-language-inner strong{display:none}#google_translate_element{min-width:190px}.goog-te-gadget .goog-te-combo{width:190px}}
 </style>  <link rel="icon" type="image/png" href="logo.png">
+
+<style>
+.ai-guide-fab{position:fixed;left:18px;bottom:78px;z-index:60;border-radius:999px!important;padding:12px 16px!important;background:linear-gradient(135deg,#0f513f,#1a8064)!important;color:#fff!important;box-shadow:0 8px 25px #0003;font-size:14px!important}.ai-guide-modal{position:fixed;inset:0;background:#0006;z-index:100;display:flex;align-items:flex-end;justify-content:center;padding:12px}.ai-guide-box{width:min(720px,100%);max-height:82vh;background:#fff;border-radius:24px;box-shadow:0 18px 60px #0004;display:flex;flex-direction:column;overflow:hidden}.ai-guide-head{padding:14px 16px;background:linear-gradient(135deg,#0c4738,#1a725b);color:#fff;display:flex;justify-content:space-between;align-items:center}.ai-guide-head b{font-size:18px}.ai-guide-close{background:#ffffff22!important;color:#fff!important}.ai-guide-messages{padding:14px;overflow:auto;display:grid;gap:10px;min-height:220px}.ai-msg{padding:11px 13px;border-radius:16px;line-height:1.75;white-space:pre-wrap;max-width:92%}.ai-msg.bot{background:#f1f7f4;border:1px solid #d9e9e1;justify-self:start}.ai-msg.user{background:#0f513f;color:#fff;justify-self:end}.ai-guide-quick{display:flex;gap:7px;overflow:auto;padding:0 14px 10px}.ai-guide-quick button{white-space:nowrap}.ai-guide-input{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--line)}.ai-guide-input input{margin:0}.ai-guide-note{padding:0 14px 10px;color:#667085;font-size:11px;text-align:center}
+@media(max-width:560px){.ai-guide-fab{left:10px;bottom:72px}.ai-guide-box{max-height:88vh;border-radius:20px}}
+</style>
 </head><body>
 <div id="site-language-bar" class="site-language-bar" aria-label="اختيار اللغة">
   <div class="site-language-inner">
@@ -1197,6 +1202,64 @@ async function changePin(){const p=prompt('PIN الجديد:');if(!p)return;try{
 async function decide(id,q,ok){try{await rpc(q?'approve_question':'approve_challenge',{p_token:token,[q?'p_answer':'p_submission']:id,p_ok:ok});toast(ok?'تم الاعتماد وإضافة النجوم.':'تم الرفض.');await refresh()}catch(e){toast(e.message||'تعذر التنفيذ')}}
 async function setPoints(id){const v=prompt('أدخل نقاط DXN الفعلية لهذا العضو هذا الشهر:','100');if(v===null)return;try{await rpc('set_monthly_points',{p_token:token,p_member:id,p_points:Number(v)});if(Number(v)>=100&&confirm('العضو حقق 100 نقطة. هل تضيف مكافأة ⭐100؟'))await rpc('award_monthly_target',{p_token:token,p_member:id});toast('تم تحديث التارجت.');await refresh()}catch(e){toast(e.message||'تعذر تحديث التارجت')}}
 async function refresh(){const d=await rpc('bootstrap',{p_token:token});data=d;role=d.role;me=(d.members||[]).find(x=>role==='member')||null;try{trainingData=await rpc('get_training_data',{p_token:token})}catch(e){trainingData={lessons:[],my_progress:[],member_progress:[]}}if(role==='leader'){try{membershipRequests=await rpc('leader_dxn_membership_requests',{p_token:token})}catch(e){membershipRequests=[]}}render()}
+
+const AI_GUIDE_KNOWLEDGE={
+ public:[
+  ['ما هو الموقع','هذا الموقع هو «مجتمع الصحة والثراء». صُمم ليشرح رحلة العمل، ثم يساعد الأعضاء على التعلم والنشاط ومتابعة الإنجازات بطريقة منظمة.'],
+  ['كيف أبدأ','ابدأ من «اكتشف رحلة الصحة والثراء والحرية»، ثم شاهد المواد التعريفية. إذا أصبحت عضوًا، سجّل دخولك وابدأ من مهمتك اليومية والتدريب المتاح لك.'],
+  ['ما هي النجوم','النجوم ⭐ هي عملة التحفيز داخل الموقع فقط، وليست نقاط DXN. تُكتسب من الإنجازات والتدريب بعد اعتماد الإنجاز حسب النظام.'],
+  ['ما هو التارجت','التارجت الشهري هو 100 نقطة DXN. تدخل نقاطك الفعلية وتزداد تدريجيًا، ويظهر لك المتبقي والتقدم نحو الهدف.'],
+  ['التدريب','التدريب متسلسل: لا يفتح الدرس التالي قبل إكمال السابق، والمشاهدة الفعلية هي أساس إكمال الدرس.']
+ ],
+ member:[
+  ['ماذا أفعل الآن','افتح «مهمتي اليوم». هذه أهم خطوة حالية لك. إذا كان إنجازك قيد الاعتماد، انتظر قرار القائد ولا تبدأ مهمة جديدة قبل القرار.'],
+  ['كيف أرفع تقييمي','تقييمك من 100 يُحسب تلقائيًا من الإنجازات المعتمدة، النجوم، التدريب، التارجت الشهري، بناء الفريق، والنشاط والاستمرارية. ركّز على النشاط المتوازن.'],
+  ['كيف أرفع النجوم','أنجز التحديات الفعالة، أكمل التدريب بالترتيب، وحقق أهداف الشهر. النجوم لا يضيفها العضو لنفسه؛ الإنجازات التي تحتاج اعتمادًا تعتمد من القائد.'],
+  ['التارجت','سجّل نقاط DXN الفعلية لهذا الشهر في قسم «تقدّمي». إذا وصلت إلى 100 أو تجاوزتها سيظهر لك تحقيق التارجت والفائض.'],
+  ['التدريب التالي','أكمل الدرس الحالي بنسبة 100%. بعد ذلك يصبح الدرس التالي متاحًا، ويمكنك إعادة مشاهدة الدروس المكتملة.']
+ ],
+ leader:[
+  ['كيف أتابع الفريق','استخدم مركز القيادة الذكي ومركز الفريق لمعرفة النشاط، المتصدرين، الأعضاء الذين يحتاجون متابعة، والتقدم نحو التارجت.'],
+  ['ماذا أعتمد','راجع الإنجازات المعلقة وأدلة العضو قبل اعتمادها. عند الاعتماد تُضاف المكافأة وفق التحدي.'],
+  ['كيف أساعد عضوًا متوقفًا','افتح ملف العضو، راجع آخر نشاط والتدريب والتارجت والتقييم التلقائي، ثم وجّه العضو إلى الخطوة التالية بدل إعطائه مهام كثيرة دفعة واحدة.'],
+  ['التقييم','تقييم العضو من 100 تلقائي، وليس تقييمًا يدويًا. يتحسن مع الإنجازات والتدريب والتارجت وبناء الفريق والنشاط.']
+ ]
+};
+function aiGuideRole(){return role==='leader'?'leader':role==='member'?'member':'public'}
+function aiGuideContext(){
+ if(role==='member'&&me){
+  const subs=(data.challenge_submissions||data.submissions||[]).filter(x=>String(x.member_id||x.memberId)===String(me.id));
+  const pending=subs.filter(x=>x.status==='pending').length;
+  const approved=subs.filter(x=>x.status==='approved').length;
+  const pts=Number(me.dxn_points??me.monthly_dxn_points??0), stars=Number(me.stars||0);
+  return `بيانات العضو الحالية: ${me.name||'العضو'}، النجوم ${stars}، نقاط DXN هذا الشهر ${pts}، إنجازات معتمدة ${approved}، إنجازات بانتظار الاعتماد ${pending}.`;
+ }
+ if(role==='leader') return `بيانات القائد: عدد الأعضاء ${data.members?.filter(m=>m.active!==false).length||0}، عدد الفرق ${data.teams?.filter(t=>t.active!==false).length||0}.`;
+ return 'المستخدم زائر ولم يسجل الدخول.';
+}
+function aiGuideAnswer(q){
+ const text=String(q||'').trim(); if(!text)return 'اكتب سؤالك وسأرشدك خطوة بخطوة.';
+ const pool=[...(AI_GUIDE_KNOWLEDGE[aiGuideRole()]||[]),...AI_GUIDE_KNOWLEDGE.public];
+ const words=text.toLowerCase().split(/\s+/).filter(w=>w.length>2); let best=null,score=0;
+ for(const [k,a] of pool){let sc=0;for(const w of words)if((k+' '+a).toLowerCase().includes(w))sc++;if(text.toLowerCase().includes(k.toLowerCase()))sc+=4;if(sc>score){score=sc;best=a}}
+ if(best)return best+'\n\n'+aiGuideContext();
+ if(/ماذا|كيف|الخطوة|ابدأ|الآن|اليوم/.test(text)&&role==='member')return 'أنصحك الآن بفتح «مهمتي اليوم». نفّذ خطوة واحدة فقط، ثم تابع التدريب أو الإنجاز التالي بحسب ما يظهر لك.\n\n'+aiGuideContext();
+ if(/ماذا|كيف|الآن|متابعة|عضو/.test(text)&&role==='leader')return 'ابدأ من «مركز القيادة الذكي»: عالج المعلّقات أولًا، ثم راجع الأعضاء الذين يحتاجون متابعة، ثم راقب التارجت والنشاط.\n\n'+aiGuideContext();
+ return 'أستطيع إرشادك في الموقع: البداية، التحديات، النجوم، التدريب، التارجت، التقييم، المنافسات، الفرق، أو استخدام لوحة القائد. اكتب سؤالك بشكل مباشر وسأعطيك الخطوة المناسبة.';
+}
+function openAIGuide(){
+ if(document.getElementById('aiGuideModal'))return;
+ const modal=document.createElement('div');modal.id='aiGuideModal';modal.className='ai-guide-modal';
+ modal.innerHTML=`<div class="ai-guide-box"><div class="ai-guide-head"><div><b>🤖 المرشد الذكي</b><div class="small" style="opacity:.85">مرشد داخل الموقع حسب دورك</div></div><button class="ai-guide-close" onclick="closeAIGuide()">✕</button></div><div id="aiGuideMessages" class="ai-guide-messages"><div class="ai-msg bot">مرحبًا 👋
+أنا مرشدك داخل «مجتمع الصحة والثراء». أخبرني ماذا تريد أن تفعل، وسأرشدك إلى الخطوة المناسبة.</div></div><div class="ai-guide-quick"><button onclick="aiQuick('ماذا أفعل الآن؟')">🎯 ماذا أفعل الآن؟</button><button onclick="aiQuick('كيف أرفع تقييمي؟')">📊 كيف أرفع تقييمي؟</button><button onclick="aiQuick('كيف يعمل التدريب؟')">📚 التدريب</button><button onclick="aiQuick('كيف يعمل التارجت؟')">🎯 التارجت</button></div><div class="ai-guide-input"><input id="aiGuideInput" placeholder="اكتب سؤالك هنا..." onkeydown="if(event.key==='Enter')sendAIGuide()"><button class="primary" onclick="sendAIGuide()">إرسال</button></div><div class="ai-guide-note">مرشد ذكي مدمج يعتمد على معرفة الموقع وبيانات الجلسة.</div></div>`;
+ modal.addEventListener('click',e=>{if(e.target===modal)closeAIGuide()});document.body.appendChild(modal);setTimeout(()=>document.getElementById('aiGuideInput')?.focus(),50);
+}
+function closeAIGuide(){document.getElementById('aiGuideModal')?.remove()}
+function sendAIGuide(){const i=document.getElementById('aiGuideInput');if(!i)return;const q=i.value.trim();if(!q)return;addAIGuideMessage(q,'user');i.value='';setTimeout(()=>addAIGuideMessage(aiGuideAnswer(q),'bot'),120)}
+function aiQuick(q){addAIGuideMessage(q,'user');setTimeout(()=>addAIGuideMessage(aiGuideAnswer(q),'bot'),120)}
+function addAIGuideMessage(t,type){const box=document.getElementById('aiGuideMessages');if(!box)return;const d=document.createElement('div');d.className='ai-msg '+type;d.textContent=t;box.appendChild(d);box.scrollTop=box.scrollHeight}
+function ensureAIGuideFab(){if(document.getElementById('aiGuideFab'))return;const b=document.createElement('button');b.id='aiGuideFab';b.className='ai-guide-fab';b.textContent='🤖 المرشد الذكي';b.onclick=openAIGuide;document.body.appendChild(b)}
+ensureAIGuideFab();
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{}); boot();
 window.switchTab=switchTab;window.openMemberProgress=openMemberProgress;window.openMemberProfile=openMemberProfile;window.closeMemberProfile=closeMemberProfile;window.memberPathMap=memberPathMap;window.openTrainingManager=openTrainingManager;window.restartTrainingWatch=restartTrainingWatch;window.startTrainingLesson=startTrainingLesson;window.completeTrainingLesson=completeTrainingLesson;window.saveTrainingFromManager=saveTrainingFromManager;window.editTrainingLesson=editTrainingLesson;window.toggleTrainingLesson=toggleTrainingLesson;window.closeTraining=closeTraining;window.closeTrainingManager=closeTrainingManager;window.challenges=challenges;window.teams=teams;window.leader=leader;window.approvalCard=approvalCard;window.renderIdea=renderIdea;window.trainings=trainings;window.approveDXNMembershipRequest=approveDXNMembershipRequest;window.rejectDXNMembershipRequest=rejectDXNMembershipRequest;window.openDXNMembershipRequests=openDXNMembershipRequests;window.openApprovedDXNMembershipRequests=openApprovedDXNMembershipRequests;window.backToLeaderDashboard=backToLeaderDashboard;window.addEventListener('resize',()=>{if(!localStorage.getItem('dxn_view_mode'))renderViewSwitch()});
 </script>
