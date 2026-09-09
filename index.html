@@ -59,8 +59,44 @@ body.mobile-mode .view-switch button{min-width:120px}
 @media(max-width:620px){.path-meta{grid-template-columns:1fr}.path-content{padding:12px}.path-content h3{font-size:16px}}
 
 .command-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.command-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px}.command-card h3{margin:0 0 5px}.command-big{font-size:28px;font-weight:950}.health-good{background:#edf9f0}.health-warn{background:#fff8e8}.health-danger{background:#fff0ef}.member-mini{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;border:1px solid var(--line);border-radius:15px;background:#fff;margin-top:8px}.member-mini .bar,.command-card .bar{height:9px;background:#e9efec;border-radius:99px;overflow:hidden;margin-top:7px}.member-mini .bar span,.command-card .bar span{display:block;height:100%;background:var(--green);border-radius:99px}.rank-medal{font-size:25px;min-width:34px;text-align:center}.competition-card{background:linear-gradient(135deg,#fffaf0,#fff)}.rare-badge{border:2px solid #e0b33c;background:#fffaf0}.command-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}@media(max-width:650px){.command-grid{grid-template-columns:1fr}.member-mini{align-items:flex-start}.command-big{font-size:25px}}
+
+/* V77 — لغة الموقع: العربية افتراضيًا، مع دعم جميع اللغات المتاحة عبر Google Translate */
+.site-language-bar{position:fixed;top:0;left:0;right:0;z-index:9999;background:rgba(255,255,255,.97);border-bottom:1px solid rgba(15,81,63,.12);box-shadow:0 2px 12px rgba(0,0,0,.06);padding:7px 12px;backdrop-filter:blur(8px)}
+.site-language-inner{max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:flex-end;gap:8px;min-height:34px;font-size:13px;color:#0f513f}
+#google_translate_element{min-width:170px}
+.goog-te-gadget{font-family:inherit!important;font-size:0!important}
+.goog-te-gadget .goog-te-combo{font-family:inherit!important;font-size:14px!important;font-weight:700!important;color:#173c32!important;background:#fff!important;border:1px solid #cbded7!important;border-radius:10px!important;padding:7px 10px!important;outline:none!important;cursor:pointer!important;max-width:260px}
+.goog-te-banner-frame.skiptranslate{display:none!important}
+body{top:0!important}
+@media(max-width:600px){.site-language-bar{padding:5px 8px}.site-language-inner{justify-content:center}.site-language-inner strong{display:none}#google_translate_element{min-width:190px}.goog-te-gadget .goog-te-combo{width:190px}}
 </style>  <link rel="icon" type="image/png" href="logo.png">
-</head><body><div id="app" class="app"></div><div id="toast" class="toast hidden"></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script>
+</head><body>
+<div id="site-language-bar" class="site-language-bar" aria-label="اختيار اللغة">
+  <div class="site-language-inner">
+    <span>🌐</span><strong>اللغة</strong>
+    <div id="google_translate_element"></div>
+  </div>
+</div>
+<div id="app" class="app"></div><div id="toast" class="toast hidden"></div><script>
+window.googleTranslateElementInit=function(){
+  new google.translate.TranslateElement({pageLanguage:'ar',autoDisplay:false},'google_translate_element');
+  setTimeout(window.dxnBindLanguageDirection,500);
+};
+window.dxnBindLanguageDirection=function(){
+  const select=document.querySelector('.goog-te-combo');
+  if(!select)return;
+  if(select.dataset.dxnBound==='1')return;
+  select.dataset.dxnBound='1';
+  const rtl=new Set(['ar','fa','he','ur','ps','sd','ku','yi']);
+  const apply=()=>{const v=(select.value||'ar').toLowerCase().split('-')[0];document.documentElement.lang=v||'ar';document.documentElement.dir=rtl.has(v)?'rtl':'ltr';};
+  select.addEventListener('change',()=>setTimeout(apply,250));
+  apply();
+};
+const dxnLangObserver=new MutationObserver(()=>window.dxnBindLanguageDirection&&window.dxnBindLanguageDirection());
+dxnLangObserver.observe(document.documentElement,{childList:true,subtree:true});
+</script>
+<script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script>
 function validateDXNAge18(birthDate){
   if(!birthDate) return {ok:false, message:'يرجى إدخال تاريخ التولد.'};
   const d = new Date(birthDate + 'T00:00:00');
@@ -1169,4 +1205,8 @@ window.switchTab=switchTab;window.openMemberProgress=openMemberProgress;window.o
   <div>جميع الحقوق محفوظة</div>
 </footer>
 
+
+<style>
+#app{padding-top:48px!important;min-height:calc(100vh - 48px)}
+</style>
 </body></html>
