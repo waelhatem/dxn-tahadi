@@ -1,4 +1,4 @@
-<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0f513f"><link rel="manifest" href="manifest.json"><title>مجتمع الصحة والثراء</title><style>
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0f513f"><link rel="manifest" href="manifest.json"><title>مجتمع الصحة والثراء</title><script src="https://www.youtube.com/iframe_api"></script><style>
 :root{--bg:#eef5f1;--card:#fff;--text:#182234;--muted:#667085;--line:#e2e8e5;--green:#0f513f;--green2:#176b55;--gold:#d99a18;--red:#b42318;--blue:#e8f1ff}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif}.app{max-width:980px;margin:auto;padding:14px 14px 85px}.top{position:relative;background:linear-gradient(135deg,#0c4738,#1a725b);color:white;border-radius:0 0 36px 36px;padding:18px 18px 25px;text-align:center;box-shadow:0 8px 28px #0001}.logo{width:120px;height:120px;border-radius:50%;object-fit:cover;box-shadow:0 8px 24px #0003;border:4px solid #fff}.top h1{margin:8px 0 4px;font-size:30px}.top p{margin:0;font-size:14px;opacity:.88}.member-identity{position:absolute;left:18px;top:18px;min-width:150px;max-width:230px;padding:9px 12px;border:1px solid #ffffff55;border-radius:14px;background:#ffffff18;color:#fff;text-align:left;backdrop-filter:blur(4px);font-size:12px;line-height:1.45}.member-identity b{display:block;font-size:14px}.member-identity span{display:block;opacity:.92}.member-identity .role-label{font-weight:900;margin-bottom:2px}.logout-top{margin-top:8px;background:#ffffff22;color:#fff;border:1px solid #ffffff55;padding:7px 10px;min-height:36px;font-size:12px}.logout-top:hover{background:#ffffff33}.tabs{display:flex;gap:8px;overflow:auto;margin:14px 0}.tab{flex:1;min-width:115px;border:0;border-radius:16px;padding:13px;background:#fff;color:var(--text);font-weight:900}.tab.active{background:var(--green);color:#fff}.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.stat{background:#fff;border:1px solid var(--line);border-radius:18px;padding:15px}.stat .emoji{font-size:28px}.stat .k{color:var(--muted);font-weight:800}.stat b{font-size:27px;display:block}.card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:16px;margin-top:12px}.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:11px 0;border-bottom:1px solid var(--line)}.row:last-child{border-bottom:0}.title{font-weight:950;font-size:19px}.muted{color:var(--muted);font-size:13px}.stars{color:var(--gold);font-weight:950}.badge{display:inline-block;background:#eef8f2;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900}.actions{display:flex;gap:7px;flex-wrap:wrap}button,input,textarea,select{font:inherit}button{border:0;border-radius:12px;padding:11px 14px;min-height:44px;font-weight:900;cursor:pointer;background:#eef3f2;color:var(--text)}button.primary{background:var(--green);color:#fff}button.gold{background:#fff4d5;color:#7a5300}button.danger{background:#fee4e2;color:#9f2118}button:disabled{opacity:.5;cursor:not-allowed}input,textarea,select{width:100%;padding:11px;border:1px solid var(--line);border-radius:12px;margin:5px 0 10px;background:#fff}textarea{min-height:100px}.hidden{display:none!important}.challenge{border:1px solid #eadcb0;border-radius:18px;padding:14px;margin-top:10px;background:#fffdf5}.challenge h3{margin:0 0 5px}.question{border:1px solid #eadcb0;border-radius:18px;padding:14px;margin-top:10px;background:#fffdf5}.answer{background:#f7f9fb;border-radius:13px;padding:12px;white-space:pre-wrap}.ok{background:#edf9f0;border-color:#c5e4cc}.pending{background:#fff7df}.login{max-width:480px;margin:40px auto}.nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;justify-content:center;gap:5px;padding:8px;z-index:20}.nav button{flex:1;max-width:180px;background:transparent}.small{font-size:11px}.empty{text-align:center;color:var(--muted);padding:20px}.toast{position:fixed;top:15px;left:15px;right:15px;background:#102a22;color:#fff;padding:12px;border-radius:13px;text-align:center;z-index:99}.teambar{display:flex;justify-content:space-between;gap:10px;padding:10px 0}.leaderbox{border:2px dashed #d7e2dd}
 
 /* اختيار واجهة العرض */
@@ -37,12 +37,12 @@ function validateDXNAge18(birthDate){
     : {ok:false, age, message:'⚠️ عذرًا، يشترط أن يكون عمر المتقدم 18 سنة أو أكثر للتسجيل.'};
 }
 
-const C=window.DXN_CONFIG||{};let sb=null,token=localStorage.getItem('dxn_session')||'',me=null,role=null,data=null,tab='home',membershipRequests=[];
+const C=window.DXN_CONFIG||{};let sb=null,token=localStorage.getItem('dxn_session')||'',me=null,role=null,data=null,tab='home',membershipRequests=[],trainingData={lessons:[],my_progress:[],member_progress:[]},trainingWatch={player:null,timer:null,lessonId:null,videoId:null,invalid:false};
 const $=id=>document.getElementById(id); const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(s){$('toast').textContent=s;$('toast').classList.remove('hidden');setTimeout(()=>$('toast').classList.add('hidden'),2600)}
 function ready(){return C.SUPABASE_URL&&C.SUPABASE_ANON_KEY&&!C.SUPABASE_URL.includes('YOUR-PROJECT')&&!C.SUPABASE_ANON_KEY.includes('YOUR_')}
 async function rpc(fn,args){if(!sb)throw Error('لم يتم إعداد Supabase');const {data:d,error}=await sb.rpc(fn,args);if(error)throw error;return d}
-async function boot(){if(!ready()){renderSetup();return}sb=supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY);if(!token){renderLogin();return}try{const d=await rpc('bootstrap',{p_token:token});data=d;role=d.role;me=(d.members||[])[0]||null;if(role==='leader'){try{membershipRequests=await rpc('leader_dxn_membership_requests',{p_token:token})}catch(e){membershipRequests=[]}}render()}catch(e){localStorage.removeItem('dxn_session');token='';renderLogin();toast(e.message||'انتهت الجلسة')}}
+async function boot(){if(!ready()){renderSetup();return}sb=supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY);if(!token){renderLogin();return}try{const d=await rpc('bootstrap',{p_token:token});data=d;role=d.role;me=(d.members||[])[0]||null;try{trainingData=await rpc('get_training_data',{p_token:token})}catch(e){trainingData={lessons:[],my_progress:[],member_progress:[]}}if(role==='leader'){try{membershipRequests=await rpc('leader_dxn_membership_requests',{p_token:token})}catch(e){membershipRequests=[]}}render()}catch(e){localStorage.removeItem('dxn_session');token='';renderLogin();toast(e.message||'انتهت الجلسة')}}
 function renderSetup(){ $('app').innerHTML=`<div class="login card"><img class="logo" src="logo.png"><h1>مجتمع الصحة والثراء</h1><h2>إعداد النسخة Online</h2><p class="muted">النسخة جاهزة للربط بقاعدة بيانات Supabase. افتح ملف <b>config.js</b> وضع رابط المشروع وPublic anon key، ثم ارفع المجلد إلى Vercel أو أي استضافة ثابتة.</p><div class="card leaderbox"><b>الخطوات:</b><ol><li>أنشئ مشروع Supabase.</li><li>نفّذ ملف schema.sql بالكامل في SQL Editor.</li><li>ضع بيانات المشروع في config.js.</li><li>ارفع المجلد إلى Vercel.</li></ol></div></div>`}
 function renderLogin(){ $('app').innerHTML=`<div class="view-switch" id="viewSwitch"></div><div class="login card"><div style="text-align:center"><img class="logo" src="logo.png"><h1>مجتمع الصحة والثراء</h1><p class="muted">دخول موحد من أي جهاز</p></div><label>نوع الدخول</label><select id="role"><option value="member">👤 دخول العضو</option><option value="leader">👑 دخول القائد</option></select><label>رقم العضوية / رمز القائد</label><input id="loginNo" placeholder="مثال: 820426486 أو LEADER"><label>رمز الدخول PIN</label><input id="pin" type="text" autocomplete="current-password" inputmode="text" autocapitalize="characters" spellcheck="false" placeholder="PIN"><button class="primary" style="width:100%" onclick="login()">🔐 دخول</button><button style="width:100%;margin-top:8px" onclick="renderRegister()">📝 طلب عضوية DXN</button><button style="width:100%;margin-top:8px" onclick="renderIdea()">✨ اكتشف رحلة الصحة والثراء والحرية</button><p class="muted small">بيانات القائد التجريبية بعد تنفيذ schema.sql: LEADER / 123456 — غيّرها فوراً.</p></div>`}
 async function renderRegister(){
@@ -206,86 +206,215 @@ function ideaTrustVideos(){
   renderViewSwitch();
 }
 function trainings(){
+  const lessons=(trainingData.lessons||[]).sort((a,b)=>Number(a.lesson_no)-Number(b.lesson_no));
+  const progress=trainingData.my_progress||[];
   if(!canAccessTraining())return `<div class="card"><div class="title">🔒 التدريب للأعضاء والقائد</div><p class="muted">هذا القسم متاح للعضو صاحب رقم عضوية DXN وللقائد.</p></div>`;
-  const items=[
-    ['1','🌱','أساسيات البداية','التعرف على البداية الصحيحة، العادات الأساسية، وكيف تبدأ بخطوات واضحة.'],
-    ['2','🛍️','التعرّف على المنتجات','شرح مبسط يساعدك على تكوين معرفة أولية بالمنتجات دون تعقيد.'],
-    ['3','💬','التواصل وفتح الحوار','كيف تبدأ محادثة طبيعية مع الشخص المناسب دون ضغط أو إلحاح.'],
-    ['4','💡','طرح الفكرة','كيف تشرح الفكرة باختصار ووضوح وتنتقل بالمهتم إلى الخطوة التالية.'],
-    ['5','📞','المتابعة','متى تتابع المهتم؟ وماذا تقول؟ وكيف تحافظ على العلاقة دون إزعاج؟'],
-    ['6','👥','بناء الفريق','كيف تساعد العضو الجديد على البداية والتعلم والاستمرار.'],
-    ['7','🎯','التحديات والنشاط','تحويل التعلم إلى نشاط يومي وأسبوعي وشهري قابل للقياس.'],
-    ['8','🏆','تطوير مهارات القائد','المتابعة والتدريب والتحفيز والقيادة العملية داخل الفريق.']
-  ];
+  if(!lessons.length)return `<div class="card"><div class="title">📚 الشروحات والتدريبات</div><p class="muted">لم تتم إضافة تدريبات بعد. يمكن للقائد إضافة روابط YouTube من مركز القيادة.</p>${role==='leader'?`<button class="primary" onclick="openTrainingManager()">➕ إضافة أول تدريب</button>`:''}</div>`;
 
-  // Client-side progress placeholder. It is intentionally persisted locally until
-  // a dedicated progress table/RPC is added; it does not affect existing functions.
-  const key=role==='leader'?'dxn_training_leader':'dxn_training_'+(me?.id||me?.member_no||'member');
-  const progress=Number(localStorage.getItem(key)||0);
-  const pct=Math.round((Math.min(progress,items.length)/items.length)*100);
+  const completedNo=new Set(progress.filter(p=>p.completed).map(p=>{
+    const l=lessons.find(x=>String(x.id)===String(p.lesson_id)); return l?Number(l.lesson_no):0;
+  }));
+  const highest=lessons.filter(l=>completedNo.has(Number(l.lesson_no))).reduce((m,l)=>Math.max(m,Number(l.lesson_no)),0);
+  const pct=Math.round((completedNo.size/lessons.length)*100);
 
-  const card=items.map((x,i)=>{
-    const n=i+1, locked=n>progress+1, done=n<=progress;
-    return `<div class="card" style="${locked?'opacity:.58':''};border:1px solid var(--line)">
+  const cards=lessons.map(l=>{
+    const n=Number(l.lesson_no), p=progress.find(x=>String(x.lesson_id)===String(l.id));
+    const done=!!p?.completed, locked=n>highest+1;
+    return `<div class="card" style="${locked?'opacity:.58;background:#f6f8f7':''}">
       <div class="row">
-        <div>
-          <div style="font-size:28px">${x[1]}</div>
-          <h3 style="margin:5px 0">التدريب ${x[0]} — ${esc(x[2])}</h3>
-          <p>${esc(x[3])}</p>
+        <div style="flex:1">
+          <div style="font-size:28px">📚</div>
+          <h3 style="margin:5px 0">التدريب ${n} — ${esc(l.title)}</h3>
+          <p>${esc(l.description||'')}</p>
           <div class="muted">${done?'✅ مكتمل':locked?'🔒 مغلق — أكمل التدريب السابق أولاً':'▶️ متاح الآن'}</div>
+          ${p?`<div class="muted">📊 نسبة المشاهدة: ${Number(p.watch_percent||0).toFixed(0)}%</div>`:''}
         </div>
-        <button class="${done?'':'primary'}" ${locked||done?'disabled':''} onclick="startTraining(${n})">${done?'✅ مكتمل':locked?'🔒 مغلق':'▶️ بدء التدريب'}</button>
+        <button class="${done?'':'primary'}" ${locked||done?'disabled':''} onclick="startTrainingLesson('${l.id}')">${done?'✅ مكتمل':locked?'🔒 مغلق':'▶️ بدء التدريب'}</button>
       </div>
     </div>`;
   }).join('');
 
   return `<div class="card">
     <div class="title">📚 الشروحات والتدريبات</div>
-    <p class="muted">شاهد التدريبات بالترتيب. لا يفتح التدريب التالي إلا بعد إكمال السابق.</p>
-    <div style="background:#eef3f1;border-radius:999px;height:14px;overflow:hidden;margin:15px 0">
-      <div style="width:${pct}%;height:100%;background:#0f513f"></div>
-    </div>
-    <div style="text-align:center;font-weight:900">نسبة إكمالك: ${pct}% — ${progress} من ${items.length}</div>
-  </div>${card}`;
+    <p class="muted">شاهد التدريبات بالترتيب. لا يفتح التدريب التالي إلا بعد إكمال التدريب السابق.</p>
+    <div style="background:#eef3f1;border-radius:999px;height:14px;overflow:hidden;margin:15px 0"><div style="width:${pct}%;height:100%;background:#0f513f"></div></div>
+    <div style="text-align:center;font-weight:900">نسبة إكمالك: ${pct}% — ${completedNo.size} من ${lessons.length}</div>
+  </div>${cards}`;
 }
-function startTraining(n){
-  const items=[
-    ['أساسيات البداية','ابدأ بالتعرف على الخطوات الأساسية قبل الانتقال إلى التدريب التالي.'],
-    ['التعرّف على المنتجات','تعرف على المنتجات بصورة مبسطة وواضحة.'],
-    ['التواصل وفتح الحوار','تعلم كيف تبدأ الحوار بطريقة طبيعية.'],
-    ['طرح الفكرة','تعلم طريقة عرض الفكرة بوضوح.'],
-    ['المتابعة','تعلم المتابعة دون ضغط أو إزعاج.'],
-    ['بناء الفريق','تعلم كيف تساعد العضو الجديد على البداية.'],
-    ['التحديات والنشاط','حوّل التعلم إلى نشاط عملي مستمر.'],
-    ['تطوير مهارات القائد','طوّر مهارات المتابعة والتدريب والقيادة.']
-  ];
-  if(n<1||n>items.length)return;
-  const key=role==='leader'?'dxn_training_leader':'dxn_training_'+(me?.id||me?.member_no||'member');
-  const progress=Number(localStorage.getItem(key)||0);
-  if(n!==progress+1)return toast('أكمل التدريب السابق أولاً.');
-  const modal=document.createElement('div');
-  modal.id='trainingModal';
-  modal.innerHTML=`<div class="evidence-backdrop" onclick="closeTraining()"></div>
-  <div class="evidence-modal card">
-    <div class="row"><div><h2 style="margin:0">📚 التدريب ${n} — ${esc(items[n-1][0])}</h2></div><button onclick="closeTraining()">✖️</button></div>
-    <p style="line-height:2">${esc(items[n-1][1])}</p>
-    <div class="card" style="background:#f7fbf9">
-      <div class="title">🎬 محتوى التدريب</div>
-      <p class="muted">هنا يوضع فيديو/شرح التدريب الخاص بهذا الدرس. بعد مشاهدة المحتوى كاملًا اضغط زر الإكمال.</p>
+function youtubeEmbed(url){
+  const s=String(url||'').trim();
+  let id='';
+  const m=s.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{6,})/i);
+  if(m)id=m[1];
+  return id?`https://www.youtube.com/embed/${id}?cc_load_policy=1&cc_lang_pref=ar`:'';
+}
+function startTrainingLesson(id){
+  const lessons=(trainingData.lessons||[]).sort((a,b)=>Number(a.lesson_no)-Number(b.lesson_no));
+  const l=lessons.find(x=>String(x.id)===String(id)); if(!l)return;
+  const progress=trainingData.my_progress||[];
+  const done=new Set(progress.filter(p=>p.completed).map(p=>{const z=lessons.find(x=>String(x.id)===String(p.lesson_id));return z?Number(z.lesson_no):0;}));
+  const highest=lessons.filter(x=>done.has(Number(x.lesson_no))).reduce((m,x)=>Math.max(m,Number(x.lesson_no)),0);
+  if(Number(l.lesson_no)>highest+1)return toast('أكمل التدريب السابق أولاً.');
+  const embed=youtubeEmbed(l.youtube_url);
+  if(!embed)return toast('رابط YouTube غير صالح.');
+
+  closeTraining();
+  trainingWatch={player:null,timer:null,lessonId:String(l.id),videoId:null,invalid:false};
+
+  const vid=(embed.match(/embed\/([A-Za-z0-9_-]+)/)||[])[1];
+  trainingWatch.videoId=vid;
+  const modal=document.createElement('div'); modal.id='trainingModal';
+  modal.innerHTML=`<div class="evidence-backdrop"></div>
+  <div class="evidence-modal card" style="max-width:900px">
+    <div class="row"><div><h2 style="margin:0">📚 التدريب ${l.lesson_no} — ${esc(l.title)}</h2><div class="muted">المشاهدة الكاملة مطلوبة. لا يمكن تجاوز الفيديو بالتقديم اليدوي.</div></div><button onclick="closeTraining()">✖️</button></div>
+    <p style="line-height:2">${esc(l.description||'')}</p>
+    <div style="position:relative;width:100%;padding-top:56.25%;overflow:hidden;border-radius:16px;background:#000">
+      <div id="trainingYoutubePlayer" style="position:absolute;inset:0;width:100%;height:100%"></div>
     </div>
-    <button class="primary" style="width:100%;margin-top:10px" onclick="completeTraining(${n})">✅ شاهدت التدريب كاملًا وأكملت الدرس</button>
+    <div id="trainingWatchStatus" class="card" style="margin-top:12px;background:#f7fbf9;text-align:center">
+      <b>⏳ لم يبدأ التسجيل بعد</b>
+      <div class="muted">شغّل الفيديو وشاهده من البداية حتى النهاية.</div>
+    </div>
+    ${role==='member'?`<div id="trainingCompleteBox" class="muted" style="margin-top:10px;text-align:center">🔒 سيظهر إكمال التدريب تلقائيًا عند وصول المشاهدة إلى 100%.</div>`:`<div class="muted" style="margin-top:12px;text-align:center">👑 وضع القائد: مشاهدة فقط</div>`}
+  </div>`;
+  document.body.appendChild(modal);
+
+  if(role==='member'){
+    rpc('update_training_progress',{p_token:token,p_lesson:id,p_watch_percent:0,p_current_seconds:0,p_duration_seconds:0,p_completed:false})
+      .then(()=>refresh()).catch(()=>{});
+  }
+  waitForYouTubePlayer(l);
+}
+function waitForYouTubePlayer(l){
+  let tries=0;
+  const ready=setInterval(()=>{
+    tries++;
+    if(window.YT&&YT.Player){
+      clearInterval(ready);
+      const iframeId='trainingYoutubePlayer';
+      const player=new YT.Player(iframeId,{
+        videoId:trainingWatch.videoId,
+        playerVars:{rel:0,cc_load_policy:1,cc_lang_pref:'ar',playsinline:1,disablekb:0},
+        events:{
+          onReady:()=>beginTrainingWatch(player,l.id),
+          onStateChange:(e)=>{
+            if(e.data===YT.PlayerState.ENDED) finishTrainingWatch(l.id,player);
+          }
+        }
+      });
+    }else if(tries>80)clearInterval(ready);
+  },250);
+}
+function beginTrainingWatch(player,lessonId){
+  trainingWatch.player=player;
+  trainingWatch.timer=setInterval(()=>sampleTrainingWatch(lessonId),2000);
+  updateTrainingWatchStatus('▶️ الفيديو جاهز — ابدأ المشاهدة من البداية.');
+}
+async function sampleTrainingWatch(lessonId){
+  const p=trainingWatch.player;
+  if(!p||!p.getDuration)return;
+  const duration=Number(p.getDuration()||0), current=Number(p.getCurrentTime()||0);
+  if(!duration)return;
+  const state=p.getPlayerState();
+  const pct=Math.min(100,current/duration*100);
+  if(state===YT.PlayerState.PLAYING){
+    // The server validates the accumulated watched time and detects large forward jumps.
+    try{
+      const result=await rpc('update_training_progress',{
+        p_token:token,p_lesson:lessonId,p_watch_percent:pct,p_current_seconds:current,
+        p_duration_seconds:duration,p_completed:false
+      });
+      if(result?.seek_detected){
+        trainingWatch.invalid=true;
+        updateTrainingWatchStatus('⚠️ تم اكتشاف محاولة تقديم يدوي. يجب إعادة التدريب من البداية.',true);
+        clearInterval(trainingWatch.timer); trainingWatch.timer=null;
+      }else{
+        updateTrainingWatchStatus(`▶️ تمت مشاهدة ${pct.toFixed(0)}% — أكمل حتى النهاية.`);
+      }
+    }catch(e){}
+  }
+}
+async function finishTrainingWatch(lessonId,player){
+  if(trainingWatch.invalid)return;
+  const duration=Number(player.getDuration()||0), current=Number(player.getCurrentTime()||0);
+  if(!duration)return;
+  try{
+    const result=await rpc('update_training_progress',{
+      p_token:token,p_lesson:lessonId,p_watch_percent:100,p_current_seconds:current,
+      p_duration_seconds:duration,p_completed:true
+    });
+    if(result?.completed){
+      updateTrainingWatchStatus('🎉 اكتملت المشاهدة 100% — تم فتح التدريب التالي.',false,true);
+      if(trainingWatch.timer){clearInterval(trainingWatch.timer);trainingWatch.timer=null;}
+      setTimeout(async()=>{closeTraining();await refresh()},1200);
+    }else{
+      trainingWatch.invalid=true;
+      updateTrainingWatchStatus('⚠️ لم يتم اعتماد الإكمال لأن المشاهدة الكاملة لم تُثبت. أعد التدريب من البداية.',true);
+    }
+  }catch(e){toast(e.message||'تعذر اعتماد إكمال التدريب')}
+}
+function updateTrainingWatchStatus(msg,bad=false,done=false){
+  const el=$('trainingWatchStatus'); if(!el)return;
+  el.innerHTML=`<b>${msg}</b>${bad?`<div style="margin-top:10px"><button class="danger" onclick="restartTrainingWatch()">🔄 إعادة التدريب من البداية</button></div>`:done?'':`<div class="muted" style="margin-top:5px">لن يفتح التدريب التالي إلا بعد المشاهدة الكاملة.</div>`}`;
+}
+async function restartTrainingWatch(){
+  const id=trainingWatch.lessonId;
+  try{await rpc('reset_training_progress',{p_token:token,p_lesson:id});await refresh();closeTraining();setTimeout(()=>startTrainingLesson(id),150)}catch(e){toast(e.message||'تعذر إعادة التدريب')}
+}
+function closeTraining(){
+  if(trainingWatch.timer){clearInterval(trainingWatch.timer);trainingWatch.timer=null;}
+  if(trainingWatch.player&&trainingWatch.player.destroy){try{trainingWatch.player.destroy()}catch(e){}}
+  trainingWatch={player:null,timer:null,lessonId:null,videoId:null,invalid:false};
+  $('trainingModal')?.remove();
+}
+async function completeTrainingLesson(id){
+  return toast('لا يمكن الإكمال يدويًا. يجب مشاهدة فيديو التدريب كاملًا حتى 100%.');
+}
+
+function openTrainingManager(){
+  if(role!=='leader')return toast('صلاحية القائد فقط.');
+  const lessons=(trainingData.lessons||[]).sort((a,b)=>Number(a.lesson_no)-Number(b.lesson_no));
+  const rows=lessons.map(l=>`<div class="row" style="border-bottom:1px solid var(--line);padding:12px 0"><div><b>📚 ${esc(l.lesson_no)}. ${esc(l.title)}</b><div class="muted">${esc(l.youtube_url)}</div></div><div class="actions"><button onclick="editTrainingLesson('${l.id}')">✏️ تعديل</button><button class="danger" onclick="toggleTrainingLesson('${l.id}',false)">🗑️ إخفاء</button></div></div>`).join('');
+  const modal=document.createElement('div'); modal.id='trainingManagerModal';
+  modal.innerHTML=`<div class="evidence-backdrop" onclick="closeTrainingManager()"></div><div class="evidence-modal card" style="max-width:850px">
+    <div class="row"><div><h2 style="margin:0">👑 إدارة التدريبات</h2><div class="muted">أضف تدريباتك يدويًا باستخدام روابط YouTube. الترتيب يعتمد على رقم التدريب.</div></div><button onclick="closeTrainingManager()">✖️</button></div>
+    <div class="card" style="background:#f7fbf9">
+      <div class="title">➕ إضافة تدريب جديد</div>
+      <label>رقم التدريب</label><input id="trNo" type="number" min="1" placeholder="مثال: 1">
+      <label>عنوان التدريب</label><input id="trTitle" placeholder="مثال: أساسيات البداية">
+      <label>وصف مختصر</label><textarea id="trDesc" placeholder="وصف مختصر للتدريب"></textarea>
+      <label>رابط YouTube</label><input id="trUrl" placeholder="https://youtu.be/...">
+      <button class="primary" style="width:100%;margin-top:10px" onclick="saveTrainingFromManager()">💾 حفظ التدريب</button>
+    </div>
+    <div class="title" style="margin-top:18px">📋 التدريبات الحالية</div>
+    ${rows||'<div class="empty">لا توجد تدريبات مضافة بعد.</div>'}
   </div>`;
   document.body.appendChild(modal);
 }
-function closeTraining(){$('trainingModal')?.remove()}
-function completeTraining(n){
-  const key=role==='leader'?'dxn_training_leader':'dxn_training_'+(me?.id||me?.member_no||'member');
-  const progress=Number(localStorage.getItem(key)||0);
-  if(n!==progress+1)return toast('لا يمكنك تجاوز ترتيب التدريبات.');
-  localStorage.setItem(key,String(n));
-  closeTraining();
-  toast(n<8?'تم إكمال التدريب. أصبح التدريب التالي متاحًا.':'🎉 أكملت جميع التدريبات.');
-  render();
+function closeTrainingManager(){$('trainingManagerModal')?.remove()}
+async function saveTrainingFromManager(id=null){
+  try{
+    const no=Number($('trNo').value), title=$('trTitle').value.trim(), desc=$('trDesc').value.trim(), url=$('trUrl').value.trim();
+    if(!Number.isInteger(no)||no<1)return toast('أدخل رقم تدريب صحيح.');
+    if(!title)return toast('عنوان التدريب مطلوب.');
+    if(!youtubeEmbed(url))return toast('أدخل رابط YouTube صحيحاً.');
+    await rpc('save_training_lesson',{p_token:token,p_id:id,p_lesson_no:no,p_title:title,p_description:desc,p_youtube_url:url});
+    toast('تم حفظ التدريب.');
+    closeTrainingManager(); await refresh(); if(role==='leader')openTrainingManager();
+  }catch(e){toast(e.message||'تعذر حفظ التدريب')}
+}
+function editTrainingLesson(id){
+  const l=(trainingData.lessons||[]).find(x=>String(x.id)===String(id)); if(!l)return;
+  const no=prompt('رقم التدريب:',String(l.lesson_no)); if(no===null)return;
+  const title=prompt('عنوان التدريب:',l.title||''); if(title===null)return;
+  const desc=prompt('وصف التدريب:',l.description||''); if(desc===null)return;
+  const url=prompt('رابط YouTube:',l.youtube_url||''); if(url===null)return;
+  const n=Number(no); if(!Number.isInteger(n)||n<1)return toast('رقم التدريب غير صحيح.');
+  if(!youtubeEmbed(url))return toast('رابط YouTube غير صالح.');
+  rpc('save_training_lesson',{p_token:token,p_id:id,p_lesson_no:n,p_title:title,p_description:desc,p_youtube_url:url}).then(async()=>{toast('تم تعديل التدريب.');closeTrainingManager();await refresh();openTrainingManager()}).catch(e=>toast(e.message||'تعذر تعديل التدريب'));
+}
+async function toggleTrainingLesson(id,active){
+  try{await rpc('toggle_training_lesson',{p_token:token,p_id:id,p_active:active});toast('تم تحديث التدريب.');closeTrainingManager();await refresh();openTrainingManager()}catch(e){toast(e.message||'تعذر تحديث التدريب')}
 }
 
 function challenges(){return `<div class="card"><div class="title">🎯 التحديات الأساسية</div><p class="muted">التحدي لا يختفي بعد الإنجاز. التحديات المتكررة يمكن إنجازها مرة أخرى وفق قاعدتها، والنجوم لا تُضاف إلا بعد اعتماد القائد.</p>${role==='leader'?`<div class="leaderbox" style="margin:12px 0;padding:12px;border-radius:16px"><div class="title">⚙️ إدارة التحديات</div><div class="actions" style="margin-top:10px"><button class="primary" onclick="openChallengeEditor()">➕ إضافة تحدٍ جديد</button></div>${(data.challenges||[]).map(c=>challengeAdminCard(c)).join('')||'<div class="empty">لا توجد تحديات.</div>'}</div>`:(data.challenges||[]).map(challengeCard).join('')}</div>${role==='member'?questions():''}`}
@@ -391,7 +520,7 @@ function leader(){
  return `<div class="card leaderbox">
    <div class="title">👑 مركز القيادة — تحليل وإدارة الموقع</div>
    <p class="muted">من هنا تتابع حالة الموقع، الأعضاء والفرق، التحديات، التارجت، الطلبات، وحركة الإنجازات. أدوات الإدارة تبقى للقائد فقط.</p>
-   <div class="admin-toolbar"><button class="primary" onclick="refresh()">🔄 تحديث البيانات</button><button onclick="createMemberForm()">➕ عضو</button><button onclick="createTeamForm()">🏆 فريق</button><button onclick="openChallengeEditor()">🎯 تحدٍ</button><button onclick="openDXNMembershipRequests()">📋 طلبات تسجيل DXN</button><button onclick="changePin()">🔐 PIN القائد</button></div>
+   <div class="admin-toolbar"><button class="primary" onclick="refresh()">🔄 تحديث البيانات</button><button onclick="createMemberForm()">➕ عضو</button><button onclick="createTeamForm()">🏆 فريق</button><button onclick="openChallengeEditor()">🎯 تحدٍ</button><button onclick="openDXNMembershipRequests()">📋 طلبات تسجيل DXN</button><button onclick="openTrainingManager()">📚 إدارة التدريبات</button><button onclick="changePin()">🔐 PIN القائد</button></div>
  </div>
  <div class="admin-grid">
    <div class="admin-stat"><div class="emoji">👥</div><div class="label">إجمالي الأعضاء</div><b>${members.length}</b><div class="muted">نشط: ${activeMembers.length}</div></div>
@@ -415,6 +544,7 @@ function leader(){
  <div class="card"><div class="title">👥 إدارة الموقع</div><div class="admin-toolbar"><button class="primary" onclick="switchTab('teams')">👥 الأعضاء والفرق</button><button onclick="createMemberForm()">➕ إضافة عضو</button><button onclick="createTeamForm()">🏆 إضافة فريق</button><button onclick="switchTab('ch')">🎯 إدارة التحديات</button></div></div>
  <div class="card"><div class="title">❓ أسئلة الشهر</div><p class="muted">خمسة أسئلة ثابتة لهذا الشهر، ويمكن للقائد تعديلها وحفظها.</p>${[1,2,3,4,5].map(n=>{const q=(data.questions||[]).find(x=>Number(x.question_no)===n);return `<input id="qtxt${n}" value="${esc(q?.text||'')}" placeholder="السؤال ${n}"><input id="qcat${n}" value="${esc(q?.category||'الوعي والتفاعل')}" placeholder="التصنيف ${n}">`}).join('')}<button class="primary" onclick="saveQuestions()">💾 حفظ الأسئلة الخمسة</button></div>
  <div class="card"><div class="title">📅 التارجت الشهري</div><p class="muted">تحديث نقاط DXN الفعلية لكل عضو، مع مكافأة ⭐100 عند بلوغ 100 نقطة.</p>${members.map(m=>`<div class="row"><div><b>${esc(m.name)}</b><div class="muted">${esc(m.member_no)} · ⭐${m.stars||0}</div></div><button onclick="setPoints('${m.id}')">تحديث التارجت</button></div>`).join('')||'<div class="empty">لا يوجد أعضاء.</div>'}</div>
+ <div class="card"><div class="title">📚 متابعة التدريبات</div><p class="muted">يمكنك من هنا متابعة تقدم الأعضاء في التدريبات المضافة.</p>${(trainingData.member_progress||[]).map(m=>{const total=Number(m.total_lessons||0),done=Number(m.completed_lessons||0),pct=total?Math.round(done*100/total):0;return `<div class="row"><div><b>👤 ${esc(m.name)}</b><div class="muted">🪪 ${esc(m.member_no)} · 📚 ${done}/${total} · 📊 ${pct}%</div><div class="muted">${m.current_lesson_no?`▶️ التدريب الحالي: ${m.current_lesson_no}`:'🏁 لم يبدأ بعد'}${m.last_watched_at?` · 🕐 آخر نشاط: ${fmt(m.last_watched_at)}`:''}</div></div><span class="stars">${pct}%</span></div>`}).join('')||'<div class="empty">لا يوجد تقدم تدريبي مسجل بعد.</div>'}</div>
  <div class="card"><div class="title">🕘 آخر التحركات المسجلة</div>${allActivity.slice(0,20).map(x=>{const member=x.member_name||x.name||x.member_no||'عضو';const title=x.challenge_title||x.title||x._kind;const status=x.status||'pending';return `<div class="activity-item"><b>${esc(x._kind)} — ${esc(title)}</b><div class="muted">👤 ${esc(member)} · الحالة: ${esc(status)} · ${fmt(x.created_at)}</div></div>`}).join('')||'<div class="empty">لا توجد تحركات مسجلة في البيانات الحالية.</div>'}<p class="muted small">هذه القائمة تعتمد على السجلات التي ترسلها قاعدة البيانات حاليًا. لإظهار سجل تدقيق كامل لكل تسجيل دخول وتعديل وحذف وتجميد واعتماد، نضيف في الخطوة التالية سجل نشاط دائم في قاعدة البيانات.</p></div>
  <div class="card"><button onclick="changePin()">🔐 تغيير PIN القائد</button> <button class="danger" onclick="logout()">🚪 تسجيل الخروج</button></div>`
 }
@@ -450,9 +580,9 @@ async function saveQuestions(){try{const items=[1,2,3,4,5].map(n=>({question_no:
 async function changePin(){const p=prompt('PIN الجديد:');if(!p)return;try{await rpc('change_pin',{p_token:token,p_new_pin:p});toast('تم تغيير PIN.')}catch(e){toast(e.message||'تعذر تغيير PIN')}}
 async function decide(id,q,ok){try{await rpc(q?'approve_question':'approve_challenge',{p_token:token,[q?'p_answer':'p_submission']:id,p_ok:ok});toast(ok?'تم الاعتماد وإضافة النجوم.':'تم الرفض.');await refresh()}catch(e){toast(e.message||'تعذر التنفيذ')}}
 async function setPoints(id){const v=prompt('أدخل نقاط DXN الفعلية لهذا العضو هذا الشهر:','100');if(v===null)return;try{await rpc('set_monthly_points',{p_token:token,p_member:id,p_points:Number(v)});if(Number(v)>=100&&confirm('العضو حقق 100 نقطة. هل تضيف مكافأة ⭐100؟'))await rpc('award_monthly_target',{p_token:token,p_member:id});toast('تم تحديث التارجت.');await refresh()}catch(e){toast(e.message||'تعذر تحديث التارجت')}}
-async function refresh(){const d=await rpc('bootstrap',{p_token:token});data=d;role=d.role;me=(d.members||[]).find(x=>role==='member')||null;if(role==='leader'){try{membershipRequests=await rpc('leader_dxn_membership_requests',{p_token:token})}catch(e){membershipRequests=[]}}render()}
+async async function refresh(){const d=await rpc('bootstrap',{p_token:token});data=d;role=d.role;me=(d.members||[]).find(x=>role==='member')||null;try{trainingData=await rpc('get_training_data',{p_token:token})}catch(e){trainingData={lessons:[],my_progress:[],member_progress:[]}}if(role==='leader'){try{membershipRequests=await rpc('leader_dxn_membership_requests',{p_token:token})}catch(e){membershipRequests=[]}}render()}
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{}); boot();
-window.switchTab=switchTab;window.challenges=challenges;window.teams=teams;window.leader=leader;window.approvalCard=approvalCard;window.renderIdea=renderIdea;window.trainings=trainings;window.approveDXNMembershipRequest=approveDXNMembershipRequest;window.rejectDXNMembershipRequest=rejectDXNMembershipRequest;window.openDXNMembershipRequests=openDXNMembershipRequests;window.openApprovedDXNMembershipRequests=openApprovedDXNMembershipRequests;window.backToLeaderDashboard=backToLeaderDashboard;window.addEventListener('resize',()=>{if(!localStorage.getItem('dxn_view_mode'))renderViewSwitch()});
+window.switchTab=switchTab;window.openTrainingManager=openTrainingManager;window.restartTrainingWatch=restartTrainingWatch;window.startTrainingLesson=startTrainingLesson;window.completeTrainingLesson=completeTrainingLesson;window.saveTrainingFromManager=saveTrainingFromManager;window.editTrainingLesson=editTrainingLesson;window.toggleTrainingLesson=toggleTrainingLesson;window.closeTraining=closeTraining;window.closeTrainingManager=closeTrainingManager;window.challenges=challenges;window.teams=teams;window.leader=leader;window.approvalCard=approvalCard;window.renderIdea=renderIdea;window.trainings=trainings;window.approveDXNMembershipRequest=approveDXNMembershipRequest;window.rejectDXNMembershipRequest=rejectDXNMembershipRequest;window.openDXNMembershipRequests=openDXNMembershipRequests;window.openApprovedDXNMembershipRequests=openApprovedDXNMembershipRequests;window.backToLeaderDashboard=backToLeaderDashboard;window.addEventListener('resize',()=>{if(!localStorage.getItem('dxn_view_mode'))renderViewSwitch()});
 </script>
 <footer id="site-copyright" style="margin-top:40px;padding:22px 16px;text-align:center;border-top:1px solid var(--line);color:#667085;font-size:13px;line-height:1.8">
   <div>© 2026 <strong>مجتمع الصحة والثراء</strong></div>
