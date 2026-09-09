@@ -532,6 +532,37 @@ function leader(){
    <div class="admin-stat"><div class="emoji">❓</div><div class="label">إجابات معلقة</div><b>${pendingAnswers.length}</b><div class="muted">بانتظار الاعتماد</div></div>
    <div class="admin-stat"><div class="emoji">🎯</div><div class="label">حققوا 100 نقطة</div><b>${target100}</b><div class="muted">هذا الشهر حسب البيانات</div></div>
  </div>
+ <div class="card" id="leader-training-center">
+   <div class="title">📚 الشروحات والتدريبات</div>
+   <p class="muted">إدارة مسار التدريب ومتابعة تقدم الأعضاء. لا يفتح التدريب التالي للعضو إلا بعد مشاهدة التدريب السابق كاملًا.</p>
+   <div class="admin-toolbar" style="margin-bottom:14px">
+     <button class="primary" onclick="openTrainingManager()">📚 إدارة التدريبات</button>
+     <button onclick="refresh()">🔄 تحديث تقدم التدريب</button>
+   </div>
+   ${(()=>{
+      const tl=trainingData?.lessons||[], mp=trainingData?.member_progress||[];
+      const completed=mp.reduce((a,m)=>a+Number(m.completed_lessons||0),0);
+      const possible=mp.reduce((a,m)=>a+Number(m.total_lessons||0),0);
+      const percent=possible?Math.round(completed/possible*100):0;
+      return `<div class="mini-grid">
+        <div><b>🎬 عدد التدريبات</b><div style="font-size:24px;font-weight:900;margin-top:5px">${tl.length}</div></div>
+        <div><b>👥 الأعضاء المتابعون</b><div style="font-size:24px;font-weight:900;margin-top:5px">${mp.length}</div></div>
+        <div><b>✅ التدريبات المكتملة</b><div style="font-size:24px;font-weight:900;margin-top:5px">${completed}</div></div>
+        <div><b>📊 نسبة الإكمال</b><div style="font-size:24px;font-weight:900;margin-top:5px">${percent}%</div></div>
+      </div>`;
+   })()}
+   <div style="margin-top:16px">
+     ${(()=>{
+       const mp=trainingData?.member_progress||[];
+       if(!mp.length) return '<div class="empty">لا توجد بيانات مشاهدة بعد. أضف التدريبات ثم يبدأ التقدم بالظهور هنا.</div>';
+       return mp.map(m=>{
+         const total=Number(m.total_lessons||0), done=Number(m.completed_lessons||0);
+         const pct=total?Math.round(done/total*100):0;
+         return `<div class="row" style="border-bottom:1px solid var(--line);padding:10px 0"><div style="flex:1"><b>${esc(m.name||'عضو')}</b><div class="muted">🪪 ${esc(m.member_no||'')} · ${done} من ${total} تدريبات</div><div class="bar"><span style="width:${pct}%"></span></div></div><b>${pct}%</b></div>`;
+       }).join('');
+     })()}
+   </div>
+ </div>
  <div class="card"><div class="admin-section-title">📊 التحليل السريع</div><div class="mini-grid">
    <div><b>نشاط الأعضاء</b><div class="muted">الأعضاء الذين لديهم رصيد نجوم أكبر من صفر: ${members.filter(m=>Number(m.stars||0)>0).length} من ${members.length}</div><div class="bar"><span style="width:${members.length?Math.min(100,Math.round(members.filter(m=>Number(m.stars||0)>0).length/members.length*100)):0}%"></span></div></div>
    <div><b>التارجت الشهري</b><div class="muted">${activeTargets.length} أعضاء لديهم نقاط DXN مسجلة هذا الشهر</div><div class="bar"><span style="width:${members.length?Math.min(100,Math.round(activeTargets.length/members.length*100)):0}%"></span></div></div>
