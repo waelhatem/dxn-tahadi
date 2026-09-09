@@ -691,16 +691,19 @@ function leaderDailyPlan(){
     const id=String(m.id||m.member_id||'');
     const ms=activeSubs.filter(s=>String(s.member_id||s.memberId||'')===id).map(s=>new Date(s.created_at||s.createdAt||s.approved_at||0).getTime()).filter(Boolean);
     const mt=mp.filter(x=>String(x.member_id||x.memberId||'')===id).map(x=>new Date(x.last_update_at||x.last_watched_at||x.updated_at||0).getTime()).filter(Boolean);
-    const last=Math.max(0,...ms,...mt), days=last?Math.floor((now-last)/day):999;
+    const last=Math.max(0,...ms,...mt);
+    const joinedAt=new Date(m.joined_at||m.joinedAt||m.membership_date||m.membershipDate||m.created_at||m.createdAt||0).getTime();
+    const joinedDays=joinedAt?Math.max(0,Math.floor((now-joinedAt)/day)):null;
+    const days=last?Math.max(0,Math.floor((now-last)/day)):null;
     let priority=0, reason='';
     const pending=subs.some(s=>String(s.member_id||s.memberId||'')===id&&s.status==='pending');
     const dxn=Number(m.dxn_points||m.monthly_dxn_points||0);
     if(pending){priority=100;reason='إنجاز بانتظار اعتماد القائد';}
     else if(dxn>=80&&dxn<100){priority=90;reason=`اقترب من التارجت: ${dxn}/100 نقطة DXN`}
     else if(dxn>=100){priority=70;reason='حقق التارجت الشهري — يحتاج تشجيعًا واستثمار الإنجاز';}
-    else if(days>=7){priority=85;reason='لا يوجد نشاط منذ 7 أيام أو أكثر';}
-    else if(days>=3){priority=60;reason='يحتاج دفعة نشاط — آخر نشاط منذ 3 أيام أو أكثر';}
-    else if(!ms.length){priority=50;reason='لم يسجل إنجازًا معتمدًا بعد';}
+    else if(days!==null&&days>=7){priority=85;reason=`لا يوجد نشاط منذ ${days} أيام`;}
+    else if(days!==null&&days>=3){priority=60;reason=`يحتاج دفعة نشاط — آخر نشاط منذ ${days} أيام`;}
+    else if(!last){priority=50;reason=joinedDays!==null?`لم يبدأ النشاط بعد — العضوية منذ ${joinedDays} أيام`:'لم يبدأ النشاط بعد — تاريخ العضوية غير مسجل';}
     else {priority=20;reason='نشط — متابعة خفيفة وتشجيع';}
     return {...m,_priority:priority,_reason:reason,_days:days};
   }).sort((a,b)=>b._priority-a._priority).slice(0,8);
@@ -760,7 +763,7 @@ function leader(){
       const bestTeam=[...teamsWithStars].sort((a,b)=>Number(b.stars||0)-Number(a.stars||0))[0];
       const targetPct=activeMembers.length?Math.round(target100/activeMembers.length*100):0;
       const trainingMap={};mp.forEach(x=>trainingMap[String(x.member_id||x.memberId)] = x);
-      const fmtAge=t=>{if(!t)return 'لا يوجد نشاط مسجل';const d=Math.max(0,Math.floor((now-t)/day));return d===0?'نشط اليوم':d===1?'منذ يوم واحد':`منذ ${d} أيام`};
+      const fmtAge=t=>{if(!t)return 'لم يبدأ النشاط بعد';const d=Math.max(0,Math.floor((now-t)/day));return d===0?'نشط اليوم':d===1?'منذ يوم واحد':`منذ ${d} أيام`};
       return `<div class="admin-grid">
         <div class="admin-stat"><div class="emoji">🔥</div><div class="label">نشاط آخر 7 أيام</div><b>${active7}</b><div class="muted">من ${activeMembers.length} أعضاء نشطين</div></div>
         <div class="admin-stat"><div class="emoji">🎯</div><div class="label">نسبة تحقيق التارجت</div><b>${targetPct}%</b><div class="muted">${target100} أعضاء وصلوا إلى 100 نقطة</div></div>
@@ -802,14 +805,17 @@ function leader(){
         const pts=Number(tr?.points??tr?.dxn_points??0), target=Number(tr?.target||100);
         const done=Number(tp?.completed_lessons||0), total=Number(tp?.total_lessons||0);
         const pending=pendingByMember[id]||0, approved=approvedByMember[id]||0;
-        const days=last?Math.floor(Math.max(0,now-last)/day):999;
+        const joinedAt=new Date(m.joined_at||m.joinedAt||m.membership_date||m.membershipDate||m.created_at||m.createdAt||0).getTime();
+        const joinedDays=joinedAt?Math.max(0,Math.floor((now-joinedAt)/day)):null;
+        const days=last?Math.floor(Math.max(0,now-last)/day):null;
         let score=0, reason='', action='';
         if(pending){score+=45;reason=`${pending} إنجاز بانتظار اعتمادك`;action='راجع الإنجازات المعلقة';}
         else if(pts>=70&&pts<target){score+=38;reason=`وصل إلى ${pts} نقطة DXN وبقي ${Math.max(0,target-pts)}`;action='شجعه على إكمال التارجت';}
         if(total>0&&done<total&&days>=3){score+=28;reason=reason||`توقف عن التدريب عند ${done}/${total}`;action=action||'شجعه على إكمال التدريب';}
-        if(days>=7){score+=32;reason=reason||`لا يوجد نشاط منذ ${days} أيام`;action=action||'تواصل معه مباشرة';}
-        else if(days>=3){score+=18;reason=reason||`لا يوجد نشاط منذ ${days} أيام`;action=action||'أرسل له رسالة متابعة';}
-        if(approved===0&&days>=2){score+=14;reason=reason||'لم يسجل إنجازًا معتمدًا بعد';action=action||'اسأله عن أول خطوة عملية';}
+        if(days!==null&&days>=7){score+=32;reason=reason||`لا يوجد نشاط منذ ${days} أيام`;action=action||'تواصل معه مباشرة';}
+        else if(days!==null&&days>=3){score+=18;reason=reason||`لا يوجد نشاط منذ ${days} أيام`;action=action||'أرسل له رسالة متابعة';}
+        if(approved===0&&days!==null&&days>=2){score+=14;reason=reason||'لم يسجل إنجازًا معتمدًا بعد';action=action||'اسأله عن أول خطوة عملية';}
+        if(approved===0&&days===null){score+=Math.min(20,joinedDays!==null&&joinedDays>=7?15:8);reason=reason|| (joinedDays!==null?`لم يبدأ النشاط بعد — العضوية منذ ${joinedDays} أيام`:'لم يبدأ النشاط بعد — تاريخ العضوية غير مسجل');action=action||'تواصل معه وابدأ معه أول خطوة';}
         if(score>0) reasons.push({m,score,reason,action,days});
       });
       reasons.sort((a,b)=>b.score-a.score||b.days-a.days);
