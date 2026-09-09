@@ -230,14 +230,14 @@ function trainings(){
           <div class="muted">${done?'✅ مكتمل':locked?'🔒 مغلق — أكمل التدريب السابق أولاً':'▶️ متاح الآن'}</div>
           ${p?`<div class="muted">📊 نسبة المشاهدة: ${Number(p.watch_percent||0).toFixed(0)}%</div>`:''}
         </div>
-        <button class="${done?'':'primary'}" ${locked||done?'disabled':''} onclick="startTrainingLesson('${l.id}')">${done?'✅ مكتمل':locked?'🔒 مغلق':'▶️ بدء التدريب'}</button>
+        <button class="primary" ${locked?'disabled':''} onclick="startTrainingLesson('${l.id}')">${done?'🔁 إعادة المشاهدة':locked?'🔒 مغلق':'▶️ بدء التدريب'}</button>
       </div>
     </div>`;
   }).join('');
 
   return `<div class="card">
     <div class="title">📚 الشروحات والتدريبات</div>
-    <p class="muted">شاهد التدريبات بالترتيب. لا يفتح التدريب التالي إلا بعد إكمال التدريب السابق.</p>
+    <p class="muted">شاهد التدريبات بالترتيب. لا يفتح التدريب التالي إلا بعد إكمال التدريب السابق، ويمكنك إعادة مشاهدة أي تدريب أكملته في أي وقت.</p>
     <div style="background:#eef3f1;border-radius:999px;height:14px;overflow:hidden;margin:15px 0"><div style="width:${pct}%;height:100%;background:#0f513f"></div></div>
     <div style="text-align:center;font-weight:900">نسبة إكمالك: ${pct}% — ${completedNo.size} من ${lessons.length}</div>
   </div>${cards}`;
@@ -344,7 +344,7 @@ async function finishTrainingWatch(lessonId,player){
     // عند انتهاء فيديو YouTube نرسل النهاية الفعلية. الخادم يتحقق من
     // التقدم المتراكم وعدم وجود تقديم يدوي قبل اعتماد الإكمال.
     const result=await rpc('update_training_progress',{
-      p_token:token,p_lesson:lessonId,p_watch_percent:100,p_current_seconds:duration,
+      p_token:token,p_lesson:lessonId,p_watch_percent:100,p_current_seconds:Math.max(0,duration-0.25),
       p_duration_seconds:duration,p_completed:true
     });
     if(result?.completed){
