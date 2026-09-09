@@ -119,14 +119,29 @@ function renderIdea(){ideaStep(0)}
 function ideaTrustVideos(){
   const videos=[
     {
-      title:'🌍 مرحبًا بك في عالم DXN',
-      desc:'فيديو تعريفي يساعدك على تكوين صورة أولية عن الشركة وما تقدمه.',
+      no:'1', icon:'🌍', title:'مرحبًا بك في عالم DXN',
+      desc:'فيديو رسمي من DXN يعطيك صورة أولية عن عالم الشركة وانتشارها وفكرتها.',
       id:'fvatB7JWHuE'
     },
     {
-      title:'🏢 التعرف على DXN والشركة',
-      desc:'مادة مرئية إضافية للتعرف على الشركة ونموذجها بصورة أوسع.',
-      id:'Vf8NoZah8WQ'
+      no:'2', icon:'🏢', title:'عرض تعريفي عن شركة DXN',
+      desc:'عرض عربي للمهندس محمود المصري يساعدك على فهم الشركة وفكرة المشروع بصورة أوضح.',
+      id:'T6t4jpNWOJ8'
+    },
+    {
+      no:'3', icon:'🛍️', title:'شرح مبسط لمنتجات DXN',
+      desc:'شرح عربي مبسط للتعرف على منتجات DXN واستخداماتها بصورة عامة، دون الدخول في التفاصيل المتقدمة.',
+      id:'n7W9LoCMdPo'
+    },
+    {
+      no:'4', icon:'✈️', title:'رحلات وملتقيات DXN',
+      desc:'شاهد أجواء ملتقى الرائد في تركيا، بما يعكس جانبًا من اللقاءات والفعاليات والتجارب التي يعيشها أعضاء DXN.',
+      id:'B921-dx3x7o'
+    },
+    {
+      no:'5', icon:'💎', title:'الرفاهية والثراء: نحو حياة أفضل',
+      desc:'فيديو ختامي يسلّط الضوء على الطموح نحو حياة أكثر رفاهية، وتطوير الإمكانات، وبناء مستقبل أفضل خطوة بخطوة.',
+      id:'msLp7JZSHMw'
     }
   ];
   $('app').innerHTML=`<div class="view-switch" id="viewSwitch"></div>
@@ -134,28 +149,25 @@ function ideaTrustVideos(){
     <div style="text-align:center">
       <img class="logo" src="logo.png">
       <h1>🎥 معلومات أكثر وفيديوهات تعطيك صورة أوضح</h1>
-      <p class="muted" style="line-height:1.9">إذا أكملت الخطوات السبعة وأردت أن تتعرف أكثر قبل اتخاذ أي خطوة، شاهد هذه المواد التعريفية أولًا. الهدف أن ترى الصورة بنفسك وتكوّن قناعتك بهدوء.</p>
+      <p class="muted" style="line-height:1.9;max-width:820px;margin:auto">إذا أكملت الخطوات السبعة وأردت أن تتعرف أكثر قبل اتخاذ أي خطوة، شاهد المواد التالية بالترتيب. بدأنا بالتعريف العام، ثم الشركة، ثم المنتجات، ثم الحياة والفعاليات والرحلات.</p>
     </div>
-    <div class="card" style="background:#f7fbf9">
-      <div class="title">🔎 ماذا ستتعرف عليه؟</div>
-      <div class="grid">
-        <div><b>🏢 الشركة</b><p class="muted">خلفية الشركة وطبيعة نشاطها.</p></div>
-        <div><b>🌍 الانتشار</b><p class="muted">صورة أوسع عن حضور DXN حول العالم.</p></div>
-        <div><b>🛍️ المنتجات</b><p class="muted">التعرف على جانب المنتجات ونمط الاستخدام.</p></div>
-        <div><b>💼 الفكرة التجارية</b><p class="muted">فهم الفكرة قبل أن تقرر هل تريد معرفة المزيد.</p></div>
+    <div class="card" style="background:#f7fbf9;border:1px solid var(--line)">
+      <div class="title">🧭 شاهد بالترتيب</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px">
+        ${videos.map(v=>`<a href="#trust-video-${v.no}" style="text-decoration:none"><button>${v.icon} ${v.no}. ${v.title}</button></a>`).join('')}
       </div>
     </div>
-    ${videos.map(v=>`<div class="card">
-      <div class="title">${v.title}</div>
-      <p class="muted">${v.desc}</p>
+    ${videos.map(v=>`<div class="card" id="trust-video-${v.no}" style="scroll-margin-top:90px">
+      <div class="title">${v.icon} ${v.no}. ${v.title}</div>
+      <p class="muted" style="line-height:1.9">${v.desc}</p>
       <div style="position:relative;width:100%;padding-top:56.25%;overflow:hidden;border-radius:16px;background:#000">
         <iframe src="https://www.youtube.com/embed/${v.id}" title="${esc(v.title)}" style="position:absolute;inset:0;width:100%;height:100%;border:0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
       </div>
     </div>`).join('')}
-    <div class="card">
-      <div class="title">🎬 المزيد من الفيديوهات الرسمية</div>
-      <p class="muted">يمكنك أيضًا مشاهدة مكتبة الفيديوهات في موقع DXN الرسمي، وتشمل فيديوهات الشركة والمنتجات والوحدات التدريبية.</p>
-      <a href="https://www.dxn2u.com/gallery/?lang=ar" target="_blank" rel="noopener" class="primary" style="display:inline-block;text-decoration:none">🌐 مشاهدة مكتبة فيديوهات DXN الرسمية</a>
+    <div class="card" style="background:#f7fbf9">
+      <div class="title">🌐 المزيد من الفعاليات والفيديوهات الرسمية</div>
+      <p class="muted" style="line-height:1.9">يمكنك بعد ذلك مشاهدة المعرض الرسمي لـ DXN، حيث توجد أقسام خاصة بفيديوهات الشركة والمنتجات والمعسكرات والرحلات والفعاليات الدولية.</p>
+      <a href="https://www.dxn2u.com/gallery/?lang=ar" target="_blank" rel="noopener" class="primary" style="display:inline-block;text-decoration:none">🌐 فتح معرض DXN الرسمي</a>
     </div>
     <div class="actions" style="justify-content:center">
       <button onclick="ideaStep(6)">⬅️ العودة إلى الخطوة السابعة</button>
