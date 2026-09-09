@@ -383,4 +383,10 @@ async function setPoints(id){const v=prompt('أدخل نقاط DXN الفعلي�
 async function refresh(){const d=await rpc('bootstrap',{p_token:token});data=d;role=d.role;me=(d.members||[]).find(x=>role==='member')||null;if(role==='leader'){try{membershipRequests=await rpc('leader_dxn_membership_requests',{p_token:token})}catch(e){membershipRequests=[]}}render()}
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{}); boot();
 window.switchTab=switchTab;window.challenges=challenges;window.teams=teams;window.leader=leader;window.approvalCard=approvalCard;window.renderIdea=renderIdea;window.trainings=trainings;window.approveDXNMembershipRequest=approveDXNMembershipRequest;window.rejectDXNMembershipRequest=rejectDXNMembershipRequest;window.openDXNMembershipRequests=openDXNMembershipRequests;window.openApprovedDXNMembershipRequests=openApprovedDXNMembershipRequests;window.backToLeaderDashboard=backToLeaderDashboard;window.addEventListener('resize',()=>{if(!localStorage.getItem('dxn_view_mode'))renderViewSwitch()});
-</script></body></html>
+</script>
+<footer id="site-copyright" style="margin-top:40px;padding:22px 16px;text-align:center;border-top:1px solid var(--line);color:#667085;font-size:13px;line-height:1.8">
+  <div>© 2026 <strong>مجتمع الصحة والثراء</strong></div>
+  <div>جميع الحقوق محفوظة</div>
+</footer>
+
+</body></html>
