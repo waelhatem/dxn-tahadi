@@ -1,3 +1,21 @@
 {
-  "name":"لعبة تحديات DXN","short_name":"تحديات DXN","start_url":"./","display":"standalone","background_color":"#eef5f1","theme_color":"#0f513f","dir":"rtl","lang":"ar","icons":[{"src":"logo.png","sizes":"512x512","type":"image/png"}]
+  "id": "./",
+  "name": "مجتمع الصحة والثراء",
+  "short_name": "الصحة والثراء",
+  "description": "منصة مجتمع الصحة والثراء للتدريب والمتابعة والتحديات.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eef5f1",
+  "theme_color": "#0f513f",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
 }

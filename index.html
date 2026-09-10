@@ -100,7 +100,7 @@ button[disabled]:focus-visible{outline-color:#667085!important}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 @media (forced-colors: active){button,a,input,textarea,select{forced-color-adjust:auto}.tab.active{border:2px solid CanvasText}.bar span{background:Highlight!important}}
 </style>
-<meta name="x-community-version" content="V84.1 WCAG 2.2 AA + Site Visit Analytics"><meta name="referrer" content="strict-origin-when-cross-origin"><!-- V84.6 Performance: notification summary/cache and render computation deduplication -->
+<meta name="x-community-version" content="V85.1 PWA login-safe cache policy"><meta name="referrer" content="strict-origin-when-cross-origin"><!-- V84.6 Performance: notification summary/cache and render computation deduplication -->
 </head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
   <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
@@ -1811,7 +1811,7 @@ applyGlobalAccessibility();
 updateSiteMeta();
 dxnNav.current=token?`tab:${tab}`:'public:login';
 renderInAppNav();
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=85',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{}); boot();
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=85.1',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{}); boot();
 window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForward=dxnNavGoForward;window.sendChallengeEvidence=sendChallengeEvidence;window.openEvidence=openEvidence;window.openMemberProgress=openMemberProgress;window.editMyMonthlyPoints=editMyMonthlyPoints;window.closeMonthlyPointsEvidenceModal=closeMonthlyPointsEvidenceModal;window.previewMonthlyPointsEvidence=previewMonthlyPointsEvidence;window.sendMonthlyPointsEvidence=sendMonthlyPointsEvidence;window.decideMonthlyPointRequest=decideMonthlyPointRequest;window.openMemberProfile=openMemberProfile;window.closeMemberProfile=closeMemberProfile;window.memberPathMap=memberPathMap;window.openTrainingManager=openTrainingManager;window.restartTrainingWatch=restartTrainingWatch;window.startTrainingLesson=startTrainingLesson;window.completeTrainingLesson=completeTrainingLesson;window.saveTrainingFromManager=saveTrainingFromManager;window.editTrainingLesson=editTrainingLesson;window.toggleTrainingLesson=toggleTrainingLesson;window.closeTraining=closeTraining;window.closeTrainingManager=closeTrainingManager;window.challenges=challenges;window.teams=teams;window.leader=leader;window.approvalCard=approvalCard;window.renderIdea=renderIdea;window.trainings=trainings;window.approveDXNMembershipRequest=approveDXNMembershipRequest;window.rejectDXNMembershipRequest=rejectDXNMembershipRequest;window.openDXNMembershipRequests=openDXNMembershipRequests;window.openApprovedDXNMembershipRequests=openApprovedDXNMembershipRequests;window.backToLeaderDashboard=backToLeaderDashboard;window.addEventListener('resize',()=>{if(!localStorage.getItem('dxn_view_mode'))renderViewSwitch()});
 </script>
 <style>
@@ -1956,7 +1956,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 </script>
 
 <script>
-/* V85 — PWA install experience. No credentials or member data are stored by this layer. */
+/* V85.1 — PWA install experience. No credentials or member data are stored by this layer. */
 (()=>{
   let deferredPrompt=null;
   const box=()=>document.getElementById('pwaInstallPrompt');
