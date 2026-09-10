@@ -85,3 +85,24 @@ window.DXN_CONFIG = {
     };
   }catch(_){ }
 })();
+
+/* V85.6 — delegated login click handler.
+   login() is rendered inside the SPA and inline onclick can fail silently
+   in some hosted/cached environments. Capture the login action independently. */
+(function(){
+  if(window.__DXN_LOGIN_CLICK_FIX_V856__) return;
+  window.__DXN_LOGIN_CLICK_FIX_V856__=true;
+  document.addEventListener('click',function(e){
+    try{
+      const btn=e.target&&e.target.closest?e.target.closest('button.primary'):null;
+      if(!btn) return;
+      const loginNo=document.getElementById('loginNo');
+      const pin=document.getElementById('pin');
+      if(!loginNo||!pin) return;
+      if(!String(btn.textContent||'').includes('دخول')) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      if(typeof window.login==='function') window.login();
+    }catch(_){ }
+  },true);
+})();
