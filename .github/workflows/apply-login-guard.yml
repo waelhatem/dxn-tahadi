@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Remove service-worker dependency and harden login
+      - name: Remove stale runtime dependencies and harden login
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -22,30 +22,41 @@ jobs:
           # Remove all generated login guards so only this version remains.
           s=re.sub(r'<!-- DXN LOGIN GUARD V[0-9.]+ -->\s*<script>\(function\(\).*?</script>\s*', '', s, flags=re.S)
 
-          # Stop the application from registering the service worker again.
+          # Never register the service worker from the application runtime.
           s=re.sub(r'navigator\.serviceWorker\.register\s*\([^;]*\)\s*;?', '', s, flags=re.S)
+
+          # Force a fresh config.js request so browsers do not reuse V85.x.
+          s=s.replace('src="config.js"', 'src="config.js?v=86.2"')
 
           # Give the login button a stable id without depending on translated text.
           if 'id="loginButton"' not in s:
               s=s.replace('<button class="primary" style="width:100%" onclick="login()">🔐 دخول</button>', '<button id="loginButton" class="primary" type="button" style="width:100%" onclick="login()">🔐 دخول</button>', 1)
 
-          guard='''<!-- DXN LOGIN GUARD V86.1 -->
+          # Visible build marker on the login screen for deployment verification.
+          marker='<div id="dxnBuildMarker" class="small muted" style="text-align:center;margin-top:8px">مجتمع الصحة والثراء • V86.2</div>'
+          if 'id="dxnBuildMarker"' not in s:
+              needle='<button id="loginButton" class="primary" type="button" style="width:100%" onclick="login()">🔐 دخول</button>'
+              if needle in s:
+                  s=s.replace(needle, needle+marker, 1)
+
+          guard='''<!-- DXN LOGIN GUARD V86.2 -->
           <script>(function(){
-          if(window.__DXN_LOGIN_GUARD_V861__)return;
-          window.__DXN_LOGIN_GUARD_V861__=true;
+          if(window.__DXN_LOGIN_GUARD_V862__)return;
+          window.__DXN_LOGIN_GUARD_V862__=true;
           function show(msg){
-            var t=document.getElementById('toast');
-            if(t){t.textContent=msg;t.classList.remove('hidden');setTimeout(function(){t.classList.add('hidden')},2600);}
-            else if(window.alert)window.alert(msg);
+            try{var t=document.getElementById('toast');if(t){t.textContent=msg;t.classList.remove('hidden');setTimeout(function(){t.classList.add('hidden')},2600);return}}catch(_){ }
+            try{if(window.alert)window.alert(msg)}catch(_){ }
           }
           document.addEventListener('click',function(e){
-            var b=e.target&&e.target.closest?e.target.closest('#loginButton'):null;
-            if(!b)return;
-            var n=document.getElementById('loginNo'),p=document.getElementById('pin');
-            if(!n||!p){e.preventDefault();e.stopImmediatePropagation();show('تعذر تحميل نموذج الدخول.');return;}
-            var no=String(n.value||'').trim(),pin=String(p.value||'').trim();
-            if(!no||!pin){e.preventDefault();e.stopImmediatePropagation();show('أدخل بيانات الدخول أولاً.');return;}
-            if(typeof window.login!=='function'){e.preventDefault();e.stopImmediatePropagation();show('تعذر تحميل وظيفة الدخول.');return;}
+            try{
+              var b=e.target&&e.target.closest?e.target.closest('#loginButton'):null;
+              if(!b)return;
+              var n=document.getElementById('loginNo'),p=document.getElementById('pin');
+              if(!n||!p){e.preventDefault();e.stopImmediatePropagation();show('تعذر تحميل نموذج الدخول.');return}
+              var no=String(n.value||'').trim(),pin=String(p.value||'').trim();
+              if(!no||!pin){e.preventDefault();e.stopImmediatePropagation();show('أدخل بيانات الدخول أولاً.');return}
+              if(typeof window.login!=='function'){e.preventDefault();e.stopImmediatePropagation();show('تعذر تحميل وظيفة الدخول.');return}
+            }catch(_){ }
           },true);
           })();</script>
           '''
@@ -63,5 +74,5 @@ jobs:
             echo 'No changes needed'
             exit 0
           fi
-          git commit -m 'fix login button [login-guard] V86.1'
+          git commit -m 'fix login button [login-guard] V86.2'
           git push
