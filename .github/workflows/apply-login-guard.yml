@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Remove stale runtime dependencies and harden login
+      - name: Apply V86.4 login runtime guard
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -25,33 +25,34 @@ jobs:
           # Never register the service worker from the application runtime.
           s=re.sub(r'navigator\.serviceWorker\.register\s*\([^;]*\)\s*;?', '', s, flags=re.S)
 
-          # Run the application bootstrap directly; do not depend on service-worker support.
+          # Run application bootstrap directly; do not depend on service-worker support.
           s=s.replace("if('serviceWorker' in navigator)boot();", 'boot();')
           s=s.replace("if('serviceWorker' in navigator) boot();", 'boot();')
 
-          # Force a fresh config.js request so browsers do not reuse V86.2.
-          s=s.replace('src="config.js?v=86.2"', 'src="config.js?v=86.3"')
-          s=s.replace('src="config.js"', 'src="config.js?v=86.3"')
+          # Force a fresh V86.4 config.js request.
+          s=re.sub(r'src="config\.js(?:\?v=[0-9.]+)?"', 'src="config.js?v=86.4"', s)
 
-          # Give the login button a stable id without depending on translated text.
+          # Stable login button id.
           if 'id="loginButton"' not in s:
               s=s.replace('<button class="primary" style="width:100%" onclick="login()">🔐 دخول</button>', '<button id="loginButton" class="primary" type="button" style="width:100%" onclick="login()">🔐 دخول</button>', 1)
 
-          # Visible build marker on the login screen for deployment verification.
-          marker='<div id="dxnBuildMarker" class="small muted" style="text-align:center;margin-top:8px">مجتمع الصحة والثراء • V86.3</div>'
+          # Visible deployment marker.
+          marker='<div id="dxnBuildMarker" class="small muted" style="text-align:center;margin-top:8px">مجتمع الصحة والثراء • V86.4</div>'
           if 'id="dxnBuildMarker"' in s:
               s=re.sub(r'<div id="dxnBuildMarker"[^>]*>.*?</div>', marker, s, count=1, flags=re.S)
           else:
-              needle='<button id="loginButton" class="primary" type="button" style="width:100%" onclick="login()">🔐 دخول</button>'
+              needle='<button id="loginButton" class="primary" type="button" style="width:100%">🔐 دخول</button>'
+              if needle not in s:
+                  needle='<button id="loginButton" class="primary" type="button" style="width:100%" onclick="login()">🔐 دخول</button>'
               if needle in s:
                   s=s.replace(needle, needle+marker, 1)
 
-          guard='''<!-- DXN LOGIN GUARD V86.3 -->
+          guard='''<!-- DXN LOGIN GUARD V86.4 -->
           <script>(function(){
-          if(window.__DXN_LOGIN_GUARD_V863__)return;
-          window.__DXN_LOGIN_GUARD_V863__=true;
+          if(window.__DXN_LOGIN_GUARD_V864__)return;
+          window.__DXN_LOGIN_GUARD_V864__=true;
           function show(msg){
-            try{var t=document.getElementById('toast');if(t){t.textContent=msg;t.classList.remove('hidden');setTimeout(function(){t.classList.add('hidden')},5000);return}}catch(_){ }
+            try{var t=document.getElementById('toast');if(t){t.textContent=msg;t.classList.remove('hidden');setTimeout(function(){t.classList.add('hidden')},6000);return}}catch(_){ }
             try{if(window.alert)window.alert(msg)}catch(_){ }
           }
           document.addEventListener('click',function(e){
@@ -72,7 +73,7 @@ jobs:
           s=s[:pos]+guard+s[pos:]
           p.write_text(s,encoding='utf-8')
           PY
-      - name: Commit hardened login
+      - name: Commit V86.4 index
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -81,5 +82,5 @@ jobs:
             echo 'No changes needed'
             exit 0
           fi
-          git commit -m 'fix login button [login-guard] V86.3'
+          git commit -m 'apply V86.4 login runtime [login-guard] V86.4'
           git push
