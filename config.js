@@ -11,12 +11,11 @@ async function directLogin(){var n=document.getElementById('loginNo'),p=document
 var login=await rpcRaw('login',{p_login_no:no,p_pin:pin});
 if(!login||!login.token){panel('Login نجح لكن الاستجابة غير صالحة','لم يصل رمز الجلسة من الخادم.');return}
 localStorage.setItem('dxn_session',String(login.token));localStorage.setItem('dxn_session_issued',String(Date.now()));
-/* اختبار bootstrap مستقل قبل استدعاء boot حتى لا يختفي الخطأ داخل renderLogin. */
 var bootData;try{bootData=await rpcRaw('bootstrap',{p_token:login.token})}catch(e){panel('Login ناجح — لكن Bootstrap فشل','HTTP: '+safe(e.status||'')+'\nCode: '+safe(e.code||'')+'\nMessage: '+safe(e.message||e)+'\nDetails: '+safe(e.details||'')+'\nHint: '+safe(e.hint||''));localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');return}
 if(!bootData){panel('Bootstrap أعاد استجابة فارغة','تم قبول الدخول لكن لم تصل بيانات الحساب.');localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');return}
-/* حفظ النجاح ثم استخدام مسار التطبيق الطبيعي للرسم. */
 if(typeof window.boot==='function'){await window.boot();}else{panel('Login وBootstrap ناجحان','لكن دالة عرض التطبيق boot غير متاحة.');}
 }catch(e){panel('فشل مسار الدخول','HTTP: '+safe(e.status||'')+'\nCode: '+safe(e.code||'')+'\nMessage: '+safe(e.message||e)+'\nDetails: '+safe(e.details||'')+'\nHint: '+safe(e.hint||''));localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');}finally{if(b){b.disabled=false;b.textContent='🔐 دخول'}}}
 function install(){try{var b=document.getElementById('loginButton');if(!b)return false;if(!b.__dxnV865){b.__dxnV865=true;b.removeAttribute('onclick');b.type='button';b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();directLogin()},false)}if(typeof window.login==='function'&&!window.login.__dxnV865){var old=window.login;var wrap=function(){return directLogin()};wrap.__dxnV865=true;wrap.__dxnOriginal=old;window.login=wrap}return true}catch(e){return false}}
 var tries=0,t=setInterval(function(){if(install()||++tries>180)clearInterval(t)},100);
 })();
+/* V86.5 deployment trigger */
