@@ -1,0 +1,34 @@
+name: Apply login guard
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: "!contains(github.event.head_commit.message, '[login-guard]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch index.html
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          marker='<!-- DXN LOGIN GUARD V85.9 -->'
+          if marker in s:
+              print('guard already present')
+              raise SystemExit(0)
+          guard='''<!-- DXN LOGIN GUARD V85.9 -->\n<script>(function(){\nfunction install(){\n  var n=document.getElementById('loginNo'),p=document.getElementById('pin');\n  if(!n||!p)return;\n  var buttons=document.querySelectorAll('button.primary');\n  for(var i=0;i<buttons.length;i++){\n    var b=buttons[i];\n    if(b.__dxnLoginGuard)return;\n    if(String(b.textContent||'').indexOf('دخول')<0)continue;\n    b.__dxnLoginGuard=true;\n    b.addEventListener('click',function(e){\n      if(!String(n.value||'').trim()||!String(p.value||'').trim()){\n        e.preventDefault();e.stopImmediatePropagation();\n        var t=document.getElementById('toast');\n        if(t){t.textContent='أدخل بيانات الدخول أولاً.';t.classList.remove('hidden');setTimeout(function(){t.classList.add('hidden')},2600);}\n      }\n    },true);\n  }\n}\nnew MutationObserver(install).observe(document.documentElement,{childList:true,subtree:true});\ninstall();\n})();</script>\n'''
+          pos=s.find('</head>')
+          if pos<0: raise SystemExit('no </head>')
+          p.write_text(s[:pos]+guard+s[pos:],encoding='utf-8')
+          PY
+      - name: Commit patched index
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet || git commit -m 'fix login button [login-guard]'
+          git push
