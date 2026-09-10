@@ -101,26 +101,6 @@ button[disabled]:focus-visible{outline-color:#667085!important}
 @media (forced-colors: active){button,a,input,textarea,select{forced-color-adjust:auto}.tab.active{border:2px solid CanvasText}.bar span{background:Highlight!important}}
 </style>
 <meta name="x-community-version" content="V86.3 Login Runtime Fix + WCAG 2.2 AA + Site Visit Analytics"><meta name="referrer" content="strict-origin-when-cross-origin"><!-- V84.6 Performance: notification summary/cache and render computation deduplication -->
-<!-- DXN LOGIN GUARD V86.3 -->
-<script>(function(){
-if(window.__DXN_LOGIN_GUARD_V863__)return;
-window.__DXN_LOGIN_GUARD_V863__=true;
-function show(msg){
-  try{var t=document.getElementById('toast');if(t){t.textContent=msg;t.classList.remove('hidden');setTimeout(function(){t.classList.add('hidden')},5000);return}}catch(_){ }
-  try{if(window.alert)window.alert(msg)}catch(_){ }
-}
-document.addEventListener('click',function(e){
-  try{
-    var b=e.target&&e.target.closest?e.target.closest('#loginButton'):null;
-    if(!b)return;
-    var n=document.getElementById('loginNo'),p=document.getElementById('pin');
-    if(!n||!p){e.preventDefault();e.stopImmediatePropagation();show('تعذر تحميل نموذج الدخول.');return}
-    var no=String(n.value||'').trim(),pin=String(p.value||'').trim();
-    if(!no||!pin){e.preventDefault();e.stopImmediatePropagation();show('أدخل بيانات الدخول أولاً.');return}
-    if(typeof window.login!=='function'){e.preventDefault();e.stopImmediatePropagation();show('تعذر تحميل وظيفة الدخول.');return}
-  }catch(_){ }
-},true);
-})();</script>
 </head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
   <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
