@@ -1,8 +1,8 @@
 // إعدادات مشروع مجتمع الصحة والثراء
 window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezzn.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_pD9m1Z3gN--2HAfhf_t2YA_2Ri4AeUh'};
-/* V86.5 — Login + Bootstrap diagnostics. لا يسجل PIN أو التوكن. */
+/* V86.6 — إصلاح تسليم جلسة الدخول. لا يسجل PIN أو التوكن. */
 (function(){
-if(window.__DXN_LOGIN_RUNTIME_V865__)return;window.__DXN_LOGIN_RUNTIME_V865__=true;
+if(window.__DXN_LOGIN_RUNTIME_V866__)return;window.__DXN_LOGIN_RUNTIME_V866__=true;
 var C=window.DXN_CONFIG||{},base=String(C.SUPABASE_URL||'').replace(/\/$/,''),key=String(C.SUPABASE_ANON_KEY||'');
 function safe(v){return String(v==null?'':v).replace(/[<>]/g,'')}
 function panel(title,detail){try{var old=document.getElementById('dxnLoginDiag');if(old)old.remove();var d=document.createElement('div');d.id='dxnLoginDiag';d.setAttribute('role','alert');d.style.cssText='margin-top:12px;padding:14px;border:2px solid #b42318;border-radius:14px;background:#fff5f4;color:#7a1b15;line-height:1.7;font-weight:700;direction:rtl;text-align:right';d.innerHTML='<b>'+safe(title)+'</b><div style="margin-top:6px;font-weight:500;white-space:pre-wrap">'+safe(detail)+'</div>';var b=document.getElementById('loginButton');if(b&&b.parentNode)b.parentNode.insertBefore(d,b.nextSibling)}catch(e){alert(title+'\n'+detail)}}
@@ -13,9 +13,10 @@ if(!login||!login.token){panel('Login نجح لكن الاستجابة غير ص
 localStorage.setItem('dxn_session',String(login.token));localStorage.setItem('dxn_session_issued',String(Date.now()));
 var bootData;try{bootData=await rpcRaw('bootstrap',{p_token:login.token})}catch(e){panel('Login ناجح — لكن Bootstrap فشل','HTTP: '+safe(e.status||'')+'\nCode: '+safe(e.code||'')+'\nMessage: '+safe(e.message||e)+'\nDetails: '+safe(e.details||'')+'\nHint: '+safe(e.hint||''));localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');return}
 if(!bootData){panel('Bootstrap أعاد استجابة فارغة','تم قبول الدخول لكن لم تصل بيانات الحساب.');localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');return}
-if(typeof window.boot==='function'){await window.boot();}else{panel('Login وBootstrap ناجحان','لكن دالة عرض التطبيق boot غير متاحة.');}
+/* V86.6: لا نستدعي boot من هذا الـscope. التطبيق الأصلي يقرأ token من localStorage عند بدء الصفحة. */
+window.location.reload();
 }catch(e){panel('فشل مسار الدخول','HTTP: '+safe(e.status||'')+'\nCode: '+safe(e.code||'')+'\nMessage: '+safe(e.message||e)+'\nDetails: '+safe(e.details||'')+'\nHint: '+safe(e.hint||''));localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');}finally{if(b){b.disabled=false;b.textContent='🔐 دخول'}}}
-function install(){try{var b=document.getElementById('loginButton');if(!b)return false;if(!b.__dxnV865){b.__dxnV865=true;b.removeAttribute('onclick');b.type='button';b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();directLogin()},false)}if(typeof window.login==='function'&&!window.login.__dxnV865){var old=window.login;var wrap=function(){return directLogin()};wrap.__dxnV865=true;wrap.__dxnOriginal=old;window.login=wrap}return true}catch(e){return false}}
+function install(){try{var b=document.getElementById('loginButton');if(!b)return false;if(!b.__dxnV866){b.__dxnV866=true;b.removeAttribute('onclick');b.type='button';b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();directLogin()},false)}if(typeof window.login==='function'&&!window.login.__dxnV866){var old=window.login;var wrap=function(){return directLogin()};wrap.__dxnV866=true;wrap.__dxnOriginal=old;window.login=wrap}return true}catch(e){return false}}
 var tries=0,t=setInterval(function(){if(install()||++tries>180)clearInterval(t)},100);
 })();
-/* V86.5 deployment trigger */
+/* V86.6 deployment trigger */
