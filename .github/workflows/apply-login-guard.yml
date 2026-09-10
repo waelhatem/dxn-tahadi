@@ -10,25 +10,72 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Patch index.html
+      - name: Patch login flow and cache version
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
+
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
-          marker='<!-- DXN LOGIN GUARD V85.9 -->'
-          if marker in s:
-              print('guard already present')
-              raise SystemExit(0)
-          guard='''<!-- DXN LOGIN GUARD V85.9 -->\n<script>(function(){\nfunction install(){\n  var n=document.getElementById('loginNo'),p=document.getElementById('pin');\n  if(!n||!p)return;\n  var buttons=document.querySelectorAll('button.primary');\n  for(var i=0;i<buttons.length;i++){\n    var b=buttons[i];\n    if(b.__dxnLoginGuard)return;\n    if(String(b.textContent||'').indexOf('دخول')<0)continue;\n    b.__dxnLoginGuard=true;\n    b.addEventListener('click',function(e){\n      if(!String(n.value||'').trim()||!String(p.value||'').trim()){\n        e.preventDefault();e.stopImmediatePropagation();\n        var t=document.getElementById('toast');\n        if(t){t.textContent='أدخل بيانات الدخول أولاً.';t.classList.remove('hidden');setTimeout(function(){t.classList.add('hidden')},2600);}\n      }\n    },true);\n  }\n}\nnew MutationObserver(install).observe(document.documentElement,{childList:true,subtree:true});\ninstall();\n})();</script>\n'''
+
+          # Replace any previous generated login guard, regardless of its version.
+          s=re.sub(r'<!-- DXN LOGIN GUARD V[0-9.]+ -->\s*<script>\(function\(\).*?</script>\s*', '', s, flags=re.S)
+
+          # Give the login button a stable identifier. Do not depend on translated text.
+          s=s.replace('<button class="primary" style="width:100%" onclick="login()">🔐 دخول</button>', '<button id="loginButton" class="primary" type="button" style="width:100%" onclick="login()">🔐 دخول</button>', 1)
+
+          guard='''<!-- DXN LOGIN GUARD V86 -->
+          <script>(function(){
+          if(window.__DXN_LOGIN_GUARD_V86__)return;
+          window.__DXN_LOGIN_GUARD_V86__=true;
+          function show(msg){
+            try{
+              var t=document.getElementById('toast');
+              if(t){t.textContent=msg;t.classList.remove('hidden');setTimeout(function(){t.classList.add('hidden')},2600);return true}
+            }catch(_){ }
+            try{if(window.alert)window.alert(msg)}catch(_){ }
+            return false;
+          }
+          document.addEventListener('click',function(e){
+            try{
+              var b=e.target&&e.target.closest?e.target.closest('#loginButton,button[onclick*="login("]'):null;
+              if(!b)return;
+              var n=document.getElementById('loginNo'),p=document.getElementById('pin');
+              if(!n||!p)return;
+              var no=String(n.value||'').trim(), pin=String(p.value||'').trim();
+              if(!no||!pin){
+                e.preventDefault();e.stopImmediatePropagation();
+                show('أدخل بيانات الدخول أولاً.');
+                return;
+              }
+              if(typeof window.login!=='function'){
+                e.preventDefault();e.stopImmediatePropagation();
+                show('تعذر تحميل وظيفة الدخول. أعد تحميل الصفحة مرة واحدة.');
+              }
+            }catch(_){ }
+          },true);
+          })();</script>
+          '''
           pos=s.find('</head>')
           if pos<0: raise SystemExit('no </head>')
-          p.write_text(s[:pos]+guard+s[pos:],encoding='utf-8')
+          s=s[:pos]+guard+s[pos:]
+          p.write_text(s,encoding='utf-8')
+
+          sw=Path('sw.js')
+          if sw.exists():
+            w=sw.read_text(encoding='utf-8')
+            w=re.sub(r"const CACHE = ['\"]dxn-v[^'\"]+['\"];", "const CACHE = 'dxn-v86-app-shell';", w, count=1)
+            sw.write_text(w,encoding='utf-8')
           PY
-      - name: Commit patched index
+      - name: Commit patched files
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add index.html
-          git diff --cached --quiet || git commit -m 'fix login button [login-guard]'
+          git add index.html sw.js
+          if git diff --cached --quiet; then
+            echo 'No changes needed'
+            exit 0
+          fi
+          git commit -m 'fix login button [login-guard] V86'
           git push
