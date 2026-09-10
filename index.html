@@ -101,6 +101,29 @@ button[disabled]:focus-visible{outline-color:#667085!important}
 @media (forced-colors: active){button,a,input,textarea,select{forced-color-adjust:auto}.tab.active{border:2px solid CanvasText}.bar span{background:Highlight!important}}
 </style>
 <meta name="x-community-version" content="V85.1 PWA login-safe cache policy"><meta name="referrer" content="strict-origin-when-cross-origin"><!-- V84.6 Performance: notification summary/cache and render computation deduplication -->
+<!-- DXN LOGIN GUARD V85.9 -->
+<script>(function(){
+function install(){
+  var n=document.getElementById('loginNo'),p=document.getElementById('pin');
+  if(!n||!p)return;
+  var buttons=document.querySelectorAll('button.primary');
+  for(var i=0;i<buttons.length;i++){
+    var b=buttons[i];
+    if(b.__dxnLoginGuard)return;
+    if(String(b.textContent||'').indexOf('دخول')<0)continue;
+    b.__dxnLoginGuard=true;
+    b.addEventListener('click',function(e){
+      if(!String(n.value||'').trim()||!String(p.value||'').trim()){
+        e.preventDefault();e.stopImmediatePropagation();
+        var t=document.getElementById('toast');
+        if(t){t.textContent='أدخل بيانات الدخول أولاً.';t.classList.remove('hidden');setTimeout(function(){t.classList.add('hidden')},2600);}
+      }
+    },true);
+  }
+}
+new MutationObserver(install).observe(document.documentElement,{childList:true,subtree:true});
+install();
+})();</script>
 </head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
   <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
