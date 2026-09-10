@@ -215,7 +215,40 @@ async function recordSiteVisit(type='visitor',view='landing'){if(!sb)return;try{
 async function loadSiteVisitStats(){if(role!=='leader')return;try{siteVisitStats=await rpc('leader_site_visit_stats',{p_token:token})||{};}catch(e){siteVisitStats={};}}
 function siteVisitStatsPanel(){const x=siteVisitStats||{};const n=v=>Number(v||0).toLocaleString('ar-IQ');return `<div class="card leaderbox" style="margin-top:14px;background:linear-gradient(180deg,#fff,#f7fbf9)"><div class="admin-section-title">📈 إحصائيات دخول الموقع</div><p class="muted" style="line-height:1.8">تُسجّل جلسات الزوار والأعضاء والقائد تلقائيًا، مع فصل عدد الزيارات عن عدد الجلسات الفريدة. لا يتم حفظ عنوان IP أو بصمة الجهاز.</p><div class="admin-grid" style="margin-top:12px"><div class="admin-stat"><div class="emoji">👁️</div><div class="label">إجمالي الزيارات</div><b>${n(x.total_page_views)}</b><div class="muted">جميع مرات فتح الصفحات المسجلة</div></div><div class="admin-stat"><div class="emoji">🧑‍🤝‍🧑</div><div class="label">جلسات فريدة</div><b>${n(x.unique_sessions)}</b><div class="muted">متصفح/جلسة مميزة</div></div><div class="admin-stat"><div class="emoji">📅</div><div class="label">جلسات اليوم</div><b>${n(x.today_sessions)}</b><div class="muted">منذ بداية اليوم</div></div><div class="admin-stat"><div class="emoji">👤</div><div class="label">جلسات الأعضاء</div><b>${n(x.member_sessions)}</b><div class="muted">أعضاء مسجلون</div></div><div class="admin-stat"><div class="emoji">🌱</div><div class="label">جلسات الزوار</div><b>${n(x.visitor_sessions)}</b><div class="muted">لم يسجلوا دخولًا</div></div><div class="admin-stat"><div class="emoji">👑</div><div class="label">جلسات القائد</div><b>${n(x.leader_sessions)}</b><div class="muted">دخول القائد</div></div><div class="admin-stat"><div class="emoji">🗓️</div><div class="label">آخر 7 أيام</div><b>${n(x.last_7_days_sessions)}</b><div class="muted">جلسات فريدة</div></div><div class="admin-stat"><div class="emoji">⏱️</div><div class="label">آخر نشاط</div><b style="font-size:16px">${x.last_seen?esc(new Date(x.last_seen).toLocaleString('ar-IQ',{dateStyle:'short',timeStyle:'short'})):'لا توجد بيانات'}</b><div class="muted">آخر جلسة مسجلة</div></div></div><div class="command-actions" style="margin-top:12px"><button class="primary" onclick="refreshSiteVisitStats()">🔄 تحديث الإحصائيات</button></div></div>`}
 async function refreshSiteVisitStats(){await loadSiteVisitStats();render()}
-async function boot(){if(!ready()){renderSetup();return}sb=supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY);if(!token){await recordSiteVisit('visitor','login');renderLogin();return}const issued=Number(localStorage.getItem('dxn_session_issued')||0);if(!issued||Date.now()-issued>SESSION_MAX_MS){localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');token='';renderLogin();toast('انتهت الجلسة، يرجى تسجيل الدخول من جديد.');return}try{const d=await rpc('bootstrap',{p_token:token});data=d;role=d.role;me=(d.members||[])[0]||null;try{trainingData=await rpc('get_training_data',{p_token:token})}catch(e){trainingData={lessons:[],my_progress:[],member_progress:[]}}if(role==='leader'){await recordSiteVisit('leader','dashboard');await loadSiteVisitStats();try{membershipRequests=await rpc('leader_dxn_membership_requests',{p_token:token})}catch(e){membershipRequests=[]}try{monthlyPointRequests=await rpc('leader_monthly_point_requests',{p_token:token})}catch(e){monthlyPointRequests=[]}try{let rr=await rpc('leader_team_registry',{p_token:token});if(typeof rr==='string'){try{rr=JSON.parse(rr)}catch(e){}};teamRegistryRows=Array.isArray(rr)?rr:(Array.isArray(rr?.data)?rr.data:(Array.isArray(rr?.members)?rr.members:(Array.isArray(rr?.result)?rr.result:[])))}catch(e){teamRegistryRows=[]}}else{await recordSiteVisit('member','dashboard');try{monthlyPointRequests=await rpc('my_monthly_point_requests',{p_token:token})}catch(e){monthlyPointRequests=[]}}render()}catch(e){localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');token='';renderLogin();toast(e.message||'انتهت الجلسة')}}
+async function boot(){
+  if(!ready()){renderSetup();return}
+  sb=supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY);
+  if(!token){recordSiteVisit('visitor','login');renderLogin();return}
+  const issued=Number(localStorage.getItem('dxn_session_issued')||0);
+  if(!issued||Date.now()-issued>SESSION_MAX_MS){localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');token='';renderLogin();toast('انتهت الجلسة، يرجى تسجيل الدخول من جديد.');return}
+  try{
+    const d=await rpc('bootstrap',{p_token:token});
+    data=d;role=d.role;me=(d.members||[])[0]||null;
+    const trainingP=rpc('get_training_data',{p_token:token}).catch(()=>({lessons:[],my_progress:[],member_progress:[]}));
+    const extras=role==='leader'
+      ? Promise.all([
+          rpc('leader_dxn_membership_requests',{p_token:token}).catch(()=>[]),
+          rpc('leader_monthly_point_requests',{p_token:token}).catch(()=>[]),
+          rpc('leader_team_registry',{p_token:token}).catch(()=>[]),
+          loadSiteVisitStats().catch(()=>{})
+        ])
+      : rpc('my_monthly_point_requests',{p_token:token}).catch(()=>[]);
+    await Promise.all([trainingP,extras]);
+    trainingData=await trainingP;
+    if(role==='leader'){
+      const [mr,pr,tr]=await extras;
+      membershipRequests=mr||[];monthlyPointRequests=pr||[];
+      let rr=tr;
+      if(typeof rr==='string'){try{rr=JSON.parse(rr)}catch(e){rr=[]}}
+      teamRegistryRows=Array.isArray(rr)?rr:(Array.isArray(rr?.data)?rr.data:(Array.isArray(rr?.members)?rr.members:(Array.isArray(rr?.result)?rr.result:[])));
+      recordSiteVisit('leader','dashboard');
+    }else{
+      monthlyPointRequests=(await extras)||[];
+      recordSiteVisit('member','dashboard');
+    }
+    render()
+  }catch(e){localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');token='';renderLogin();toast(e.message||'انتهت الجلسة')}
+}
 function renderSetup(){ $('app').innerHTML=`<div class="login card"><img class="logo" src="logo.png" alt="شعار مجتمع الصحة والثراء"><h1>مجتمع الصحة والثراء</h1><h2>إعداد النسخة Online</h2><p class="muted">النسخة جاهزة للربط بقاعدة بيانات Supabase. افتح ملف <b>config.js</b> وضع رابط المشروع وPublic anon key، ثم ارفع المجلد إلى Vercel أو أي استضافة ثابتة.</p><div class="card leaderbox"><b>الخطوات:</b><ol><li>أنشئ مشروع Supabase.</li><li>نفّذ ملف schema.sql بالكامل في SQL Editor.</li><li>ضع بيانات المشروع في config.js.</li><li>ارفع المجلد إلى Vercel.</li></ol></div></div>`}
 function renderLogin(){ $('app').innerHTML=`<div class="view-switch" id="viewSwitch"></div><div class="login card"><div style="text-align:center"><img class="logo" src="logo.png" alt="شعار مجتمع الصحة والثراء"><h1>مجتمع الصحة والثراء</h1><p class="muted">دخول موحد من أي جهاز</p></div><label>نوع الدخول</label><select id="role"><option value="member">👤 دخول العضو</option><option value="leader">👑 دخول القائد</option></select><label>رقم العضوية / رمز القائد</label><input id="loginNo" placeholder="مثال: 820426486 أو LEADER"><label>رمز الدخول PIN</label><input id="pin" type="text" autocomplete="current-password" inputmode="text" autocapitalize="characters" spellcheck="false" placeholder="PIN"><button class="primary" style="width:100%" onclick="login()">🔐 دخول</button><button style="width:100%;margin-top:8px" onclick="renderMemberVerify()">👤 لدي عضوية في فريق بداية أمل</button><button class="primary" style="width:100%;margin-top:8px" onclick="renderIdea()">✨ اكتشف عالم الصحة والثراء والحرية</button><p class="muted small">لأسباب أمنية، لا تُعرض بيانات دخول تجريبية داخل النسخة المنشورة.</p></div>`}
 async function renderRegister(){
@@ -1604,7 +1637,25 @@ async function saveQuestions(){try{const items=[1,2,3,4,5].map(n=>({question_no:
 async function changePin(){const p=prompt('PIN الجديد:');if(!p)return;try{await rpc('change_pin',{p_token:token,p_new_pin:p});toast('تم تغيير PIN.')}catch(e){toast(e.message||'تعذر تغيير PIN')}}
 async function decide(id,q,ok){try{await rpc(q?'approve_question':'approve_challenge',{p_token:token,[q?'p_answer':'p_submission']:id,p_ok:ok});toast(ok?'تم الاعتماد وإضافة النجوم.':'تم الرفض.');await refresh()}catch(e){toast(e.message||'تعذر التنفيذ')}}
 async function setPoints(id){const v=prompt('أدخل نقاط DXN الفعلية لهذا العضو هذا الشهر:','100');if(v===null)return;try{await rpc('set_monthly_points',{p_token:token,p_member:id,p_points:Number(v)});if(Number(v)>=100&&confirm('العضو حقق 100 نقطة. هل تضيف مكافأة ⭐100؟'))await rpc('award_monthly_target',{p_token:token,p_member:id});toast('تم تحديث التارجت.');await refresh()}catch(e){toast(e.message||'تعذر تحديث التارجت')}}
-async function refresh(){const d=await rpc('bootstrap',{p_token:token});data=d;role=d.role;me=(d.members||[]).find(x=>role==='member')||null;await recordSiteVisit(role||'visitor',tab||'home');if(role==='leader')await loadSiteVisitStats();try{trainingData=await rpc('get_training_data',{p_token:token})}catch(e){trainingData={lessons:[],my_progress:[],member_progress:[]}}if(role==='leader'){try{membershipRequests=await rpc('leader_dxn_membership_requests',{p_token:token})}catch(e){membershipRequests=[]}try{monthlyPointRequests=await rpc('leader_monthly_point_requests',{p_token:token})}catch(e){monthlyPointRequests=[]}}else{try{monthlyPointRequests=await rpc('my_monthly_point_requests',{p_token:token})}catch(e){monthlyPointRequests=[]}}render()}
+async function refresh(){
+  const d=await rpc('bootstrap',{p_token:token});
+  data=d;role=d.role;me=(d.members||[]).find(x=>role==='member')||null;
+  const trainingP=rpc('get_training_data',{p_token:token}).catch(()=>({lessons:[],my_progress:[],member_progress:[]}));
+  const extras=role==='leader'
+    ? Promise.all([
+        rpc('leader_dxn_membership_requests',{p_token:token}).catch(()=>[]),
+        rpc('leader_monthly_point_requests',{p_token:token}).catch(()=>[]),
+        loadSiteVisitStats().catch(()=>{})
+      ])
+    : rpc('my_monthly_point_requests',{p_token:token}).catch(()=>[]);
+  await Promise.all([trainingP,extras]);
+  trainingData=await trainingP;
+  if(role==='leader'){
+    const [mr,pr]=await extras;membershipRequests=mr||[];monthlyPointRequests=pr||[];
+  }else monthlyPointRequests=(await extras)||[];
+  recordSiteVisit(role||'visitor',tab||'home');
+  render()
+}
 
 const AI_GUIDE_KNOWLEDGE={
  public:[
