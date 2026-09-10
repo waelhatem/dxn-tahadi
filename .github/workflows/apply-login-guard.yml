@@ -25,26 +25,33 @@ jobs:
           # Never register the service worker from the application runtime.
           s=re.sub(r'navigator\.serviceWorker\.register\s*\([^;]*\)\s*;?', '', s, flags=re.S)
 
-          # Force a fresh config.js request so browsers do not reuse V85.x.
-          s=s.replace('src="config.js"', 'src="config.js?v=86.2"')
+          # Run the application bootstrap directly; do not depend on service-worker support.
+          s=s.replace("if('serviceWorker' in navigator)boot();", 'boot();')
+          s=s.replace("if('serviceWorker' in navigator) boot();", 'boot();')
+
+          # Force a fresh config.js request so browsers do not reuse V86.2.
+          s=s.replace('src="config.js?v=86.2"', 'src="config.js?v=86.3"')
+          s=s.replace('src="config.js"', 'src="config.js?v=86.3"')
 
           # Give the login button a stable id without depending on translated text.
           if 'id="loginButton"' not in s:
               s=s.replace('<button class="primary" style="width:100%" onclick="login()">🔐 دخول</button>', '<button id="loginButton" class="primary" type="button" style="width:100%" onclick="login()">🔐 دخول</button>', 1)
 
           # Visible build marker on the login screen for deployment verification.
-          marker='<div id="dxnBuildMarker" class="small muted" style="text-align:center;margin-top:8px">مجتمع الصحة والثراء • V86.2</div>'
-          if 'id="dxnBuildMarker"' not in s:
+          marker='<div id="dxnBuildMarker" class="small muted" style="text-align:center;margin-top:8px">مجتمع الصحة والثراء • V86.3</div>'
+          if 'id="dxnBuildMarker"' in s:
+              s=re.sub(r'<div id="dxnBuildMarker"[^>]*>.*?</div>', marker, s, count=1, flags=re.S)
+          else:
               needle='<button id="loginButton" class="primary" type="button" style="width:100%" onclick="login()">🔐 دخول</button>'
               if needle in s:
                   s=s.replace(needle, needle+marker, 1)
 
-          guard='''<!-- DXN LOGIN GUARD V86.2 -->
+          guard='''<!-- DXN LOGIN GUARD V86.3 -->
           <script>(function(){
-          if(window.__DXN_LOGIN_GUARD_V862__)return;
-          window.__DXN_LOGIN_GUARD_V862__=true;
+          if(window.__DXN_LOGIN_GUARD_V863__)return;
+          window.__DXN_LOGIN_GUARD_V863__=true;
           function show(msg){
-            try{var t=document.getElementById('toast');if(t){t.textContent=msg;t.classList.remove('hidden');setTimeout(function(){t.classList.add('hidden')},2600);return}}catch(_){ }
+            try{var t=document.getElementById('toast');if(t){t.textContent=msg;t.classList.remove('hidden');setTimeout(function(){t.classList.add('hidden')},5000);return}}catch(_){ }
             try{if(window.alert)window.alert(msg)}catch(_){ }
           }
           document.addEventListener('click',function(e){
@@ -74,5 +81,5 @@ jobs:
             echo 'No changes needed'
             exit 0
           fi
-          git commit -m 'fix login button [login-guard] V86.2'
+          git commit -m 'fix login button [login-guard] V86.3'
           git push
