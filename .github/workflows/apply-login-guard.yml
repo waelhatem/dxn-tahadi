@@ -10,34 +10,50 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply V86.6 clean runtime
+      - name: Apply V86.7 post-login diagnostic
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
-          s=re.sub(r'<!-- DXN LOGIN GUARD V[0-9.]+ -->\s*<script>\(function\(\).*?</script>\s*','',s,flags=re.S)
+          s=re.sub(r'<!-- DXN LOGIN GUARD V[0-9.]+ -->\s*<script>\(function\).*?</script>\s*','',s,flags=re.S)
           s=re.sub(r'<div[^>]*>\s*مجتمع الصحة والثراء\s*•\s*V86\.[0-9]+\s*</div>','',s,flags=re.S)
           s=re.sub(r'navigator\.serviceWorker\.register\s*\([^;]*\)\s*;?','',s,flags=re.S)
           s=s.replace("if('serviceWorker' in navigator)boot();",'boot();')
           s=s.replace("if('serviceWorker' in navigator) boot();",'boot();')
-          s=re.sub(r'src="config\.js(?:\?v=[0-9.]+)?"','src="config.js?v=86.6"',s)
-          if 'id="loginButton"' not in s:
-              s=s.replace('<button class="primary" style="width:100%" onclick="login()">🔐 دخول</button>','<button id="loginButton" class="primary" type="button" onclick="login()" style="width:100%">🔐 دخول</button>',1)
-          marker='<div id="dxnBuildMarker" class="small muted" style="text-align:center;margin-top:8px">مجتمع الصحة والثراء • V86.6</div>'
+          s=re.sub(r'src="config\.js(?:\?v=[0-9.]+)?"','src="config.js?v=86.7"',s)
+          marker='<div id="dxnBuildMarker" class="small muted" style="text-align:center;margin-top:8px">مجتمع الصحة والثراء • V86.7</div>'
           s=re.sub(r'<div id="dxnBuildMarker"[^>]*>.*?</div>','',s,count=1,flags=re.S)
           needle=re.search(r'<button id="loginButton"[^>]*>🔐 دخول</button>',s)
           if not needle: raise SystemExit('loginButton not found')
           s=s[:needle.end()]+marker+s[needle.end():]
-          s=re.sub(r'<meta name="x-community-version"[^>]*>','<meta name="x-community-version" content="V86.6 Login Session Handoff + Bootstrap Diagnostic + WCAG 2.2 AA + Site Visit Analytics">',s,count=1)
+          s=re.sub(r'<meta name="x-community-version"[^>]*>','<meta name="x-community-version" content="V86.7 Post-login Render Diagnostic + WCAG 2.2 AA + Site Visit Analytics">',s,count=1)
+          old="  }catch(e){localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');token='';renderLogin();toast(e.message||'انتهت الجلسة')}\n}"
+          new="""  }catch(e){
+    console.error('DXN boot failure:',e);
+    try{
+      const msg=(e&&e.message)||String(e||'خطأ غير معروف');
+      const detail=(e&&e.details)||'';
+      const hint=(e&&e.hint)||'';
+      let box=document.getElementById('dxnBootFailureDiag');
+      if(!box){box=document.createElement('div');box.id='dxnBootFailureDiag';document.body.appendChild(box)}
+      box.setAttribute('role','alert');
+      box.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(255,255,255,.98);padding:28px;overflow:auto;direction:rtl;text-align:right;font-family:system-ui,sans-serif;color:#182234';
+      box.innerHTML='<div style=\"max-width:760px;margin:8vh auto;padding:22px;border:3px solid #b42318;border-radius:20px;background:#fff5f4\"><h2 style=\"margin-top:0;color:#9f2118\">تعذر تحميل الحساب بعد تسجيل الدخول</h2><p><b>الخطأ:</b> '+String(msg).replace(/[<>]/g,'')+'</p><p><b>Details:</b> '+String(detail).replace(/[<>]/g,'')+'</p><p><b>Hint:</b> '+String(hint).replace(/[<>]/g,'')+'</p><p class=\"muted\">تم قبول بيانات الدخول، لكن حدث خطأ أثناء تحميل واجهة الحساب أو بياناته. لم يتم حذف الجلسة حتى نستطيع تشخيص السبب.</p><button class=\"primary\" onclick=\"location.reload()\">🔄 إعادة المحاولة</button><button onclick=\"document.getElementById('dxnBootFailureDiag')?.remove()\">✖️ إغلاق</button></div>';
+    }catch(diagErr){alert((e&&e.message)||e)}
+  }
+}"""
+          if old not in s:
+              raise SystemExit('boot catch pattern not found')
+          s=s.replace(old,new,1)
           p.write_text(s,encoding='utf-8')
           PY
-      - name: Commit V86.6 index
+      - name: Commit V86.7 index
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'apply V86.6 login session handoff [login-guard] V86.6'
+          git commit -m 'apply post-login diagnostic [login-guard] V86.7'
           git push
