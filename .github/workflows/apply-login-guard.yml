@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Patch login flow and cache version
+      - name: Remove service-worker dependency and harden login
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -19,41 +19,33 @@ jobs:
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
 
-          # Replace any previous generated login guard, regardless of its version.
+          # Remove all generated login guards so only this version remains.
           s=re.sub(r'<!-- DXN LOGIN GUARD V[0-9.]+ -->\s*<script>\(function\(\).*?</script>\s*', '', s, flags=re.S)
 
-          # Give the login button a stable identifier. Do not depend on translated text.
-          s=s.replace('<button class="primary" style="width:100%" onclick="login()">🔐 دخول</button>', '<button id="loginButton" class="primary" type="button" style="width:100%" onclick="login()">🔐 دخول</button>', 1)
+          # Stop the application from registering the service worker again.
+          s=re.sub(r'navigator\.serviceWorker\.register\s*\([^;]*\)\s*;?', '', s, flags=re.S)
 
-          guard='''<!-- DXN LOGIN GUARD V86 -->
+          # Give the login button a stable id without depending on translated text.
+          if 'id="loginButton"' not in s:
+              s=s.replace('<button class="primary" style="width:100%" onclick="login()">🔐 دخول</button>', '<button id="loginButton" class="primary" type="button" style="width:100%" onclick="login()">🔐 دخول</button>', 1)
+
+          guard='''<!-- DXN LOGIN GUARD V86.1 -->
           <script>(function(){
-          if(window.__DXN_LOGIN_GUARD_V86__)return;
-          window.__DXN_LOGIN_GUARD_V86__=true;
+          if(window.__DXN_LOGIN_GUARD_V861__)return;
+          window.__DXN_LOGIN_GUARD_V861__=true;
           function show(msg){
-            try{
-              var t=document.getElementById('toast');
-              if(t){t.textContent=msg;t.classList.remove('hidden');setTimeout(function(){t.classList.add('hidden')},2600);return true}
-            }catch(_){ }
-            try{if(window.alert)window.alert(msg)}catch(_){ }
-            return false;
+            var t=document.getElementById('toast');
+            if(t){t.textContent=msg;t.classList.remove('hidden');setTimeout(function(){t.classList.add('hidden')},2600);}
+            else if(window.alert)window.alert(msg);
           }
           document.addEventListener('click',function(e){
-            try{
-              var b=e.target&&e.target.closest?e.target.closest('#loginButton,button[onclick*="login("]'):null;
-              if(!b)return;
-              var n=document.getElementById('loginNo'),p=document.getElementById('pin');
-              if(!n||!p)return;
-              var no=String(n.value||'').trim(), pin=String(p.value||'').trim();
-              if(!no||!pin){
-                e.preventDefault();e.stopImmediatePropagation();
-                show('أدخل بيانات الدخول أولاً.');
-                return;
-              }
-              if(typeof window.login!=='function'){
-                e.preventDefault();e.stopImmediatePropagation();
-                show('تعذر تحميل وظيفة الدخول. أعد تحميل الصفحة مرة واحدة.');
-              }
-            }catch(_){ }
+            var b=e.target&&e.target.closest?e.target.closest('#loginButton'):null;
+            if(!b)return;
+            var n=document.getElementById('loginNo'),p=document.getElementById('pin');
+            if(!n||!p){e.preventDefault();e.stopImmediatePropagation();show('تعذر تحميل نموذج الدخول.');return;}
+            var no=String(n.value||'').trim(),pin=String(p.value||'').trim();
+            if(!no||!pin){e.preventDefault();e.stopImmediatePropagation();show('أدخل بيانات الدخول أولاً.');return;}
+            if(typeof window.login!=='function'){e.preventDefault();e.stopImmediatePropagation();show('تعذر تحميل وظيفة الدخول.');return;}
           },true);
           })();</script>
           '''
@@ -61,21 +53,15 @@ jobs:
           if pos<0: raise SystemExit('no </head>')
           s=s[:pos]+guard+s[pos:]
           p.write_text(s,encoding='utf-8')
-
-          sw=Path('sw.js')
-          if sw.exists():
-            w=sw.read_text(encoding='utf-8')
-            w=re.sub(r"const CACHE = ['\"]dxn-v[^'\"]+['\"];", "const CACHE = 'dxn-v86-app-shell';", w, count=1)
-            sw.write_text(w,encoding='utf-8')
           PY
-      - name: Commit patched files
+      - name: Commit hardened login
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add index.html sw.js
+          git add index.html
           if git diff --cached --quiet; then
             echo 'No changes needed'
             exit 0
           fi
-          git commit -m 'fix login button [login-guard] V86'
+          git commit -m 'fix login button [login-guard] V86.1'
           git push
