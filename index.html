@@ -1088,7 +1088,27 @@ function teams(){
 let leaderSection='dashboard';
 function openDXNMembershipRequests(){leaderSection='dxn_requests';render()}
 let teamRegistryRows=[];
-async function openTeamRegistry(){leaderSection='team_registry';try{const r=await rpc('leader_team_registry',{p_token:token});teamRegistryRows=Array.isArray(r)?r:(r?.members||r?.data||[]);render()}catch(e){toast(e.message||'تعذر تحميل سجل أعضاء الفريق');render()}}
+async function openTeamRegistry(){
+  leaderSection='team_registry';
+  try{
+    const r=await rpc('leader_team_registry',{p_token:token});
+    let parsed=r;
+    if(typeof parsed==='string'){
+      try{parsed=JSON.parse(parsed)}catch(_){/* keep original */}
+    }
+    teamRegistryRows=Array.isArray(parsed)
+      ? parsed
+      : (Array.isArray(parsed?.members)?parsed.members
+        : Array.isArray(parsed?.data)?parsed.data
+        : Array.isArray(parsed?.result)?parsed.result
+        : []);
+    render();
+  }catch(e){
+    teamRegistryRows=[];
+    render();
+    toast(e.message||'تعذر تحميل سجل أعضاء الفريق');
+  }
+}
 function backToLeaderDashboard(){leaderSection='dashboard';render()}
 function openApprovedDXNMembershipRequests(){leaderSection='dxn_approved';render()}
 function openRejectedDXNMembershipRequests(){leaderSection='dxn_rejected';render()}
@@ -1202,8 +1222,8 @@ async function addTeamRegistryMember(){
   const notes=prompt('ملاحظات (اختياري):',''); if(notes===null)return;
   try{
     await rpc('leader_add_team_member',{p_token:token,p_member_no:no,p_member_name:name.trim(),p_team:null,p_notes:notes.trim()||null});
-    toast('تمت إضافة العضو إلى سجل الفريق.');
     await openTeamRegistry();
+    toast('تمت إضافة العضو إلى سجل الفريق وتحديث السجل.');
   }catch(e){toast(e.message||'تعذر إضافة العضو إلى سجل الفريق')}
 }
 async function setTeamRegistryStatus(memberNo,status){
