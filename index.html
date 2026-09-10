@@ -1216,15 +1216,19 @@ function leaderDailyPlan(){
 async function addTeamRegistryMember(){
   if(role!=='leader')return;
   const memberNo=prompt('رقم عضوية DXN (9 أرقام):',''); if(memberNo===null)return;
-  const no=memberNo.trim(); if(!/^\d{9}$/.test(no))return toast('رقم العضوية يجب أن يتكون من 9 أرقام.');
+  const no=memberNo.trim(); if(!/^[0-9]{9}$/.test(no))return toast('رقم العضوية يجب أن يتكون من 9 أرقام.');
   const name=prompt('اسم العضو الكامل (للتعريف فقط):',''); if(name===null)return;
   if(!name.trim())return toast('اسم العضو مطلوب.');
   const notes=prompt('ملاحظات (اختياري):',''); if(notes===null)return;
   try{
-    await rpc('leader_add_team_member',{p_token:token,p_member_no:no,p_member_name:name.trim(),p_team:null,p_notes:notes.trim()||null});
+    const result=await rpc('leader_add_team_member',{p_token:token,p_member_no:no,p_member_name:name.trim(),p_team:null,p_notes:notes.trim()||null});
+    if(!result) throw new Error('لم تُرجع قاعدة البيانات نتيجة الإضافة.');
     await openTeamRegistry();
     toast('تمت إضافة العضو إلى سجل الفريق وتحديث السجل.');
-  }catch(e){toast(e.message||'تعذر إضافة العضو إلى سجل الفريق')}
+  }catch(e){
+    console.error('Team registry add error:',e);
+    toast('تعذر إضافة العضو: '+(e.message||e.details||e.hint||'خطأ غير معروف'));
+  }
 }
 async function setTeamRegistryStatus(memberNo,status){
   const labels={active:'تفعيل',inactive:'تعطيل',blocked:'حظر'};
