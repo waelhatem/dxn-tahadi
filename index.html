@@ -229,7 +229,7 @@ async function verifyTeamMember(){
   }catch(e){toast(e.message||'تعذر التحقق من العضوية.')}
 }
 function renderMemberAccountSetup(no,name){
-  $('app').innerHTML=`<div class="view-switch" id="viewSwitch"></div><div class="login card" style="max-width:700px;text-align:right"><div style="text-align:center"><img class="logo" src="logo.png"><h1>✅ تم التحقق من العضوية</h1><p class="muted">رقم العضوية <b>${esc(no)}</b> مسجل ضمن فريق المجتمع.</p></div><label>الاسم الكامل</label><input id="verifiedName" value="${esc(name)}" placeholder="الاسم الكامل"><label>PIN جديد *</label><input id="verifiedPin" type="password" minlength="4" autocomplete="new-password" placeholder="4 أحرف أو أرقام على الأقل"><label>تأكيد PIN *</label><input id="verifiedPin2" type="password" minlength="4" autocomplete="new-password" placeholder="أعد كتابة PIN"><button class="primary" style="width:100%;margin-top:12px" onclick="completeMemberRegistration('${esc(no)}')">🚀 إنشاء حسابي</button><button style="width:100%;margin-top:8px" onclick="renderMemberVerify()">↩️ العودة</button></div>`;
+  $('app').innerHTML=`<div class="view-switch" id="viewSwitch"></div><div class="login card" style="max-width:700px;text-align:right"><div style="text-align:center"><img class="logo" src="logo.png"><h1>✅ تم التحقق من العضوية</h1><p class="muted">رقم العضوية <b>${esc(no)}</b> مسجل ضمن فريق المجتمع.</p></div><label>الاسم الكامل</label><input id="verifiedName" value="${esc(name)}" placeholder="الاسم الكامل"><div class="muted" style="margin-top:-4px">الاسم للتعريف فقط؛ التحقق يتم برقم العضوية فقط.</div><label>PIN جديد *</label><input id="verifiedPin" type="password" minlength="4" autocomplete="new-password" placeholder="4 أحرف أو أرقام على الأقل"><label>تأكيد PIN *</label><input id="verifiedPin2" type="password" minlength="4" autocomplete="new-password" placeholder="أعد كتابة PIN"><button class="primary" style="width:100%;margin-top:12px" onclick="completeMemberRegistration('${esc(no)}')">🚀 إنشاء حسابي</button><button style="width:100%;margin-top:8px" onclick="renderMemberVerify()">↩️ العودة</button></div>`;
   renderViewSwitch();
 }
 async function completeMemberRegistration(no){
@@ -1189,12 +1189,11 @@ async function addTeamRegistryMember(){
   if(role!=='leader')return;
   const memberNo=prompt('رقم عضوية DXN (9 أرقام):',''); if(memberNo===null)return;
   const no=memberNo.trim(); if(!/^\d{9}$/.test(no))return toast('رقم العضوية يجب أن يتكون من 9 أرقام.');
-  const name=prompt('اسم العضو الكامل:',''); if(name===null)return;
+  const name=prompt('اسم العضو الكامل (للتعريف فقط):',''); if(name===null)return;
   if(!name.trim())return toast('اسم العضو مطلوب.');
-  const team=prompt('اسم الفريق (اختياري):',''); if(team===null)return;
   const notes=prompt('ملاحظات (اختياري):',''); if(notes===null)return;
   try{
-    await rpc('leader_add_team_member',{p_token:token,p_member_no:no,p_member_name:name.trim(),p_team:team.trim()||null,p_notes:notes.trim()||null});
+    await rpc('leader_add_team_member',{p_token:token,p_member_no:no,p_member_name:name.trim(),p_team:null,p_notes:notes.trim()||null});
     toast('تمت إضافة العضو إلى سجل الفريق.');
     await openTeamRegistry();
   }catch(e){toast(e.message||'تعذر إضافة العضو إلى سجل الفريق')}
@@ -1208,11 +1207,11 @@ function teamRegistryPanel(){
   const list=Array.isArray(teamRegistryRows)?teamRegistryRows:[];
   return `<div class="card leaderbox">
     <div class="title">👥 سجل أعضاء الفريق الموثقين</div>
-    <p class="muted">هذا السجل هو بوابة التحقق من عضوية الفريق. لا يُسمح للعضو الحالي بإنشاء حساب عضو إلا إذا كان رقم عضويته موجودًا هنا وحالته نشطة.</p>
+    <p class="muted">هذا السجل هو بوابة التحقق من عضوية الفريق. التحقق يعتمد على **رقم العضوية فقط** وحالته النشطة؛ الاسم محفوظ للتعريف ولا يُستخدم كشرط للمطابقة.</p>
     <div class="admin-toolbar"><button onclick="backToLeaderDashboard()">↩️ العودة لإدارة القائد</button><button class="primary" onclick="addTeamRegistryMember()">➕ إضافة عضو إلى الفريق</button><button onclick="openTeamRegistry()">🔄 تحديث السجل</button></div>
   </div>
   <div class="card"><div class="title">📋 الأعضاء في السجل (${list.length})</div>
-    ${list.length?list.map(m=>{const status=m.status||'active';const statusLabel=status==='active'?'🟢 نشط':status==='inactive'?'🟡 غير نشط':'🔴 محظور';return `<div class="row"><div><b>${esc(m.member_name||m.name||'عضو')}</b><div class="muted">🪪 ${esc(m.member_no||'')} · 👥 ${esc(m.team_id||m.team||'بدون فريق')} · ${statusLabel}</div>${m.notes?`<div class="muted">📝 ${esc(m.notes)}</div>`:''}${m.verified_at?`<div class="muted">✅ تحقق: ${esc(new Date(m.verified_at).toLocaleString('ar-IQ'))}</div>`:''}</div><div class="actions"><button onclick="setTeamRegistryStatus('${esc(m.member_no)}','active')">🟢 تفعيل</button><button onclick="setTeamRegistryStatus('${esc(m.member_no)}','inactive')">🟡 تعطيل</button><button class="danger" onclick="setTeamRegistryStatus('${esc(m.member_no)}','blocked')">🔴 حظر</button></div></div>`}).join(''):'<div class="empty">لا يوجد أعضاء موثقون في سجل الفريق بعد. أضف رقم العضوية 820469486 للبدء.</div>'}
+    ${list.length?list.map(m=>{const status=m.status||'active';const statusLabel=status==='active'?'🟢 نشط':status==='inactive'?'🟡 غير نشط':'🔴 محظور';return `<div class="row"><div><b>${esc(m.member_name||m.name||'عضو')}</b><div class="muted">🪪 ${esc(m.member_no||'')} · ${statusLabel}</div>${m.notes?`<div class="muted">📝 ${esc(m.notes)}</div>`:''}${m.verified_at?`<div class="muted">✅ تحقق: ${esc(new Date(m.verified_at).toLocaleString('ar-IQ'))}</div>`:''}</div><div class="actions"><button onclick="setTeamRegistryStatus('${esc(m.member_no)}','active')">🟢 تفعيل</button><button onclick="setTeamRegistryStatus('${esc(m.member_no)}','inactive')">🟡 تعطيل</button><button class="danger" onclick="setTeamRegistryStatus('${esc(m.member_no)}','blocked')">🔴 حظر</button></div></div>`}).join(''):'<div class="empty">لا يوجد أعضاء موثقون في سجل الفريق بعد. أضف رقم العضوية للبدء.</div>'}
   </div>`;
 }
 
