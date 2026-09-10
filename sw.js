@@ -1,21 +1,61 @@
-const CACHE='dxn-v30-online-shell-v2';
-const ASSETS=['./','./index.html','./config.js','./manifest.json','./logo.png'];
-self.addEventListener('install',event=>{
-  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));
+/* V85.1: cache only the public application shell. */
+const CACHE = 'dxn-v85.1-app-shell';
+const APP_SHELL = [
+  './',
+  './index.html',
+  './manifest.json',
+  './logo.png'
+];
+const APP_SHELL_PATHS = new Set(
+  APP_SHELL.map(asset => new URL(asset, self.registration.scope).pathname)
+);
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE)
+      .then(cache => cache.addAll(APP_SHELL))
+      .then(() => self.skipWaiting())
+  );
 });
-self.addEventListener('activate',event=>{
-  event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('dxn-v30-online-shell-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(
+        keys.filter(key => key.startsWith('dxn-') && key !== CACHE)
+          .map(key => caches.delete(key))
+      ))
+      .then(() => self.clients.claim())
+  );
 });
-self.addEventListener('fetch',event=>{
-  if(event.request.method!=='GET')return;
-  const url=new URL(event.request.url);
-  if(url.pathname.endsWith('/') || url.pathname.endsWith('/index.html')){
-    event.respondWith(fetch(event.request).then(response=>{
-      const copy=response.clone();
-      caches.open(CACHE).then(cache=>cache.put(event.request,copy));
-      return response;
-    }).catch(()=>caches.match(event.request).then(x=>x||caches.match('./index.html'))));
+
+function appShellFallback(request) {
+  return caches.match(request).then(hit => hit || caches.match('./index.html'));
+}
+
+self.addEventListener('fetch', event => {
+  const { request } = event;
+  if (request.method !== 'GET') return;
+
+  const url = new URL(request.url);
+
+  // Authentication, member/session data, Supabase, YouTube, config.js, and all
+  // third-party traffic always use the network and are never written to Cache Storage.
+  if (url.origin !== self.location.origin || url.pathname.endsWith('/config.js')) return;
+
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then(response => response)
+        .catch(() => appShellFallback(request))
+    );
     return;
   }
-  event.respondWith(caches.match(event.request).then(x=>x||fetch(event.request)));
+
+  // Only public, version-independent shell resources use cache-first behavior.
+  if (APP_SHELL_PATHS.has(url.pathname)) {
+    event.respondWith(
+      caches.match(request).then(hit => hit || fetch(request))
+    );
+  }
 });
