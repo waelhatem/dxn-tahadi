@@ -309,7 +309,43 @@ function setViewMode(mode){
 }
 async function login(){try{const loginNo=$('loginNo').value.trim(),pin=$('pin').value.trim();if(!loginNo||!pin)return toast('أدخل بيانات الدخول أولاً.');const r=await rpc('login',{p_login_no:loginNo,p_pin:pin});token=r.token;localStorage.setItem('dxn_session',token);localStorage.setItem('dxn_session_issued',String(Date.now()));await boot()}catch(e){toast(e.message||'تعذر الدخول')}}
 async function logout(){try{await rpc('logout',{p_token:token})}catch{}localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');token='';me=null;data=null;tab='home';renderLogin()}
-function switchTab(next){if(next==='training'&&!canAccessTraining())return;tab=next;try{render();recordSiteVisit(role||'visitor',next);window.scrollTo({top:0,behavior:'smooth'})}catch(e){console.error(e);toast('تعذر فتح القسم: '+(e.message||e))}}
+const DXN_NAV_KEY='dxn_inapp_nav_v1';
+let dxnNav={back:[],forward:[],current:null,restoring:false};
+function dxnNavLabel(v){return String(v||'home');}
+function dxnNavCurrent(){return role?`tab:${tab}`:'public:login'}
+function dxnNavPush(target){
+  target=dxnNavLabel(target);
+  if(dxnNav.restoring){dxnNav.current=target;return;}
+  if(dxnNav.current===null){dxnNav.current=target;return;}
+  if(dxnNav.current!==target){dxnNav.back.push(dxnNav.current);if(dxnNav.back.length>30)dxnNav.back.shift();dxnNav.forward=[];dxnNav.current=target;}
+  renderInAppNav();
+}
+function dxnNavGoBack(){
+  if(!dxnNav.back.length)return;
+  const target=dxnNav.back.pop();
+  if(dxnNav.current)dxnNav.forward.push(dxnNav.current);
+  dxnNav.current=target;dxnNavRestore(target);
+}
+function dxnNavGoForward(){
+  if(!dxnNav.forward.length)return;
+  const target=dxnNav.forward.pop();
+  if(dxnNav.current)dxnNav.back.push(dxnNav.current);
+  dxnNav.current=target;dxnNavRestore(target);
+}
+function dxnNavRestore(target){
+  dxnNav.restoring=true;
+  try{
+    if(target.startsWith('tab:')){const t=target.slice(4);if(t==='training'&&!canAccessTraining())return;tab=t;render();window.scrollTo({top:0,behavior:'smooth'});recordSiteVisit(role||'visitor',t);}
+    else if(target.startsWith('idea:')){ideaStep(Number(target.slice(5))||0);}
+    else if(target==='public:login'){renderLogin();}
+  }finally{dxnNav.restoring=false;renderInAppNav();}
+}
+function renderInAppNav(){
+  let el=document.getElementById('dxnInAppNav');
+  if(!el){el=document.createElement('nav');el.id='dxnInAppNav';el.className='dxn-inapp-nav';el.setAttribute('aria-label','التنقل بين الصفحات');document.body.appendChild(el);}
+  el.innerHTML=`<button type="button" class="dxn-nav-btn" ${dxnNav.back.length?'':'disabled'} onclick="dxnNavGoBack()" aria-label="الرجوع للصفحة السابقة" title="الرجوع للصفحة السابقة">◀️ <span>رجوع</span></button><button type="button" class="dxn-nav-btn" ${dxnNav.forward.length?'':'disabled'} onclick="dxnNavGoForward()" aria-label="التقدم إلى الصفحة التالية" title="التقدم إلى الصفحة التالية"><span>تقدم</span> ▶️</button>`;
+}
+function switchTab(next){if(next==='training'&&!canAccessTraining())return;tab=next;try{render();dxnNavPush(`tab:${next}`);recordSiteVisit(role||'visitor',next);window.scrollTo({top:0,behavior:'smooth'})}catch(e){console.error(e);toast('تعذر فتح القسم: '+(e.message||e))}}
 function openMemberProgress(){if(role!=='member'||!me){toast('هذه الصفحة متاحة للأعضاء فقط.');return;}tab='progress';try{render();setTimeout(()=>window.scrollTo({top:0,behavior:'smooth'}),30)}catch(e){console.error(e);toast('تعذر فتح صفحة تقدّمي: '+(e.message||e))}}
 
 function memberNextStep(){
@@ -682,6 +718,7 @@ function ideaStep(n){
     </div>
     لدي عضوية — تسجيل الدخول</button><button onclick="renderMemberVerify()">👤 لدي عضوية في فريق بداية أمل</button><button onclick="renderProspectRegister()">🌱 أريد أن أبدأ كمستقطب جديد</button></div></div>`;
   renderViewSwitch();
+  if(!dxnNav.restoring)dxnNavPush(`idea:${n}`);
 }
 function renderIdea(){ideaStep(0)}
 
@@ -1656,14 +1693,23 @@ window.addEventListener('error',e=>{console.error('DXN UI error',e.error||e.mess
 window.addEventListener('unhandledrejection',e=>{console.error('DXN async error',e.reason);});
 applyGlobalAccessibility();
 updateSiteMeta();
+dxnNav.current=token?`tab:${tab}`:'public:login';
+renderInAppNav();
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=78',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{}); boot();
-window.switchTab=switchTab;window.sendChallengeEvidence=sendChallengeEvidence;window.openEvidence=openEvidence;window.openMemberProgress=openMemberProgress;window.editMyMonthlyPoints=editMyMonthlyPoints;window.closeMonthlyPointsEvidenceModal=closeMonthlyPointsEvidenceModal;window.previewMonthlyPointsEvidence=previewMonthlyPointsEvidence;window.sendMonthlyPointsEvidence=sendMonthlyPointsEvidence;window.decideMonthlyPointRequest=decideMonthlyPointRequest;window.openMemberProfile=openMemberProfile;window.closeMemberProfile=closeMemberProfile;window.memberPathMap=memberPathMap;window.openTrainingManager=openTrainingManager;window.restartTrainingWatch=restartTrainingWatch;window.startTrainingLesson=startTrainingLesson;window.completeTrainingLesson=completeTrainingLesson;window.saveTrainingFromManager=saveTrainingFromManager;window.editTrainingLesson=editTrainingLesson;window.toggleTrainingLesson=toggleTrainingLesson;window.closeTraining=closeTraining;window.closeTrainingManager=closeTrainingManager;window.challenges=challenges;window.teams=teams;window.leader=leader;window.approvalCard=approvalCard;window.renderIdea=renderIdea;window.trainings=trainings;window.approveDXNMembershipRequest=approveDXNMembershipRequest;window.rejectDXNMembershipRequest=rejectDXNMembershipRequest;window.openDXNMembershipRequests=openDXNMembershipRequests;window.openApprovedDXNMembershipRequests=openApprovedDXNMembershipRequests;window.backToLeaderDashboard=backToLeaderDashboard;window.addEventListener('resize',()=>{if(!localStorage.getItem('dxn_view_mode'))renderViewSwitch()});
+window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForward=dxnNavGoForward;window.sendChallengeEvidence=sendChallengeEvidence;window.openEvidence=openEvidence;window.openMemberProgress=openMemberProgress;window.editMyMonthlyPoints=editMyMonthlyPoints;window.closeMonthlyPointsEvidenceModal=closeMonthlyPointsEvidenceModal;window.previewMonthlyPointsEvidence=previewMonthlyPointsEvidence;window.sendMonthlyPointsEvidence=sendMonthlyPointsEvidence;window.decideMonthlyPointRequest=decideMonthlyPointRequest;window.openMemberProfile=openMemberProfile;window.closeMemberProfile=closeMemberProfile;window.memberPathMap=memberPathMap;window.openTrainingManager=openTrainingManager;window.restartTrainingWatch=restartTrainingWatch;window.startTrainingLesson=startTrainingLesson;window.completeTrainingLesson=completeTrainingLesson;window.saveTrainingFromManager=saveTrainingFromManager;window.editTrainingLesson=editTrainingLesson;window.toggleTrainingLesson=toggleTrainingLesson;window.closeTraining=closeTraining;window.closeTrainingManager=closeTrainingManager;window.challenges=challenges;window.teams=teams;window.leader=leader;window.approvalCard=approvalCard;window.renderIdea=renderIdea;window.trainings=trainings;window.approveDXNMembershipRequest=approveDXNMembershipRequest;window.rejectDXNMembershipRequest=rejectDXNMembershipRequest;window.openDXNMembershipRequests=openDXNMembershipRequests;window.openApprovedDXNMembershipRequests=openApprovedDXNMembershipRequests;window.backToLeaderDashboard=backToLeaderDashboard;window.addEventListener('resize',()=>{if(!localStorage.getItem('dxn_view_mode'))renderViewSwitch()});
 </script>
 <style>
 #app{padding-top:48px!important;min-height:calc(100vh - 48px)}
 /* V82 — Universal in-app copyright footer */
 .app-copyright-footer{margin-top:42px;padding:20px 16px 92px;text-align:center;border-top:1px solid var(--line);color:#667085;font-size:13px;line-height:1.9;direction:inherit;background:transparent}
 .app-copyright-footer strong{font-weight:800}
+/* V84.2 — In-app page navigation */
+.dxn-inapp-nav{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:9998;display:flex;gap:8px;align-items:center;padding:6px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.96);box-shadow:0 8px 28px rgba(0,0,0,.12);direction:rtl}
+.dxn-nav-btn{min-width:105px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;font-weight:800;cursor:pointer}
+.dxn-nav-btn:disabled{opacity:.42;cursor:not-allowed}
+.dxn-nav-btn:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
+@media (max-width:600px){.dxn-inapp-nav{bottom:10px}.dxn-nav-btn{min-width:90px;padding:9px 10px;font-size:14px}}
+@media (prefers-reduced-motion:reduce){.dxn-inapp-nav{scroll-behavior:auto}}
 @media (min-width:800px){.app-copyright-footer{padding-bottom:28px}}
 </style>
 <script>
