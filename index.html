@@ -75,6 +75,9 @@ body.mobile-mode .view-switch button{min-width:120px}
 #internal_language_select{font-family:inherit;font-size:14px;font-weight:700;color:#173c32;background:#fff;border:1px solid #cbded7;border-radius:10px;padding:7px 10px;outline:none;cursor:pointer;min-width:190px}
 #internal_language_select:focus-visible{outline:3px solid #d99a18;outline-offset:2px}
 @media(max-width:600px){.site-language-bar{padding:5px 8px}.site-language-inner{justify-content:center}.site-language-inner strong{display:none}#internal_language_select{width:190px}}
+
+.pwa-install{display:none;position:fixed;left:14px;right:14px;bottom:14px;z-index:120;max-width:620px;margin:auto;padding:12px 14px;border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:0 12px 34px #0002;align-items:center;gap:10px}.pwa-install.show{display:flex}.pwa-install-text{flex:1;line-height:1.5;font-size:13px}.pwa-install button{min-height:42px}.pwa-install-close{background:#f4f6f5!important;color:var(--text)!important;border:1px solid var(--line)!important}
+@media(max-width:560px){.pwa-install{bottom:10px;left:10px;right:10px}.pwa-install-actions{display:flex;gap:7px;flex-wrap:wrap}.pwa-install-actions button{flex:1;min-width:100px}}
 </style>  <link rel="icon" type="image/png" href="logo.png">
 
 <style>
@@ -99,6 +102,11 @@ button[disabled]:focus-visible{outline-color:#667085!important}
 </style>
 <meta name="x-community-version" content="V84.1 WCAG 2.2 AA + Site Visit Analytics"><meta name="referrer" content="strict-origin-when-cross-origin"><!-- V84.6 Performance: notification summary/cache and render computation deduplication -->
 </head><body>
+<div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
+  <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
+  <div class="pwa-install-actions"><button id="pwaInstallBtn" class="primary" type="button">تثبيت</button><button id="pwaInstallClose" class="pwa-install-close" type="button">لاحقًا</button></div>
+</div>
+
 <a class="skip-link" href="#app">تجاوز إلى المحتوى</a>
 <div id="site-language-bar" class="site-language-bar" aria-label="اختيار اللغة">
   <div class="site-language-inner">
@@ -1803,7 +1811,7 @@ applyGlobalAccessibility();
 updateSiteMeta();
 dxnNav.current=token?`tab:${tab}`:'public:login';
 renderInAppNav();
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=78',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{}); boot();
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=85',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{}); boot();
 window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForward=dxnNavGoForward;window.sendChallengeEvidence=sendChallengeEvidence;window.openEvidence=openEvidence;window.openMemberProgress=openMemberProgress;window.editMyMonthlyPoints=editMyMonthlyPoints;window.closeMonthlyPointsEvidenceModal=closeMonthlyPointsEvidenceModal;window.previewMonthlyPointsEvidence=previewMonthlyPointsEvidence;window.sendMonthlyPointsEvidence=sendMonthlyPointsEvidence;window.decideMonthlyPointRequest=decideMonthlyPointRequest;window.openMemberProfile=openMemberProfile;window.closeMemberProfile=closeMemberProfile;window.memberPathMap=memberPathMap;window.openTrainingManager=openTrainingManager;window.restartTrainingWatch=restartTrainingWatch;window.startTrainingLesson=startTrainingLesson;window.completeTrainingLesson=completeTrainingLesson;window.saveTrainingFromManager=saveTrainingFromManager;window.editTrainingLesson=editTrainingLesson;window.toggleTrainingLesson=toggleTrainingLesson;window.closeTraining=closeTraining;window.closeTrainingManager=closeTrainingManager;window.challenges=challenges;window.teams=teams;window.leader=leader;window.approvalCard=approvalCard;window.renderIdea=renderIdea;window.trainings=trainings;window.approveDXNMembershipRequest=approveDXNMembershipRequest;window.rejectDXNMembershipRequest=rejectDXNMembershipRequest;window.openDXNMembershipRequests=openDXNMembershipRequests;window.openApprovedDXNMembershipRequests=openApprovedDXNMembershipRequests;window.backToLeaderDashboard=backToLeaderDashboard;window.addEventListener('resize',()=>{if(!localStorage.getItem('dxn_view_mode'))renderViewSwitch()});
 </script>
 <style>
@@ -1944,6 +1952,27 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
   }
   window.addEventListener('dxn-language-changed',inject);
   document.addEventListener('change',function(e){ if(e.target && e.target.id==='languageSelect') setTimeout(inject,0); });
+})();
+</script>
+
+<script>
+/* V85 — PWA install experience. No credentials or member data are stored by this layer. */
+(()=>{
+  let deferredPrompt=null;
+  const box=()=>document.getElementById('pwaInstallPrompt');
+  const hide=()=>{const b=box();if(b)b.classList.remove('show');};
+  window.addEventListener('beforeinstallprompt',e=>{
+    e.preventDefault(); deferredPrompt=e;
+    if(!window.matchMedia('(display-mode: standalone)').matches) setTimeout(()=>{const b=box();if(b)b.classList.add('show');},1200);
+  });
+  document.addEventListener('click',async e=>{
+    if(e.target?.id==='pwaInstallClose'){hide();return;}
+    if(e.target?.id==='pwaInstallBtn' && deferredPrompt){
+      const p=deferredPrompt; deferredPrompt=null; hide();
+      try{await p.prompt(); await p.userChoice;}catch(_){}
+    }
+  });
+  window.addEventListener('appinstalled',()=>{deferredPrompt=null;hide();});
 })();
 </script>
 </body></html>
