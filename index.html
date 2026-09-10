@@ -937,9 +937,18 @@ function waitForYouTubePlayer(l){
 }
 function beginTrainingWatch(player,lessonId){
   trainingWatch.player=player;
+  const duration=Number(player.getDuration()||0);
+  const saved=(trainingData?.my_progress||[]).find(x=>String(x.lesson_id)===String(lessonId));
+  // آخر نقطة مسجلة للمشاهدة الفعلية تصبح حدّ التقديم اليدوي المسموح.
+  // الرجوع للخلف لا يخفض هذا الحد، لذلك يستطيع العضو العودة إلى آخر نقطة وصل إليها سابقًا.
+  const savedSeconds=Number(saved?.current_seconds||0);
+  const savedPercent=Number(saved?.watch_percent||0);
+  const savedFromPercent=duration>0?savedPercent/100*duration:0;
+  trainingWatch.maxWatchedSeconds=Math.max(savedSeconds,savedFromPercent,0);
+  trainingWatch.lastSampleSeconds=Number(player.getCurrentTime()||0);
   trainingWatch.timer=setInterval(()=>sampleTrainingWatch(lessonId),1000);
   trainingWatch.guardTimer=setInterval(()=>guardTrainingSeek(),250);
-  updateTrainingWatchStatus('▶️ الفيديو جاهز — ابدأ المشاهدة من البداية. يمكنك الرجوع للخلف، أما التقديم إلى جزء غير مشاهد فسيُعاد تلقائيًا إلى آخر نقطة مسموحة.');
+  updateTrainingWatchStatus('▶️ الفيديو جاهز. يمكنك الرجوع لأي فقرة، ويمكنك التقديم يدويًا فقط حتى آخر نقطة شاهدتها فعليًا.');
 }
 function guardTrainingSeek(){
   const p=trainingWatch.player;
@@ -951,7 +960,7 @@ function guardTrainingSeek(){
     trainingWatch.suppressSeek=true;
     try{p.seekTo(Math.max(0,max),true)}catch(e){}
     setTimeout(()=>{trainingWatch.suppressSeek=false},350);
-    updateTrainingWatchStatus(`⏪ التقديم غير متاح بعد. يمكنك الرجوع لأي فقرة، وآخر نقطة مسموحة هي ${Math.floor(max)} ثانية.` ,true);
+    updateTrainingWatchStatus(`⏪ يمكنك التقديم فقط حتى آخر نقطة شاهدتها فعليًا (${Math.floor(max)} ثانية). الرجوع وإعادة الاستماع مسموحان.`,true);
   }
 }
 async function sampleTrainingWatch(lessonId){
@@ -965,16 +974,18 @@ async function sampleTrainingWatch(lessonId){
   const state=p.getPlayerState();
   const pct=Math.min(100,Number(trainingWatch.maxWatchedSeconds||current)/duration*100);
   if(state===YT.PlayerState.PLAYING){
-    // The server validates the accumulated watched time and detects large forward jumps.
+    // نرسل أعلى نقطة مشاهدة مثبتة؛ التقديم اليدوي داخل هذه المنطقة مسموح، ولا يرفع الحد إلا بالمشاهدة الفعلية.
     try{
       const result=await rpc('update_training_progress',{
         p_token:token,p_lesson:lessonId,p_watch_percent:pct,p_current_seconds:Math.min(current,Number(trainingWatch.maxWatchedSeconds||current)),
         p_duration_seconds:duration,p_completed:false
       });
       if(result?.seek_detected){
-        trainingWatch.invalid=true;
-        updateTrainingWatchStatus('⚠️ تم اكتشاف محاولة تقديم يدوي. يجب إعادة التدريب من البداية.',true);
-        clearInterval(trainingWatch.timer); trainingWatch.timer=null;
+        // حماية خادمية إضافية: لا نعاقب العضو على الرجوع ثم التقدم إلى نقطة سبق أن شاهدها.
+        trainingWatch.suppressSeek=true;
+        try{p.seekTo(Math.max(0,Number(trainingWatch.maxWatchedSeconds||0)),true)}catch(e){}
+        setTimeout(()=>{trainingWatch.suppressSeek=false},350);
+        updateTrainingWatchStatus(`⏪ التقديم مسموح حتى آخر نقطة مشاهدة مثبتة فقط (${Math.floor(Number(trainingWatch.maxWatchedSeconds||0))} ثانية).`,true);
       }else{
         updateTrainingWatchStatus(`▶️ تمت مشاهدة ${pct.toFixed(0)}% — أكمل حتى النهاية.`);
       }
