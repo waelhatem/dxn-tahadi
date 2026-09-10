@@ -10,58 +10,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Clean login runtime and remove duplicate guards
+      - name: Apply V86.5 clean runtime
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
-
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
-
-          # Remove every generated login guard. config.js is the single login runtime.
-          s=re.sub(r'<!-- DXN LOGIN GUARD V[0-9.]+ -->\s*<script>\(function\(\).*?</script>\s*', '', s, flags=re.S)
-          s=re.sub(r'<!-- DXN LOGIN GUARD V[0-9.]+ -->.*?</script>\s*', '', s, flags=re.S)
-
-          # Remove legacy visible build markers so only the current one remains.
-          s=re.sub(r'<div[^>]*>\s*مجتمع الصحة والثراء\s*•\s*V86\.3\s*</div>', '', s, flags=re.S)
-          s=re.sub(r'<div[^>]*>\s*مجتمع الصحة والثراء\s*•\s*V86\.[0-9]+\s*</div>', '', s, flags=re.S)
-
-          # Never register the service worker from the application runtime.
-          s=re.sub(r'navigator\.serviceWorker\.register\s*\([^;]*\)\s*;?', '', s, flags=re.S)
-
-          # Run application bootstrap directly; do not depend on service-worker support.
-          s=s.replace("if('serviceWorker' in navigator)boot();", 'boot();')
-          s=s.replace("if('serviceWorker' in navigator) boot();", 'boot();')
-
-          # Force a fresh V86.4 config.js request.
-          s=re.sub(r'src="config\.js(?:\?v=[0-9.]+)?"', 'src="config.js?v=86.4"', s)
-
-          # Stable login button id.
+          s=re.sub(r'<!-- DXN LOGIN GUARD V[0-9.]+ -->\s*<script>\(function\(\).*?</script>\s*','',s,flags=re.S)
+          s=re.sub(r'<div[^>]*>\s*مجتمع الصحة والثراء\s*•\s*V86\.3\s*</div>','',s,flags=re.S)
+          s=re.sub(r'<div[^>]*>\s*مجتمع الصحة والثراء\s*•\s*V86\.[0-9]+\s*</div>','',s,flags=re.S)
+          s=re.sub(r'navigator\.serviceWorker\.register\s*\([^;]*\)\s*;?','',s,flags=re.S)
+          s=s.replace("if('serviceWorker' in navigator)boot();",'boot();')
+          s=s.replace("if('serviceWorker' in navigator) boot();",'boot();')
+          s=re.sub(r'src="config\.js(?:\?v=[0-9.]+)?"','src="config.js?v=86.5"',s)
           if 'id="loginButton"' not in s:
-              s=s.replace('<button class="primary" style="width:100%" onclick="login()">🔐 دخول</button>', '<button id="loginButton" class="primary" type="button" onclick="login()" style="width:100%">🔐 دخول</button>', 1)
-
-          # Keep exactly one current deployment marker directly below the login button.
-          marker='<div id="dxnBuildMarker" class="small muted" style="text-align:center;margin-top:8px">مجتمع الصحة والثراء • V86.4</div>'
-          s=re.sub(r'<div id="dxnBuildMarker"[^>]*>.*?</div>', '', s, count=1, flags=re.S)
-          needle=re.search(r'<button id="loginButton"[^>]*>🔐 دخول</button>', s)
-          if not needle:
-              raise SystemExit('loginButton not found')
+              s=s.replace('<button class="primary" style="width:100%" onclick="login()">🔐 دخول</button>','<button id="loginButton" class="primary" type="button" onclick="login()" style="width:100%">🔐 دخول</button>',1)
+          marker='<div id="dxnBuildMarker" class="small muted" style="text-align:center;margin-top:8px">مجتمع الصحة والثراء • V86.5</div>'
+          s=re.sub(r'<div id="dxnBuildMarker"[^>]*>.*?</div>','',s,count=1,flags=re.S)
+          needle=re.search(r'<button id="loginButton"[^>]*>🔐 دخول</button>',s)
+          if not needle: raise SystemExit('loginButton not found')
           s=s[:needle.end()]+marker+s[needle.end():]
-
-          # Update the HTML version metadata.
-          s=re.sub(r'<meta name="x-community-version"[^>]*>', '<meta name="x-community-version" content="V86.4 Login Runtime + WCAG 2.2 AA + Site Visit Analytics">', s, count=1)
-
+          s=re.sub(r'<meta name="x-community-version"[^>]*>','<meta name="x-community-version" content="V86.5 Login + Bootstrap Diagnostic + WCAG 2.2 AA + Site Visit Analytics">',s,count=1)
           p.write_text(s,encoding='utf-8')
           PY
-      - name: Commit cleaned index
+      - name: Commit V86.5 index
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          if git diff --cached --quiet; then
-            echo 'No changes needed'
-            exit 0
-          fi
-          git commit -m 'clean duplicate login guards [login-guard] V86.4'
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'apply clean login runtime [login-guard] V86.5'
           git push
