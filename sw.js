@@ -1,5 +1,5 @@
 /* V85.9: force a fresh public shell deployment and keep login validation available offline. */
-const CACHE = 'dxn-v85.9-app-shell';
+const CACHE = 'dxn-v86-app-shell';
 const APP_SHELL = [
   './',
   './index.html',

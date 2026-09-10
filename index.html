@@ -101,28 +101,36 @@ button[disabled]:focus-visible{outline-color:#667085!important}
 @media (forced-colors: active){button,a,input,textarea,select{forced-color-adjust:auto}.tab.active{border:2px solid CanvasText}.bar span{background:Highlight!important}}
 </style>
 <meta name="x-community-version" content="V85.1 PWA login-safe cache policy"><meta name="referrer" content="strict-origin-when-cross-origin"><!-- V84.6 Performance: notification summary/cache and render computation deduplication -->
-<!-- DXN LOGIN GUARD V85.9 -->
+<!-- DXN LOGIN GUARD V86 -->
 <script>(function(){
-function install(){
-  var n=document.getElementById('loginNo'),p=document.getElementById('pin');
-  if(!n||!p)return;
-  var buttons=document.querySelectorAll('button.primary');
-  for(var i=0;i<buttons.length;i++){
-    var b=buttons[i];
-    if(b.__dxnLoginGuard)return;
-    if(String(b.textContent||'').indexOf('دخول')<0)continue;
-    b.__dxnLoginGuard=true;
-    b.addEventListener('click',function(e){
-      if(!String(n.value||'').trim()||!String(p.value||'').trim()){
-        e.preventDefault();e.stopImmediatePropagation();
-        var t=document.getElementById('toast');
-        if(t){t.textContent='أدخل بيانات الدخول أولاً.';t.classList.remove('hidden');setTimeout(function(){t.classList.add('hidden')},2600);}
-      }
-    },true);
-  }
+if(window.__DXN_LOGIN_GUARD_V86__)return;
+window.__DXN_LOGIN_GUARD_V86__=true;
+function show(msg){
+  try{
+    var t=document.getElementById('toast');
+    if(t){t.textContent=msg;t.classList.remove('hidden');setTimeout(function(){t.classList.add('hidden')},2600);return true}
+  }catch(_){ }
+  try{if(window.alert)window.alert(msg)}catch(_){ }
+  return false;
 }
-new MutationObserver(install).observe(document.documentElement,{childList:true,subtree:true});
-install();
+document.addEventListener('click',function(e){
+  try{
+    var b=e.target&&e.target.closest?e.target.closest('#loginButton,button[onclick*="login("]'):null;
+    if(!b)return;
+    var n=document.getElementById('loginNo'),p=document.getElementById('pin');
+    if(!n||!p)return;
+    var no=String(n.value||'').trim(), pin=String(p.value||'').trim();
+    if(!no||!pin){
+      e.preventDefault();e.stopImmediatePropagation();
+      show('أدخل بيانات الدخول أولاً.');
+      return;
+    }
+    if(typeof window.login!=='function'){
+      e.preventDefault();e.stopImmediatePropagation();
+      show('تعذر تحميل وظيفة الدخول. أعد تحميل الصفحة مرة واحدة.');
+    }
+  }catch(_){ }
+},true);
 })();</script>
 </head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
@@ -282,7 +290,7 @@ async function boot(){
   }catch(e){localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');token='';renderLogin();toast(e.message||'انتهت الجلسة')}
 }
 function renderSetup(){ $('app').innerHTML=`<div class="login card"><img class="logo" src="logo.png" alt="شعار مجتمع الصحة والثراء"><h1>مجتمع الصحة والثراء</h1><h2>إعداد النسخة Online</h2><p class="muted">النسخة جاهزة للربط بقاعدة بيانات Supabase. افتح ملف <b>config.js</b> وضع رابط المشروع وPublic anon key، ثم ارفع المجلد إلى Vercel أو أي استضافة ثابتة.</p><div class="card leaderbox"><b>الخطوات:</b><ol><li>أنشئ مشروع Supabase.</li><li>نفّذ ملف schema.sql بالكامل في SQL Editor.</li><li>ضع بيانات المشروع في config.js.</li><li>ارفع المجلد إلى Vercel.</li></ol></div></div>`}
-function renderLogin(){ $('app').innerHTML=`<div class="view-switch" id="viewSwitch"></div><div class="login card"><div style="text-align:center"><img class="logo" src="logo.png" alt="شعار مجتمع الصحة والثراء"><h1>مجتمع الصحة والثراء</h1><p class="muted">دخول موحد من أي جهاز</p></div><label>نوع الدخول</label><select id="role"><option value="member">👤 دخول العضو</option><option value="leader">👑 دخول القائد</option></select><label>رقم العضوية / رمز القائد</label><input id="loginNo" placeholder="مثال: 820426486 أو LEADER"><label>رمز الدخول PIN</label><input id="pin" type="text" autocomplete="current-password" inputmode="text" autocapitalize="characters" spellcheck="false" placeholder="PIN"><button class="primary" style="width:100%" onclick="login()">🔐 دخول</button><button style="width:100%;margin-top:8px" onclick="renderMemberVerify()">👤 لدي عضوية في فريق بداية أمل</button><button class="primary" style="width:100%;margin-top:8px" onclick="renderIdea()">✨ اكتشف عالم الصحة والثراء والحرية</button><p class="muted small">لأسباب أمنية، لا تُعرض بيانات دخول تجريبية داخل النسخة المنشورة.</p></div>`}
+function renderLogin(){ $('app').innerHTML=`<div class="view-switch" id="viewSwitch"></div><div class="login card"><div style="text-align:center"><img class="logo" src="logo.png" alt="شعار مجتمع الصحة والثراء"><h1>مجتمع الصحة والثراء</h1><p class="muted">دخول موحد من أي جهاز</p></div><label>نوع الدخول</label><select id="role"><option value="member">👤 دخول العضو</option><option value="leader">👑 دخول القائد</option></select><label>رقم العضوية / رمز القائد</label><input id="loginNo" placeholder="مثال: 820426486 أو LEADER"><label>رمز الدخول PIN</label><input id="pin" type="text" autocomplete="current-password" inputmode="text" autocapitalize="characters" spellcheck="false" placeholder="PIN"><button id="loginButton" class="primary" type="button" style="width:100%" onclick="login()">🔐 دخول</button><button style="width:100%;margin-top:8px" onclick="renderMemberVerify()">👤 لدي عضوية في فريق بداية أمل</button><button class="primary" style="width:100%;margin-top:8px" onclick="renderIdea()">✨ اكتشف عالم الصحة والثراء والحرية</button><p class="muted small">لأسباب أمنية، لا تُعرض بيانات دخول تجريبية داخل النسخة المنشورة.</p></div>`}
 async function renderRegister(){
   $('app').innerHTML=`<div class="view-switch" id="viewSwitch"></div><div class="login card" style="max-width:700px;text-align:right"><div style="text-align:center"><img class="logo" src="logo.png" alt="شعار مجتمع الصحة والثراء"><h1>📝 طلب عضوية DXN</h1><p class="muted">هذه الخطوة مخصصة لمن لا يمتلك عضوية DXN بعد. العضوية مجانية، ولا توجد شروط للبدء سوى أن يكون العمر 18 سنة أو أكثر.</p></div><div class="card" style="background:#f7fbf9"><b>ℹ️ قبل إرسال الطلب</b><p class="muted" style="line-height:1.9">سيتم إرسال بياناتك إلى فريقنا للتواصل معك وإكمال إجراءات العضوية. تأكد من صحة البيانات، والبريد الإلكتروني ضروري.</p></div><label>الاسم الكامل *</label><input id="dxnFullName" placeholder="اكتب الاسم الكامل"><label>بلد السكن *</label><input id="dxnResidenceCountry" placeholder="مثال: العراق"><label>بلد التولد (الجنسية) *</label><input id="dxnBirthCountry" placeholder="مثال: العراق"><label>تاريخ التولد — اليوم والشهر والسنة *</label><input id="dxnBirthDate" type="date"><label>رقم الموبايل *</label><input id="dxnMobile" type="tel" inputmode="tel" placeholder="رقم الموبايل"><label>البريد الإلكتروني * <span class="muted">(ضروري)</span></label><input id="dxnEmail" type="email" autocomplete="email" placeholder="example@email.com"><label>العنوان *</label><textarea id="dxnAddress" placeholder="العنوان بالتفصيل"></textarea><label>رقم الهوية أو جواز السفر *</label><input id="dxnIdNumber" placeholder="أدخل رقم الهوية أو جواز السفر"><label>اسم العضو الذي دلك على المشروع *</label><input id="dxnSponsorName" placeholder="اكتب اسم العضو الذي عرّفك بالمشروع"><div class="card" style="background:#fff8e8;border:1px solid #f0d58a;margin-top:10px"><b>⚠️ التعهد</b><p style="line-height:1.9;margin:8px 0">أتعهد بأنني لا أمتلك حاليًا عضوية DXN فعّالة، وأن المعلومات التي قدمتها صحيحة، وأوافق على استخدام هذه البيانات لإجراءات التسجيل والتواصل معي.</p><label style="display:flex;gap:8px;align-items:center;font-weight:700"><input id="dxnNoActiveMembership" type="checkbox" style="width:auto;margin:0"> أقرّ وأتعهد بما ورد أعلاه *</label><label style="display:flex;gap:8px;align-items:center;font-weight:700;margin-top:8px"><input id="dxnAgeConfirm" type="checkbox" style="width:auto;margin:0"> أؤكد أن عمري 18 سنة أو أكثر وأن البيانات التي أدخلتها صحيحة. *</label></div><button class="primary" style="width:100%;margin-top:10px" onclick="submitDXNMembershipRequest()">📩 إرسال طلب العضوية</button><button style="width:100%;margin-top:8px" onclick="renderLogin()">↩️ العودة</button></div>`;
   renderViewSwitch();
