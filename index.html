@@ -335,7 +335,7 @@ function dxnNavGoForward(){
 function dxnNavRestore(target){
   dxnNav.restoring=true;
   try{
-    if(target.startsWith('tab:')){const t=target.slice(4);if(t==='training'&&!canAccessTraining())return;tab=t;render();window.scrollTo({top:0,behavior:'smooth'});recordSiteVisit(role||'visitor',t);}
+    if(target.startsWith('tab:')){const t=target.slice(4);if(t==='training'&&!canAccessTraining())return;tab=t;render();requestAnimationFrame(()=>requestAnimationFrame(()=>scrollToTabContent(t)));recordSiteVisit(role||'visitor',t);}
     else if(target.startsWith('idea:')){ideaStep(Number(target.slice(5))||0);}
     else if(target==='public:login'){renderLogin();}
   }finally{dxnNav.restoring=false;renderInAppNav();}
@@ -345,8 +345,33 @@ function renderInAppNav(){
   if(!el){el=document.createElement('nav');el.id='dxnInAppNav';el.className='dxn-inapp-nav';el.setAttribute('aria-label','التنقل بين الصفحات');document.body.appendChild(el);}
   el.innerHTML=`<button type="button" class="dxn-nav-btn" ${dxnNav.back.length?'':'disabled'} onclick="dxnNavGoBack()" aria-label="الرجوع للصفحة السابقة" title="الرجوع للصفحة السابقة">◀️ <span>رجوع</span></button><button type="button" class="dxn-nav-btn" ${dxnNav.forward.length?'':'disabled'} onclick="dxnNavGoForward()" aria-label="التقدم إلى الصفحة التالية" title="التقدم إلى الصفحة التالية"><span>تقدم</span> ▶️</button>`;
 }
-function switchTab(next){if(next==='training'&&!canAccessTraining())return;tab=next;try{render();dxnNavPush(`tab:${next}`);recordSiteVisit(role||'visitor',next);window.scrollTo({top:0,behavior:'smooth'})}catch(e){console.error(e);toast('تعذر فتح القسم: '+(e.message||e))}}
-function openMemberProgress(){if(role!=='member'||!me){toast('هذه الصفحة متاحة للأعضاء فقط.');return;}tab='progress';try{render();setTimeout(()=>window.scrollTo({top:0,behavior:'smooth'}),30)}catch(e){console.error(e);toast('تعذر فتح صفحة تقدّمي: '+(e.message||e))}}
+function scrollToTabContent(tabName){
+  const selectors={
+    home:'.top',
+    notifications:'.notif-list, .notif-empty',
+    ch:'.challenge, #section-challenges',
+    teams:'#section-teams, .team-center, .ranking-teams, .card',
+    progress:'#section-progress, .level-card, .card',
+    training:'#section-training, .card',
+    leader:'#section-leader, .leaderbox, .card',
+    advanced:'#section-advanced, .leaderbox, .card'
+  };
+  const root=document.getElementById('app');
+  if(!root)return;
+  let target=null;
+  const list=(selectors[tabName]||'.card').split(',').map(x=>x.trim());
+  for(const sel of list){
+    target=root.querySelector(sel);
+    if(target)break;
+  }
+  if(!target)target=root.querySelector('.card');
+  if(!target)return;
+  const navOffset=78;
+  const top=Math.max(0,window.scrollY+target.getBoundingClientRect().top-navOffset);
+  window.scrollTo({top,behavior:'smooth'});
+}
+function switchTab(next){if(next==='training'&&!canAccessTraining())return;tab=next;try{render();dxnNavPush(`tab:${next}`);recordSiteVisit(role||'visitor',next);requestAnimationFrame(()=>requestAnimationFrame(()=>scrollToTabContent(next)))}catch(e){console.error(e);toast('تعذر فتح القسم: '+(e.message||e))}}
+function openMemberProgress(){if(role!=='member'||!me){toast('هذه الصفحة متاحة للأعضاء فقط.');return;}tab='progress';try{render();setTimeout(()=>scrollToTabContent('progress'),30)}catch(e){console.error(e);toast('تعذر فتح صفحة تقدّمي: '+(e.message||e))}}
 
 function memberNextStep(){
  if(role!=='member'||!me)return null;
@@ -1129,7 +1154,7 @@ function progressPage(){
  <div class="actions" style="justify-content:center;margin-top:12px"><button onclick="switchTab('home')">⬅️ العودة للرئيسية</button></div>`
 }
 
-function challenges(){return `<div class="card"><div class="title">🎯 التحديات الأساسية</div><p class="muted">التحدي لا يختفي بعد الإنجاز. التحديات المتكررة يمكن إنجازها مرة أخرى وفق قاعدتها، والنجوم لا تُضاف إلا بعد اعتماد القائد.</p>${role==='leader'?`<div class="leaderbox" style="margin:12px 0;padding:12px;border-radius:16px"><div class="title">⚙️ إدارة التحديات</div><div class="actions" style="margin-top:10px"><button class="primary" onclick="openChallengeEditor()">➕ إضافة تحدٍ جديد</button></div>${(data.challenges||[]).map(c=>challengeAdminCard(c)).join('')||'<div class="empty">لا توجد تحديات.</div>'}</div>`:(data.challenges||[]).map(challengeCard).join('')}</div>${role==='member'?questions():''}`}
+function challenges(){return `<div class="card" id="section-challenges"><div class="title">🎯 التحديات الأساسية</div><p class="muted">التحدي لا يختفي بعد الإنجاز. التحديات المتكررة يمكن إنجازها مرة أخرى وفق قاعدتها، والنجوم لا تُضاف إلا بعد اعتماد القائد.</p>${role==='leader'?`<div class="leaderbox" style="margin:12px 0;padding:12px;border-radius:16px"><div class="title">⚙️ إدارة التحديات</div><div class="actions" style="margin-top:10px"><button class="primary" onclick="openChallengeEditor()">➕ إضافة تحدٍ جديد</button></div>${(data.challenges||[]).map(c=>challengeAdminCard(c)).join('')||'<div class="empty">لا توجد تحديات.</div>'}</div>`:(data.challenges||[]).map(challengeCard).join('')}</div>${role==='member'?questions():''}`}
 function questions(){const ans=data.my_answers||[];return `<div class="card"><div class="title">❓ أسئلة الشهر</div><p class="muted">خمسة أسئلة ثابتة طوال الشهر. كل عضو يجيب عن كل سؤال مرة واحدة فقط. بعد الإجابة يصبح السؤال مغلقاً ولا يظهر سؤال جديد حتى الشهر التالي.</p>${(data.questions||[]).map(q=>{const a=ans.find(x=>String(x.question_id)===String(q.id));return `<div class="question ${a?'ok':''}"><h3>${esc(q.question_no)}. ${esc(q.text)}</h3><div class="muted">${esc(q.category)} · ⭐1</div>${a?`<div class="answer"><b>إجابتك:</b><br>${esc(a.answer)}<br><span class="small">${a.status==='approved'?'✅ معتمدة — ⭐1':a.status==='pending'?'⏳ بانتظار اعتماد القائد':'❌ مرفوضة'}</span></div>`:`<textarea id="qa_${q.id}" placeholder="اكتب إجابتك..."></textarea><button class="primary" onclick="submitQuestion('${q.id}')">⭐1 · إرسال الإجابة للقائد</button>`}</div>`}).join('')}</div>`}
 async function submitQuestion(id){try{const a=$('qa_'+id).value.trim();if(!a)return toast('اكتب الإجابة أولاً.');await rpc('submit_question',{p_token:token,p_question:id,p_answer:a});toast('تم إرسال الإجابة للقائد.');await refresh()}catch(e){toast(e.message||'تعذر إرسال الإجابة')}}
 function teams(){
