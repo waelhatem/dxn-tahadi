@@ -1,5 +1,5 @@
-/* V85.8: cache only the public application shell and inject a local login guard into navigations. */
-const CACHE = 'dxn-v85.8-app-shell';
+/* V85.9: force a fresh public shell deployment and keep login validation available offline. */
+const CACHE = 'dxn-v85.9-app-shell';
 const APP_SHELL = [
   './',
   './index.html',
@@ -10,7 +10,7 @@ const APP_SHELL_PATHS = new Set(
   APP_SHELL.map(asset => new URL(asset, self.registration.scope).pathname)
 );
 
-const LOGIN_GUARD = `<script id="dxn-login-guard-v858">(function(){if(window.__DXN_LOGIN_GUARD_V858__)return;window.__DXN_LOGIN_GUARD_V858__=true;document.addEventListener('click',function(e){try{var b=e.target&&e.target.closest?e.target.closest('button.primary'):null;if(!b)return;var n=document.getElementById('loginNo'),p=document.getElementById('pin');if(!n||!p)return;if(!String(b.textContent||'').includes('دخول'))return;if(!String(n.value||'').trim()||!String(p.value||'').trim()){e.preventDefault();e.stopImmediatePropagation();var t=document.getElementById('toast');if(t){t.textContent='أدخل بيانات الدخول أولاً.';t.classList.remove('hidden');setTimeout(function(){t.classList.add('hidden')},2600)}else if(typeof window.alert==='function'){window.alert('أدخل بيانات الدخول أولاً.')}return false;}}catch(_){}} ,true);})();<\/script>`;
+const LOGIN_GUARD = `<script id="dxn-login-guard-v859">(function(){if(window.__DXN_LOGIN_GUARD_V859__)return;window.__DXN_LOGIN_GUARD_V859__=true;document.addEventListener('click',function(e){try{var b=e.target&&e.target.closest?e.target.closest('button.primary'):null;if(!b)return;var n=document.getElementById('loginNo'),p=document.getElementById('pin');if(!n||!p)return;if(!String(b.textContent||'').includes('دخول'))return;if(!String(n.value||'').trim()||!String(p.value||'').trim()){e.preventDefault();e.stopImmediatePropagation();var t=document.getElementById('toast');if(t){t.textContent='أدخل بيانات الدخول أولاً.';t.classList.remove('hidden');setTimeout(function(){t.classList.add('hidden')},2600)}else if(typeof window.alert==='function'){window.alert('أدخل بيانات الدخول أولاً.')}return false;}}catch(_){}} ,true);})();<\\/script>`;
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -42,7 +42,7 @@ async function serveNavigation(request) {
     const type = response.headers.get('content-type') || '';
     if (!type.includes('text/html')) return response;
     const html = await response.text();
-    if (html.includes('id="dxn-login-guard-v858"')) return new Response(html,{status:response.status,statusText:response.statusText,headers:response.headers});
+    if (html.includes('id="dxn-login-guard-v859"')) return new Response(html,{status:response.status,statusText:response.statusText,headers:response.headers});
     const injected = html.replace('</head>', LOGIN_GUARD + '</head>');
     return new Response(injected,{status:response.status,statusText:response.statusText,headers:response.headers});
   } catch (_) {
@@ -65,7 +65,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Only public, version-independent shell resources use cache-first behavior.
+  // Only public shell resources use cache-first behavior.
   if (APP_SHELL_PATHS.has(url.pathname)) {
     event.respondWith(
       caches.match(request).then(hit => hit || fetch(request))
