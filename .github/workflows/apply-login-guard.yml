@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply V86.5 clean runtime
+      - name: Apply V86.6 clean runtime
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -18,27 +18,26 @@ jobs:
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
           s=re.sub(r'<!-- DXN LOGIN GUARD V[0-9.]+ -->\s*<script>\(function\(\).*?</script>\s*','',s,flags=re.S)
-          s=re.sub(r'<div[^>]*>\s*مجتمع الصحة والثراء\s*•\s*V86\.3\s*</div>','',s,flags=re.S)
           s=re.sub(r'<div[^>]*>\s*مجتمع الصحة والثراء\s*•\s*V86\.[0-9]+\s*</div>','',s,flags=re.S)
           s=re.sub(r'navigator\.serviceWorker\.register\s*\([^;]*\)\s*;?','',s,flags=re.S)
           s=s.replace("if('serviceWorker' in navigator)boot();",'boot();')
           s=s.replace("if('serviceWorker' in navigator) boot();",'boot();')
-          s=re.sub(r'src="config\.js(?:\?v=[0-9.]+)?"','src="config.js?v=86.5"',s)
+          s=re.sub(r'src="config\.js(?:\?v=[0-9.]+)?"','src="config.js?v=86.6"',s)
           if 'id="loginButton"' not in s:
               s=s.replace('<button class="primary" style="width:100%" onclick="login()">🔐 دخول</button>','<button id="loginButton" class="primary" type="button" onclick="login()" style="width:100%">🔐 دخول</button>',1)
-          marker='<div id="dxnBuildMarker" class="small muted" style="text-align:center;margin-top:8px">مجتمع الصحة والثراء • V86.5</div>'
+          marker='<div id="dxnBuildMarker" class="small muted" style="text-align:center;margin-top:8px">مجتمع الصحة والثراء • V86.6</div>'
           s=re.sub(r'<div id="dxnBuildMarker"[^>]*>.*?</div>','',s,count=1,flags=re.S)
           needle=re.search(r'<button id="loginButton"[^>]*>🔐 دخول</button>',s)
           if not needle: raise SystemExit('loginButton not found')
           s=s[:needle.end()]+marker+s[needle.end():]
-          s=re.sub(r'<meta name="x-community-version"[^>]*>','<meta name="x-community-version" content="V86.5 Login + Bootstrap Diagnostic + WCAG 2.2 AA + Site Visit Analytics">',s,count=1)
+          s=re.sub(r'<meta name="x-community-version"[^>]*>','<meta name="x-community-version" content="V86.6 Login Session Handoff + Bootstrap Diagnostic + WCAG 2.2 AA + Site Visit Analytics">',s,count=1)
           p.write_text(s,encoding='utf-8')
           PY
-      - name: Commit V86.5 index
+      - name: Commit V86.6 index
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'apply clean login runtime [login-guard] V86.5'
+          git commit -m 'apply V86.6 login session handoff [login-guard] V86.6'
           git push
