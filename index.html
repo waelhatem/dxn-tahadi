@@ -194,7 +194,7 @@ const $=id=>document.getElementById(id); const esc=x=>String(x??'').replace(/[&<
 function toast(s){$('toast').textContent=s;$('toast').classList.remove('hidden');setTimeout(()=>$('toast').classList.add('hidden'),2600)}
 function ready(){return C.SUPABASE_URL&&C.SUPABASE_ANON_KEY&&!C.SUPABASE_URL.includes('YOUR-PROJECT')&&!C.SUPABASE_ANON_KEY.includes('YOUR_')}
 async function rpc(fn,args){if(!sb)throw Error('لم يتم إعداد Supabase');const {data:d,error}=await sb.rpc(fn,args);if(error)throw error;return d}
-async function boot(){if(!ready()){renderSetup();return}sb=supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY);if(!token){renderLogin();return}const issued=Number(localStorage.getItem('dxn_session_issued')||0);if(!issued||Date.now()-issued>SESSION_MAX_MS){localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');token='';renderLogin();toast('انتهت الجلسة، يرجى تسجيل الدخول من جديد.');return}try{const d=await rpc('bootstrap',{p_token:token});data=d;role=d.role;me=(d.members||[])[0]||null;try{trainingData=await rpc('get_training_data',{p_token:token})}catch(e){trainingData={lessons:[],my_progress:[],member_progress:[]}}if(role==='leader'){try{membershipRequests=await rpc('leader_dxn_membership_requests',{p_token:token})}catch(e){membershipRequests=[]}try{monthlyPointRequests=await rpc('leader_monthly_point_requests',{p_token:token})}catch(e){monthlyPointRequests=[]}}else{try{monthlyPointRequests=await rpc('my_monthly_point_requests',{p_token:token})}catch(e){monthlyPointRequests=[]}}render()}catch(e){localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');token='';renderLogin();toast(e.message||'انتهت الجلسة')}}
+async function boot(){if(!ready()){renderSetup();return}sb=supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY);if(!token){renderLogin();return}const issued=Number(localStorage.getItem('dxn_session_issued')||0);if(!issued||Date.now()-issued>SESSION_MAX_MS){localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');token='';renderLogin();toast('انتهت الجلسة، يرجى تسجيل الدخول من جديد.');return}try{const d=await rpc('bootstrap',{p_token:token});data=d;role=d.role;me=(d.members||[])[0]||null;try{trainingData=await rpc('get_training_data',{p_token:token})}catch(e){trainingData={lessons:[],my_progress:[],member_progress:[]}}if(role==='leader'){try{membershipRequests=await rpc('leader_dxn_membership_requests',{p_token:token})}catch(e){membershipRequests=[]}try{monthlyPointRequests=await rpc('leader_monthly_point_requests',{p_token:token})}catch(e){monthlyPointRequests=[]}try{let rr=await rpc('leader_team_registry',{p_token:token});if(typeof rr==='string'){try{rr=JSON.parse(rr)}catch(e){}};teamRegistryRows=Array.isArray(rr)?rr:(Array.isArray(rr?.data)?rr.data:(Array.isArray(rr?.members)?rr.members:(Array.isArray(rr?.result)?rr.result:[])))}catch(e){teamRegistryRows=[]}}else{try{monthlyPointRequests=await rpc('my_monthly_point_requests',{p_token:token})}catch(e){monthlyPointRequests=[]}}render()}catch(e){localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');token='';renderLogin();toast(e.message||'انتهت الجلسة')}}
 function renderSetup(){ $('app').innerHTML=`<div class="login card"><img class="logo" src="logo.png"><h1>مجتمع الصحة والثراء</h1><h2>إعداد النسخة Online</h2><p class="muted">النسخة جاهزة للربط بقاعدة بيانات Supabase. افتح ملف <b>config.js</b> وضع رابط المشروع وPublic anon key، ثم ارفع المجلد إلى Vercel أو أي استضافة ثابتة.</p><div class="card leaderbox"><b>الخطوات:</b><ol><li>أنشئ مشروع Supabase.</li><li>نفّذ ملف schema.sql بالكامل في SQL Editor.</li><li>ضع بيانات المشروع في config.js.</li><li>ارفع المجلد إلى Vercel.</li></ol></div></div>`}
 function renderLogin(){ $('app').innerHTML=`<div class="view-switch" id="viewSwitch"></div><div class="login card"><div style="text-align:center"><img class="logo" src="logo.png"><h1>مجتمع الصحة والثراء</h1><p class="muted">دخول موحد من أي جهاز</p></div><label>نوع الدخول</label><select id="role"><option value="member">👤 دخول العضو</option><option value="leader">👑 دخول القائد</option></select><label>رقم العضوية / رمز القائد</label><input id="loginNo" placeholder="مثال: 820426486 أو LEADER"><label>رمز الدخول PIN</label><input id="pin" type="text" autocomplete="current-password" inputmode="text" autocapitalize="characters" spellcheck="false" placeholder="PIN"><button class="primary" style="width:100%" onclick="login()">🔐 دخول</button><button style="width:100%;margin-top:8px" onclick="renderMemberVerify()">👤 لدي عضوية DXN — التحقق من العضوية</button><button class="primary" style="width:100%;margin-top:8px" onclick="renderIdea()">✨ اكتشف عالم الصحة والثراء والحرية</button><p class="muted small">لأسباب أمنية، لا تُعرض بيانات دخول تجريبية داخل النسخة المنشورة.</p></div>`}
 async function renderRegister(){
@@ -1265,6 +1265,46 @@ function leader(){
    <div class="title">👑 مركز القيادة — تحليل وإدارة الموقع</div>
    <p class="muted">من هنا تتابع حالة الموقع، الأعضاء والفرق، التحديات، التارجت، الطلبات، وحركة الإنجازات. أدوات الإدارة تبقى للقائد فقط.</p>
    <div class="admin-toolbar"><button class="primary" onclick="refresh()">🔄 تحديث البيانات</button><button onclick="createMemberForm()">➕ عضو</button><button onclick="createTeamForm()">🏆 فريق</button><button onclick="openChallengeEditor()">🎯 تحدٍ</button><button onclick="openDXNMembershipRequests()">📋 طلبات تسجيل DXN</button><button onclick="openTeamRegistry()">👥 سجل أعضاء الفريق</button><button onclick="openTrainingManager()">📚 إدارة التدريبات</button><button onclick="changePin()">🔐 PIN القائد</button></div>
+ </div>
+ <div class="card leaderbox" style="margin-top:14px">
+   ${(()=>{
+      const cap=(n,max)=>Math.min(max,Math.max(0,n));
+      const pendingChallengePenalty=cap(pendingChallenges.length*4,20);
+      const pendingAnswerPenalty=cap(pendingAnswers.length*3,15);
+      const membershipPenalty=cap(membershipRequests.length*4,20);
+      const inactive7=activeMembers.filter(m=>{const t=(()=>{const x=new Date(m.last_activity_at||m.lastActivityAt||m.updated_at||m.created_at||0).getTime();return isFinite(x)?x:0})();return t>0&&Date.now()-t>=7*86400000}).length;
+      const inactive3=activeMembers.filter(m=>{const t=new Date(m.last_activity_at||m.lastActivityAt||m.updated_at||m.created_at||0).getTime();return t>0&&Date.now()-t>=3*86400000&&Date.now()-t<7*86400000}).length;
+      const registrySet=new Set((teamRegistryRows||[]).map(r=>String(r.member_no||r.memberNo||'').trim()).filter(Boolean));
+      const missingRegistry=activeMembers.filter(m=>m.member_no&& !registrySet.has(String(m.member_no).trim())).length;
+      const inactive7Penalty=cap(inactive7*3,15), inactive3Penalty=cap(inactive3*2,10), registryPenalty=cap(missingRegistry*2,10);
+      const challengeSetupPenalty=activeMembers.length&&!activeChallenges.length?5:0;
+      const teamSetupPenalty=activeMembers.length&&!activeTeams.length?5:0;
+      const totalPenalty=pendingChallengePenalty+pendingAnswerPenalty+membershipPenalty+inactive7Penalty+inactive3Penalty+registryPenalty+challengeSetupPenalty+teamSetupPenalty;
+      const health=Math.max(0,Math.min(100,100-totalPenalty));
+      const level=health>=90?'ممتازة':health>=75?'جيدة':health>=50?'تحتاج متابعة':'تحتاج تدخلًا سريعًا';
+      const tasks=[];
+      if(pendingChallenges.length) tasks.push({icon:'⏳',text:`لديك ${pendingChallenges.length} إنجاز${pendingChallenges.length===1?'':'ات'} تحديات بانتظار المراجعة والاعتماد.`,action:'مراجعة الإنجازات المعلقة',fn:"switchTab('ch')"});
+      if(pendingAnswers.length) tasks.push({icon:'❓',text:`لديك ${pendingAnswers.length} إجابة بانتظار المراجعة.`,action:'مراجعة الإجابات المعلقة',fn:"switchTab('ch')"});
+      if(membershipRequests.length) tasks.push({icon:'📋',text:`لديك ${membershipRequests.length} طلب تسجيل DXN يحتاج قرارًا من القائد.`,action:'مراجعة طلبات العضوية',fn:'openDXNMembershipRequests()'});
+      if(missingRegistry) tasks.push({icon:'🔐',text:`هناك ${missingRegistry} من الأعضاء الحاليين غير موجودين في سجل العضويات الموثق.`,action:'فتح سجل أعضاء الفريق',fn:'openTeamRegistry()'});
+      if(inactive7) tasks.push({icon:'🚨',text:`هناك ${inactive7} أعضاء لم يظهر لهم نشاط منذ 7 أيام أو أكثر.`,action:'متابعة الأعضاء',fn:"switchTab('teams')"});
+      if(inactive3) tasks.push({icon:'👋',text:`هناك ${inactive3} أعضاء لم يظهر لهم نشاط منذ 3–6 أيام.`,action:'بدء متابعة مبكرة',fn:"switchTab('teams')"});
+      if(challengeSetupPenalty) tasks.push({icon:'🎯',text:'لا توجد تحديات نشطة رغم وجود أعضاء في النظام.',action:'إضافة تحدٍ نشط',fn:'openChallengeEditor()'});
+      if(teamSetupPenalty) tasks.push({icon:'🏆',text:'لا توجد فرق نشطة رغم وجود أعضاء في النظام.',action:'إنشاء فريق',fn:'createTeamForm()'});
+      if(!tasks.length) tasks.push({icon:'✅',text:'لا توجد مهام تشغيلية مؤثرة على صحة النظام حاليًا.',action:'استمر على هذا المستوى',fn:'refresh()'});
+      const dash=health>=90?'background:var(--soft);':health>=75?'background:#f7fbf9;':'background:#fff8e8;';
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap">
+        <div style="flex:1;min-width:240px"><div class="admin-section-title">🩺 حالة النظام</div><p class="muted" style="margin:6px 0 0;line-height:1.8">مؤشر تشغيلي يساعد القائد على معرفة ما يحتاج إلى مراجعة الآن. لا يؤثر في نقاط الأعضاء أو تقييمهم.</p></div>
+        <div style="min-width:150px;text-align:center;padding:12px 20px;border-radius:18px;${dash}"><div style="font-size:38px;font-weight:900;line-height:1">${health}%</div><div class="muted" style="margin-top:7px;font-weight:800">حالة ${level}</div></div>
+      </div>
+      <div class="bar" style="height:12px;margin-top:16px"><span style="width:${health}%"></span></div>
+      <div class="mini-grid" style="margin-top:16px">
+        <div><b>📌 ما الذي خفّض النسبة؟</b><div class="muted" style="margin-top:7px;line-height:1.9">${totalPenalty?`تم خصم <b>${totalPenalty}%</b> بسبب عناصر تحتاج مراجعة أو متابعة.`:'لم يتم تسجيل خصومات تشغيلية حاليًا.'}</div></div>
+        <div><b>🎯 ماذا يفعل القائد الآن؟</b><div class="muted" style="margin-top:7px;line-height:1.9">${tasks.length===1&&tasks[0].icon==='✅'?'استمر في المراجعة الدورية والمحافظة على النشاط.':'ابدأ من أعلى مهمة في القائمة أدناه؛ كل معالجة تقلل أسباب الانخفاض وترفع الحالة.'}</div></div>
+      </div>
+      <div style="margin-top:16px"><h3 style="margin:0 0 10px">🛠️ المهام التي ترفع صحة النظام</h3>${tasks.map((t,i)=>`<div class="row" style="margin-bottom:8px"><div style="flex:1"><b>${t.icon} ${esc(t.text)}</b><div class="muted small" style="margin-top:4px">الخطوة المقترحة: ${esc(t.action)}</div></div><button onclick="${t.fn}">فتح</button></div>`).join('')}</div>
+      <div class="muted small" style="margin-top:10px">ℹ️ النسبة تُحسب تلقائيًا من قوائم المراجعة والمتابعة الحالية، وتتغير عند تحديث البيانات.</div>`;
+   })()}
  </div>
  <div class="admin-grid">
    <div class="admin-stat"><div class="emoji">👥</div><div class="label">إجمالي الأعضاء</div><b>${members.length}</b><div class="muted">نشط: ${activeMembers.length}</div></div>
