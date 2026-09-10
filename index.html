@@ -1261,12 +1261,7 @@ function leader(){
  const fmt=v=>{if(!v)return '';const d=new Date(v);return isNaN(d)?'':d.toLocaleString('ar-IQ',{dateStyle:'short',timeStyle:'short'})};
  const topMembers=[...members].sort((a,b)=>Number(b.stars||0)-Number(a.stars||0)).slice(0,8);
  const maxStars=Math.max(1,...topMembers.map(m=>Number(m.stars||0)));
- return leaderDailyPlan()+`<div class="card leaderbox">
-   <div class="title">👑 مركز القيادة — تحليل وإدارة الموقع</div>
-   <p class="muted">من هنا تتابع حالة الموقع، الأعضاء والفرق، التحديات، التارجت، الطلبات، وحركة الإنجازات. أدوات الإدارة تبقى للقائد فقط.</p>
-   <div class="admin-toolbar"><button class="primary" onclick="refresh()">🔄 تحديث البيانات</button><button onclick="createMemberForm()">➕ عضو</button><button onclick="createTeamForm()">🏆 فريق</button><button onclick="openChallengeEditor()">🎯 تحدٍ</button><button onclick="openDXNMembershipRequests()">📋 طلبات تسجيل DXN</button><button onclick="openTeamRegistry()">👥 سجل أعضاء الفريق</button><button onclick="openTrainingManager()">📚 إدارة التدريبات</button><button onclick="changePin()">🔐 PIN القائد</button></div>
- </div>
- <div class="card leaderbox" style="margin-top:14px">
+ return ` <div class="card leaderbox" style="margin-top:14px">
    ${(()=>{
       const cap=(n,max)=>Math.min(max,Math.max(0,n));
       const pendingChallengePenalty=cap(pendingChallenges.length*4,20);
@@ -1305,6 +1300,10 @@ function leader(){
       <div style="margin-top:16px"><h3 style="margin:0 0 10px">🛠️ المهام التي ترفع صحة النظام</h3>${tasks.map((t,i)=>`<div class="row" style="margin-bottom:8px"><div style="flex:1"><b>${t.icon} ${esc(t.text)}</b><div class="muted small" style="margin-top:4px">الخطوة المقترحة: ${esc(t.action)}</div></div><button onclick="${t.fn}">فتح</button></div>`).join('')}</div>
       <div class="muted small" style="margin-top:10px">ℹ️ النسبة تُحسب تلقائيًا من قوائم المراجعة والمتابعة الحالية، وتتغير عند تحديث البيانات.</div>`;
    })()}
+ </div>`+leaderDailyPlan()+`<div class="card leaderbox">
+   <div class="title">👑 مركز القيادة — تحليل وإدارة الموقع</div>
+   <p class="muted">من هنا تتابع حالة الموقع، الأعضاء والفرق، التحديات، التارجت، الطلبات، وحركة الإنجازات. أدوات الإدارة تبقى للقائد فقط.</p>
+   <div class="admin-toolbar"><button class="primary" onclick="refresh()">🔄 تحديث البيانات</button><button onclick="createMemberForm()">➕ عضو</button><button onclick="createTeamForm()">🏆 فريق</button><button onclick="openChallengeEditor()">🎯 تحدٍ</button><button onclick="openDXNMembershipRequests()">📋 طلبات تسجيل DXN</button><button onclick="openTeamRegistry()">👥 سجل أعضاء الفريق</button><button onclick="openTrainingManager()">📚 إدارة التدريبات</button><button onclick="changePin()">🔐 PIN القائد</button></div>
  </div>
  <div class="admin-grid">
    <div class="admin-stat"><div class="emoji">👥</div><div class="label">إجمالي الأعضاء</div><b>${members.length}</b><div class="muted">نشط: ${activeMembers.length}</div></div>
