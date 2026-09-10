@@ -32,7 +32,6 @@ window.DXN_CONFIG = {
     }catch(_){ }
   }
 
-  // 1) Capture direct Supabase RPC errors after the client is created.
   function patchClientFactory(){
     try{
       if(!window.supabase||typeof window.supabase.createClient!=='function') return false;
@@ -66,7 +65,6 @@ window.DXN_CONFIG = {
     const timer=setInterval(()=>{tries++;if(patchClientFactory()||tries>40)clearInterval(timer)},250);
   }
 
-  // 2) Also observe raw REST responses as a fallback.
   try{
     const nativeFetch=window.fetch.bind(window);
     window.fetch=async function(input,init){
@@ -86,9 +84,7 @@ window.DXN_CONFIG = {
   }catch(_){ }
 })();
 
-/* V85.6 — delegated login click handler.
-   login() is rendered inside the SPA and inline onclick can fail silently
-   in some hosted/cached environments. Capture the login action independently. */
+/* V85.6 — delegated login click handler. */
 (function(){
   if(window.__DXN_LOGIN_CLICK_FIX_V856__) return;
   window.__DXN_LOGIN_CLICK_FIX_V856__=true;
@@ -105,4 +101,40 @@ window.DXN_CONFIG = {
       if(typeof window.login==='function') window.login();
     }catch(_){ }
   },true);
+})();
+
+/* V85.7 — runtime hardening for the global login function.
+   The login view is rendered dynamically and the original inline onclick can
+   be unreliable in hosted/cached environments. Once the main app defines
+   window.login, wrap it so the validation path is guaranteed even if the
+   delegated event handler is bypassed. */
+(function(){
+  if(window.__DXN_LOGIN_RUNTIME_FIX_V857__) return;
+  window.__DXN_LOGIN_RUNTIME_FIX_V857__=true;
+  let tries=0;
+  const install=()=>{
+    try{
+      const fn=window.login;
+      if(typeof fn!=='function') return false;
+      if(fn.__dxnRuntimeWrapped) return true;
+      const wrapped=function(){
+        try{
+          const loginNo=document.getElementById('loginNo');
+          const pin=document.getElementById('pin');
+          if(loginNo&&pin&&(!String(loginNo.value||'').trim()||!String(pin.value||'').trim())){
+            if(typeof window.toast==='function') window.toast('أدخل بيانات الدخول أولاً.');
+            else if(typeof alert==='function') alert('أدخل بيانات الدخول أولاً.');
+            return;
+          }
+        }catch(_){ }
+        return fn.apply(this,arguments);
+      };
+      wrapped.__dxnRuntimeWrapped=true;
+      window.login=wrapped;
+      return true;
+    }catch(_){return false}
+  };
+  if(!install()){
+    const timer=setInterval(()=>{if(install()||++tries>120)clearInterval(timer)},100);
+  }
 })();
