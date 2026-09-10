@@ -1079,6 +1079,9 @@ function teams(){
 }
 let leaderSection='dashboard';
 function openDXNMembershipRequests(){leaderSection='dxn_requests';render()}
+let teamRegistryRows=[];
+async function openTeamRegistry(){leaderSection='team_registry';try{const r=await rpc('leader_team_registry',{p_token:token});teamRegistryRows=Array.isArray(r)?r:(r?.members||r?.data||[]);render()}catch(e){toast(e.message||'تعذر تحميل سجل أعضاء الفريق');render()}}
+function backToLeaderDashboard(){leaderSection='dashboard';render()}
 function openApprovedDXNMembershipRequests(){leaderSection='dxn_approved';render()}
 function openRejectedDXNMembershipRequests(){leaderSection='dxn_rejected';render()}
 function backToLeaderDashboard(){leaderSection='dashboard';render()}
@@ -1182,7 +1185,39 @@ function leaderDailyPlan(){
   </div>`;
 }
 
+async function addTeamRegistryMember(){
+  if(role!=='leader')return;
+  const memberNo=prompt('رقم عضوية DXN (9 أرقام):',''); if(memberNo===null)return;
+  const no=memberNo.trim(); if(!/^\d{9}$/.test(no))return toast('رقم العضوية يجب أن يتكون من 9 أرقام.');
+  const name=prompt('اسم العضو الكامل:',''); if(name===null)return;
+  if(!name.trim())return toast('اسم العضو مطلوب.');
+  const team=prompt('اسم الفريق (اختياري):',''); if(team===null)return;
+  const notes=prompt('ملاحظات (اختياري):',''); if(notes===null)return;
+  try{
+    await rpc('leader_add_team_member',{p_token:token,p_member_no:no,p_member_name:name.trim(),p_team:team.trim()||null,p_notes:notes.trim()||null});
+    toast('تمت إضافة العضو إلى سجل الفريق.');
+    await openTeamRegistry();
+  }catch(e){toast(e.message||'تعذر إضافة العضو إلى سجل الفريق')}
+}
+async function setTeamRegistryStatus(memberNo,status){
+  const labels={active:'تفعيل',inactive:'تعطيل',blocked:'حظر'};
+  if(!confirm(`هل تريد ${labels[status]||'تغيير الحالة'} العضو ${memberNo}؟`))return;
+  try{await rpc('leader_set_team_member_status',{p_token:token,p_member_no:memberNo,p_status:status});toast('تم تحديث حالة العضو.');await openTeamRegistry()}catch(e){toast(e.message||'تعذر تحديث حالة العضو')}
+}
+function teamRegistryPanel(){
+  const list=Array.isArray(teamRegistryRows)?teamRegistryRows:[];
+  return `<div class="card leaderbox">
+    <div class="title">👥 سجل أعضاء الفريق الموثقين</div>
+    <p class="muted">هذا السجل هو بوابة التحقق من عضوية الفريق. لا يُسمح للعضو الحالي بإنشاء حساب عضو إلا إذا كان رقم عضويته موجودًا هنا وحالته نشطة.</p>
+    <div class="admin-toolbar"><button onclick="backToLeaderDashboard()">↩️ العودة لإدارة القائد</button><button class="primary" onclick="addTeamRegistryMember()">➕ إضافة عضو إلى الفريق</button><button onclick="openTeamRegistry()">🔄 تحديث السجل</button></div>
+  </div>
+  <div class="card"><div class="title">📋 الأعضاء في السجل (${list.length})</div>
+    ${list.length?list.map(m=>{const status=m.status||'active';const statusLabel=status==='active'?'🟢 نشط':status==='inactive'?'🟡 غير نشط':'🔴 محظور';return `<div class="row"><div><b>${esc(m.member_name||m.name||'عضو')}</b><div class="muted">🪪 ${esc(m.member_no||'')} · 👥 ${esc(m.team_id||m.team||'بدون فريق')} · ${statusLabel}</div>${m.notes?`<div class="muted">📝 ${esc(m.notes)}</div>`:''}${m.verified_at?`<div class="muted">✅ تحقق: ${esc(new Date(m.verified_at).toLocaleString('ar-IQ'))}</div>`:''}</div><div class="actions"><button onclick="setTeamRegistryStatus('${esc(m.member_no)}','active')">🟢 تفعيل</button><button onclick="setTeamRegistryStatus('${esc(m.member_no)}','inactive')">🟡 تعطيل</button><button class="danger" onclick="setTeamRegistryStatus('${esc(m.member_no)}','blocked')">🔴 حظر</button></div></div>`}).join(''):'<div class="empty">لا يوجد أعضاء موثقون في سجل الفريق بعد. أضف رقم العضوية 820469486 للبدء.</div>'}
+  </div>`;
+}
+
 function leader(){
+ if(leaderSection==='team_registry') return teamRegistryPanel();
  const members=data.members||[], teams=data.teams||[], challenges=data.challenges||[], subs=data.my_submissions||[], answers=data.my_answers||[], pendingRegs=data.pending_registrations||[], monthly=data.monthly||[];
  if(leaderSection==='dxn_requests'||leaderSection==='dxn_approved'||leaderSection==='dxn_rejected') return dxnMembershipRequestsPanel();
  const activeMembers=members.filter(m=>m.active!==false), activeTeams=teams.filter(t=>t.active!==false), activeChallenges=challenges.filter(c=>c.active!==false && !c.deleted_at);
@@ -1198,7 +1233,7 @@ function leader(){
  return leaderDailyPlan()+`<div class="card leaderbox">
    <div class="title">👑 مركز القيادة — تحليل وإدارة الموقع</div>
    <p class="muted">من هنا تتابع حالة الموقع، الأعضاء والفرق، التحديات، التارجت، الطلبات، وحركة الإنجازات. أدوات الإدارة تبقى للقائد فقط.</p>
-   <div class="admin-toolbar"><button class="primary" onclick="refresh()">🔄 تحديث البيانات</button><button onclick="createMemberForm()">➕ عضو</button><button onclick="createTeamForm()">🏆 فريق</button><button onclick="openChallengeEditor()">🎯 تحدٍ</button><button onclick="openDXNMembershipRequests()">📋 طلبات تسجيل DXN</button><button onclick="openTrainingManager()">📚 إدارة التدريبات</button><button onclick="changePin()">🔐 PIN القائد</button></div>
+   <div class="admin-toolbar"><button class="primary" onclick="refresh()">🔄 تحديث البيانات</button><button onclick="createMemberForm()">➕ عضو</button><button onclick="createTeamForm()">🏆 فريق</button><button onclick="openChallengeEditor()">🎯 تحدٍ</button><button onclick="openDXNMembershipRequests()">📋 طلبات تسجيل DXN</button><button onclick="openTeamRegistry()">👥 سجل أعضاء الفريق</button><button onclick="openTrainingManager()">📚 إدارة التدريبات</button><button onclick="changePin()">🔐 PIN القائد</button></div>
  </div>
  <div class="admin-grid">
    <div class="admin-stat"><div class="emoji">👥</div><div class="label">إجمالي الأعضاء</div><b>${members.length}</b><div class="muted">نشط: ${activeMembers.length}</div></div>
