@@ -216,17 +216,25 @@ await rpc('submit_dxn_membership_request',{p_full_name:full_name,p_residence_cou
 }
 
 function renderMemberVerify(){
-  $('app').innerHTML=`<div class="view-switch" id="viewSwitch"></div><div class="login card" style="max-width:700px;text-align:right"><div style="text-align:center"><img class="logo" src="logo.png"><h1>👤 التحقق من عضوية DXN</h1><p class="muted" style="line-height:1.9">هذه الصفحة مخصصة لأعضاء فريقنا الحاليين. أدخل رقم عضويتك للتحقق من أن عضويتك ضمن فريق المجتمع قبل إنشاء بيانات الدخول.</p></div><div class="card" style="background:#f7fbf9"><b>🔐 حماية الفريق</b><p class="muted" style="line-height:1.9">لا يكفي امتلاك عضوية DXN فقط؛ يجب أن تكون العضوية مسجلة ضمن فريق المجتمع. لا نطلب منك كلمة مرور DXN ولا نخزنها.</p></div><label>رقم عضوية DXN *</label><input id="verifyMemberNo" inputmode="numeric" maxlength="9" placeholder="أدخل رقم العضوية المكوّن من 9 أرقام"><button class="primary" style="width:100%;margin-top:12px" onclick="verifyTeamMember()">🔎 التحقق من العضوية</button><button style="width:100%;margin-top:8px" onclick="renderLogin()">↩️ العودة</button></div>`;
+  $('app').innerHTML=`<div class="view-switch" id="viewSwitch"></div><div class="login card" style="max-width:700px;text-align:right"><div style="text-align:center"><img class="logo" src="logo.png"><h1>👤 التحقق من عضوية DXN</h1><p class="muted" style="line-height:1.9">هذه الصفحة مخصصة لأعضاء فريقنا الحاليين. أدخل رقم عضويتك للتحقق من أن عضويتك ضمن فريق المجتمع قبل إنشاء بيانات الدخول.</p></div><div class="card" style="background:#f7fbf9"><b>🔐 حماية الفريق</b><p class="muted" style="line-height:1.9">لا يكفي امتلاك عضوية DXN فقط؛ يجب أن تكون العضوية مسجلة ضمن فريق المجتمع. لا نطلب منك كلمة مرور DXN ولا نخزنها.</p></div><label>رقم عضوية DXN *</label><input id="verifyMemberNo" inputmode="numeric" maxlength="9" autocomplete="off" placeholder="أدخل رقم العضوية المكوّن من 9 أرقام"><button id="verifyMemberBtn" class="primary" style="width:100%;margin-top:12px" onclick="verifyTeamMember()">🔎 التحقق من العضوية</button><div id="verifyMemberStatus" class="muted" role="status" aria-live="polite" style="text-align:center;min-height:24px;margin-top:10px"></div><button style="width:100%;margin-top:8px" onclick="renderLogin()">↩️ العودة</button></div>`;
   renderViewSwitch();
 }
 async function verifyTeamMember(){
-  const no=$('verifyMemberNo').value.trim();
-  if(!/^\d{9}$/.test(no))return toast('رقم العضوية يجب أن يكون 9 أرقام بالضبط.');
+  const input=$('verifyMemberNo'), btn=$('verifyMemberBtn'), status=$('verifyMemberStatus');
+  const no=input.value.trim();
+  if(!/^\d{9}$/.test(no)){ status.textContent='⚠️ رقم العضوية يجب أن يكون 9 أرقام بالضبط.'; toast('رقم العضوية يجب أن يكون 9 أرقام بالضبط.'); return; }
+  btn.disabled=true; btn.textContent='⏳ جارٍ التحقق...'; status.textContent='جارٍ التحقق من رقم العضوية...';
   try{
     const r=await rpc('verify_team_member',{p_member_no:no});
-    if(!r||!r.allowed)return toast(r?.message||'هذه العضوية غير مسجلة ضمن فريق المجتمع.');
+    if(!r||!r.allowed){ status.textContent='❌ '+(r?.message||'هذه العضوية غير مسجلة ضمن فريق المجتمع.'); toast(r?.message||'هذه العضوية غير مسجلة ضمن فريق المجتمع.'); return; }
+    status.textContent='✅ تم التحقق بنجاح.';
     renderMemberAccountSetup(no,r.name||'');
-  }catch(e){toast(e.message||'تعذر التحقق من العضوية.')}
+  }catch(e){
+    status.textContent='❌ تعذر الاتصال بخدمة التحقق: '+(e.message||'خطأ غير معروف');
+    toast(e.message||'تعذر التحقق من العضوية.');
+  }finally{
+    btn.disabled=false; btn.textContent='🔎 التحقق من العضوية';
+  }
 }
 function renderMemberAccountSetup(no,name){
   $('app').innerHTML=`<div class="view-switch" id="viewSwitch"></div><div class="login card" style="max-width:700px;text-align:right"><div style="text-align:center"><img class="logo" src="logo.png"><h1>✅ تم التحقق من العضوية</h1><p class="muted">رقم العضوية <b>${esc(no)}</b> مسجل ضمن فريق المجتمع.</p></div><label>الاسم الكامل</label><input id="verifiedName" value="${esc(name)}" placeholder="الاسم الكامل"><div class="muted" style="margin-top:-4px">الاسم للتعريف فقط؛ التحقق يتم برقم العضوية فقط.</div><label>PIN جديد *</label><input id="verifiedPin" type="password" minlength="4" autocomplete="new-password" placeholder="4 أحرف أو أرقام على الأقل"><label>تأكيد PIN *</label><input id="verifiedPin2" type="password" minlength="4" autocomplete="new-password" placeholder="أعد كتابة PIN"><button class="primary" style="width:100%;margin-top:12px" onclick="completeMemberRegistration('${esc(no)}')">🚀 إنشاء حسابي</button><button style="width:100%;margin-top:8px" onclick="renderMemberVerify()">↩️ العودة</button></div>`;
