@@ -58,7 +58,6 @@ jobs:
 }
 '''
           s=s[:start]+fn+s[end:]
-          # Replace the misleading aggregate training percentages with actual completion count and a detail button.
           start2=s.find("return mp.map(m=>{", s.find('id="leader-training-center"'))
           end2=s.find("}).join('');", start2)
           if start2<0 or end2<0: raise SystemExit('leader training map boundaries not found')
@@ -75,3 +74,5 @@ jobs:
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'fix per-lesson training visibility in member profiles [training-detail]'
           git push
+
+# Detailed member training view enabled.
