@@ -36,10 +36,10 @@ var tries=0,t=setInterval(function(){if(install()||++tries>180)clearInterval(t)}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
 })();
 
-/* V86.15.1 — زر بارز وواضح لصفحة من نحن في الواجهة الرئيسية. */
+/* V86.15.2 — زر «من نحن؟» بارز، مع موضع آمن للموبايل. */
 (function(){
-  if(window.__DXN_ABOUT_LINK_V86151__)return;
-  window.__DXN_ABOUT_LINK_V86151__=true;
+  if(window.__DXN_ABOUT_LINK_V86152__)return;
+  window.__DXN_ABOUT_LINK_V86152__=true;
   function add(){
     if(document.getElementById('dxnAboutMainLink'))return;
     var a=document.createElement('a');
@@ -48,6 +48,9 @@ var tries=0,t=setInterval(function(){if(install()||++tries>180)clearInterval(t)}
     a.textContent='ℹ️ من نحن؟';
     a.setAttribute('aria-label','من نحن؟');
     a.style.cssText='position:fixed;top:58px;right:20px;z-index:99999;display:flex;align-items:center;justify-content:center;gap:8px;min-width:150px;padding:13px 22px;border-radius:14px;background:#0f6b4f;color:#fff;border:2px solid #fff;box-shadow:0 8px 24px #0004;text-decoration:none;font-weight:900;font-size:17px;line-height:1.2;direction:rtl;cursor:pointer;';
+    var style=document.createElement('style');
+    style.textContent='@media(max-width:600px){#dxnAboutMainLink{top:auto!important;right:auto!important;left:14px!important;bottom:14px!important;min-width:128px!important;padding:11px 16px!important;font-size:15px!important;border-radius:12px!important;}}';
+    document.head.appendChild(style);
     document.body.appendChild(a);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',add,{once:true});else add();
