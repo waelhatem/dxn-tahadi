@@ -18,16 +18,19 @@ window.location.reload();
 function install(){try{var b=document.getElementById('loginButton');if(!b)return false;if(!b.__dxnV866){b.__dxnV866=true;b.removeAttribute('onclick');b.type='button';b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();directLogin()},false)}if(typeof window.login==='function'&&!window.login.__dxnV866){var old=window.login;var wrap=function(){return directLogin()};wrap.__dxnV866=true;wrap.__dxnOriginal=old;window.login=wrap}return true}catch(e){return false}}
 var tries=0,t=setInterval(function(){if(install()||++tries>180)clearInterval(t)},100);
 })();
-/* V86.12 — detailed training profile loader */
+/* V86.13 — Load robust detailed member profile after the main application script has defined its globals. */
 (function(){
-  if(window.__DXN_TRAINING_PROFILE_LOADER_V8612__)return;
-  window.__DXN_TRAINING_PROFILE_LOADER_V8612__=true;
+  if(window.__DXN_TRAINING_PROFILE_LOADER_V8613__)return;
+  window.__DXN_TRAINING_PROFILE_LOADER_V8613__=true;
   function load(){
     var s=document.createElement('script');
-    s.src='member-training-profile.js?v=86.12';
+    s.src='member-training-profile.js?v=86.13';
     s.async=false;
-    s.onload=function(){console.debug('V86.12 training profile loaded')};
-    s.onerror=function(){console.warn('V86.12 training profile unavailable')};
+    s.onload=function(){
+      try{if(typeof window.__DXNWireMemberProfileButtons==='function')window.__DXNWireMemberProfileButtons();}catch(e){}
+      console.debug('V86.13 member training profile loaded');
+    };
+    s.onerror=function(){console.warn('V86.13 member training profile unavailable')};
     document.head.appendChild(s);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
