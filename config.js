@@ -13,24 +13,21 @@ if(!login||!login.token){panel('Login نجح لكن الاستجابة غير ص
 localStorage.setItem('dxn_session',String(login.token));localStorage.setItem('dxn_session_issued',String(Date.now()));
 var bootData;try{bootData=await rpcRaw('bootstrap',{p_token:login.token})}catch(e){panel('Login ناجح — لكن Bootstrap فشل','HTTP: '+safe(e.status||'')+'\nCode: '+safe(e.code||'')+'\nMessage: '+safe(e.message||e)+'\nDetails: '+safe(e.details||'')+'\nHint: '+safe(e.hint||''));localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');return}
 if(!bootData){panel('Bootstrap أعاد استجابة فارغة','تم قبول الدخول لكن لم تصل بيانات الحساب.');localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');return}
-/* V86.6: لا نستدعي boot من هذا الـscope. التطبيق الأصلي يقرأ token من localStorage عند بدء الصفحة. */
 window.location.reload();
 }catch(e){panel('فشل مسار الدخول','HTTP: '+safe(e.status||'')+'\nCode: '+safe(e.code||'')+'\nMessage: '+safe(e.message||e)+'\nDetails: '+safe(e.details||'')+'\nHint: '+safe(e.hint||''));localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');}finally{if(b){b.disabled=false;b.textContent='🔐 دخول'}}}
 function install(){try{var b=document.getElementById('loginButton');if(!b)return false;if(!b.__dxnV866){b.__dxnV866=true;b.removeAttribute('onclick');b.type='button';b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();directLogin()},false)}if(typeof window.login==='function'&&!window.login.__dxnV866){var old=window.login;var wrap=function(){return directLogin()};wrap.__dxnV866=true;wrap.__dxnOriginal=old;window.login=wrap}return true}catch(e){return false}}
 var tries=0,t=setInterval(function(){if(install()||++tries>180)clearInterval(t)},100);
 })();
-/* V86.6 deployment trigger */
-
-/* V86.10 — Load the detailed member training profile after the main application script has defined its globals. */
+/* V86.12 — detailed training profile loader */
 (function(){
-  if(window.__DXN_TRAINING_PROFILE_LOADER_V8610__)return;
-  window.__DXN_TRAINING_PROFILE_LOADER_V8610__=true;
+  if(window.__DXN_TRAINING_PROFILE_LOADER_V8612__)return;
+  window.__DXN_TRAINING_PROFILE_LOADER_V8612__=true;
   function load(){
     var s=document.createElement('script');
-    s.src='member-training-profile.js?v=86.10';
+    s.src='member-training-profile.js?v=86.12';
     s.async=false;
-    s.onload=function(){console.debug('V86.10 member training profile loaded')};
-    s.onerror=function(){console.warn('V86.10 member training profile unavailable')};
+    s.onload=function(){console.debug('V86.12 training profile loaded')};
+    s.onerror=function(){console.warn('V86.12 training profile unavailable')};
     document.head.appendChild(s);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
