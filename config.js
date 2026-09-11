@@ -35,3 +35,20 @@ var tries=0,t=setInterval(function(){if(install()||++tries>180)clearInterval(t)}
   function load(){var s=document.createElement('script');s.src='training-overall-progress.js?v=86.13';s.async=false;s.onload=function(){console.debug('V86.13 overall training progress loaded')};s.onerror=function(){console.warn('V86.13 overall training progress unavailable')};document.head.appendChild(s)}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
 })();
+
+/* V86.15 — رابط واضح لصفحة من نحن في الواجهة الرئيسية. */
+(function(){
+  if(window.__DXN_ABOUT_LINK_V8615__)return;
+  window.__DXN_ABOUT_LINK_V8615__=true;
+  function add(){
+    if(document.getElementById('dxnAboutMainLink'))return;
+    var a=document.createElement('a');
+    a.id='dxnAboutMainLink';
+    a.href='about.html';
+    a.textContent='ℹ️ من نحن؟';
+    a.setAttribute('aria-label','من نحن؟');
+    a.style.cssText='position:fixed;top:52px;right:16px;z-index:9998;display:flex;align-items:center;justify-content:center;gap:5px;padding:9px 15px;border-radius:999px;background:#fff;color:#0f513f;border:1px solid #cfe1d9;box-shadow:0 5px 16px #0002;text-decoration:none;font-weight:900;font-size:13px;direction:rtl;';
+    document.body.appendChild(a);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',add,{once:true});else add();
+})();
