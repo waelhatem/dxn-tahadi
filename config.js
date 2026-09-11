@@ -16,9 +16,16 @@ var tries=0,t=setInterval(function(){if(install()||++tries>180)clearInterval(t)}
   if(window.__DXN_TRAINING_PROFILE_LOADER_V8614__)return;
   window.__DXN_TRAINING_PROFILE_LOADER_V8614__=true;
   function load(){
-    var s=document.createElement('script');s.src='member-training-profile.js?v=86.14';s.async=false;
-    s.onload=function(){try{if(typeof window.__DXNWireMemberProfileButtons==='function')window.__DXNWireMemberProfileButtons();}catch(e){}console.debug('V86.14 member training profile loaded')};
-    s.onerror=function(){console.warn('V86.14 member training profile unavailable')};document.head.appendChild(s);
+    var s=document.createElement('script');s.src='member-training-profile.js?v=86.15';s.async=false;
+    s.onload=function(){try{if(typeof window.__DXNWireMemberProfileButtons==='function')window.__DXNWireMemberProfileButtons();}catch(e){}try{if(typeof window.__DXNRestoreMemberProfileButtons==='function')window.__DXNRestoreMemberProfileButtons();}catch(e){}console.debug('V86.15 member training profile loaded')};
+    s.onerror=function(){console.warn('V86.15 member training profile unavailable')};document.head.appendChild(s);
   }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
+})();
+/* V86.15 — Restore the visible detailed-profile buttons after the training list renders. */
+(function(){
+  if(window.__DXN_PROFILE_BUTTONS_LOADER_V8615__)return;
+  window.__DXN_PROFILE_BUTTONS_LOADER_V8615__=true;
+  function load(){var s=document.createElement('script');s.src='member-profile-buttons.js?v=86.15';s.async=false;s.onload=function(){try{if(typeof window.__DXNRestoreMemberProfileButtons==='function')window.__DXNRestoreMemberProfileButtons()}catch(e){}};s.onerror=function(){console.warn('V86.15 profile buttons unavailable')};document.head.appendChild(s)}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
 })();
