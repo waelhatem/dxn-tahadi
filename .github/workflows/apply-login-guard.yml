@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply V86.8 post-login diagnostic
+      - name: Apply V86.9 notification scope fix
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -22,24 +22,25 @@ jobs:
           s=re.sub(r'navigator\.serviceWorker\.register\s*\([^;]*\)\s*;?','',s,flags=re.S)
           s=s.replace("if('serviceWorker' in navigator)boot();",'boot();')
           s=s.replace("if('serviceWorker' in navigator) boot();",'boot();')
-          s=re.sub(r'src="config\.js(?:\?v=[0-9.]+)?"','src="config.js?v=86.8"',s)
-          marker='<div id="dxnBuildMarker" class="small muted" style="text-align:center;margin-top:8px">مجتمع الصحة والثراء • V86.8</div>'
+          s=re.sub(r'src="config\.js(?:\?v=[0-9.]+)?"','src="config.js?v=86.9"',s)
+          marker='<div id="dxnBuildMarker" class="small muted" style="text-align:center;margin-top:8px">مجتمع الصحة والثراء • V86.9</div>'
           s=re.sub(r'<div id="dxnBuildMarker"[^>]*>.*?</div>','',s,count=1,flags=re.S)
           needle=re.search(r'<button id="loginButton"[^>]*>🔐 دخول</button>',s)
           if not needle: raise SystemExit('loginButton not found')
           s=s[:needle.end()]+marker+s[needle.end():]
-          s=re.sub(r'<meta name="x-community-version"[^>]*>','<meta name="x-community-version" content="V86.8 Post-login Diagnostic + WCAG 2.2 AA + Site Visit Analytics">',s,count=1)
-          pat=r"\}catch\(e\)\{localStorage\.removeItem\('dxn_session'\).*?toast\(e\.message\|\|'انتهت الجلسة'\)\}\n\}"
-          repl="}catch(e){console.error('DXN boot failure',e);var m=(e&&e.message)||String(e||'خطأ غير معروف'),d=(e&&e.details)||'',h=(e&&e.hint)||'';var b=document.getElementById('dxnBootFailureDiag');if(!b){b=document.createElement('div');b.id='dxnBootFailureDiag';document.body.appendChild(b)}b.setAttribute('role','alert');b.style.cssText='position:fixed;inset:0;z-index:100000;background:#fff;padding:24px;overflow:auto;direction:rtl;text-align:right;font-family:system-ui,sans-serif;color:#182234';b.innerHTML='<div style=\"max-width:760px;margin:7vh auto;padding:22px;border:3px solid #b42318;border-radius:20px;background:#fff5f4\"><h2 style=\"margin-top:0;color:#9f2118\">تم قبول الدخول لكن تعذر تحميل الحساب</h2><p><b>الخطأ:</b> '+String(m).replace(/[<>]/g,'')+'</p><p><b>Details:</b> '+String(d).replace(/[<>]/g,'')+'</p><p><b>Hint:</b> '+String(h).replace(/[<>]/g,'')+'</p><p>تم إبقاء الجلسة محفوظة لتشخيص المشكلة.</p><button class=\"primary\" onclick=\"location.reload()\">إعادة المحاولة</button></div>';}\n}"
-          ns,n=re.subn(pat,repl,s,count=1,flags=re.S)
-          if n!=1: raise SystemExit('boot catch pattern not found')
-          p.write_text(ns,encoding='utf-8')
+          s=re.sub(r'<meta name="x-community-version"[^>]*>','<meta name="x-community-version" content="V86.9 Notification Scope Fix + WCAG 2.2 AA + Site Visit Analytics">',s,count=1)
+          # V86.9: home() uses notificationSummary(), but notifSummary was scoped only to render().
+          # Define it locally at the start of home() so the authenticated home screen cannot crash.
+          if 'function home(){const notifSummary=notificationSummary();' not in s:
+              s,n=re.subn(r'function home\(\)\{', 'function home(){const notifSummary=notificationSummary();', s, count=1)
+              if n!=1: raise SystemExit('home function not found')
+          p.write_text(s,encoding='utf-8')
           PY
-      - name: Commit V86.8 index
+      - name: Commit V86.9 index
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'apply post-login diagnostic [login-guard] V86.8'
+          git commit -m 'fix notification summary scope [login-guard] V86.9'
           git push
