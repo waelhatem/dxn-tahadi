@@ -36,10 +36,10 @@ var tries=0,t=setInterval(function(){if(install()||++tries>180)clearInterval(t)}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
 })();
 
-/* V86.15.2 — زر «من نحن؟» بارز، مع موضع آمن للموبايل. */
+/* V86.16 — تبويب جانبي عائم قابل للانكماش لصفحة «من نحن؟». */
 (function(){
-  if(window.__DXN_ABOUT_LINK_V86152__)return;
-  window.__DXN_ABOUT_LINK_V86152__=true;
+  if(window.__DXN_ABOUT_SIDE_TAB_V8616__)return;
+  window.__DXN_ABOUT_SIDE_TAB_V8616__=true;
   function add(){
     if(document.getElementById('dxnAboutMainLink'))return;
     var a=document.createElement('a');
@@ -47,11 +47,25 @@ var tries=0,t=setInterval(function(){if(install()||++tries>180)clearInterval(t)}
     a.href='about.html';
     a.textContent='ℹ️ من نحن؟';
     a.setAttribute('aria-label','من نحن؟');
-    a.style.cssText='position:fixed;top:58px;right:20px;z-index:99999;display:flex;align-items:center;justify-content:center;gap:8px;min-width:150px;padding:13px 22px;border-radius:14px;background:#0f6b4f;color:#fff;border:2px solid #fff;box-shadow:0 8px 24px #0004;text-decoration:none;font-weight:900;font-size:17px;line-height:1.2;direction:rtl;cursor:pointer;';
-    var style=document.createElement('style');
-    style.textContent='@media(max-width:600px){#dxnAboutMainLink{top:auto!important;right:auto!important;left:14px!important;bottom:14px!important;min-width:128px!important;padding:11px 16px!important;font-size:15px!important;border-radius:12px!important;}}';
-    document.head.appendChild(style);
+    a.title='من نحن؟';
+    a.style.cssText='position:fixed;right:0;top:46%;transform:translateY(-50%) translateX(92px);z-index:99999;display:flex;align-items:center;justify-content:center;gap:7px;width:116px;min-height:48px;padding:9px 10px;border-radius:14px 0 0 14px;background:#0f6b4f;color:#fff;border:2px solid #fff;border-right:0;box-shadow:0 6px 20px #0004;text-decoration:none;font-weight:900;font-size:15px;line-height:1.2;direction:rtl;cursor:pointer;transition:transform .28s ease,box-shadow .2s ease;';
+    function show(){a.style.transform='translateY(-50%) translateX(0)';a.style.boxShadow='0 8px 26px #0005'}
+    function hide(){a.style.transform='translateY(-50%) translateX(92px)';a.style.boxShadow='0 4px 14px #0003'}
+    var lastY=window.scrollY||0,timer;
+    function onScroll(){
+      var y=window.scrollY||0;
+      show();
+      clearTimeout(timer);
+      timer=setTimeout(hide,900);
+      lastY=y;
+    }
+    a.addEventListener('mouseenter',show);
+    a.addEventListener('mouseleave',function(){clearTimeout(timer);timer=setTimeout(hide,700)});
+    a.addEventListener('touchstart',show,{passive:true});
+    window.addEventListener('scroll',onScroll,{passive:true});
+    document.head.appendChild((function(){var s=document.createElement('style');s.textContent='@media(max-width:600px){#dxnAboutMainLink{top:50%!important;width:104px!important;min-height:44px!important;font-size:14px!important;padding:8px 8px!important;transform:translateY(-50%) translateX(82px)!important;}#dxnAboutMainLink.dxn-about-open{transform:translateY(-50%) translateX(0)!important;}}';return s})());
     document.body.appendChild(a);
+    setTimeout(hide,1200);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',add,{once:true});else add();
 })();
