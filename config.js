@@ -18,51 +18,37 @@ window.location.reload();
 function install(){try{var b=document.getElementById('loginButton');if(!b)return false;if(!b.__dxnV866){b.__dxnV866=true;b.removeAttribute('onclick');b.type='button';b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();directLogin()},false)}if(typeof window.login==='function'&&!window.login.__dxnV866){var old=window.login;var wrap=function(){return directLogin()};wrap.__dxnV866=true;wrap.__dxnOriginal=old;window.login=wrap}return true}catch(e){return false}}
 var tries=0,t=setInterval(function(){if(install()||++tries>180)clearInterval(t)},100);
 })();
-/* V86.6 deployment trigger */
-/* V86.10 — Load the detailed member training profile after the main application script has defined its globals. */
-(function(){if(window.__DXN_TRAINING_PROFILE_LOADER_V8610__)return;window.__DXN_TRAINING_PROFILE_LOADER_V8610__=true;function load(){var s=document.createElement('script');s.src='member-training-profile.js?v=86.13.8';s.async=false;s.onload=function(){console.debug('V86.13.8 detailed member training profile loaded')};s.onerror=function(){console.warn('V86.13.8 detailed member training profile unavailable')};document.head.appendChild(s)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load()})();
-/* V86.13 — Load overall training progress in Leader Center. */
-(function(){if(window.__DXN_LEADER_OVERALL_TRAINING_LOADER_V8613__)return;window.__DXN_LEADER_OVERALL_TRAINING_LOADER_V8613__=true;function load(){var s=document.createElement('script');s.src='training-overall-progress.js?v=86.13';s.async=false;s.onload=function(){console.debug('V86.13 overall training progress loaded')};s.onerror=function(){console.warn('V86.13 overall training progress unavailable')};document.head.appendChild(s)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load()})();
-/* V86.17 — «من نحن؟» على الموبايل أسفل المرشد الذكي، دون المساس بباقي الواجهة. */
+/* V86.10 — Load the detailed member training profile. */
+(function(){if(window.__DXN_TRAINING_PROFILE_LOADER_V8610__)return;window.__DXN_TRAINING_PROFILE_LOADER_V8610__=true;function load(){var s=document.createElement('script');s.src='member-training-profile.js?v=86.13.8';s.async=false;document.head.appendChild(s)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load()})();
+/* V86.13 — Load overall training progress. */
+(function(){if(window.__DXN_LEADER_OVERALL_TRAINING_LOADER_V8613__)return;window.__DXN_LEADER_OVERALL_TRAINING_LOADER_V8613__=true;function load(){var s=document.createElement('script');s.src='training-overall-progress.js?v=86.13';s.async=false;document.head.appendChild(s)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load()})();
+/* V86.18 — زر «من نحن؟» بحجم مماثل للمرشد الذكي وعلى الجهة المقابلة في الموبايل. */
 (function(){
-if(window.__DXN_ABOUT_V8617__)return;window.__DXN_ABOUT_V8617__=true;
+if(window.__DXN_ABOUT_V8618__)return;window.__DXN_ABOUT_V8618__=true;
 function add(){
  var a=document.getElementById('dxnAboutMainLink');
  if(!a){a=document.createElement('a');a.id='dxnAboutMainLink';a.href='about.html';a.textContent='ℹ️ من نحن؟';a.setAttribute('aria-label','من نحن؟');a.title='من نحن؟';document.body.appendChild(a)}
- var st=document.getElementById('dxnAboutV8617Style');
- if(!st){st=document.createElement('style');st.id='dxnAboutV8617Style';st.textContent='@media(max-width:600px){#dxnAboutMainLink{position:fixed!important;z-index:99999!important;display:flex!important;align-items:center!important;justify-content:center!important;width:var(--dxn-about-w,150px)!important;min-height:46px!important;padding:9px 12px!important;box-sizing:border-box!important;border-radius:14px!important;background:#0f6b4f!important;color:#fff!important;border:2px solid #fff!important;box-shadow:0 5px 18px #0004!important;text-decoration:none!important;font-weight:900!important;font-size:15px!important;line-height:1.2!important;direction:rtl!important;transition:top .18s ease,left .18s ease,right .18s ease,opacity .2s ease!important;transform:none!important} }';document.head.appendChild(st)}
- function findGuide(){
-  var els=document.querySelectorAll('button,a,[role="button"],div,span');
-  for(var i=0;i<els.length;i++){
-   var t=(els[i].textContent||'').replace(/\s+/g,' ').trim();
-   if(t.length<2||t.length>80)continue;
-   if(/مرشد|المرشد|ذكي|الذكي|smart\s*guide|guide/i.test(t)&&els[i].id!=='dxnAboutMainLink')return els[i];
-  }
-  return null;
- }
+ var st=document.getElementById('dxnAboutV8618Style');
+ if(!st){st=document.createElement('style');st.id='dxnAboutV8618Style';st.textContent='@media(max-width:600px){#dxnAboutMainLink{position:fixed!important;z-index:99999!important;display:flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;min-height:44px!important;padding:8px 12px!important;border-radius:14px!important;background:#0f6b4f!important;color:#fff!important;border:2px solid #fff!important;box-shadow:0 5px 18px #0004!important;text-decoration:none!important;font-weight:900!important;font-size:15px!important;line-height:1.2!important;direction:rtl!important;transform:none!important;white-space:nowrap!important}}';document.head.appendChild(st)}
+ function findGuide(){var els=document.querySelectorAll('button,a,[role="button"],div,span');for(var i=0;i<els.length;i++){var t=(els[i].textContent||'').replace(/\s+/g,' ').trim();if(t.length<2||t.length>80)continue;if(/مرشد|المرشد|ذكي|الذكي|smart\s*guide|guide/i.test(t)&&els[i].id!=='dxnAboutMainLink')return els[i]}return null}
  function position(){
-  if(window.innerWidth>600){
-   a.style.removeProperty('top');a.style.removeProperty('left');a.style.removeProperty('right');a.style.removeProperty('width');a.style.removeProperty('min-height');a.style.removeProperty('padding');a.style.removeProperty('font-size');a.style.removeProperty('transform');a.style.removeProperty('opacity');
-   a.style.position='fixed';a.style.right='0';a.style.top='46%';a.style.transform='translateY(-50%) translateX(92px)';a.style.width='116px';a.style.minHeight='48px';a.style.padding='9px 10px';a.style.borderRadius='14px 0 0 14px';a.style.fontSize='15px';a.style.background='#0f6b4f';a.style.color='#fff';a.style.border='2px solid #fff';a.style.borderRight='0';a.style.boxShadow='0 6px 20px #0004';a.style.opacity='1';
-   return;
-  }
+  if(window.innerWidth>600){a.style.position='fixed';a.style.right='0';a.style.top='46%';a.style.transform='translateY(-50%) translateX(92px)';a.style.width='116px';a.style.minHeight='48px';a.style.padding='9px 10px';a.style.borderRadius='14px 0 0 14px';a.style.fontSize='15px';a.style.background='#0f6b4f';a.style.color='#fff';a.style.border='2px solid #fff';a.style.borderRight='0';a.style.boxShadow='0 6px 20px #0004';return}
   var g=findGuide();
   if(g){
    var r=g.getBoundingClientRect();
    var w=Math.min(Math.max(r.width,128),Math.min(180,window.innerWidth-28));
-   var left=Math.max(14,Math.min(r.left+(r.width-w)/2,window.innerWidth-w-14));
-   var top=Math.min(r.bottom+8,window.innerHeight-58);
-   if(top<14)top=14;
-   a.style.position='fixed';a.style.left=left+'px';a.style.right='auto';a.style.top=top+'px';a.style.width=w+'px';a.style.minHeight='46px';a.style.opacity='1';a.style.transform='none';
+   var gap=12;
+   var placeLeft=r.left-w-gap;
+   var placeRight=r.right+gap;
+   var left=placeLeft>=14?placeLeft:(placeRight+w<=window.innerWidth-14?placeRight:14);
+   var top=r.top+(r.height-44)/2;
+   top=Math.max(14,Math.min(top,window.innerHeight-58));
+   a.style.position='fixed';a.style.left=left+'px';a.style.right='auto';a.style.top=top+'px';a.style.bottom='auto';a.style.width=w+'px';a.style.minHeight=r.height+'px';a.style.opacity='1';a.style.transform='none';
   }else{
-   a.style.left='14px';a.style.right='auto';a.style.bottom='14px';a.style.top='auto';a.style.width='150px';a.style.opacity='1';a.style.transform='none';
+   a.style.left='14px';a.style.right='auto';a.style.bottom='14px';a.style.top='auto';a.style.width='150px';a.style.minHeight='44px';a.style.opacity='1';a.style.transform='none';
   }
  }
- position();
- window.addEventListener('resize',position,{passive:true});
- window.addEventListener('scroll',position,{passive:true});
- var mo=new MutationObserver(function(){position()});
- mo.observe(document.body,{childList:true,subtree:true});
+ position();window.addEventListener('resize',position,{passive:true});window.addEventListener('scroll',position,{passive:true});var mo=new MutationObserver(function(){position()});mo.observe(document.body,{childList:true,subtree:true});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',add,{once:true});else add();
 })();
