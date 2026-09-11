@@ -24,7 +24,7 @@ var tries=0,t=setInterval(function(){if(install()||++tries>180)clearInterval(t)}
 (function(){
   if(window.__DXN_TRAINING_PROFILE_LOADER_V8610__)return;
   window.__DXN_TRAINING_PROFILE_LOADER_V8610__=true;
-  function load(){var s=document.createElement('script');s.src='member-training-profile.js?v=86.10';s.async=false;s.onload=function(){console.debug('V86.10 member training profile loaded')};s.onerror=function(){console.warn('V86.10 member training profile unavailable')};document.head.appendChild(s)}
+  function load(){var s=document.createElement('script');s.src='member-training-profile.js?v=86.13.8';s.async=false;s.onload=function(){console.debug('V86.13.8 detailed member training profile loaded')};s.onerror=function(){console.warn('V86.13.8 detailed member training profile unavailable')};document.head.appendChild(s)}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
 })();
 
