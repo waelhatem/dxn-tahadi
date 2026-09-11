@@ -36,10 +36,10 @@ var tries=0,t=setInterval(function(){if(install()||++tries>180)clearInterval(t)}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
 })();
 
-/* V86.15 — رابط واضح لصفحة من نحن في الواجهة الرئيسية. */
+/* V86.15.1 — زر بارز وواضح لصفحة من نحن في الواجهة الرئيسية. */
 (function(){
-  if(window.__DXN_ABOUT_LINK_V8615__)return;
-  window.__DXN_ABOUT_LINK_V8615__=true;
+  if(window.__DXN_ABOUT_LINK_V86151__)return;
+  window.__DXN_ABOUT_LINK_V86151__=true;
   function add(){
     if(document.getElementById('dxnAboutMainLink'))return;
     var a=document.createElement('a');
@@ -47,7 +47,7 @@ var tries=0,t=setInterval(function(){if(install()||++tries>180)clearInterval(t)}
     a.href='about.html';
     a.textContent='ℹ️ من نحن؟';
     a.setAttribute('aria-label','من نحن؟');
-    a.style.cssText='position:fixed;top:52px;right:16px;z-index:9998;display:flex;align-items:center;justify-content:center;gap:5px;padding:9px 15px;border-radius:999px;background:#fff;color:#0f513f;border:1px solid #cfe1d9;box-shadow:0 5px 16px #0002;text-decoration:none;font-weight:900;font-size:13px;direction:rtl;';
+    a.style.cssText='position:fixed;top:58px;right:20px;z-index:99999;display:flex;align-items:center;justify-content:center;gap:8px;min-width:150px;padding:13px 22px;border-radius:14px;background:#0f6b4f;color:#fff;border:2px solid #fff;box-shadow:0 8px 24px #0004;text-decoration:none;font-weight:900;font-size:17px;line-height:1.2;direction:rtl;cursor:pointer;';
     document.body.appendChild(a);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',add,{once:true});else add();
