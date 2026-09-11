@@ -1,5 +1,5 @@
 // إعدادات مشروع مجتمع الصحة والثراء
-window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezzn.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_pD9m1Z3gN--2HAfhf_t2YA_2Ri4AeUh'};
+window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezz.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_pD9m1Z3gN--2HAfhf_t2YA_2Ri4AeUh'};
 /* V86.6 — إصلاح تسليم جلسة الدخول. لا يسجل PIN أو التوكن. */
 (function(){
 if(window.__DXN_LOGIN_RUNTIME_V866__)return;window.__DXN_LOGIN_RUNTIME_V866__=true;
@@ -31,6 +31,21 @@ var tries=0,t=setInterval(function(){if(install()||++tries>180)clearInterval(t)}
     s.async=false;
     s.onload=function(){console.debug('V86.10 member training profile loaded')};
     s.onerror=function(){console.warn('V86.10 member training profile unavailable')};
+    document.head.appendChild(s);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
+})();
+
+/* V86.11 — Load detailed per-training percentages in the Leader Center. */
+(function(){
+  if(window.__DXN_LEADER_TRAINING_DETAIL_LOADER_V8611__)return;
+  window.__DXN_LEADER_TRAINING_DETAIL_LOADER_V8611__=true;
+  function load(){
+    var s=document.createElement('script');
+    s.src='leader-training-detail.js?v=86.11';
+    s.async=false;
+    s.onload=function(){console.debug('V86.11 leader training detail loaded')};
+    s.onerror=function(){console.warn('V86.11 leader training detail unavailable')};
     document.head.appendChild(s);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
