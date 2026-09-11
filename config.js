@@ -19,53 +19,50 @@ function install(){try{var b=document.getElementById('loginButton');if(!b)return
 var tries=0,t=setInterval(function(){if(install()||++tries>180)clearInterval(t)},100);
 })();
 /* V86.6 deployment trigger */
-
 /* V86.10 — Load the detailed member training profile after the main application script has defined its globals. */
-(function(){
-  if(window.__DXN_TRAINING_PROFILE_LOADER_V8610__)return;
-  window.__DXN_TRAINING_PROFILE_LOADER_V8610__=true;
-  function load(){var s=document.createElement('script');s.src='member-training-profile.js?v=86.13.8';s.async=false;s.onload=function(){console.debug('V86.13.8 detailed member training profile loaded')};s.onerror=function(){console.warn('V86.13.8 detailed member training profile unavailable')};document.head.appendChild(s)}
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
-})();
-
+(function(){if(window.__DXN_TRAINING_PROFILE_LOADER_V8610__)return;window.__DXN_TRAINING_PROFILE_LOADER_V8610__=true;function load(){var s=document.createElement('script');s.src='member-training-profile.js?v=86.13.8';s.async=false;s.onload=function(){console.debug('V86.13.8 detailed member training profile loaded')};s.onerror=function(){console.warn('V86.13.8 detailed member training profile unavailable')};document.head.appendChild(s)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load()})();
 /* V86.13 — Load overall training progress in Leader Center. */
+(function(){if(window.__DXN_LEADER_OVERALL_TRAINING_LOADER_V8613__)return;window.__DXN_LEADER_OVERALL_TRAINING_LOADER_V8613__=true;function load(){var s=document.createElement('script');s.src='training-overall-progress.js?v=86.13';s.async=false;s.onload=function(){console.debug('V86.13 overall training progress loaded')};s.onerror=function(){console.warn('V86.13 overall training progress unavailable')};document.head.appendChild(s)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load()})();
+/* V86.17 — «من نحن؟» على الموبايل أسفل المرشد الذكي، دون المساس بباقي الواجهة. */
 (function(){
-  if(window.__DXN_LEADER_OVERALL_TRAINING_LOADER_V8613__)return;
-  window.__DXN_LEADER_OVERALL_TRAINING_LOADER_V8613__=true;
-  function load(){var s=document.createElement('script');s.src='training-overall-progress.js?v=86.13';s.async=false;s.onload=function(){console.debug('V86.13 overall training progress loaded')};s.onerror=function(){console.warn('V86.13 overall training progress unavailable')};document.head.appendChild(s)}
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
-})();
-
-/* V86.16 — تبويب جانبي عائم قابل للانكماش لصفحة «من نحن؟». */
-(function(){
-  if(window.__DXN_ABOUT_SIDE_TAB_V8616__)return;
-  window.__DXN_ABOUT_SIDE_TAB_V8616__=true;
-  function add(){
-    if(document.getElementById('dxnAboutMainLink'))return;
-    var a=document.createElement('a');
-    a.id='dxnAboutMainLink';
-    a.href='about.html';
-    a.textContent='ℹ️ من نحن؟';
-    a.setAttribute('aria-label','من نحن؟');
-    a.title='من نحن؟';
-    a.style.cssText='position:fixed;right:0;top:46%;transform:translateY(-50%) translateX(92px);z-index:99999;display:flex;align-items:center;justify-content:center;gap:7px;width:116px;min-height:48px;padding:9px 10px;border-radius:14px 0 0 14px;background:#0f6b4f;color:#fff;border:2px solid #fff;border-right:0;box-shadow:0 6px 20px #0004;text-decoration:none;font-weight:900;font-size:15px;line-height:1.2;direction:rtl;cursor:pointer;transition:transform .28s ease,box-shadow .2s ease;';
-    function show(){a.style.transform='translateY(-50%) translateX(0)';a.style.boxShadow='0 8px 26px #0005'}
-    function hide(){a.style.transform='translateY(-50%) translateX(92px)';a.style.boxShadow='0 4px 14px #0003'}
-    var lastY=window.scrollY||0,timer;
-    function onScroll(){
-      var y=window.scrollY||0;
-      show();
-      clearTimeout(timer);
-      timer=setTimeout(hide,900);
-      lastY=y;
-    }
-    a.addEventListener('mouseenter',show);
-    a.addEventListener('mouseleave',function(){clearTimeout(timer);timer=setTimeout(hide,700)});
-    a.addEventListener('touchstart',show,{passive:true});
-    window.addEventListener('scroll',onScroll,{passive:true});
-    document.head.appendChild((function(){var s=document.createElement('style');s.textContent='@media(max-width:600px){#dxnAboutMainLink{top:50%!important;width:104px!important;min-height:44px!important;font-size:14px!important;padding:8px 8px!important;transform:translateY(-50%) translateX(82px)!important;}#dxnAboutMainLink.dxn-about-open{transform:translateY(-50%) translateX(0)!important;}}';return s})());
-    document.body.appendChild(a);
-    setTimeout(hide,1200);
+if(window.__DXN_ABOUT_V8617__)return;window.__DXN_ABOUT_V8617__=true;
+function add(){
+ var a=document.getElementById('dxnAboutMainLink');
+ if(!a){a=document.createElement('a');a.id='dxnAboutMainLink';a.href='about.html';a.textContent='ℹ️ من نحن؟';a.setAttribute('aria-label','من نحن؟');a.title='من نحن؟';document.body.appendChild(a)}
+ var st=document.getElementById('dxnAboutV8617Style');
+ if(!st){st=document.createElement('style');st.id='dxnAboutV8617Style';st.textContent='@media(max-width:600px){#dxnAboutMainLink{position:fixed!important;z-index:99999!important;display:flex!important;align-items:center!important;justify-content:center!important;width:var(--dxn-about-w,150px)!important;min-height:46px!important;padding:9px 12px!important;box-sizing:border-box!important;border-radius:14px!important;background:#0f6b4f!important;color:#fff!important;border:2px solid #fff!important;box-shadow:0 5px 18px #0004!important;text-decoration:none!important;font-weight:900!important;font-size:15px!important;line-height:1.2!important;direction:rtl!important;transition:top .18s ease,left .18s ease,right .18s ease,opacity .2s ease!important;transform:none!important} }';document.head.appendChild(st)}
+ function findGuide(){
+  var els=document.querySelectorAll('button,a,[role="button"],div,span');
+  for(var i=0;i<els.length;i++){
+   var t=(els[i].textContent||'').replace(/\s+/g,' ').trim();
+   if(t.length<2||t.length>80)continue;
+   if(/مرشد|المرشد|ذكي|الذكي|smart\s*guide|guide/i.test(t)&&els[i].id!=='dxnAboutMainLink')return els[i];
   }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',add,{once:true});else add();
+  return null;
+ }
+ function position(){
+  if(window.innerWidth>600){
+   a.style.removeProperty('top');a.style.removeProperty('left');a.style.removeProperty('right');a.style.removeProperty('width');a.style.removeProperty('min-height');a.style.removeProperty('padding');a.style.removeProperty('font-size');a.style.removeProperty('transform');a.style.removeProperty('opacity');
+   a.style.position='fixed';a.style.right='0';a.style.top='46%';a.style.transform='translateY(-50%) translateX(92px)';a.style.width='116px';a.style.minHeight='48px';a.style.padding='9px 10px';a.style.borderRadius='14px 0 0 14px';a.style.fontSize='15px';a.style.background='#0f6b4f';a.style.color='#fff';a.style.border='2px solid #fff';a.style.borderRight='0';a.style.boxShadow='0 6px 20px #0004';a.style.opacity='1';
+   return;
+  }
+  var g=findGuide();
+  if(g){
+   var r=g.getBoundingClientRect();
+   var w=Math.min(Math.max(r.width,128),Math.min(180,window.innerWidth-28));
+   var left=Math.max(14,Math.min(r.left+(r.width-w)/2,window.innerWidth-w-14));
+   var top=Math.min(r.bottom+8,window.innerHeight-58);
+   if(top<14)top=14;
+   a.style.position='fixed';a.style.left=left+'px';a.style.right='auto';a.style.top=top+'px';a.style.width=w+'px';a.style.minHeight='46px';a.style.opacity='1';a.style.transform='none';
+  }else{
+   a.style.left='14px';a.style.right='auto';a.style.bottom='14px';a.style.top='auto';a.style.width='150px';a.style.opacity='1';a.style.transform='none';
+  }
+ }
+ position();
+ window.addEventListener('resize',position,{passive:true});
+ window.addEventListener('scroll',position,{passive:true});
+ var mo=new MutationObserver(function(){position()});
+ mo.observe(document.body,{childList:true,subtree:true});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',add,{once:true});else add();
 })();
