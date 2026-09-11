@@ -1,4 +1,4 @@
-name: Apply login guard
+name: Apply training detail view
 on:
   push:
     branches: [main]
@@ -6,41 +6,29 @@ permissions:
   contents: write
 jobs:
   patch:
-    if: "!contains(github.event.head_commit.message, '[login-guard]')"
+    if: "!contains(github.event.head_commit.message, '[training-detail]')"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply V86.10 member training profile
+      - name: Apply V86.11 detailed training profile
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
-
-          # Keep the current runtime guards and version marker in sync.
-          s=re.sub(r'<!-- DXN LOGIN GUARD V[0-9.]+ -->\s*<script>\(function\).*?</script>\s*','',s,flags=re.S)
-          s=re.sub(r'<div[^>]*>\s*مجتمع الصحة والثراء\s*•\s*V86\.[0-9]+\s*</div>','',s,flags=re.S)
-          s=re.sub(r'navigator\.serviceWorker\.register\s*\([^;]*\)\s*;?','',s,flags=re.S)
-          s=s.replace("if('serviceWorker' in navigator)boot();",'boot();')
-          s=s.replace("if('serviceWorker' in navigator) boot();",'boot();')
-          s=re.sub(r'src="config\.js(?:\?v=[0-9.]+)?"','src="config.js?v=86.10"',s)
-          marker='<div id="dxnBuildMarker" class="small muted" style="text-align:center;margin-top:8px">مجتمع الصحة والثراء • V86.10</div>'
           s=re.sub(r'<div id="dxnBuildMarker"[^>]*>.*?</div>','',s,count=1,flags=re.S)
+          marker='<div id="dxnBuildMarker" class="small muted" style="text-align:center;margin-top:8px">مجتمع الصحة والثراء • V86.11</div>'
           needle=re.search(r'<button id="loginButton"[^>]*>🔐 دخول</button>',s)
-          if not needle: raise SystemExit('loginButton not found')
-          s=s[:needle.end()]+marker+s[needle.end():]
-          s=re.sub(r'<meta name="x-community-version"[^>]*>','<meta name="x-community-version" content="V86.10 Detailed Member Training Profile + V86.9 Login Fix + WCAG 2.2 AA + Site Visit Analytics">',s,count=1)
-
-          # Do not silently turn a training-data failure into an apparent 0/0 state.
+          if needle:s=s[:needle.end()]+marker+s[needle.end():]
+          s=re.sub(r'src="config\.js(?:\?v=[0-9.]+)?"','src="config.js?v=86.11"',s)
+          s=re.sub(r'<meta name="x-community-version"[^>]*>','<meta name="x-community-version" content="V86.11 Detailed Training Profile + V86.10 Training Progress + V86.9 Login Fix + WCAG 2.2 AA + Site Visit Analytics">',s,count=1)
           old="const trainingP=rpc('get_training_data',{p_token:token}).catch(()=>({lessons:[],my_progress:[],member_progress:[]}));"
           new="const trainingP=rpc('get_training_data',{p_token:token}).catch(e=>({lessons:[],my_progress:[],member_progress:[],error:e.message||String(e)}));"
           s=s.replace(old,new)
-
-          # Replace the member profile with a detailed, lesson-by-lesson training audit.
           start=s.find('function openMemberProfile(id){')
           end=s.find('function closeMemberProfile()',start)
-          if start<0 or end<0: raise SystemExit('member profile function boundaries not found')
+          if start<0 or end<0: raise SystemExit('member profile boundaries not found')
           fn=r'''function openMemberProfile(id){
  const m=(data.members||[]).find(x=>String(x.id)===String(id)); if(!m)return;
  const snap=memberActivitySnapshot().find(x=>String(x.id)===String(id))||m;
@@ -66,17 +54,24 @@ jobs:
    const updated=p?.updated_at||p?.last_update_at||p?.completed_at;
    return `<div class="row" style="display:block;padding:12px 0"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><div style="flex:1"><b>📚 ${esc(l.lesson_no)}. ${esc(l.title||'التدريب')}</b><div class="muted" style="margin-top:4px">${status}${timeText}${updated?` · 🕐 ${fmt(updated)}`:''}</div></div><b style="font-size:18px;white-space:nowrap">${Math.round(pct)}%</b></div><div class="bar" style="margin-top:8px;height:9px"><span style="width:${Math.round(pct)}%"></span></div></div>`;
  }).join('');
- const modal=document.createElement('div');modal.id='memberProfileModal';modal.innerHTML=`<div class="evidence-backdrop" onclick="closeMemberProfile()"></div><div class="evidence-modal card" style="max-width:800px;max-height:90vh;overflow:auto"><div class="row"><div><h2 style="margin:0">👤 ${esc(m.name||'عضو')}</h2><div class="muted">🪪 ${esc(m.member_no||'')} · ${esc(m.team_name||'بدون فريق')}</div></div><button onclick="closeMemberProfile()">✖️</button></div><div class="command-grid"><div class="command-card"><div class="muted">⭐ النجوم</div><div class="command-big stars">${Number(m.stars||0)}</div><div class="muted">${esc(getLevel(m.stars).current.name)}</div></div><div class="command-card"><div class="muted">🎯 نقاط DXN</div><div class="command-big">${snap._pts}/100</div><div class="bar"><span style="width:${Math.min(100,snap._pts)}%"></span></div><div class="muted">${target?`باقي ${target} نقطة`:'🎉 التارجت محقق'}</div></div><div class="command-card"><div class="muted">📚 التدريب</div><div class="command-big">${done}/${lessons.length}</div><div class="muted">مكتمل فعليًا</div></div><div class="command-card"><div class="muted">🎬 المشاهدة</div><div class="command-big">${watchedCount}/${lessons.length}</div><div class="muted">متوسط المشاهدة ${avgPct}%</div></div><div class="command-card"><div class="muted">🏅 الشارات</div><div class="command-big">${badgeCount}</div><div class="muted">شارات مكتسبة</div></div></div>${memberRatingCard(id,role)}<div class="card" style="margin-top:10px;background:linear-gradient(135deg,#f7fcf9,#fff);border:2px solid #cfe4da"><div class="title">📚 سجل التدريبات التفصيلي</div><p class="muted" style="line-height:1.8;margin:6px 0 10px">يوضح هذا السجل كل تدريب من التدريبات الثمانية، ونسبة المشاهدة المسجلة، وما إذا كان الإكمال معتمدًا فعليًا. لا نعتبر النجوم وحدها دليلًا على إكمال الفيديو.</p>${trainingError?`<div class="challenge" style="border-color:#f0b7b2;background:#fff7f6"><b>⚠️ تعذر تحميل سجل التدريب</b><div class="muted" style="margin-top:5px">${esc(trainingError)}</div></div>`:(lessons.length?lessonRows:'<div class="empty">لا توجد تدريبات نشطة حاليًا.</div>')}</div><div class="card" style="margin-top:10px"><b>📊 الحالة التشغيلية</b><div class="row"><span>آخر نشاط</span><b>${snap._days===null?'لم يبدأ بعد':snap._days===0?'اليوم':`منذ ${snap._days} أيام`}</b></div><div class="row"><span>⏳ إنجازات معلقة</span><b>${snap._pending}</b></div><div class="row"><span>✅ إنجازات معتمدة</span><b>${approved}</b></div><div class="row"><span>📅 مدة العضوية</span><b>${snap._joinedDays===null?'غير مسجلة':`${snap._joinedDays} يوم`}</b></div></div><div class="command-actions"><button class="primary" onclick="closeMemberProfile();switchTab('teams')">👥 إدارة العضو</button><button onclick="closeMemberProfile();switchTab('leader')">👑 العودة لمركز القيادة</button></div></div>`;document.body.appendChild(modal);
+ const modal=document.createElement('div');modal.id='memberProfileModal';modal.innerHTML=`<div class="evidence-backdrop" onclick="closeMemberProfile()"></div><div class="evidence-modal card" style="max-width:800px;max-height:90vh;overflow:auto"><div class="row"><div><h2 style="margin:0">👤 ${esc(m.name||'عضو')}</h2><div class="muted">🪪 ${esc(m.member_no||'')} · ${esc(m.team_name||'بدون فريق')}</div></div><button onclick="closeMemberProfile()">✖️</button></div><div class="command-grid"><div class="command-card"><div class="muted">⭐ النجوم</div><div class="command-big stars">${Number(m.stars||0)}</div><div class="muted">${esc(getLevel(m.stars).current.name)}</div></div><div class="command-card"><div class="muted">🎯 نقاط DXN</div><div class="command-big">${snap._pts}/100</div><div class="bar"><span style="width:${Math.min(100,snap._pts)}%"></span></div><div class="muted">${target?`باقي ${target} نقطة`:'🎉 التارجت محقق'}</div></div><div class="command-card"><div class="muted">📚 التدريب المكتمل</div><div class="command-big">${done}/${lessons.length}</div><div class="muted">إكمال فعلي 100%</div></div><div class="command-card"><div class="muted">🎬 التدريبات التي بدأت</div><div class="command-big">${watchedCount}/${lessons.length}</div><div class="muted">متوسط المشاهدة ${avgPct}%</div></div><div class="command-card"><div class="muted">🏅 الشارات</div><div class="command-big">${badgeCount}</div><div class="muted">شارات مكتسبة</div></div></div>${memberRatingCard(id,role)}<div class="card" style="margin-top:10px;background:linear-gradient(135deg,#f7fcf9,#fff);border:2px solid #cfe4da"><div class="title">📚 سجل التدريبات التفصيلي — ${done}/${lessons.length} مكتملة فعليًا</div><p class="muted" style="line-height:1.8;margin:6px 0 10px">لكل تدريب تظهر نسبة المشاهدة الفعلية بشكل مستقل. التوقف عند 22% يبقى مسجلًا 22%، ولا يتحول إلى 100% لمجرد إكمال تدريب آخر.</p>${trainingError?`<div class="challenge" style="border-color:#f0b7b2;background:#fff7f6"><b>⚠️ تعذر تحميل سجل التدريب</b><div class="muted" style="margin-top:5px">${esc(trainingError)}</div></div>`:(lessons.length?lessonRows:'<div class="empty">لا توجد تدريبات نشطة حاليًا.</div>')}</div><div class="card" style="margin-top:10px"><b>📊 الحالة التشغيلية</b><div class="row"><span>آخر نشاط</span><b>${snap._days===null?'لم يبدأ بعد':snap._days===0?'اليوم':`منذ ${snap._days} أيام`}</b></div><div class="row"><span>⏳ إنجازات معلقة</span><b>${snap._pending}</b></div><div class="row"><span>✅ إنجازات معتمدة</span><b>${approved}</b></div><div class="row"><span>📅 مدة العضوية</span><b>${snap._joinedDays===null?'غير مسجلة':`${snap._joinedDays} يوم`}</b></div></div><div class="command-actions"><button class="primary" onclick="closeMemberProfile();switchTab('teams')">👥 إدارة العضو</button><button onclick="closeMemberProfile();switchTab('leader')">👑 العودة لمركز القيادة</button></div></div>`;document.body.appendChild(modal);
 }
 '''
           s=s[:start]+fn+s[end:]
+          # Replace the misleading aggregate training percentages with actual completion count and a detail button.
+          start2=s.find("return mp.map(m=>{", s.find('id="leader-training-center"'))
+          end2=s.find("}).join('');", start2)
+          if start2<0 or end2<0: raise SystemExit('leader training map boundaries not found')
+          end2 += len("}).join('');")
+          block="return mp.map(m=>{const total=Number(tl.length||m.total_lessons||0),done=Math.min(total,Number(m.completed_lessons||0));const pct=total?Math.round(done*100/total):0;return `<div class=\"row\" style=\"border-bottom:1px solid var(--line);padding:10px 0\"><div style=\"flex:1\"><b>${esc(m.name||'عضو')}</b><div class=\"muted\">🪪 ${esc(m.member_no||'')} · 📚 ${done} من ${total} تدريبات مكتملة فعليًا</div><div class=\"bar\"><span style=\"width:${pct}%\"></span></div></div><button onclick=\"openMemberProfile('${m.id}')\">👤 الملف التفصيلي</button></div>`;}).join('');"
+          s=s[:start2]+block+s[end2:]
           p.write_text(s,encoding='utf-8')
           PY
-      - name: Commit V86.10 index
+      - name: Commit V86.11 index
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'add detailed member training profile [login-guard] V86.10'
+          git commit -m 'fix per-lesson training visibility in member profiles [training-detail]'
           git push
