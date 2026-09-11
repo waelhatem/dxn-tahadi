@@ -20,3 +20,18 @@ function install(){try{var b=document.getElementById('loginButton');if(!b)return
 var tries=0,t=setInterval(function(){if(install()||++tries>180)clearInterval(t)},100);
 })();
 /* V86.6 deployment trigger */
+
+/* V86.10 — Load the detailed member training profile after the main application script has defined its globals. */
+(function(){
+  if(window.__DXN_TRAINING_PROFILE_LOADER_V8610__)return;
+  window.__DXN_TRAINING_PROFILE_LOADER_V8610__=true;
+  function load(){
+    var s=document.createElement('script');
+    s.src='member-training-profile.js?v=86.10';
+    s.async=false;
+    s.onload=function(){console.debug('V86.10 member training profile loaded')};
+    s.onerror=function(){console.warn('V86.10 member training profile unavailable')};
+    document.head.appendChild(s);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
+})();
