@@ -35,18 +35,3 @@ var tries=0,t=setInterval(function(){if(install()||++tries>180)clearInterval(t)}
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
 })();
-
-/* V86.11 — Load detailed per-training percentages in the Leader Center. */
-(function(){
-  if(window.__DXN_LEADER_TRAINING_DETAIL_LOADER_V8611__)return;
-  window.__DXN_LEADER_TRAINING_DETAIL_LOADER_V8611__=true;
-  function load(){
-    var s=document.createElement('script');
-    s.src='leader-training-detail.js?v=86.11';
-    s.async=false;
-    s.onload=function(){console.debug('V86.11 leader training detail loaded')};
-    s.onerror=function(){console.warn('V86.11 leader training detail unavailable')};
-    document.head.appendChild(s);
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
-})();
