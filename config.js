@@ -7,31 +7,18 @@ var C=window.DXN_CONFIG||{},base=String(C.SUPABASE_URL||'').replace(/\/$/,''),ke
 function safe(v){return String(v==null?'':v).replace(/[<>]/g,'')}
 function panel(title,detail){try{var old=document.getElementById('dxnLoginDiag');if(old)old.remove();var d=document.createElement('div');d.id='dxnLoginDiag';d.setAttribute('role','alert');d.style.cssText='margin-top:12px;padding:14px;border:2px solid #b42318;border-radius:14px;background:#fff5f4;color:#7a1b15;line-height:1.7;font-weight:700;direction:rtl;text-align:right';d.innerHTML='<b>'+safe(title)+'</b><div style="margin-top:6px;font-weight:500;white-space:pre-wrap">'+safe(detail)+'</div>';var b=document.getElementById('loginButton');if(b&&b.parentNode)b.parentNode.insertBefore(d,b.nextSibling)}catch(e){alert(title+'\n'+detail)}}
 async function rpcRaw(name,args){var r=await fetch(base+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(args),cache:'no-store'});var text=await r.text(),data=null;try{data=text?JSON.parse(text):null}catch(e){}if(!r.ok){var msg=(data&&(data.message||data.error_description||data.hint))||text||('HTTP '+r.status);var err=new Error(String(msg));err.status=r.status;err.code=data&&data.code;err.details=data&&data.details;err.hint=data&&data.hint;throw err}return data}
-async function directLogin(){var n=document.getElementById('loginNo'),p=document.getElementById('pin');var no=n?String(n.value||'').trim():'',pin=p?String(p.value||'').trim():'';if(!no||!pin){panel('بيانات الدخول ناقصة','أدخل رقم العضوية ورمز PIN.');return}if(!base||!key){panel('إعداد الاتصال ناقص','بيانات Supabase غير متاحة.');return}var b=document.getElementById('loginButton');if(b){b.disabled=true;b.textContent='⏳ جارٍ التحقق...'}try{
-var login=await rpcRaw('login',{p_login_no:no,p_pin:pin});
-if(!login||!login.token){panel('Login نجح لكن الاستجابة غير صالحة','لم يصل رمز الجلسة من الخادم.');return}
-localStorage.setItem('dxn_session',String(login.token));localStorage.setItem('dxn_session_issued',String(Date.now()));
-var bootData;try{bootData=await rpcRaw('bootstrap',{p_token:login.token})}catch(e){panel('Login ناجح — لكن Bootstrap فشل','HTTP: '+safe(e.status||'')+'\nCode: '+safe(e.code||'')+'\nMessage: '+safe(e.message||e)+'\nDetails: '+safe(e.details||'')+'\nHint: '+safe(e.hint||''));localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');return}
-if(!bootData){panel('Bootstrap أعاد استجابة فارغة','تم قبول الدخول لكن لم تصل بيانات الحساب.');localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');return}
-window.location.reload();
-}catch(e){panel('فشل مسار الدخول','HTTP: '+safe(e.status||'')+'\nCode: '+safe(e.code||'')+'\nMessage: '+safe(e.message||e)+'\nDetails: '+safe(e.details||'')+'\nHint: '+safe(e.hint||''));localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');}finally{if(b){b.disabled=false;b.textContent='🔐 دخول'}}}
+async function directLogin(){var n=document.getElementById('loginNo'),p=document.getElementById('pin');var no=n?String(n.value||'').trim():'',pin=p?String(p.value||'').trim():'';if(!no||!pin){panel('بيانات الدخول ناقصة','أدخل رقم العضوية ورمز PIN.');return}if(!base||!key){panel('إعداد الاتصال ناقص','بيانات Supabase غير متاحة.');return}var b=document.getElementById('loginButton');if(b){b.disabled=true;b.textContent='⏳ جارٍ التحقق...'}try{var login=await rpcRaw('login',{p_login_no:no,p_pin:pin});if(!login||!login.token){panel('Login نجح لكن الاستجابة غير صالحة','لم يصل رمز الجلسة من الخادم.');return}localStorage.setItem('dxn_session',String(login.token));localStorage.setItem('dxn_session_issued',String(Date.now()));var bootData;try{bootData=await rpcRaw('bootstrap',{p_token:login.token})}catch(e){panel('Login ناجح — لكن Bootstrap فشل','HTTP: '+safe(e.status||'')+'\nCode: '+safe(e.code||'')+'\nMessage: '+safe(e.message||e)+'\nDetails: '+safe(e.details||'')+'\nHint: '+safe(e.hint||''));localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');return}if(!bootData){panel('Bootstrap أعاد استجابة فارغة','تم قبول الدخول لكن لم تصل بيانات الحساب.');localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');return}window.location.reload();}catch(e){panel('فشل مسار الدخول','HTTP: '+safe(e.status||'')+'\nCode: '+safe(e.code||'')+'\nMessage: '+safe(e.message||e)+'\nDetails: '+safe(e.details||'')+'\nHint: '+safe(e.hint||''));localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');}finally{if(b){b.disabled=false;b.textContent='🔐 دخول'}}}
 function install(){try{var b=document.getElementById('loginButton');if(!b)return false;if(!b.__dxnV866){b.__dxnV866=true;b.removeAttribute('onclick');b.type='button';b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();directLogin()},false)}if(typeof window.login==='function'&&!window.login.__dxnV866){var old=window.login;var wrap=function(){return directLogin()};wrap.__dxnV866=true;wrap.__dxnOriginal=old;window.login=wrap}return true}catch(e){return false}}
 var tries=0,t=setInterval(function(){if(install()||++tries>180)clearInterval(t)},100);
 })();
-/* V86.13 — Load robust detailed member profile after the main application script has defined its globals. */
+/* V86.14 — Load robust detailed member profile after the main application script has defined its globals. */
 (function(){
-  if(window.__DXN_TRAINING_PROFILE_LOADER_V8613__)return;
-  window.__DXN_TRAINING_PROFILE_LOADER_V8613__=true;
+  if(window.__DXN_TRAINING_PROFILE_LOADER_V8614__)return;
+  window.__DXN_TRAINING_PROFILE_LOADER_V8614__=true;
   function load(){
-    var s=document.createElement('script');
-    s.src='member-training-profile.js?v=86.13';
-    s.async=false;
-    s.onload=function(){
-      try{if(typeof window.__DXNWireMemberProfileButtons==='function')window.__DXNWireMemberProfileButtons();}catch(e){}
-      console.debug('V86.13 member training profile loaded');
-    };
-    s.onerror=function(){console.warn('V86.13 member training profile unavailable')};
-    document.head.appendChild(s);
+    var s=document.createElement('script');s.src='member-training-profile.js?v=86.14';s.async=false;
+    s.onload=function(){try{if(typeof window.__DXNWireMemberProfileButtons==='function')window.__DXNWireMemberProfileButtons();}catch(e){}console.debug('V86.14 member training profile loaded')};
+    s.onerror=function(){console.warn('V86.14 member training profile unavailable')};document.head.appendChild(s);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
 })();
