@@ -4,7 +4,7 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({error:'Method not allowed'});
   const base = `https://${req.headers.host}`;
   const url = new URL('/api/rpc', base);
-  const body = JSON.stringify({fn:'login', args:{}});
+  const body = JSON.stringify({fn:'login', args:{p_login_no:'__health_check__',p_pin:'__health_check__'}});
   try {
     const result = await new Promise((resolve, reject) => {
       const r = https.request({
