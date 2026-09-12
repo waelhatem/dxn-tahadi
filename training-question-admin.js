@@ -1,7 +1,7 @@
-/* V86.44.10 — إدارة أسئلة اختبارات التدريبات للقائد — تبويب مستقل */
+/* V86.45.1 — إدارة أسئلة اختبارات التدريبات للقائد — تبويب مستقل */
 (function(){
-  if(window.__DXN_TRAINING_QUESTION_ADMIN_V864410__) return;
-  window.__DXN_TRAINING_QUESTION_ADMIN_V864410__=true;
+  if(window.__DXN_TRAINING_QUESTION_ADMIN_V864510__) return;
+  window.__DXN_TRAINING_QUESTION_ADMIN_V864510__=true;
 
   var state={loaded:false,loading:false,questions:[],lesson:1,saving:{},open:false};
   function token(){return localStorage.getItem('dxn_session')||''}
@@ -22,6 +22,11 @@
   function root(){return document.getElementById('dxn-training-question-admin')}
   function tab(){return document.getElementById('dxn-training-question-admin-tab')}
   function host(){return document.querySelector('.app')||document.body}
+  function removeAdminUi(){
+    var r=root();if(r)r.remove();
+    var b=tab();if(b)b.remove();
+    state.open=false;state.loaded=false;state.questions=[];
+  }
 
   function installTab(){
     if(tab())return true;
@@ -48,14 +53,16 @@
     if(!token()||state.loading)return;
     state.loading=true;
     try{
+      /* هذا RPC محمي بصلاحية القائد؛ لا ننشئ واجهة الإدارة قبل نجاحه. */
       var d=await rpc('training_questions_admin',{p_token:token()});
       state.questions=d&&Array.isArray(d.questions)?d.questions:[];
       state.loaded=true;
       installTab();
       render(!!force);
     }catch(e){
-      console.error('V86.44.10 training question admin',e);
-      /* العضو العادي لا يرى تبويب إدارة الأسئلة */
+      /* العضو العادي لا يرى تبويب إدارة الأسئلة ولا محتواه. */
+      removeAdminUi();
+      console.debug('V86.45.1 training question admin hidden for non-leader',e&&e.message||e);
     }finally{state.loading=false}
   }
 
@@ -68,7 +75,7 @@
     var wrap=document.createElement('section');
     wrap.id='dxn-training-question-admin';
     wrap.className='card';
-    wrap.style.cssText='margin:14px 0;border:2px solid #d8d2ef;background:linear-gradient(135deg,#fbfaff,#fff);direction:rtl;text-align:right;display:'+(state.open?'block':'none');position:'relative';zIndex='1';
+    wrap.style.cssText='margin:14px 0;border:2px solid #d8d2ef;background:linear-gradient(135deg,#fbfaff,#fff);direction:rtl;text-align:right;display:'+(state.open?'block':'none');position:relative;zIndex='1';
 
     var buttons='<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:12px">';
     lessons().forEach(function(l){
@@ -79,25 +86,25 @@
 
     var qs=state.questions.filter(function(q){return Number(q.lesson_no)===Number(state.lesson)}).sort(function(a,b){return Number(a.question_no)-Number(b.question_no)});
     var html='<div class="row" style="border-bottom:1px solid var(--line);padding-top:0"><div><div class="title">⚙️ إدارة أسئلة اختبارات التدريبات</div><div class="muted">تبويب القائد — تعديل الأسئلة يدويًا</div></div><button type="button" id="dxn-training-question-admin-close">✕ إغلاق</button></div>'+
-      '<p class="muted" style="line-height:1.8;margin:10px 0">يمكنك تعديل نص السؤال، الإجابة النموذجية، معيار التقييم، الدرجة، أو إغلاق السؤال. التعديلات تُحفظ مباشرة في قاعدة البيانات.</p>'+
+      '<p class="muted" style="line-height:1.8;margin:10px 0">يمكنك تعديل نص السؤال، الإجابة النموذجية، معيار التقييم، الدرجة، أو إغلاق السؤال. التعديلات تُحفظ مباشرة في قاعدة البيانات.</p>'+ 
       '<div class="progress-grid">'+
-      '<div class="progress-stat"><span class="muted">📚 التدريب الحالي</span><b>'+Number(state.lesson)+'</b></div>'+
-      '<div class="progress-stat"><span class="muted">📝 الأسئلة</span><b>'+qs.length+'/10</b></div>'+
-      '<div class="progress-stat"><span class="muted">🟢 المفعلة</span><b>'+qs.filter(function(q){return q.active!==false}).length+'</b></div>'+
+      '<div class="progress-stat"><span class="muted">📚 التدريب الحالي</span><b>'+Number(state.lesson)+'</b></div>'+ 
+      '<div class="progress-stat"><span class="muted">📝 الأسئلة</span><b>'+qs.length+'/10</b></div>'+ 
+      '<div class="progress-stat"><span class="muted">🟢 المفعلة</span><b>'+qs.filter(function(q){return q.active!==false}).length+'</b></div>'+ 
       '<div class="progress-stat"><span class="muted">📦 إجمالي الأسئلة</span><b>'+state.questions.length+'</b></div></div>'+buttons;
 
     if(!qs.length){html+='<div class="empty" style="margin-top:12px">لا توجد أسئلة لهذا التدريب.</div>'}
     qs.forEach(function(q){
       var id=String(q.id),saving=!!state.saving[id];
       html+='<div class="challenge" style="margin-top:12px;background:#fff;border-color:#d8d2ef">'+
-        '<div class="row" style="padding-top:0"><div><b>السؤال '+Number(q.question_no)+'</b><div class="muted">التدريب '+Number(q.lesson_no)+' · '+esc(lessonTitle(q.lesson_no))+'</div></div><span class="badge">'+(q.active!==false?'🟢 مفعّل':'🔒 مغلق')+'</span></div>'+
-        '<label style="display:block;font-weight:900;margin-top:12px">نص السؤال</label>'+
-        '<textarea id="tqa-q-'+esc(id)+'" rows="3" style="width:100%;box-sizing:border-box">'+esc(q.question)+'</textarea>'+
-        '<label style="display:block;font-weight:900;margin-top:6px">الإجابة النموذجية <span class="muted">(يراها القائد فقط)</span></label>'+
-        '<textarea id="tqa-a-'+esc(id)+'" rows="3" style="width:100%;box-sizing:border-box">'+esc(q.model_answer||'')+'</textarea>'+
-        '<label style="display:block;font-weight:900;margin-top:6px">معيار التقييم</label>'+
-        '<textarea id="tqa-r-'+esc(id)+'" rows="2" style="width:100%;box-sizing:border-box">'+esc(q.rubric||'')+'</textarea>'+
-        '<div class="row" style="margin-top:6px;align-items:end"><div style="width:120px"><label style="font-weight:900">الدرجة</label><input id="tqa-p-'+esc(id)+'" type="number" min="1" max="100" value="'+Number(q.points||100)+'"></div><label style="display:flex;align-items:center;gap:8px;font-weight:900;padding-bottom:12px"><input id="tqa-active-'+esc(id)+'" type="checkbox" '+(q.active!==false?'checked':'')+' style="width:auto;margin:0"> السؤال مفعّل</label><button class="primary" type="button" '+(saving?'disabled':'')+' onclick="saveTrainingQuestion(\''+esc(id)+'\')">'+(saving?'⏳ جارٍ الحفظ...':'💾 حفظ التعديل')+'</button></div>'+
+        '<div class="row" style="padding-top:0"><div><b>السؤال '+Number(q.question_no)+'</b><div class="muted">التدريب '+Number(q.lesson_no)+' · '+esc(lessonTitle(q.lesson_no))+'</div></div><span class="badge">'+(q.active!==false?'🟢 مفعّل':'🔒 مغلق')+'</span></div>'+ 
+        '<label style="display:block;font-weight:900;margin-top:12px">نص السؤال</label>'+ 
+        '<textarea id="tqa-q-'+esc(id)+'" rows="3" style="width:100%;box-sizing:border-box">'+esc(q.question)+'</textarea>'+ 
+        '<label style="display:block;font-weight:900;margin-top:6px">الإجابة النموذجية <span class="muted">(يراها القائد فقط)</span></label>'+ 
+        '<textarea id="tqa-a-'+esc(id)+'" rows="3" style="width:100%;box-sizing:border-box">'+esc(q.model_answer||'')+'</textarea>'+ 
+        '<label style="display:block;font-weight:900;margin-top:6px">معيار التقييم</label>'+ 
+        '<textarea id="tqa-r-'+esc(id)+'" rows="2" style="width:100%;box-sizing:border-box">'+esc(q.rubric||'')+'</textarea>'+ 
+        '<div class="row" style="margin-top:6px;align-items:end"><div style="width:120px"><label style="font-weight:900">الدرجة</label><input id="tqa-p-'+esc(id)+'" type="number" min="1" max="100" value="'+Number(q.points||100)+'"></div><label style="display:flex;align-items:center;gap:8px;font-weight:900;padding-bottom:12px"><input id="tqa-active-'+esc(id)+'" type="checkbox" '+(q.active!==false?'checked':'')+' style="width:auto;margin:0"> السؤال مفعّل</label><button class="primary" type="button" '+(saving?'disabled':'')+' onclick="saveTrainingQuestion(\''+esc(id)+'\')">'+(saving?'⏳ جارٍ الحفظ...':'💾 حفظ التعديل')+'</button></div>'+ 
         '</div>';
     });
 
@@ -124,7 +131,7 @@
 
   function ensure(){
     if(!token())return;
-    installTab();
+    /* لا نضيف تبويب الإدارة من هنا. يجب أولًا إثبات صلاحية القائد عبر RPC. */
     if(!state.loaded)load(false);
     else if(!tab())installTab();
   }
