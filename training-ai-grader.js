@@ -1,8 +1,9 @@
-/* V86.45 — تقييم إجابات التدريب تلقائيًا بالذكاء الاصطناعي */
+/* V86.45.12 — تقييم إجابات التدريب + سياسة الملاحظات بعد المحاولة الثالثة */
 (function(){
-  if(window.__DXN_TRAINING_AI_GRADER_V8645__) return;
-  window.__DXN_TRAINING_AI_GRADER_V8645__=true;
+  if(window.__DXN_TRAINING_AI_GRADER_V864512__) return;
+  window.__DXN_TRAINING_AI_GRADER_V864512__=true;
 
+  var GENERIC_RETRY='ركز في إجابتك. الإجابة تحتاج إلى مراجعة وإعادة.';
   function token(){return localStorage.getItem('dxn_session')||''}
   async function rpc(fn,args){
     var r=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn:fn,args:args||{}}),cache:'no-store'});
@@ -34,12 +35,20 @@
 
       var submitted=await rpc('submit_training_answer',{p_token:token(),p_question_id:qid,p_answer:value,p_attempt_no:attempt});
       var answerId=submitted&&submitted.answer_id;
+      var attemptNo=Number(submitted&&submitted.attempt_no||attempt||1);
       if(!answerId)throw new Error('تم إرسال الإجابة لكن لم يصل رقم الإجابة للخادم.');
 
       var result=await grade({token:token(),question_id:qid,answer_id:answerId,answer:value});
       var score=Number(result&&result.score||0),status=String(result&&result.status||'retry');
       var note=String(result&&result.note||'').trim();
-      alert((status==='approved'?'✅ تم اجتياز السؤال':'🔁 تحتاج إلى تحسين الإجابة')+'\n\nالدرجة: '+score+'/100\n\nملاحظة القائد:\n'+(note||'تم تقييم الإجابة تلقائيًا.'));
+
+      if(status==='retry' && attemptNo<=3){
+        alert(GENERIC_RETRY);
+      }else if(status==='retry'){
+        alert('🔁 تحتاج إلى تحسين الإجابة\n\nالدرجة: '+score+'/100\n\nملاحظة القائد:\n'+(note||'راجع إجابتك وحاول تحسينها.'));
+      }else{
+        alert('✅ تم اجتياز السؤال\n\nالدرجة: '+score+'/100');
+      }
       location.reload();
     }catch(e){
       if(btn){btn.disabled=false;btn.textContent=originalText||'📤 إرسال الإجابة'}
@@ -47,12 +56,39 @@
     }
   }
 
+  function protectLeaderNoteFields(){
+    try{
+      if(String(localStorage.getItem('dxn_role')||'').toLowerCase()!=='leader')return;
+      document.querySelectorAll('[id^="note-"]').forEach(function(input){
+        var challenge=input.closest('.challenge');
+        if(!challenge)return;
+        var text=String(challenge.textContent||'');
+        var m=text.match(/المحاولة\s+(\d+)/);
+        var attempt=m?Number(m[1]):0;
+        if(attempt>0 && attempt<=3){
+          input.disabled=true;
+          input.placeholder='الملاحظة التفصيلية تظهر بعد المحاولة الثالثة';
+          if(!input.value.trim() || input.dataset.dxnGenericLocked==='1'){
+            input.value='';
+            input.dataset.dxnGenericLocked='1';
+          }
+          input.title='لا توجد ملاحظة تفصيلية قبل المحاولة الرابعة';
+        }else{
+          input.disabled=false;
+          input.placeholder='ملاحظة مختصرة للقائد';
+          input.title='يمكن كتابة الملاحظة التفصيلية بعد المحاولة الثالثة';
+        }
+      });
+    }catch(e){}
+  }
+
   function install(){
     if(typeof window.submitTrainingAnswer!=='function')return false;
-    if(window.submitTrainingAnswer.__dxnAiV8645)return true;
+    if(window.submitTrainingAnswer.__dxnAiV864512)return true;
     window.submitTrainingAnswer=submit;
-    window.submitTrainingAnswer.__dxnAiV8645=true;
+    window.submitTrainingAnswer.__dxnAiV864512=true;
     return true;
   }
-  var n=0,t=setInterval(function(){if(install()||++n>240)clearInterval(t)},50);
+  var n=0,t=setInterval(function(){install();protectLeaderNoteFields();if(++n>400)clearInterval(t)},100);
+  try{new MutationObserver(protectLeaderNoteFields).observe(document.body,{childList:true,subtree:true})}catch(e){}
 })();
