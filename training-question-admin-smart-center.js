@@ -1,12 +1,14 @@
-/* V86.46.10 — keep training question editor inside Smart Center */
+/* V86.46.11 — keep training question editor inside the actual Smart Center */
 (function(){
-  if(window.__DXN_TRAINING_QUESTION_ADMIN_SMART_CENTER_V864610__)return;
-  window.__DXN_TRAINING_QUESTION_ADMIN_SMART_CENTER_V864610__=true;
+  if(window.__DXN_TRAINING_QUESTION_ADMIN_SMART_CENTER_V864611__)return;
+  window.__DXN_TRAINING_QUESTION_ADMIN_SMART_CENTER_V864611__=true;
 
   function isLeader(){
     try{return String(localStorage.getItem('dxn_role')||'').toLowerCase()==='leader'}catch(e){return false}
   }
   function smartCenter(){
+    var direct=document.getElementById('leader-training-center');
+    if(direct)return direct;
     var ids=['leader-smart-center','smart-center','leaderSmartCenter','dxn-smart-center','smartCenter'];
     for(var i=0;i<ids.length;i++){
       var x=document.getElementById(ids[i]);
@@ -41,6 +43,6 @@
     return false;
   }
   window.__DXN_OPEN_TRAINING_QUESTION_ADMIN_SMART_CENTER__=open;
-  var timer=setInterval(function(){move();if(window.__DXN_TRAINING_QUESTION_ADMIN_SMART_CENTER_V864610__){}},100);
+  var timer=setInterval(function(){move();if(window.__DXN_TRAINING_QUESTION_ADMIN_SMART_CENTER_V864611__){}},100);
   if(document.body)new MutationObserver(function(){move()}).observe(document.body,{childList:true,subtree:true});
 })();
