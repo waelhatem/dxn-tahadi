@@ -3,13 +3,13 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = __dirname;
-const PORT = Number(process.env.PORT || 10000);
+const PORT = Number(process.env.PORT || 3000);
 const HOST = '0.0.0.0';
 
-const handlers = {
-  '/api/rpc': require('./api/rpc'),
-  '/api/rpc-health': require('./api/rpc-health'),
-  '/api/grade-training': require('./api/grade-training')
+const handlerPaths = {
+  '/api/rpc': './api/rpc',
+  '/api/rpc-health': './api/rpc-health',
+  '/api/grade-training': './api/grade-training'
 };
 
 const MIME = {
@@ -73,13 +73,14 @@ function makeResponse(res) {
 }
 
 async function handleApi(req, res, pathname) {
-  const handler = handlers[pathname];
-  if (!handler) {
+  const modulePath = handlerPaths[pathname];
+  if (!modulePath) {
     res.statusCode = 404;
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     return res.end(JSON.stringify({ error: 'API route not found' }));
   }
   try {
+    const handler = require(modulePath);
     req.body = await parseBody(req);
     await handler(req, makeResponse(res));
     if (!res.writableEnded) res.end();
@@ -107,7 +108,6 @@ function serveStatic(req, res, pathname) {
     return res.end('Bad request');
   }
   if (!fs.existsSync(file) || !fs.statSync(file).isFile()) {
-    // Client-side routes fall back to the main application shell.
     file = path.join(ROOT, 'index.html');
   }
   if (!fs.existsSync(file) || !fs.statSync(file).isFile()) {
@@ -131,6 +131,12 @@ const server = http.createServer(async (req, res) => {
   const parsed = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
   const pathname = parsed.pathname;
 
+  if (pathname === '/healthz') {
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    return res.end('ok');
+  }
+
   if (pathname.startsWith('/api/')) {
     return handleApi(req, res, pathname);
   }
@@ -144,6 +150,11 @@ const server = http.createServer(async (req, res) => {
   return serveStatic(req, res, pathname);
 });
 
+server.on('error', err => {
+  console.error('DXN server error:', err);
+  process.exitCode = 1;
+});
+
 server.listen(PORT, HOST, () => {
-  console.log(`DXN Tahadi Render server listening on ${HOST}:${PORT}`);
+  console.log(`DXN Tahadi server listening on ${HOST}:${PORT}`);
 });
