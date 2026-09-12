@@ -1,0 +1,35 @@
+name: DXN Config Cache Bust V86.31
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  cache-bust:
+    if: "!contains(github.event.head_commit.message, '[cache-bust]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bump config.js cache key
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          old = 'config.js?v=86.10'
+          new = 'config.js?v=86.31'
+          if new in s:
+              raise SystemExit(0)
+          if old not in s:
+              raise SystemExit('Expected config.js?v=86.10 was not found')
+          s = s.replace(old, new)
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit cache-bust
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'V86.31: bust config.js cache [cache-bust]'
+          git push
