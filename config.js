@@ -1,12 +1,18 @@
 // إعدادات مشروع مجتمع الصحة والثراء
 window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezzn.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_pD9m1Z3gN--2HAfhf_t2YA_2RiAeUh'};
-/* V86.38 — corrected Supabase project URL and proxy-only RPC path. */
+/* V86.40 — corrected Supabase project URL and proxy-only RPC path.
+   The main app expects supabase-js rpc() to return {data,error}. The proxy
+   transport returns the JSON payload directly, so the client wrapper must
+   adapt the response shape instead of returning the payload itself. */
 (function(){
   if(window.__DXN_LOGIN_RUNTIME_V8632__)return; window.__DXN_LOGIN_RUNTIME_V8632__=true;
   async function rpc(name,args){
     var r=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn:name,args:args||{}}),cache:'no-store'});
     var text=await r.text(),data=null; try{data=text?JSON.parse(text):null}catch(e){}
     if(!r.ok){var er=new Error((data&&(data.message||data.error))||text||('HTTP '+r.status));er.status=r.status;er.code=data&&data.code;er.details=data&&data.details;er.hint=data&&data.hint;throw er} return data;
+  }
+  function sdkRpc(name,args){
+    return rpc(name,args).then(function(data){return {data:data,error:null}}).catch(function(error){return {data:null,error:error}});
   }
   function showError(title,e){
     var old=document.getElementById('dxnLoginDiag');if(old)old.remove();
@@ -21,7 +27,7 @@ window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezzn.supabase.co',SUPAB
   }
   function install(){try{var b=document.getElementById('loginButton');if(!b)return false;if(!b.__dxnV8632){b.__dxnV8632=true;b.removeAttribute('onclick');b.type='button';b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();login()},true)}window.login=login;return true}catch(e){return false}}
   var n=0,t=setInterval(function(){if(install()||++n>240)clearInterval(t)},50);
-  function patchClient(){try{if(!window.supabase||typeof window.supabase.createClient!=='function'||window.supabase.createClient.__dxnV8632)return false;var original=window.supabase.createClient;function wrapped(){var client=original.apply(this,arguments);if(client&&typeof client.rpc==='function'&&!client.rpc.__dxnV8632){client.rpc=rpc;client.rpc.__dxnV8632=true}return client}wrapped.__dxnV8632=true;window.supabase.createClient=wrapped;return true}catch(e){return false}}
+  function patchClient(){try{if(!window.supabase||typeof window.supabase.createClient!=='function'||window.supabase.createClient.__dxnV8632)return false;var original=window.supabase.createClient;function wrapped(){var client=original.apply(this,arguments);if(client&&typeof client.rpc==='function'&&!client.rpc.__dxnV8632){client.rpc=sdkRpc;client.rpc.__dxnV8632=true}return client}wrapped.__dxnV8632=true;window.supabase.createClient=wrapped;return true}catch(e){return false}}
   /* Critical: boot() in index.html runs immediately after config.js. The old interval
      could miss that first createClient() call, leaving sb.rpc on the direct Supabase key. */
   patchClient();
