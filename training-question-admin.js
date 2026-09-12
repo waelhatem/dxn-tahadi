@@ -1,7 +1,7 @@
-/* V86.45.1 — إدارة أسئلة اختبارات التدريبات للقائد — تبويب مستقل */
+/* V86.46.3 — إدارة أسئلة اختبارات التدريبات للقائد — فتح مباشر من مركز القائد */
 (function(){
-  if(window.__DXN_TRAINING_QUESTION_ADMIN_V864510__) return;
-  window.__DXN_TRAINING_QUESTION_ADMIN_V864510__=true;
+  if(window.__DXN_TRAINING_QUESTION_ADMIN_V86463__) return;
+  window.__DXN_TRAINING_QUESTION_ADMIN_V86463__=true;
 
   var state={loaded:false,loading:false,questions:[],lesson:1,saving:{},open:false};
   function token(){return localStorage.getItem('dxn_session')||''}
@@ -43,7 +43,7 @@
       var r=root();
       if(r)r.style.display=state.open?'block':'none';
       b.classList.toggle('active',state.open);
-      if(state.open){load(true);setTimeout(function(){if(r)r.scrollIntoView({behavior:'smooth',block:'start'})},50)}
+      if(state.open){load(true);setTimeout(function(){var rr=root();if(rr)rr.scrollIntoView({behavior:'smooth',block:'start'})},120)}
     });
     tabs.appendChild(b);
     return true;
@@ -62,7 +62,7 @@
     }catch(e){
       /* العضو العادي لا يرى تبويب إدارة الأسئلة ولا محتواه. */
       removeAdminUi();
-      console.debug('V86.45.1 training question admin hidden for non-leader',e&&e.message||e);
+      console.debug('V86.46.3 training question admin hidden for non-leader',e&&e.message||e);
     }finally{state.loading=false}
   }
 
@@ -75,7 +75,7 @@
     var wrap=document.createElement('section');
     wrap.id='dxn-training-question-admin';
     wrap.className='card';
-    wrap.style.cssText='margin:14px 0;border:2px solid #d8d2ef;background:linear-gradient(135deg,#fbfaff,#fff);direction:rtl;text-align:right;display:'+(state.open?'block':'none');position:relative;zIndex='1';
+    wrap.style.cssText='margin:14px 0;border:2px solid #d8d2ef;background:linear-gradient(135deg,#fbfaff,#fff);direction:rtl;text-align:right;display:'+(state.open?'block':'none')+';position:relative;z-index:1';
 
     var buttons='<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:12px">';
     lessons().forEach(function(l){
@@ -127,6 +127,33 @@
       render(true);
       alert('تم حفظ تعديل السؤال بنجاح.');
     }catch(e){state.saving[id]=false;render(true);alert('تعذر حفظ السؤال: '+e.message)}
+  };
+
+  /* واجهة عامة صريحة يستخدمها زر مركز القائد؛ لا تعتمد على محاكاة نقر تبويب. */
+  window.openTrainingQuestionAdmin=function(){
+    try{
+      var role=(localStorage.getItem('dxn_role')||'').toLowerCase();
+      if(role&&role!=='leader'&&!tab())return false;
+    }catch(e){}
+    state.open=true;
+    var b=tab();
+    if(!b){
+      if(!installTab())return false;
+      b=tab();
+    }
+    b.classList.add('active');
+    if(!state.loaded){
+      load(true);
+    }else{
+      render(true);
+      var r=root();
+      if(r)r.scrollIntoView({behavior:'smooth',block:'start'});
+    }
+    setTimeout(function(){
+      var r=root();
+      if(r){r.style.display='block';r.scrollIntoView({behavior:'smooth',block:'start'})}
+    },150);
+    return true;
   };
 
   function ensure(){
