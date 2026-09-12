@@ -1,6 +1,6 @@
 const https = require('https');
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ryqpstkzppaifpvhezzn.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_pD9m1Z3gN--2HAfhf_t2YA_2RiAeUh';
+const SUPABASE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || '';
 
 function request(url, method, body) {
   return new Promise((resolve, reject) => {
@@ -15,7 +15,7 @@ function request(url, method, body) {
       family: 4,
       timeout: 15000,
       headers: {
-        apikey: SUPABASE_KEY,
+        ...(SUPABASE_KEY ? {apikey: SUPABASE_KEY} : {}),
         Accept: 'application/json',
         ...(payload ? {'Content-Type':'application/json','Content-Length':Buffer.byteLength(payload)} : {})
       }
@@ -40,9 +40,9 @@ module.exports = async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const r = await request(`${SUPABASE_URL}/rest/v1/`, 'GET');
-      return res.status(200).json({ok:true, supabase_http:r.status});
+      return res.status(200).json({ok:true, supabase_http:r.status, key_configured:!!SUPABASE_KEY});
     } catch (e) {
-      return res.status(502).json({ok:false, error:String(e?.message || e)});
+      return res.status(502).json({ok:false, error:String(e?.message || e), key_configured:!!SUPABASE_KEY});
     }
   }
   if (req.method !== 'POST') {
