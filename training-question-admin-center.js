@@ -1,7 +1,7 @@
-/* V86.46.3 — زر تعديل أسئلة الاختبارات يفتح المحرر مباشرة من مركز القائد */
+/* V86.46.4 — إصلاح فتح محرر أسئلة الاختبارات من مركز القائد */
 (function(){
-  if(window.__DXN_TRAINING_QUESTION_ADMIN_CENTER_V86463__)return;
-  window.__DXN_TRAINING_QUESTION_ADMIN_CENTER_V86463__=true;
+  if(window.__DXN_TRAINING_QUESTION_ADMIN_CENTER_V86464__)return;
+  window.__DXN_TRAINING_QUESTION_ADMIN_CENTER_V86464__=true;
 
   function isLeader(){
     try{if(String(localStorage.getItem('dxn_role')||'').toLowerCase()==='leader')return true}catch(e){}
@@ -23,22 +23,35 @@
 
   function openEditor(){
     if(!isLeader())return;
-    /* المسار الأساسي: استدعاء API الواجهة العامة بدل محاكاة ضغط تبويب. */
-    if(typeof window.openTrainingQuestionAdmin==='function'){
-      var ok=window.openTrainingQuestionAdmin();
-      if(ok!==false){
-        setTimeout(moveIntoCenter,80);
-        setTimeout(moveIntoCenter,200);
-        setTimeout(moveIntoCenter,500);
-        return;
+    var direct=window.openTrainingQuestionAdmin;
+    if(typeof direct==='function'){
+      try{
+        var ok=direct();
+        if(ok!==false){
+          setTimeout(moveIntoCenter,80);
+          setTimeout(moveIntoCenter,250);
+          setTimeout(moveIntoCenter,600);
+          return;
+        }
+      }catch(e){console.debug('DXN direct question admin open failed',e)}
+    }
+
+    /* النسخة الاحتياطية: لا نضيف active قبل click لأن click نفسه يبدّل الحالة. */
+    var b=document.getElementById('dxn-training-question-admin-tab');
+    if(b){
+      if(!b.classList.contains('active')) b.click();
+      else {
+        var p0=panel();
+        if(p0)p0.style.display='block';
       }
     }
-    /* توافق احتياطي مع النسخ القديمة. */
-    var b=document.getElementById('dxn-training-question-admin-tab');
-    if(b){b.classList.add('active');b.click()}
     setTimeout(function(){
       var p=panel();
-      if(p){p.style.display='block';moveIntoCenter();p.scrollIntoView({behavior:'smooth',block:'start'})}
+      if(p){
+        p.style.display='block';
+        moveIntoCenter();
+        p.scrollIntoView({behavior:'smooth',block:'start'});
+      }
     },150);
     setTimeout(moveIntoCenter,400);
     setTimeout(moveIntoCenter,800);
@@ -72,17 +85,11 @@
       return true;
     }
     var button=makeButton();
-    if(actions){
-      actions.insertBefore(button,actions.firstChild);
-      return true;
-    }
+    if(actions){actions.insertBefore(button,actions.firstChild);return true}
     var buttons=c.querySelectorAll('button');
     for(var i=0;i<buttons.length;i++){
       var txt=String(buttons[i].textContent||'').replace(/\s+/g,' ').trim();
-      if(txt.indexOf('إدارة التدريبات')!==-1){
-        buttons[i].parentNode.insertBefore(button,buttons[i]);
-        return true;
-      }
+      if(txt.indexOf('إدارة التدريبات')!==-1){buttons[i].parentNode.insertBefore(button,buttons[i]);return true}
     }
     var head=c.querySelector('.overall-head');
     if(head){head.insertBefore(button,head.firstChild);return true}
@@ -91,7 +98,7 @@
 
   function protectRefresh(){
     if(typeof window.renderLeaderOverallTraining!=='function')return;
-    if(window.renderLeaderOverallTraining.__dxnCenterWrapped463)return;
+    if(window.renderLeaderOverallTraining.__dxnCenterWrapped464)return;
     var original=window.renderLeaderOverallTraining;
     function wrapped(){
       var result=original.apply(this,arguments);
@@ -99,7 +106,7 @@
       setTimeout(function(){installButton();moveIntoCenter()},150);
       return result;
     }
-    wrapped.__dxnCenterWrapped463=true;
+    wrapped.__dxnCenterWrapped464=true;
     window.renderLeaderOverallTraining=wrapped;
   }
 
@@ -111,9 +118,6 @@
   }
 
   var n=0;
-  var timer=setInterval(function(){
-    run();
-    if(++n>600)clearInterval(timer);
-  },100);
+  var timer=setInterval(function(){run();if(++n>600)clearInterval(timer)},100);
   if(document.body)new MutationObserver(function(){run()}).observe(document.body,{childList:true,subtree:true});
 })();
