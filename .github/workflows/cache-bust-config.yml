@@ -10,20 +10,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Bump config.js cache key
+      - name: Force current config.js cache key
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
-          old = 'config.js?v=86.10'
           new = 'config.js?v=86.31'
-          if new in s:
-              raise SystemExit(0)
-          if old not in s:
-              raise SystemExit('Expected config.js?v=86.10 was not found')
-          s = s.replace(old, new)
-          p.write_text(s, encoding='utf-8')
+          s2 = re.sub(r'config\.js\?v=[0-9.]+', new, s, count=1)
+          if s2 == s:
+              raise SystemExit('config.js script reference not found')
+          p.write_text(s2, encoding='utf-8')
           PY
       - name: Commit cache-bust
         run: |
