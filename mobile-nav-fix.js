@@ -1,18 +1,33 @@
-/* V86.29 — أزرار تقدم/رجوع فوق المرشد الذكي ومن نحن في واجهة الموبايل */
+/* V86.30 — إزالة أزرار التقدم والرجوع المضافة سابقًا */
 (function(){
-if(window.__DXN_MOBILE_NAV_PROXY_V8629__)return;
-window.__DXN_MOBILE_NAV_PROXY_V8629__=true;
+if(window.__DXN_MOBILE_NAV_REMOVE_V8630__)return;
+window.__DXN_MOBILE_NAV_REMOVE_V8630__=true;
 function mobile(){return window.innerWidth<=600||document.body.classList.contains('mobile-mode')}
-function txt(e){return(e.textContent||'').replace(/\s+/g,' ').trim()}
-function rect(e){return e.getBoundingClientRect()}
-function good(e){var r=rect(e);return r.width>=30&&r.height>=20&&r.width<=360&&r.height<=110&&r.bottom>=0&&r.top<=innerHeight}
-function find(pattern){var a=[].slice.call(document.querySelectorAll('*')).filter(function(e){if(!good(e))return false;if(e.id==='dxnAboutMainLink'||e.id==='dxnSmartGuideMainButton'||e.id==='dxnMobileNextProxy'||e.id==='dxnMobileBackProxy')return false;var t=txt(e);return pattern.test(t)});a.sort(function(x,y){var rx=rect(x),ry=rect(y);return rx.width*rx.height-ry.width*ry.height});return a[0]||null}
-function clickable(e){var x=e;for(var i=0;i<5&&x;i++,x=x.parentElement){if(/^(BUTTON|A)$/.test(x.tagName)||x.getAttribute('role')==='button'||x.hasAttribute('onclick'))return x}return e}
-function hide(e){if(!e)return;e.setAttribute('data-dxn-nav-original','1');e.style.setProperty('visibility','hidden','important');e.style.setProperty('pointer-events','none','important')}
-function proxy(id,side,label,icon,target){var p=document.getElementById(id);if(!p){p=document.createElement('button');p.id=id;document.body.appendChild(p)}p.type='button';p.innerHTML=icon+' '+label;p.onclick=function(ev){ev.preventDefault();ev.stopPropagation();if(target){try{target.click()}catch(e){}}};var s=p.style;s.setProperty('position','fixed','important');s.setProperty('top','auto','important');s.setProperty('bottom','202px','important');s.setProperty(side,'0','important');s.setProperty(side==='left'?'right':'left','auto','important');s.setProperty('width','150px','important');s.setProperty('height','44px','important');s.setProperty('min-height','44px','important');s.setProperty('padding','8px 12px','important');s.setProperty('margin','0','important');s.setProperty('box-sizing','border-box','important');s.setProperty('z-index','2147483647','important');s.setProperty('display','flex','important');s.setProperty('align-items','center','important');s.setProperty('justify-content','center','important');s.setProperty('border-radius',side==='left'?'0 14px 14px 0':'14px 0 0 14px','important');s.setProperty('background','#0f6b4f','important');s.setProperty('color','#fff','important');s.setProperty('border','2px solid #fff','important');s.setProperty(side==='left'?'border-left':'border-right','0','important');s.setProperty('font-size','15px','important');s.setProperty('font-weight','900','important');s.setProperty('line-height','1.2','important');s.setProperty('white-space','nowrap','important');s.setProperty('cursor','pointer','important')}
-function apply(){if(!mobile())return;var back=find(/(?:▶️|▶|رجوع|الرجوع|عودة|العودة|back|previous)/);var next=find(/(?:◀️|◀|تقدم|التقدم|التالي|الدرس التالي|next|forward)/);if(back&&next&&back!==next){back=clickable(back);next=clickable(next);if(back===next){var all=[].slice.call(document.querySelectorAll('*')).filter(function(e){var t=txt(e);return good(e)&&/(رجوع|العودة|تقدم|التالي|▶|◀)/.test(t)});all.sort(function(a,b){return rect(a).left-rect(b).left});if(all.length>=2){next=clickable(all[0]);back=clickable(all[all.length-1])}}hide(back);hide(next);proxy('dxnMobileNextProxy','left','تقدم','◀️',next);proxy('dxnMobileBackProxy','right','رجوع','▶️',back)}}
-function run(){if(mobile())setTimeout(apply,150)}
+function removeAdded(){
+  ['dxnMobileNextProxy','dxnMobileBackProxy'].forEach(function(id){var e=document.getElementById(id);if(e)e.remove()});
+  if(!mobile())return;
+  var els=document.querySelectorAll('button,a,[role="button"]');
+  for(var i=0;i<els.length;i++){
+    var e=els[i],t=(e.textContent||'').replace(/\s+/g,' ').trim();
+    if(e.closest('.nav')||e.id==='dxnAboutMainLink'||e.id==='dxnSmartGuideMainButton')continue;
+    var r=e.getBoundingClientRect();
+    var navText=/(^|\s)(رجوع|الرجوع|عودة|العودة|تقدم|التقدم|التالي|الدرس التالي|back|previous|next|forward)(\s|$)/i.test(t);
+    var navIcon=/^[\s◀▶◁▷⏮⏭⬅➡️▶️◀️]+$/.test(t);
+    var fixedBottom=r.bottom>innerHeight-260&&r.top>innerHeight-360;
+    if(navText&&(fixedBottom||e.getAttribute('data-dxn-nav-original')==='1')){
+      e.style.setProperty('display','none','important');
+      e.style.setProperty('visibility','hidden','important');
+      e.style.setProperty('pointer-events','none','important');
+    }else if(navIcon&&fixedBottom){
+      e.style.setProperty('display','none','important');
+      e.style.setProperty('visibility','hidden','important');
+      e.style.setProperty('pointer-events','none','important');
+    }
+  }
+}
+function run(){setTimeout(removeAdded,20)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();
-window.addEventListener('resize',run,{passive:true});window.addEventListener('scroll',run,{passive:true});
+window.addEventListener('resize',run,{passive:true});
+window.addEventListener('scroll',run,{passive:true});
 new MutationObserver(run).observe(document.body,{childList:true,subtree:true});
 })();
