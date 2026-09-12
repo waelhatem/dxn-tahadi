@@ -16,7 +16,6 @@ function request(url, method, body) {
       timeout: 15000,
       headers: {
         apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${SUPABASE_KEY}`,
         Accept: 'application/json',
         ...(payload ? {'Content-Type':'application/json','Content-Length':Buffer.byteLength(payload)} : {})
       }
