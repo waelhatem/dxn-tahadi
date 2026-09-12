@@ -1,6 +1,6 @@
 // إعدادات مشروع مجتمع الصحة والثراء
 window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezzn.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_pD9m1Z3gN--2HAfhf_t2YA_2RiAeUh'};
-/* V86.44 — corrected Supabase proxy contract, hide leader training progress card, add priority challenge, and add training assessments. */
+/* V86.44.2 — corrected Supabase proxy contract, hide leader training progress card, add priority challenge, and Phase-1 training assessments. */
 (function(){
   if(window.__DXN_LOGIN_RUNTIME_V8632__)return; window.__DXN_LOGIN_RUNTIME_V8632__=true;
   async function rpc(name,args){
@@ -16,6 +16,6 @@ window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezzn.supabase.co',SUPAB
   function patchClient(){try{if(!window.supabase||typeof window.supabase.createClient!=='function'||window.supabase.createClient.__dxnV8632)return false;var original=window.supabase.createClient;function wrapped(){var client=original.apply(this,arguments);if(client&&typeof client.rpc==='function'&&!client.rpc.__dxnV8632){client.rpc=sdkRpc;client.rpc.__dxnV8632=true}return client}wrapped.__dxnV8632=true;window.supabase.createClient=wrapped;return true}catch(e){return false}}
   patchClient();var c=0,ct=setInterval(function(){if(patchClient()||++c>240)clearInterval(ct)},50);
 })();
-(function(){function load(src){var s=document.createElement('script');s.src=src;s.async=false;document.head.appendChild(s)}function go(){load('member-training-profile.js?v=86.13.8');load('training-overall-progress.js?v=86.13');load('mobile-nav-fix.js?v=86.27');load('priority-notification.js?v=86.44');load('training-assessment.js?v=86.44')}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go,{once:true});else go()})();
+(function(){function load(src){var s=document.createElement('script');s.src=src;s.async=false;document.head.appendChild(s)}function go(){load('member-training-profile.js?v=86.13.8');load('training-overall-progress.js?v=86.13');load('mobile-nav-fix.js?v=86.27');load('priority-notification.js?v=86.44');load('training-assessment.js?v=86.44.2')}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go,{once:true});else go()})();
 /* V86.41 — remove only the leader-admin card titled "📚 متابعة التدريبات". */
 (function(){function hideLeaderTrainingCard(){var cards=document.querySelectorAll('.card');for(var i=0;i<cards.length;i++){var title=cards[i].querySelector('.title');if(title&&title.textContent.indexOf('متابعة التدريبات')!==-1){cards[i].remove()}}}function start(){hideLeaderTrainingCard();var root=document.body;if(!root)return;new MutationObserver(function(){hideLeaderTrainingCard()}).observe(root,{childList:true,subtree:true})}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start()})();
