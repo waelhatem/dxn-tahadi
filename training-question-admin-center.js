@@ -1,7 +1,7 @@
-/* V86.46.2 — تفعيل زر تعديل أسئلة الاختبارات ونقله إلى بداية مركز القائد */
+/* V86.46.3 — زر تعديل أسئلة الاختبارات يفتح المحرر مباشرة من مركز القائد */
 (function(){
-  if(window.__DXN_TRAINING_QUESTION_ADMIN_CENTER_V86462__)return;
-  window.__DXN_TRAINING_QUESTION_ADMIN_CENTER_V86462__=true;
+  if(window.__DXN_TRAINING_QUESTION_ADMIN_CENTER_V86463__)return;
+  window.__DXN_TRAINING_QUESTION_ADMIN_CENTER_V86463__=true;
 
   function isLeader(){
     try{if(String(localStorage.getItem('dxn_role')||'').toLowerCase()==='leader')return true}catch(e){}
@@ -10,7 +10,6 @@
   }
   function center(){return document.getElementById('leader-training-center')}
   function panel(){return document.getElementById('dxn-training-question-admin')}
-  function adminTab(){return document.getElementById('dxn-training-question-admin-tab')}
 
   function moveIntoCenter(){
     var c=center(),p=panel();
@@ -24,19 +23,25 @@
 
   function openEditor(){
     if(!isLeader())return;
-    var p=panel(),b=adminTab();
-    if(p){p.style.display='block';moveIntoCenter()}
+    /* المسار الأساسي: استدعاء API الواجهة العامة بدل محاكاة ضغط تبويب. */
+    if(typeof window.openTrainingQuestionAdmin==='function'){
+      var ok=window.openTrainingQuestionAdmin();
+      if(ok!==false){
+        setTimeout(moveIntoCenter,80);
+        setTimeout(moveIntoCenter,200);
+        setTimeout(moveIntoCenter,500);
+        return;
+      }
+    }
+    /* توافق احتياطي مع النسخ القديمة. */
+    var b=document.getElementById('dxn-training-question-admin-tab');
     if(b){b.classList.add('active');b.click()}
     setTimeout(function(){
-      var now=panel();
-      if(now){
-        now.style.display='block';
-        moveIntoCenter();
-        now.scrollIntoView({behavior:'smooth',block:'start'});
-      }
-    },100);
-    setTimeout(moveIntoCenter,300);
-    setTimeout(moveIntoCenter,700);
+      var p=panel();
+      if(p){p.style.display='block';moveIntoCenter();p.scrollIntoView({behavior:'smooth',block:'start'})}
+    },150);
+    setTimeout(moveIntoCenter,400);
+    setTimeout(moveIntoCenter,800);
   }
 
   function makeButton(){
@@ -86,7 +91,7 @@
 
   function protectRefresh(){
     if(typeof window.renderLeaderOverallTraining!=='function')return;
-    if(window.renderLeaderOverallTraining.__dxnCenterWrapped462)return;
+    if(window.renderLeaderOverallTraining.__dxnCenterWrapped463)return;
     var original=window.renderLeaderOverallTraining;
     function wrapped(){
       var result=original.apply(this,arguments);
@@ -94,7 +99,7 @@
       setTimeout(function(){installButton();moveIntoCenter()},150);
       return result;
     }
-    wrapped.__dxnCenterWrapped462=true;
+    wrapped.__dxnCenterWrapped463=true;
     window.renderLeaderOverallTraining=wrapped;
   }
 
