@@ -1,6 +1,6 @@
 const https = require('https');
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ryqpstkzppaifpvhezz.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_pD9m1Z3gN--2HAfhf_t2YA_2Ri4AeUh';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ryqpstkzppaifpvhezzn.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_pD9m1Z3gN--2HAfhf_t2YA_2RiAeUh';
 
 function request(url, method, body) {
   return new Promise((resolve, reject) => {
