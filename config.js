@@ -1,6 +1,6 @@
 // إعدادات مشروع مجتمع الصحة والثراء
 window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezz.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_pD9m1Z3gN--2HAfhf_t2YA_2Ri4AeUh'};
-/* V86.32 — direct browser Supabase fetch was failing with Failed to fetch. Route RPC through same-origin Vercel API. */
+/* V86.33 — direct browser Supabase fetch was failing with Failed to fetch. Route RPC through same-origin Vercel API. */
 (function(){
   if(window.__DXN_LOGIN_RUNTIME_V8632__)return; window.__DXN_LOGIN_RUNTIME_V8632__=true;
   async function rpc(name,args){
