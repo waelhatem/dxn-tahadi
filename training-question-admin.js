@@ -3,8 +3,7 @@
   if(window.__DXN_TRAINING_QUESTION_ADMIN_V86447__) return;
   window.__DXN_TRAINING_QUESTION_ADMIN_V86447__=true;
 
-  var state={loaded:false,questions:[],lesson:1,saving:{}};
-
+  var state={loaded:false,loading:false,questions:[],lesson:1,saving:{}};
   function token(){return localStorage.getItem('dxn_session')||''}
   function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]})}
   async function rpc(fn,args){
@@ -23,13 +22,15 @@
   function root(){return document.getElementById('dxn-training-question-admin')}
 
   async function load(force){
-    if(!token())return;
+    if(!token()||state.loading)return;
+    state.loading=true;
     try{
       var d=await rpc('training_questions_admin',{p_token:token()});
       state.questions=d&&Array.isArray(d.questions)?d.questions:[];
       state.loaded=true;
       render(!!force);
     }catch(e){console.error('V86.44.7 training question admin',e)}
+    finally{state.loading=false}
   }
 
   function render(force){
@@ -44,8 +45,6 @@
     wrap.className='card';
     wrap.style.cssText='margin-top:14px;border:2px solid #d8d2ef;background:linear-gradient(135deg,#fbfaff,#fff);direction:rtl;text-align:right';
 
-    var counts={};
-    state.questions.forEach(function(q){counts[q.lesson_no]=(counts[q.lesson_no]||0)+1});
     var buttons='<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:12px">';
     lessons().forEach(function(l){
       var no=Number(l.lesson_no);
@@ -79,16 +78,17 @@
 
     wrap.innerHTML=html;
     center.appendChild(wrap);
-
     wrap.querySelectorAll('[data-admin-lesson]').forEach(function(btn){btn.addEventListener('click',function(){state.lesson=Number(btn.getAttribute('data-admin-lesson'));render(true)})});
   }
 
   window.saveTrainingQuestion=async function(id){
     var q=document.getElementById('tqa-q-'+id),a=document.getElementById('tqa-a-'+id),r=document.getElementById('tqa-r-'+id),p=document.getElementById('tqa-p-'+id),ac=document.getElementById('tqa-active-'+id);
     if(!q||String(q.value||'').trim().length<5){alert('اكتب سؤالًا واضحًا قبل الحفظ.');return}
+    var payload={p_token:token(),p_question_id:id,p_question:String(q.value||'').trim(),p_model_answer:String(a&&a.value||'').trim(),p_rubric:String(r&&r.value||'').trim(),p_points:Math.max(1,Math.min(100,Number(p&&p.value||100))),p_active:!!(ac&&ac.checked)};
     state.saving[id]=true;render(true);
     try{
-      await rpc('update_training_question',{p_token:token(),p_question_id:id,p_question:String(q.value||'').trim(),p_model_answer:String(a&&a.value||'').trim(),p_rubric:String(r&&r.value||'').trim(),p_points:Math.max(1,Math.min(100,Number(p&&p.value||100))),p_active:!!(ac&&ac.checked)});
+      await rpc('update_training_question',payload);
+      state.saving[id]=false;
       await load(true);
       alert('تم حفظ تعديل السؤال بنجاح.');
     }catch(e){state.saving[id]=false;render(true);alert('تعذر حفظ السؤال: '+e.message)}
