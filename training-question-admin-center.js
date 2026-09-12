@@ -1,7 +1,7 @@
-/* V86.45.12 — زر تعديل أسئلة الاختبارات داخل المركز الذكي، مستقل عن بنية الأزرار */
+/* V86.46.2 — تفعيل زر تعديل أسئلة الاختبارات ونقله إلى بداية مركز القائد */
 (function(){
-  if(window.__DXN_TRAINING_QUESTION_ADMIN_CENTER_V864512__)return;
-  window.__DXN_TRAINING_QUESTION_ADMIN_CENTER_V864512__=true;
+  if(window.__DXN_TRAINING_QUESTION_ADMIN_CENTER_V86462__)return;
+  window.__DXN_TRAINING_QUESTION_ADMIN_CENTER_V86462__=true;
 
   function isLeader(){
     try{if(String(localStorage.getItem('dxn_role')||'').toLowerCase()==='leader')return true}catch(e){}
@@ -24,18 +24,19 @@
 
   function openEditor(){
     if(!isLeader())return;
-    var b=adminTab();
-    if(b)b.click();
+    var p=panel(),b=adminTab();
+    if(p){p.style.display='block';moveIntoCenter()}
+    if(b){b.classList.add('active');b.click()}
     setTimeout(function(){
-      var p=panel();
-      if(p){
-        p.style.display='block';
+      var now=panel();
+      if(now){
+        now.style.display='block';
         moveIntoCenter();
-        p.scrollIntoView({behavior:'smooth',block:'start'});
+        now.scrollIntoView({behavior:'smooth',block:'start'});
       }
-    },80);
-    setTimeout(moveIntoCenter,250);
-    setTimeout(moveIntoCenter,600);
+    },100);
+    setTimeout(moveIntoCenter,300);
+    setTimeout(moveIntoCenter,700);
   }
 
   function makeButton(){
@@ -47,7 +48,11 @@
     b.title='فتح تعديل أسئلة اختبارات التدريبات';
     b.style.fontWeight='900';
     b.style.whiteSpace='nowrap';
-    b.addEventListener('click',openEditor);
+    b.addEventListener('click',function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      openEditor();
+    });
     return b;
   }
 
@@ -55,33 +60,33 @@
     if(!isLeader())return false;
     var c=center();
     if(!c)return false;
-    if(c.querySelector('#dxn-training-question-admin-center-button'))return true;
-
+    var existing=c.querySelector('#dxn-training-question-admin-center-button');
     var actions=c.querySelector('.overall-actions');
-    if(actions){
-      actions.appendChild(makeButton());
+    if(existing){
+      if(actions&&existing.parentElement!==actions)actions.insertBefore(existing,actions.firstChild);
       return true;
     }
-
-    /* fallback: ابحث عن زر إدارة التدريبات نفسه، حتى لو تغيّر class الحاوية */
+    var button=makeButton();
+    if(actions){
+      actions.insertBefore(button,actions.firstChild);
+      return true;
+    }
     var buttons=c.querySelectorAll('button');
     for(var i=0;i<buttons.length;i++){
       var txt=String(buttons[i].textContent||'').replace(/\s+/g,' ').trim();
       if(txt.indexOf('إدارة التدريبات')!==-1){
-        buttons[i].parentNode.insertBefore(makeButton(),buttons[i].nextSibling);
+        buttons[i].parentNode.insertBefore(button,buttons[i]);
         return true;
       }
     }
-
-    /* fallback أخير: أضفه مباشرة إلى رأس المركز */
     var head=c.querySelector('.overall-head');
-    if(head){head.appendChild(makeButton());return true}
+    if(head){head.insertBefore(button,head.firstChild);return true}
     return false;
   }
 
   function protectRefresh(){
     if(typeof window.renderLeaderOverallTraining!=='function')return;
-    if(window.renderLeaderOverallTraining.__dxnCenterWrapped4512)return;
+    if(window.renderLeaderOverallTraining.__dxnCenterWrapped462)return;
     var original=window.renderLeaderOverallTraining;
     function wrapped(){
       var result=original.apply(this,arguments);
@@ -89,7 +94,7 @@
       setTimeout(function(){installButton();moveIntoCenter()},150);
       return result;
     }
-    wrapped.__dxnCenterWrapped4512=true;
+    wrapped.__dxnCenterWrapped462=true;
     window.renderLeaderOverallTraining=wrapped;
   }
 
@@ -105,8 +110,5 @@
     run();
     if(++n>600)clearInterval(timer);
   },100);
-
-  if(document.body){
-    new MutationObserver(function(){run()}).observe(document.body,{childList:true,subtree:true});
-  }
+  if(document.body)new MutationObserver(function(){run()}).observe(document.body,{childList:true,subtree:true});
 })();
