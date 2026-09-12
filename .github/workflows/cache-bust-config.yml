@@ -23,7 +23,7 @@ jobs:
           client = Path('rpc-proxy-client.js').read_text(encoding='utf-8')
           marker = 'DXN_SAME_ORIGIN_RPC_PROXY_V8632'
           if marker not in s2:
-              s2 = s2.replace('</body>', '<script>\\n' + client + '\\n</script></body>')
+              s2 = s2.replace('</body>', '<script>' + chr(10) + client + chr(10) + '</script></body>')
           p.write_text(s2, encoding='utf-8')
           PY
       - name: Commit cache-bust and proxy
