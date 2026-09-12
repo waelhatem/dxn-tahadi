@@ -1,9 +1,9 @@
-/* V86.44.7 — إدارة أسئلة اختبارات التدريبات للقائد */
+/* V86.44.10 — إدارة أسئلة اختبارات التدريبات للقائد — تبويب مستقل */
 (function(){
-  if(window.__DXN_TRAINING_QUESTION_ADMIN_V86447__) return;
-  window.__DXN_TRAINING_QUESTION_ADMIN_V86447__=true;
+  if(window.__DXN_TRAINING_QUESTION_ADMIN_V864410__) return;
+  window.__DXN_TRAINING_QUESTION_ADMIN_V864410__=true;
 
-  var state={loaded:false,loading:false,questions:[],lesson:1,saving:{}};
+  var state={loaded:false,loading:false,questions:[],lesson:1,saving:{},open:false};
   function token(){return localStorage.getItem('dxn_session')||''}
   function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]})}
   async function rpc(fn,args){
@@ -20,6 +20,29 @@
   }
   function lessonTitle(no){var x=lessons().find(function(l){return Number(l.lesson_no)===Number(no)});return x?String(x.title||x.lesson_title||('التدريب '+no)):('التدريب '+no)}
   function root(){return document.getElementById('dxn-training-question-admin')}
+  function tab(){return document.getElementById('dxn-training-question-admin-tab')}
+  function host(){return document.querySelector('.app')||document.body}
+
+  function installTab(){
+    if(tab())return true;
+    var tabs=document.querySelector('.tabs');
+    if(!tabs)return false;
+    var b=document.createElement('button');
+    b.id='dxn-training-question-admin-tab';
+    b.type='button';
+    b.className='tab';
+    b.textContent='⚙️ تعديل أسئلة الاختبارات';
+    b.title='فتح إدارة أسئلة اختبارات التدريبات';
+    b.addEventListener('click',function(){
+      state.open=!state.open;
+      var r=root();
+      if(r)r.style.display=state.open?'block':'none';
+      b.classList.toggle('active',state.open);
+      if(state.open){load(true);setTimeout(function(){if(r)r.scrollIntoView({behavior:'smooth',block:'start'})},50)}
+    });
+    tabs.appendChild(b);
+    return true;
+  }
 
   async function load(force){
     if(!token()||state.loading)return;
@@ -28,22 +51,24 @@
       var d=await rpc('training_questions_admin',{p_token:token()});
       state.questions=d&&Array.isArray(d.questions)?d.questions:[];
       state.loaded=true;
+      installTab();
       render(!!force);
-    }catch(e){console.error('V86.44.7 training question admin',e)}
-    finally{state.loading=false}
+    }catch(e){
+      console.error('V86.44.10 training question admin',e);
+      /* العضو العادي لا يرى تبويب إدارة الأسئلة */
+    }finally{state.loading=false}
   }
 
   function render(force){
-    var center=document.getElementById('leader-training-center');
-    if(!center)return;
+    if(!state.loaded)return;
     var old=root();
-    if(old&&!force){if(document.body.contains(old))return;old=null}
+    if(old&&!force){old.style.display=state.open?'block':'none';return}
     if(old)old.remove();
 
     var wrap=document.createElement('section');
     wrap.id='dxn-training-question-admin';
     wrap.className='card';
-    wrap.style.cssText='margin-top:14px;border:2px solid #d8d2ef;background:linear-gradient(135deg,#fbfaff,#fff);direction:rtl;text-align:right';
+    wrap.style.cssText='margin:14px 0;border:2px solid #d8d2ef;background:linear-gradient(135deg,#fbfaff,#fff);direction:rtl;text-align:right;display:'+(state.open?'block':'none');position:'relative';zIndex='1';
 
     var buttons='<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:12px">';
     lessons().forEach(function(l){
@@ -53,8 +78,8 @@
     buttons+='</div>';
 
     var qs=state.questions.filter(function(q){return Number(q.lesson_no)===Number(state.lesson)}).sort(function(a,b){return Number(a.question_no)-Number(b.question_no)});
-    var html='<div class="title">⚙️ إدارة أسئلة اختبارات التدريبات</div>'+
-      '<p class="muted" style="line-height:1.8;margin:6px 0">من هنا يستطيع القائد تعديل الأسئلة يدويًا قبل أن يجيب عنها الأعضاء. يمكنك تعديل نص السؤال، الإجابة النموذجية، معيار التقييم، الدرجة، أو إغلاق السؤال.</p>'+
+    var html='<div class="row" style="border-bottom:1px solid var(--line);padding-top:0"><div><div class="title">⚙️ إدارة أسئلة اختبارات التدريبات</div><div class="muted">تبويب القائد — تعديل الأسئلة يدويًا</div></div><button type="button" id="dxn-training-question-admin-close">✕ إغلاق</button></div>'+
+      '<p class="muted" style="line-height:1.8;margin:10px 0">يمكنك تعديل نص السؤال، الإجابة النموذجية، معيار التقييم، الدرجة، أو إغلاق السؤال. التعديلات تُحفظ مباشرة في قاعدة البيانات.</p>'+
       '<div class="progress-grid">'+
       '<div class="progress-stat"><span class="muted">📚 التدريب الحالي</span><b>'+Number(state.lesson)+'</b></div>'+
       '<div class="progress-stat"><span class="muted">📝 الأسئلة</span><b>'+qs.length+'/10</b></div>'+
@@ -77,7 +102,8 @@
     });
 
     wrap.innerHTML=html;
-    center.appendChild(wrap);
+    host().appendChild(wrap);
+    wrap.querySelector('#dxn-training-question-admin-close').addEventListener('click',function(){state.open=false;wrap.style.display='none';var b=tab();if(b)b.classList.remove('active')});
     wrap.querySelectorAll('[data-admin-lesson]').forEach(function(btn){btn.addEventListener('click',function(){state.lesson=Number(btn.getAttribute('data-admin-lesson'));render(true)})});
   }
 
@@ -90,14 +116,17 @@
       await rpc('update_training_question',payload);
       state.saving[id]=false;
       await load(true);
+      state.open=true;
+      render(true);
       alert('تم حفظ تعديل السؤال بنجاح.');
     }catch(e){state.saving[id]=false;render(true);alert('تعذر حفظ السؤال: '+e.message)}
   };
 
   function ensure(){
-    var center=document.getElementById('leader-training-center');
-    if(!center)return;
-    if(!state.loaded)load(false); else if(!root())render(false);
+    if(!token())return;
+    installTab();
+    if(!state.loaded)load(false);
+    else if(!tab())installTab();
   }
   var tries=0;
   var timer=setInterval(function(){ensure();if(++tries>240)clearInterval(timer)},500);
