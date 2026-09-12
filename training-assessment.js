@@ -22,10 +22,11 @@
     });
     root.innerHTML=html;
   }
-  function renderLeader(){
+  function renderLeader(force){
     if(state.role!=='leader')return;
     var box=document.getElementById('leader-training-center');if(!box)return;
-    var old=document.getElementById('dxn-training-answer-center');if(old)old.remove();
+    var old=document.getElementById('dxn-training-answer-center');if(old&&!force)return;
+    if(old)old.remove();
     var wrap=document.createElement('div');wrap.id='dxn-training-answer-center';wrap.className='card';wrap.style.cssText='margin-top:14px;border:2px solid #d8d2ef;background:linear-gradient(135deg,#fbfaff,#fff);direction:rtl;text-align:right';
     var rows=state.all_answers||[];var pending=rows.filter(function(x){return x.status==='pending'}).length;var approved=rows.filter(function(x){return x.status==='approved'}).length;
     var html='<div class="title">🧠 اختبارات التدريبات — إجابات الأعضاء</div><p class="muted">هنا تظهر إجابات الأعضاء باسم المتدرب، مع التدريب والسؤال والحالة والدرجة. المراجعة منفصلة عن الأسئلة الشهرية.</p><div class="mini-grid"><div><b>📨 إجمالي الإجابات</b><div style="font-size:20px;font-weight:900">'+rows.length+'</div></div><div><b>⏳ بانتظار المراجعة</b><div style="font-size:20px;font-weight:900">'+pending+'</div></div><div><b>✅ معتمدة</b><div style="font-size:20px;font-weight:900">'+approved+'</div></div></div>';
@@ -33,9 +34,9 @@
     else rows.forEach(function(x){html+='<div class="challenge" style="margin-top:10px"><div class="row"><div><b>👤 '+esc(x.member_name||'عضو')+'</b><div class="muted">🪪 '+esc(x.member_no||'')+' · التدريب '+esc(x.lesson_no)+' · السؤال '+esc(x.question_no)+'</div></div><b>'+esc(x.status)+'</b></div><div style="margin-top:8px"><b>السؤال:</b> '+esc(x.question)+'</div><div style="margin-top:8px;background:#f7f7f7;padding:10px;border-radius:10px;white-space:pre-wrap"><b>إجابة العضو:</b>\n'+esc(x.answer)+'</div><div class="row" style="margin-top:9px"><input id="score-'+x.id+'" type="number" min="0" max="100" value="'+Number(x.score||0)+'" placeholder="الدرجة" style="width:90px"><input id="note-'+x.id+'" type="text" value="'+esc(x.reviewer_note||'')+'" placeholder="ملاحظة مختصرة للقائد" style="flex:1"><button class="primary" type="button" onclick="reviewTrainingAnswer(\''+esc(x.id)+'\',\'approved\')">✅ اعتماد</button><button type="button" onclick="reviewTrainingAnswer(\''+esc(x.id)+'\',\'retry\')">🔁 إعادة</button></div></div>'});
     wrap.innerHTML=html;box.appendChild(wrap);
   }
-  async function load(){var t=token();if(!t)return;try{var d=await rpc('training_assessment_bootstrap',{p_token:t});state=d||state;state.loaded=true;renderMember();renderLeader()}catch(e){console.error('training assessment',e)}}
+  async function load(){var t=token();if(!t)return;try{var d=await rpc('training_assessment_bootstrap',{p_token:t});state=d||state;state.loaded=true;renderMember();renderLeader(false)}catch(e){console.error('training assessment',e)}}
   window.submitTrainingAnswer=async function(qid){var el=document.querySelector('[data-assessment-q="'+String(qid).replace(/"/g,'\\"')+'"]');var value=el?String(el.value||'').trim():'';if(value.length<2){alert('اكتب إجابة قبل الإرسال.');return}try{await rpc('submit_training_answer',{p_token:token(),p_question_id:qid,p_answer:value,p_attempt_no:1});await load();alert('تم إرسال الإجابة للمراجعة.')}catch(e){alert('تعذر إرسال الإجابة: '+e.message)}};
-  window.reviewTrainingAnswer=async function(id,status){var s=document.getElementById('score-'+id),n=document.getElementById('note-'+id);var score=Math.max(0,Math.min(100,Number(s&&s.value||0)));var note=String(n&&n.value||'');try{await rpc('review_training_answer',{p_token:token(),p_answer_id:id,p_status:status,p_score:score,p_note:note});await load();}catch(e){alert('تعذر حفظ المراجعة: '+e.message)}};
-  function start(){var tries=0,t=setInterval(function(){if(token()){load();clearInterval(t)}else if(++tries>300)clearInterval(t)},100);var mo=new MutationObserver(function(){if(state.loaded){if(state.role==='member')renderMember();if(state.role==='leader')renderLeader()}});mo.observe(document.body,{childList:true,subtree:true})}
+  window.reviewTrainingAnswer=async function(id,status){var s=document.getElementById('score-'+id),n=document.getElementById('note-'+id);var score=Math.max(0,Math.min(100,Number(s&&s.value||0)));var note=String(n&&n.value||'');try{var old=document.getElementById('dxn-training-answer-center');if(old)old.remove();await rpc('review_training_answer',{p_token:token(),p_answer_id:id,p_status:status,p_score:score,p_note:note});await load();}catch(e){alert('تعذر حفظ المراجعة: '+e.message)}};
+  function start(){var tries=0,t=setInterval(function(){if(token()){load();clearInterval(t)}else if(++tries>300)clearInterval(t)},100);var mo=new MutationObserver(function(){if(state.loaded){if(state.role==='member')renderMember();if(state.role==='leader')renderLeader(false)}});mo.observe(document.body,{childList:true,subtree:true})}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
