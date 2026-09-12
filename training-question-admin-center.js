@@ -1,7 +1,7 @@
-/* V86.46.10 — question admin button in Smart Center only */
+/* V86.46.11 — question admin button in the actual Smart Center container */
 (function(){
-  if(window.__DXN_TRAINING_QUESTION_ADMIN_CENTER_V864610__)return;
-  window.__DXN_TRAINING_QUESTION_ADMIN_CENTER_V864610__=true;
+  if(window.__DXN_TRAINING_QUESTION_ADMIN_CENTER_V864611__)return;
+  window.__DXN_TRAINING_QUESTION_ADMIN_CENTER_V864611__=true;
 
   function isLeader(){
     try{if(String(localStorage.getItem('dxn_role')||'').toLowerCase()==='leader')return true}catch(e){}
@@ -9,8 +9,10 @@
     return !!document.getElementById('dxn-training-question-admin-center-button');
   }
 
-  /* Locate the existing Smart Center without depending on one hard-coded id. */
+  /* The existing leader Smart Center is rendered as #leader-training-center. */
   function smartCenter(){
+    var direct=document.getElementById('leader-training-center');
+    if(direct)return direct;
     var ids=['leader-smart-center','smart-center','leaderSmartCenter','dxn-smart-center','smartCenter'];
     for(var i=0;i<ids.length;i++){
       var byId=document.getElementById(ids[i]);
@@ -61,7 +63,7 @@
     var existing=document.querySelector('script[data-dxn-qadmin-center-loader="1"]');
     if(existing)return;
     var s=document.createElement('script');
-    s.src='training-question-admin.js?v=86.46.10';s.async=false;s.setAttribute('data-dxn-qadmin-center-loader','1');
+    s.src='training-question-admin.js?v=86.46.11';s.async=false;s.setAttribute('data-dxn-qadmin-center-loader','1');
     s.onload=function(){
       if(typeof window.openTrainingQuestionAdmin==='function'){try{window.openTrainingQuestionAdmin();}catch(e){}}
     };
@@ -92,29 +94,17 @@
     b=makeButton();var a2=actionHost(c);if(a2)a2.insertBefore(b,a2.firstChild);else c.insertBefore(b,c.firstChild);return true;
   }
 
-  function hideOldPlacement(){
-    var old=document.getElementById('leader-training-center');
-    var b=document.getElementById('dxn-training-question-admin-center-button');
-    if(!old||!b)return;
-    if(old.contains(b)){b.remove();}
-    var p=document.getElementById('dxn-training-question-admin');
-    if(p&&old.contains(p)){
-      var c=smartCenter();if(c)c.appendChild(p);
-    }
-  }
-
   function protectRefresh(){
     if(typeof window.renderLeaderOverallTraining!=='function')return;
-    if(window.renderLeaderOverallTraining.__dxnCenterWrapped4610)return;
+    if(window.renderLeaderOverallTraining.__dxnCenterWrapped4611)return;
     var original=window.renderLeaderOverallTraining;
     function wrapped(){var result=original.apply(this,arguments);setTimeout(function(){installButton();movePanel()},0);setTimeout(function(){installButton();movePanel()},160);return result}
-    wrapped.__dxnCenterWrapped4610=true;window.renderLeaderOverallTraining=wrapped;
+    wrapped.__dxnCenterWrapped4611=true;window.renderLeaderOverallTraining=wrapped;
   }
 
   function run(){
     if(!isLeader())return;
     protectRefresh();
-    hideOldPlacement();
     installButton();
     movePanel();
   }
