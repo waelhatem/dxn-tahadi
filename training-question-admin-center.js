@@ -1,15 +1,51 @@
-/* V86.46.4 — إصلاح فتح محرر أسئلة الاختبارات من مركز القائد */
+/* V86.46.9 — pointerdown-safe leader question-admin opener */
 (function(){
-  if(window.__DXN_TRAINING_QUESTION_ADMIN_CENTER_V86464__)return;
-  window.__DXN_TRAINING_QUESTION_ADMIN_CENTER_V86464__=true;
+  if(window.__DXN_TRAINING_QUESTION_ADMIN_CENTER_V86469__)return;
+  window.__DXN_TRAINING_QUESTION_ADMIN_CENTER_V86469__=true;
 
   function isLeader(){
     try{if(String(localStorage.getItem('dxn_role')||'').toLowerCase()==='leader')return true}catch(e){}
     try{if(typeof role!=='undefined'&&String(role).toLowerCase()==='leader')return true}catch(e){}
-    return !!document.getElementById('dxn-training-question-admin-tab');
+    return !!document.getElementById('dxn-training-question-admin-center-button');
   }
   function center(){return document.getElementById('leader-training-center')}
-  function panel(){return document.getElementById('dxn-training-question-admin')}
+  function panel(){return document.getElementById('dxn-training-question-admin')||document.getElementById('dxn-training-question-admin-direct-panel')}
+
+  function loadAdminAndOpen(){
+    if(!isLeader())return;
+    if(typeof window.openTrainingQuestionAdmin==='function'){
+      try{window.openTrainingQuestionAdmin();return}catch(e){console.debug('DXN question admin direct open failed',e)}
+    }
+    var existing=document.querySelector('script[data-dxn-qadmin-center-loader="1"]');
+    if(existing)return;
+    var s=document.createElement('script');
+    s.src='training-question-admin.js?v=86.46.9';
+    s.async=false;
+    s.setAttribute('data-dxn-qadmin-center-loader','1');
+    s.onload=function(){
+      if(typeof window.openTrainingQuestionAdmin==='function'){
+        try{window.openTrainingQuestionAdmin()}catch(e){console.error('DXN question admin opener failed',e)}
+      }else{
+        showFallback();
+      }
+    };
+    s.onerror=function(){showFallback()};
+    document.head.appendChild(s);
+  }
+
+  function showFallback(){
+    var c=center()||document.querySelector('.app')||document.body;
+    var old=document.getElementById('dxn-training-question-admin-direct-panel');
+    if(old)old.remove();
+    var p=document.createElement('section');
+    p.id='dxn-training-question-admin-direct-panel';
+    p.className='card';
+    p.style.cssText='margin:14px 0;border:2px solid #d8d2ef;background:#fff;direction:rtl;text-align:right;position:relative;z-index:9999';
+    p.innerHTML='<div class="row"><div><div class="title">⚙️ تعديل أسئلة اختبارات التدريبات</div><div class="muted">تعذر تحميل محرر الأسئلة.</div></div><button type="button">✕ إغلاق</button></div><div class="challenge" style="margin-top:12px"><b>المحرر لم يتم تحميله من الخادم.</b><div class="muted" style="margin-top:6px">تحقق من اتصال التطبيق ثم أعد تحميل الصفحة.</div></div>';
+    c.appendChild(p);
+    var close=p.querySelector('button');if(close)close.onclick=function(){p.remove()};
+    p.scrollIntoView({behavior:'smooth',block:'start'});
+  }
 
   function moveIntoCenter(){
     var c=center(),p=panel();
@@ -23,38 +59,13 @@
 
   function openEditor(){
     if(!isLeader())return;
-    var direct=window.openTrainingQuestionAdmin;
-    if(typeof direct==='function'){
-      try{
-        var ok=direct();
-        if(ok!==false){
-          setTimeout(moveIntoCenter,80);
-          setTimeout(moveIntoCenter,250);
-          setTimeout(moveIntoCenter,600);
-          return;
-        }
-      }catch(e){console.debug('DXN direct question admin open failed',e)}
-    }
-
-    /* النسخة الاحتياطية: لا نضيف active قبل click لأن click نفسه يبدّل الحالة. */
-    var b=document.getElementById('dxn-training-question-admin-tab');
-    if(b){
-      if(!b.classList.contains('active')) b.click();
-      else {
-        var p0=panel();
-        if(p0)p0.style.display='block';
-      }
-    }
+    loadAdminAndOpen();
     setTimeout(function(){
       var p=panel();
-      if(p){
-        p.style.display='block';
-        moveIntoCenter();
-        p.scrollIntoView({behavior:'smooth',block:'start'});
-      }
-    },150);
-    setTimeout(moveIntoCenter,400);
-    setTimeout(moveIntoCenter,800);
+      if(p){p.style.display='block';moveIntoCenter();p.scrollIntoView({behavior:'smooth',block:'start'})}
+    },160);
+    setTimeout(moveIntoCenter,450);
+    setTimeout(moveIntoCenter,900);
   }
 
   function makeButton(){
@@ -66,11 +77,17 @@
     b.title='فتح تعديل أسئلة اختبارات التدريبات';
     b.style.fontWeight='900';
     b.style.whiteSpace='nowrap';
-    b.addEventListener('click',function(e){
+    /* مهم: pointerdown يسبق أي click handlers ويضمن استجابة الزر. */
+    b.addEventListener('pointerdown',function(e){
       e.preventDefault();
       e.stopPropagation();
       openEditor();
-    });
+    },true);
+    b.addEventListener('click',function(e){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      openEditor();
+    },true);
     return b;
   }
 
@@ -98,7 +115,7 @@
 
   function protectRefresh(){
     if(typeof window.renderLeaderOverallTraining!=='function')return;
-    if(window.renderLeaderOverallTraining.__dxnCenterWrapped464)return;
+    if(window.renderLeaderOverallTraining.__dxnCenterWrapped469)return;
     var original=window.renderLeaderOverallTraining;
     function wrapped(){
       var result=original.apply(this,arguments);
@@ -106,7 +123,7 @@
       setTimeout(function(){installButton();moveIntoCenter()},150);
       return result;
     }
-    wrapped.__dxnCenterWrapped464=true;
+    wrapped.__dxnCenterWrapped469=true;
     window.renderLeaderOverallTraining=wrapped;
   }
 
