@@ -1,6 +1,6 @@
 // إعدادات مشروع مجتمع الصحة والثراء
 window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezzn.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_pD9m1Z3gN--2HAfhf_t2YA_2RiAeUh'};
-/* V86.45.4 — question-admin is strictly leader-only; hard removal for member accounts. */
+/* V86.45.8 — question-admin is leader-only; robust role detection and leader loading. */
 (function(){
   if(window.__DXN_LOGIN_RUNTIME_V8632__)return; window.__DXN_LOGIN_RUNTIME_V8632__=true;
   async function rpc(name,args){var r=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn:name,args:args||{}}),cache:'no-store'});var text=await r.text(),data=null;try{data=text?JSON.parse(text):null}catch(e){}if(!r.ok){var er=new Error((data&&(data.message||data.error))||text||('HTTP '+r.status));er.status=r.status;er.code=data&&data.code;er.details=data&&data.details;er.hint=data&&data.hint;throw er}return data}
@@ -14,7 +14,7 @@ window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezzn.supabase.co',SUPAB
 })();
 (function(){
   function load(src){var s=document.createElement('script');s.src=src;s.async=false;document.head.appendChild(s)}
-  function roleOf(d){return String(d&&(d.role||(d.session&&d.session.role)||(d.user&&d.user.role)||(d.account&&d.account.role))||'').toLowerCase()}
+  function roleOf(d){var x=d&&d.data?d.data:d;return String(x&&(x.role||(x.session&&x.session.role)||(x.user&&x.user.role)||(x.account&&x.account.role))||'').toLowerCase()}
   function removeQuestionAdmin(){
     var ids=['dxn-training-question-admin-tab','dxn-training-question-admin'];
     for(var i=0;i<ids.length;i++){var x=document.getElementById(ids[i]);if(x)x.remove()}
@@ -24,12 +24,17 @@ window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezzn.supabase.co',SUPAB
   function removeMemberAdmin(){removeQuestionAdmin();}
   function loadQuestionAdminForLeader(){
     var token=localStorage.getItem('dxn_session')||'';if(!token){removeQuestionAdmin();return;}
-    var cached=String(localStorage.getItem('dxn_role')||'').toLowerCase();
-    if(cached&&cached!=='leader'){removeMemberAdmin();return;}
     fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn:'training_get_session',args:{p_token:token}}),cache:'no-store'})
       .then(function(r){return r.json()})
-      .then(function(d){var role=roleOf(d);if(role)localStorage.setItem('dxn_role',role);if(role==='leader')load('training-question-admin.js?v=86.45.4');else removeMemberAdmin()})
-      .catch(function(){if(String(localStorage.getItem('dxn_role')||'').toLowerCase()!=='leader')removeMemberAdmin()});
+      .then(function(d){
+        var role=roleOf(d);
+        if(role)localStorage.setItem('dxn_role',role);
+        if(role==='leader')load('training-question-admin.js?v=86.45.8');
+        else removeMemberAdmin();
+      })
+      .catch(function(){
+        if(String(localStorage.getItem('dxn_role')||'').toLowerCase()!=='leader')removeMemberAdmin();
+      });
   }
   function protectMemberAdmin(){
     var role=String(localStorage.getItem('dxn_role')||'').toLowerCase();
