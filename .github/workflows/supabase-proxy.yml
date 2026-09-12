@@ -1,0 +1,62 @@
+name: DXN Supabase Proxy V86.32
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: "!contains(github.event.head_commit.message, '[supabase-proxy]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add same-origin RPC proxy hook
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('config.js')
+          s = p.read_text(encoding='utf-8')
+          marker = '/* V86.32 — same-origin RPC proxy for environments where direct Supabase fetch is unavailable. */'
+          if marker in s:
+              raise SystemExit(0)
+          block = r'''\n''' + marker + r'''\n(function(){
+if(window.__DXN_SAME_ORIGIN_RPC_PROXY_V8632__)return;
+window.__DXN_SAME_ORIGIN_RPC_PROXY_V8632__=true;
+function proxiedRpc(name,args){
+  return fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn:name,args:args||{}}),cache:'no-store'}).then(async r=>{
+    var tx=await r.text(),d=null;try{d=tx?JSON.parse(tx):null}catch(e){}
+    if(!r.ok)throw Object.assign(new Error((d&&(d.message||d.error))||tx||('HTTP '+r.status)),{status:r.status,details:d&&d.details,hint:d&&d.hint,code:d&&d.code});
+    return d;
+  });
+}
+var tries=0,t=setInterval(function(){
+  try{
+    if(window.supabase&&typeof window.supabase.createClient==='function'&&!window.supabase.createClient.__dxnV8632){
+      var original=window.supabase.createClient;
+      function wrapped(){
+        var client=original.apply(this,arguments);
+        if(client&&typeof client.rpc==='function'&&!client.rpc.__dxnV8632){
+          client.rpc=function(name,args){return proxiedRpc(name,args)};
+          client.rpc.__dxnV8632=true;
+        }
+        return client;
+      }
+      wrapped.__dxnV8632=true;
+      window.supabase.createClient=wrapped;
+      clearInterval(t);
+    }
+  }catch(e){}
+  if(++tries>200)clearInterval(t);
+},50);
+})();
+'''
+          p.write_text(s + block, encoding='utf-8')
+          PY
+      - name: Commit proxy hook
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add config.js
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'V86.32: route Supabase RPC through same-origin proxy [supabase-proxy]'
+          git push
