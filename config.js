@@ -1,6 +1,6 @@
 // إعدادات مشروع مجتمع الصحة والثراء
 window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezzn.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_pD9m1Z3gN--2HAfhf_t2YA_2RiAeUh'};
-/* V86.37 — corrected Supabase project URL and proxy-only RPC path. */
+/* V86.38 — corrected Supabase project URL and proxy-only RPC path. */
 (function(){
   if(window.__DXN_LOGIN_RUNTIME_V8632__)return; window.__DXN_LOGIN_RUNTIME_V8632__=true;
   async function rpc(name,args){
@@ -22,6 +22,9 @@ window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezzn.supabase.co',SUPAB
   function install(){try{var b=document.getElementById('loginButton');if(!b)return false;if(!b.__dxnV8632){b.__dxnV8632=true;b.removeAttribute('onclick');b.type='button';b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();login()},true)}window.login=login;return true}catch(e){return false}}
   var n=0,t=setInterval(function(){if(install()||++n>240)clearInterval(t)},50);
   function patchClient(){try{if(!window.supabase||typeof window.supabase.createClient!=='function'||window.supabase.createClient.__dxnV8632)return false;var original=window.supabase.createClient;function wrapped(){var client=original.apply(this,arguments);if(client&&typeof client.rpc==='function'&&!client.rpc.__dxnV8632){client.rpc=rpc;client.rpc.__dxnV8632=true}return client}wrapped.__dxnV8632=true;window.supabase.createClient=wrapped;return true}catch(e){return false}}
+  /* Critical: boot() in index.html runs immediately after config.js. The old interval
+     could miss that first createClient() call, leaving sb.rpc on the direct Supabase key. */
+  patchClient();
   var c=0,ct=setInterval(function(){if(patchClient()||++c>240)clearInterval(ct)},50);
 })();
 /* Preserve the existing additive training/navigation modules. */
