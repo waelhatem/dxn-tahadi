@@ -1,6 +1,6 @@
 // إعدادات مشروع مجتمع الصحة والثراء
 window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezzn.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_pD9m1Z3gN--2HAfhf_t2YA_2RiAeUh'};
-/* V86.45.2 — protected question admin loading. */
+/* V86.45.3 — question-admin is leader-only; defensive removal for member accounts. */
 (function(){
   if(window.__DXN_LOGIN_RUNTIME_V8632__)return; window.__DXN_LOGIN_RUNTIME_V8632__=true;
   async function rpc(name,args){var r=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn:name,args:args||{}}),cache:'no-store'});var text=await r.text(),data=null;try{data=text?JSON.parse(text):null}catch(e){}if(!r.ok){var er=new Error((data&&(data.message||data.error))||text||('HTTP '+r.status));er.status=r.status;er.code=data&&data.code;er.details=data&&data.details;er.hint=data&&data.hint;throw er}return data}
@@ -15,12 +15,13 @@ window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezzn.supabase.co',SUPAB
 (function(){
   function load(src){var s=document.createElement('script');s.src=src;s.async=false;document.head.appendChild(s)}
   function roleOf(d){return String(d&&(d.role||(d.session&&d.session.role)||(d.user&&d.user.role)||(d.account&&d.account.role))||'').toLowerCase()}
+  function removeQuestionAdmin(){var b=document.getElementById('dxn-training-question-admin-tab');if(b)b.remove();var r=document.getElementById('dxn-training-question-admin');if(r)r.remove()}
   function loadQuestionAdminForLeader(){
-    var token=localStorage.getItem('dxn_session')||'';if(!token)return;
+    var token=localStorage.getItem('dxn_session')||'';if(!token){removeQuestionAdmin();return;}
     fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn:'training_get_session',args:{p_token:token}}),cache:'no-store'})
       .then(function(r){return r.json()})
-      .then(function(d){if(roleOf(d)==='leader')load('training-question-admin.js?v=86.45.2')})
-      .catch(function(){/* deny by default */});
+      .then(function(d){if(roleOf(d)==='leader')load('training-question-admin.js?v=86.45.3');else removeQuestionAdmin()})
+      .catch(function(){removeQuestionAdmin()});
   }
   function go(){load('member-training-profile.js?v=86.13.8');load('training-overall-progress.js?v=86.13');load('mobile-nav-fix.js?v=86.27');load('priority-notification.js?v=86.44');load('training-assessment.js?v=86.44.8');load('training-assessment-layout.js?v=86.44.4');load('training-assessment-buttons.js?v=86.44.6');loadQuestionAdminForLeader();load('training-review-draft.js?v=86.44.9');load('training-ai-grader.js?v=86.45')}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go,{once:true});else go();
