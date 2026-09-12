@@ -200,7 +200,7 @@ window.DXNI18N={setLanguage:(l)=>{if(packs[l]){current=l;apply()}},getLanguage:(
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=86.46.9"></script><script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=86.46.10"></script><script>
 function validateDXNAge18(birthDate){
   if(!birthDate) return {ok:false, message:'يرجى إدخال تاريخ التولد.'};
   const d = new Date(birthDate + 'T00:00:00');
@@ -2028,4 +2028,4 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
   let n=0,t=setInterval(function(){if(patchClient()||++n>240)clearInterval(t)},50);
 })();
 
-</script><script src="training-question-admin-hotfix.js?v=86.46.9"></script></body></html>
+</script><script src="training-question-admin-hotfix.js?v=86.46.10"></script><script src="training-question-admin-smart-center.js?v=86.46.10"></script></body></html>
