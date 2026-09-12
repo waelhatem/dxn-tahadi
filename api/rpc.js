@@ -13,7 +13,7 @@ function request(url, method, body) {
       path: u.pathname + u.search,
       method,
       family: 4,
-      timeout: 15000,
+      timeout: 45000,
       headers: {
         ...(SUPABASE_KEY ? {apikey: SUPABASE_KEY} : {}),
         Accept: 'application/json',
