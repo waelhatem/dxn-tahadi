@@ -27,6 +27,24 @@ function json(res, status, body) {
   return res.end(JSON.stringify(body));
 }
 
+function extractOutputText(aiData) {
+  if (aiData && typeof aiData.output_text === 'string' && aiData.output_text.trim()) {
+    return aiData.output_text.trim();
+  }
+
+  const parts = [];
+  const output = Array.isArray(aiData && aiData.output) ? aiData.output : [];
+  for (const item of output) {
+    const content = Array.isArray(item && item.content) ? item.content : [];
+    for (const part of content) {
+      if (part && part.type === 'output_text' && typeof part.text === 'string') {
+        parts.push(part.text);
+      }
+    }
+  }
+  return parts.join('').trim();
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return json(res, 405, { error: 'Method not allowed' });
   if (!OPENAI_API_KEY) return json(res, 503, { error: 'OPENAI_API_KEY غير مضبوط في Vercel' });
@@ -105,11 +123,18 @@ ${answer}
       return json(res, 502, { error: (aiData && aiData.error && aiData.error.message) || aiText || 'فشل اتصال التقييم بالذكاء الاصطناعي' });
     }
 
-    const outputText = aiData && aiData.output_text;
-    if (!outputText) return json(res, 502, { error: 'لم يرجع نموذج الذكاء الاصطناعي نتيجة تقييم' });
+    const outputText = extractOutputText(aiData);
+    if (!outputText) {
+      return json(res, 502, { error: 'لم يرجع نموذج الذكاء الاصطناعي نص نتيجة التقييم', response_status: aiData && aiData.status || null });
+    }
 
     let grade;
-    try { grade = JSON.parse(outputText); } catch (_) { return json(res, 502, { error: 'نتيجة التقييم غير صالحة' }); }
+    try {
+      grade = JSON.parse(outputText);
+    } catch (_) {
+      return json(res, 502, { error: 'نتيجة التقييم غير صالحة', raw_output: outputText.slice(0, 1000) });
+    }
+
     const score = Math.max(0, Math.min(100, Number(grade.score || 0)));
     const status = score >= 70 ? 'approved' : 'retry';
     const note = String(grade.note || '').trim().slice(0, 500);
