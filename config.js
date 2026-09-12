@@ -17,7 +17,7 @@ window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezzn.supabase.co',SUPAB
   function roleOf(d){var x=d&&d.data?d.data:d;return String(x&&(x.role||(x.session&&x.session.role)||(x.user&&x.user.role)||(x.account&&x.account.role))||'').toLowerCase()}
   function removeQuestionAdmin(){var ids=['dxn-training-question-admin-tab','dxn-training-question-admin'];for(var i=0;i<ids.length;i++){var x=document.getElementById(ids[i]);if(x)x.remove()}var nodes=document.querySelectorAll('button,.tab,[role="tab"]');for(var j=0;j<nodes.length;j++){var t=String(nodes[j].textContent||'').replace(/\s+/g,' ').trim();if(t.indexOf('تعديل أسئلة الاختبارات')!==-1)nodes[j].remove()}}
   function removeMemberAdmin(){removeQuestionAdmin()}
-  function loadLeaderAdmin(){load('training-question-admin.js?v=86.46.4')}
+  function loadLeaderAdmin(){load('training-question-admin.js?v=86.46.5')}
   function loadQuestionAdminForLeader(){
     var token=localStorage.getItem('dxn_session')||'';
     var cachedRole=String(localStorage.getItem('dxn_role')||'').toLowerCase();
@@ -34,7 +34,7 @@ window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezzn.supabase.co',SUPAB
       .catch(function(){if(cachedRole!=='leader')removeMemberAdmin()});
   }
   function protectMemberAdmin(){var role=String(localStorage.getItem('dxn_role')||'').toLowerCase();if(role&&role!=='leader')removeMemberAdmin()}
-  function go(){load('member-training-profile.js?v=86.13.8');load('training-overall-progress.js?v=86.13');load('mobile-nav-fix.js?v=86.27');load('priority-notification.js?v=86.44');load('training-assessment.js?v=86.44.8');load('training-assessment-layout.js?v=86.44.4');load('training-assessment-buttons.js?v=86.44.6');loadQuestionAdminForLeader();load('training-question-admin-center.js?v=86.46.4');load('training-review-draft.js?v=86.44.9');load('training-ai-grader.js?v=86.45');protectMemberAdmin()}
+  function go(){load('member-training-profile.js?v=86.13.8');load('training-overall-progress.js?v=86.13');load('mobile-nav-fix.js?v=86.27');load('priority-notification.js?v=86.44');load('training-assessment.js?v=86.44.8');load('training-assessment-layout.js?v=86.44.4');load('training-assessment-buttons.js?v=86.44.6');loadQuestionAdminForLeader();load('training-question-admin-center.js?v=86.46.5');load('training-review-draft.js?v=86.44.9');load('training-ai-grader.js?v=86.45');protectMemberAdmin()}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go,{once:true});else go();
   new MutationObserver(function(){if(String(localStorage.getItem('dxn_role')||'').toLowerCase()!=='leader')removeMemberAdmin()}).observe(document.documentElement,{childList:true,subtree:true});
 })();
