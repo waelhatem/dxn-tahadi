@@ -1,4 +1,4 @@
-name: DXN Config Cache Bust V86.34
+name: DXN Config Cache Bust V86.37
 on:
   push:
     branches: [main]
@@ -17,7 +17,7 @@ jobs:
           import re
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
-          s2 = re.sub(r'config\\.js\\?v=[0-9.]+', 'config.js?v=86.34', s, count=1)
+          s2 = re.sub(r'config\.js\?v=[0-9.]+', 'config.js?v=86.37', s, count=1)
           if s2 == s:
               raise SystemExit('config.js script reference not found')
           p.write_text(s2, encoding='utf-8')
@@ -25,8 +25,8 @@ jobs:
       - name: Commit cache-bust
         run: |
           git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.email '41898282+users.noreply.github.com'
           git add index.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'V86.34: force fresh config runtime [cache-bust]'
+          git commit -m 'V86.37: force fresh config runtime [cache-bust]'
           git push
