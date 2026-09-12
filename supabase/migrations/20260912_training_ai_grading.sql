@@ -1,4 +1,4 @@
--- V86.45 — AI grading context + server-only grade application
+-- V86.45.1 — AI grading context + server-only grade application
 -- The browser never receives the model answer/rubric from this RPC.
 
 create or replace function public.training_ai_grade_context(
@@ -29,11 +29,11 @@ begin
 
   select
     q.id,q.question,q.model_answer,q.rubric,q.points,
-    a.lesson_no,a.lesson_title
+    q.lesson_no,
+    coalesce(nullif(trim(q.question),''),'') as lesson_title
     into q
   from public.training_questions q
-  join public.training_assessments a on a.id=q.assessment_id
-  where q.id=p_question_id and q.active=true and a.active=true
+  where q.id=p_question_id and q.active=true
   limit 1;
 
   if not found then
@@ -51,8 +51,11 @@ begin
   );
 end $$;
 
+-- Browser member calls the context through /api/rpc using the publishable key.
 revoke execute on function public.training_ai_grade_context(uuid,uuid) from public;
 grant execute on function public.training_ai_grade_context(uuid,uuid) to anon,authenticated;
+-- Vercel backend uses the Supabase secret/service-role key.
+grant execute on function public.training_ai_grade_context(uuid,uuid) to service_role;
 
 -- This function is intentionally NOT executable by browser roles.
 -- The Vercel backend calls it with the Supabase secret key after AI grading.
@@ -115,3 +118,5 @@ end $$;
 revoke execute on function public.ai_review_training_answer(uuid,uuid,text,integer,text) from public;
 revoke execute on function public.ai_review_training_answer(uuid,uuid,text,integer,text) from anon;
 revoke execute on function public.ai_review_training_answer(uuid,uuid,text,integer,text) from authenticated;
+-- Only the Vercel server may apply the AI grade.
+grant execute on function public.ai_review_training_answer(uuid,uuid,text,integer,text) to service_role;
