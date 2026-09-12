@@ -1,12 +1,12 @@
 // إعدادات مشروع مجتمع الصحة والثراء
 window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezzn.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_pD9m1Z3gN--2HAfhf_t2YA_2RiAeUh'};
-/* V86.45.3 — question-admin is leader-only; defensive removal for member accounts. */
+/* V86.45.4 — question-admin is strictly leader-only; hard removal for member accounts. */
 (function(){
   if(window.__DXN_LOGIN_RUNTIME_V8632__)return; window.__DXN_LOGIN_RUNTIME_V8632__=true;
   async function rpc(name,args){var r=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn:name,args:args||{}}),cache:'no-store'});var text=await r.text(),data=null;try{data=text?JSON.parse(text):null}catch(e){}if(!r.ok){var er=new Error((data&&(data.message||data.error))||text||('HTTP '+r.status));er.status=r.status;er.code=data&&data.code;er.details=data&&data.details;er.hint=data&&data.hint;throw er}return data}
   function sdkRpc(name,args){return rpc(name,args).then(function(data){return {data:data,error:null}}).catch(function(error){return {data:null,error:error}})}
   function showError(title,e){var old=document.getElementById('dxnLoginDiag');if(old)old.remove();var b=document.getElementById('loginButton'),d=document.createElement('div');d.id='dxnLoginDiag';d.setAttribute('role','alert');d.style.cssText='margin-top:12px;padding:14px;border:2px solid #b42318;border-radius:14px;background:#fff5f4;color:#7a1b15;line-height:1.7;font-weight:700;direction:rtl;text-align:right';var detail='HTTP: '+(e&&e.status||'')+'\nCode: '+(e&&e.code||'')+'\nMessage: '+(e&&e.message||e)+'\nDetails: '+(e&&e.details||'')+'\nHint: '+(e&&e.hint||'');d.innerHTML='<b>'+title+'</b><div style="margin-top:6px;font-weight:500;white-space:pre-wrap">'+String(detail).replace(/[<>]/g,'')+'</div>';if(b&&b.parentNode)b.parentNode.insertBefore(d,b.nextSibling)}
-  async function login(){var n=document.getElementById('loginNo'),p=document.getElementById('pin'),b=document.getElementById('loginButton'),no=n?String(n.value||'').trim():'',pin=p?String(p.value||'').trim():'';if(!no||!pin){showError('بيانات الدخول ناقصة',new Error('أدخل رقم العضوية ورمز PIN.'));return}if(b){b.disabled=true;b.textContent='⏳ جارٍ التحقق...'}try{var x=await rpc('login',{p_login_no:no,p_pin:pin});if(!x||!x.token)throw new Error('لم يصل رمز الجلسة من الخادم.');localStorage.setItem('dxn_session',String(x.token));localStorage.setItem('dxn_session_issued',String(Date.now()));await rpc('bootstrap',{p_token:x.token});location.reload()}catch(e){localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');showError('فشل مسار الدخول عبر الخادم الوسيط',e)}finally{if(b){b.disabled=false;b.textContent='🔐 دخول'}}}
+  async function login(){var n=document.getElementById('loginNo'),p=document.getElementById('pin'),b=document.getElementById('loginButton'),no=n?String(n.value||'').trim():'',pin=p?String(p.value||'').trim():'';if(!no||!pin){showError('بيانات الدخول ناقصة',new Error('أدخل رقم العضوية ورمز PIN.'));return}if(b){b.disabled=true;b.textContent='⏳ جارٍ التحقق...'}try{var x=await rpc('login',{p_login_no:no,p_pin:pin});if(!x||!x.token)throw new Error('لم يصل رمز الجلسة من الخادم.');localStorage.setItem('dxn_session',String(x.token));localStorage.setItem('dxn_session_issued',String(Date.now()));localStorage.setItem('dxn_role',String(x.role||''));await rpc('bootstrap',{p_token:x.token});location.reload()}catch(e){localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');localStorage.removeItem('dxn_role');showError('فشل مسار الدخول عبر الخادم الوسيط',e)}finally{if(b){b.disabled=false;b.textContent='🔐 دخول'}}}
   function install(){try{var b=document.getElementById('loginButton');if(!b)return false;if(!b.__dxnV8632){b.__dxnV8632=true;b.removeAttribute('onclick');b.type='button';b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();login()},true)}window.login=login;return true}catch(e){return false}}
   var n=0,t=setInterval(function(){if(install()||++n>240)clearInterval(t)},50);
   function patchClient(){try{if(!window.supabase||typeof window.supabase.createClient!=='function'||window.supabase.createClient.__dxnV8632)return false;var original=window.supabase.createClient;function wrapped(){var client=original.apply(this,arguments);if(client&&typeof client.rpc==='function'&&!client.rpc.__dxnV8632){client.rpc=sdkRpc;client.rpc.__dxnV8632=true}return client}wrapped.__dxnV8632=true;window.supabase.createClient=wrapped;return true}catch(e){return false}}
@@ -15,15 +15,42 @@ window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezzn.supabase.co',SUPAB
 (function(){
   function load(src){var s=document.createElement('script');s.src=src;s.async=false;document.head.appendChild(s)}
   function roleOf(d){return String(d&&(d.role||(d.session&&d.session.role)||(d.user&&d.user.role)||(d.account&&d.account.role))||'').toLowerCase()}
-  function removeQuestionAdmin(){var b=document.getElementById('dxn-training-question-admin-tab');if(b)b.remove();var r=document.getElementById('dxn-training-question-admin');if(r)r.remove()}
+  function removeQuestionAdmin(){
+    var ids=['dxn-training-question-admin-tab','dxn-training-question-admin'];
+    for(var i=0;i<ids.length;i++){var x=document.getElementById(ids[i]);if(x)x.remove()}
+    var nodes=document.querySelectorAll('button,.tab,[role="tab"]');
+    for(var j=0;j<nodes.length;j++){var t=String(nodes[j].textContent||'').replace(/\s+/g,' ').trim();if(t.indexOf('تعديل أسئلة الاختبارات')!==-1)nodes[j].remove()}
+  }
+  function removeMemberAdmin(){removeQuestionAdmin();}
   function loadQuestionAdminForLeader(){
     var token=localStorage.getItem('dxn_session')||'';if(!token){removeQuestionAdmin();return;}
+    var cached=String(localStorage.getItem('dxn_role')||'').toLowerCase();
+    if(cached&&cached!=='leader'){removeMemberAdmin();return;}
     fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn:'training_get_session',args:{p_token:token}}),cache:'no-store'})
       .then(function(r){return r.json()})
-      .then(function(d){if(roleOf(d)==='leader')load('training-question-admin.js?v=86.45.3');else removeQuestionAdmin()})
-      .catch(function(){removeQuestionAdmin()});
+      .then(function(d){var role=roleOf(d);if(role)localStorage.setItem('dxn_role',role);if(role==='leader')load('training-question-admin.js?v=86.45.4');else removeMemberAdmin()})
+      .catch(function(){if(String(localStorage.getItem('dxn_role')||'').toLowerCase()!=='leader')removeMemberAdmin()});
   }
-  function go(){load('member-training-profile.js?v=86.13.8');load('training-overall-progress.js?v=86.13');load('mobile-nav-fix.js?v=86.27');load('priority-notification.js?v=86.44');load('training-assessment.js?v=86.44.8');load('training-assessment-layout.js?v=86.44.4');load('training-assessment-buttons.js?v=86.44.6');loadQuestionAdminForLeader();load('training-review-draft.js?v=86.44.9');load('training-ai-grader.js?v=86.45')}
+  function protectMemberAdmin(){
+    var role=String(localStorage.getItem('dxn_role')||'').toLowerCase();
+    if(role&&role!=='leader')removeMemberAdmin();
+  }
+  function go(){
+    load('member-training-profile.js?v=86.13.8');
+    load('training-overall-progress.js?v=86.13');
+    load('mobile-nav-fix.js?v=86.27');
+    load('priority-notification.js?v=86.44');
+    load('training-assessment.js?v=86.44.8');
+    load('training-assessment-layout.js?v=86.44.4');
+    load('training-assessment-buttons.js?v=86.44.6');
+    loadQuestionAdminForLeader();
+    load('training-review-draft.js?v=86.44.9');
+    load('training-ai-grader.js?v=86.45');
+    protectMemberAdmin();
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go,{once:true});else go();
+  new MutationObserver(function(){
+    if(String(localStorage.getItem('dxn_role')||'').toLowerCase()!=='leader')removeMemberAdmin();
+  }).observe(document.documentElement,{childList:true,subtree:true});
 })();
 (function(){function hideLeaderTrainingCard(){var cards=document.querySelectorAll('.card');for(var i=0;i<cards.length;i++){var title=cards[i].querySelector('.title');if(title&&title.textContent.indexOf('متابعة التدريبات')!==-1){cards[i].remove()}}}function start(){hideLeaderTrainingCard();var root=document.body;if(!root)return;new MutationObserver(function(){hideLeaderTrainingCard()}).observe(root,{childList:true,subtree:true})}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start()})();
