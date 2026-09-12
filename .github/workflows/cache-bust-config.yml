@@ -1,4 +1,4 @@
-name: DXN Config Cache Bust V86.46.8
+name: DXN Config Cache Bust V86.46.9
 on:
   push:
     branches: [main]
@@ -18,10 +18,10 @@ jobs:
 
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
-          s2 = re.sub(r'config\.js\?v=[0-9.]+', 'config.js?v=86.46.8', s, count=1)
+          s2 = re.sub(r'config\.js\?v=[0-9.]+', 'config.js?v=86.46.9', s, count=1)
           if s2 == s:
               raise SystemExit('config.js script reference not found')
-          hotfix = '<script src="training-question-admin-hotfix.js?v=86.46.8"></script>'
+          hotfix = '<script src="training-question-admin-hotfix.js?v=86.46.9"></script>'
           if 'training-question-admin-hotfix.js?v=' in s2:
               s2 = re.sub(r'<script src="training-question-admin-hotfix\.js\?v=[0-9.]+"></script>', hotfix, s2, count=1)
           else:
@@ -30,8 +30,8 @@ jobs:
 
           p = Path('config.js')
           s = p.read_text(encoding='utf-8')
-          s2 = re.sub(r'training-question-admin\.js\?v=[0-9.]+', 'training-question-admin.js?v=86.46.8', s)
-          s2 = re.sub(r'training-question-admin-center\.js\?v=[0-9.]+', 'training-question-admin-center.js?v=86.46.8', s2)
+          s2 = re.sub(r'training-question-admin\.js\?v=[0-9.]+', 'training-question-admin.js?v=86.46.9', s)
+          s2 = re.sub(r'training-question-admin-center\.js\?v=[0-9.]+', 'training-question-admin-center.js?v=86.46.9', s2)
           if s2 == s:
               raise SystemExit('question-admin script references not found in config.js')
           p.write_text(s2, encoding='utf-8')
@@ -42,6 +42,6 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html config.js
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'V86.46.8: force direct question editor [cache-bust]'
+          git commit -m 'V86.46.9: force pointerdown-safe question editor [cache-bust]'
           git pull --rebase origin main
           git push origin HEAD:main
