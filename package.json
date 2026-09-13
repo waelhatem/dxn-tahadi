@@ -1,0 +1,13 @@
+{
+  "name": "dxn-tahadi",
+  "version": "1.0.0",
+  "private": true,
+  "description": "مجتمع الصحة والثراء — Render/Abasthan runtime",
+  "scripts": {
+    "start": "node server.js",
+    "build": "node -e \"console.log('DXN build complete')\""
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
