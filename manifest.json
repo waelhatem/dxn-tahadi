@@ -10,10 +10,5 @@
   "theme_color": "#0f513f",
   "dir": "rtl",
   "lang": "ar",
-  "icons": [{
-    "src": "assets/site-logo.png?v=20260914",
-    "sizes": "192x192",
-    "type": "image/png",
-    "purpose": "any maskable"
-  }]
+  "icons": [{"src":"assets/site-logo.png?v=20260914","sizes":"192x192","type":"image/png","purpose":"any maskable"}]
 }
