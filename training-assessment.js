@@ -1,10 +1,10 @@
-/* V86.44.2 — اختبارات التدريبات: 10 أسئلة لكل تدريب + مراجعة القائد */
+/* V86.46.1 — اختبارات التدريبات: اعتماد تلقائي بالذكاء الاصطناعي بدون مراجعة قائد */
 (function(){
-  if(window.__DXN_TRAINING_ASSESSMENT_V86442__) return;
-  window.__DXN_TRAINING_ASSESSMENT_V86442__=true;
+  if(window.__DXN_TRAINING_ASSESSMENT_V86461__) return;
+  window.__DXN_TRAINING_ASSESSMENT_V86461__=true;
   var state={loaded:false,role:'',questions:[],my_answers:[],all_answers:[]};
 
-  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]})}
   function token(){return localStorage.getItem('dxn_session')||''}
   function lessonList(){
     var ls=(typeof trainingData!=='undefined'&&trainingData&&Array.isArray(trainingData.lessons))?trainingData.lessons.slice():[];
@@ -36,9 +36,9 @@
   function ansFor(qid){var rows=answersFor(qid);return rows[0]||null}
   function statusBadge(a){
     if(!a)return '<span class="muted">لم تُجب بعد</span>';
-    if(a.status==='approved')return '<span style="font-weight:900;color:#176b55">✅ معتمدة · '+Number(a.score||0)+'/100</span>';
+    if(a.status==='approved')return '<span style="font-weight:900;color:#176b55">✅ معتمدة تلقائيًا بالذكاء الاصطناعي · '+Number(a.score||0)+'/100</span>';
     if(a.status==='retry')return '<span style="font-weight:900;color:#8a5300">🔁 تحتاج إعادة المحاولة · '+Number(a.score||0)+'/100</span>';
-    return '<span style="font-weight:900;color:#8a5300">⏳ بانتظار المراجعة</span>';
+    return '<span style="font-weight:900;color:#8a5300">🤖 جارٍ التقييم التلقائي</span>';
   }
   function anchorForMember(){
     var cards=document.querySelectorAll('.card');
@@ -65,7 +65,7 @@
     state.questions.forEach(function(q){(byLesson[q.lesson_no]||(byLesson[q.lesson_no]=[])).push(q)});
     var total=state.questions.length,answered=0,approved=0;
     state.questions.forEach(function(q){var a=ansFor(q.id);if(a){answered++;if(a.status==='approved')approved++}});
-    var html='<div class="title">🧠 اختبارات استيعاب التدريبات</div><p class="muted" style="line-height:1.8;margin:6px 0 12px">بعد مشاهدة كل تدريب، أجب عن أسئلته. الإجابة النموذجية مخفية عن العضو، وتظهر للقائد عند المراجعة. يمكنك إعادة المحاولة إذا طلب القائد ذلك.</p><div class="progress-grid"><div class="progress-stat"><span class="muted">📚 التدريبات</span><b>'+lessons.length+'</b></div><div class="progress-stat"><span class="muted">📝 الإجابات</span><b>'+answered+'/'+total+'</b></div><div class="progress-stat"><span class="muted">✅ المعتمدة</span><b>'+approved+'/'+total+'</b></div><div class="progress-stat"><span class="muted">📊 نسبة الإجابة</span><b>'+(total?Math.round(answered/total*100):0)+'%</b></div></div>';
+    var html='<div class="title">🧠 اختبارات استيعاب التدريبات</div><p class="muted" style="line-height:1.8;margin:6px 0 12px">بعد مشاهدة كل تدريب، أجب عن أسئلته. الذكاء الاصطناعي يقيّم إجابتك تلقائيًا ويحدد النتيجة، ولا تحتاج الإجابة إلى اعتماد من القائد. يمكنك إعادة المحاولة عندما يطلب التقييم ذلك.</p><div class="progress-grid"><div class="progress-stat"><span class="muted">📚 التدريبات</span><b>'+lessons.length+'</b></div><div class="progress-stat"><span class="muted">📝 الإجابات</span><b>'+answered+'/'+total+'</b></div><div class="progress-stat"><span class="muted">✅ المعتمدة تلقائيًا</span><b>'+approved+'/'+total+'</b></div><div class="progress-stat"><span class="muted">📊 نسبة الإجابة</span><b>'+(total?Math.round(answered/total*100):0)+'%</b></div></div>';
     lessons.forEach(function(l){
       var no=Number(l.lesson_no),qs=(byLesson[no]||[]).sort(function(a,b){return Number(a.question_no)-Number(b.question_no)});
       if(!qs.length)return;
@@ -76,7 +76,7 @@
         var old=ansFor(q.id), canRetry=old&&old.status==='retry', disabled=old&&old.status==='approved';
         html+='<div class="challenge" style="margin-top:12px;border-color:#d9e7e1"><div style="font-weight:900;line-height:1.8">'+Number(q.question_no)+'. '+esc(q.question)+'</div>';
         html+='<textarea data-assessment-q="'+esc(q.id)+'" rows="4" '+(disabled?'disabled ':'')+'placeholder="اكتب إجابتك هنا..." style="width:100%;margin-top:9px;box-sizing:border-box">'+esc(old&&old.answer||'')+'</textarea>';
-        html+='<div class="row" style="margin-top:8px"><div>'+statusBadge(old)+(canRetry?'<div class="muted" style="margin-top:4px">يمكنك تعديل الإجابة وإرسال محاولة جديدة.</div>':'')+(old&&old.reviewer_note?'<div class="muted" style="margin-top:4px">ملاحظة القائد: '+esc(old.reviewer_note)+'</div>':'')+'</div><button class="primary" type="button" '+(disabled?'disabled ':'')+'onclick="submitTrainingAnswer(\''+esc(q.id)+'\')">📤 '+(canRetry?'إعادة إرسال':'إرسال الإجابة')+'</button></div></div>';
+        html+='<div class="row" style="margin-top:8px"><div>'+statusBadge(old)+(canRetry?'<div class="muted" style="margin-top:4px">يمكنك تعديل الإجابة وإرسال محاولة جديدة.</div>':'')+(old&&old.reviewer_note?'<div class="muted" style="margin-top:4px">ملاحظة التقييم: '+esc(old.reviewer_note)+'</div>':'')+'</div><button class="primary" type="button" '+(disabled?'disabled ':'')+'onclick="submitTrainingAnswer(\''+esc(q.id)+'\')">📤 '+(canRetry?'إعادة إرسال':'إرسال الإجابة')+'</button></div></div>';
       });
       html+='</details>';
     });
@@ -92,15 +92,15 @@
     var pending=rows.filter(function(x){return x.status==='pending'}).length;
     var approved=rows.filter(function(x){return x.status==='approved'}).length;
     var retry=rows.filter(function(x){return x.status==='retry'}).length;
-    var html='<div class="title">🧠 متابعة اختبارات التدريبات</div><p class="muted" style="line-height:1.8">مركز مستقل لمراجعة إجابات المتدربين. يظهر اسم العضو، التدريب، السؤال، الإجابة، الإجابة النموذجية، الدرجة والملاحظة.</p><div class="progress-grid"><div class="progress-stat"><span class="muted">📨 الإجابات</span><b>'+rows.length+'</b></div><div class="progress-stat"><span class="muted">⏳ بانتظار المراجعة</span><b>'+pending+'</b></div><div class="progress-stat"><span class="muted">✅ معتمدة</span><b>'+approved+'</b></div><div class="progress-stat"><span class="muted">🔁 إعادة</span><b>'+retry+'</b></div></div>';
+    var html='<div class="title">🤖 متابعة نتائج تقييم الذكاء الاصطناعي</div><p class="muted" style="line-height:1.8">هذه الصفحة للمتابعة والاطلاع فقط. يتم اعتماد السؤال أو طلب إعادة المحاولة تلقائيًا بواسطة الذكاء الاصطناعي، ولا توجد موافقة يدوية من القائد.</p><div class="progress-grid"><div class="progress-stat"><span class="muted">📨 الإجابات</span><b>'+rows.length+'</b></div><div class="progress-stat"><span class="muted">🤖 قيد التقييم</span><b>'+pending+'</b></div><div class="progress-stat"><span class="muted">✅ معتمدة تلقائيًا</span><b>'+approved+'</b></div><div class="progress-stat"><span class="muted">🔁 إعادة</span><b>'+retry+'</b></div></div>';
     if(!rows.length)html+='<div class="empty" style="margin-top:12px">لا توجد إجابات من الأعضاء حتى الآن.</div>';
     else rows.forEach(function(x){
-      var st=x.status==='approved'?'✅ معتمدة':x.status==='retry'?'🔁 إعادة المحاولة':'⏳ بانتظار المراجعة';
+      var st=x.status==='approved'?'✅ معتمدة تلقائيًا':x.status==='retry'?'🔁 إعادة المحاولة':'🤖 قيد التقييم';
       html+='<div class="challenge" style="margin-top:12px"><div class="row"><div><b>👤 '+esc(x.member_name||'عضو')+'</b><div class="muted">🪪 '+esc(x.member_no||'')+' · التدريب '+esc(x.lesson_no)+' · السؤال '+esc(x.question_no)+' · المحاولة '+Number(x.attempt_no||1)+'</div></div><b>'+st+'</b></div>';
       html+='<div style="margin-top:9px;line-height:1.8"><b>السؤال:</b> '+esc(x.question)+'</div>';
       html+='<div style="margin-top:9px;background:#f7f7f7;padding:11px;border-radius:10px;white-space:pre-wrap;line-height:1.8"><b>إجابة العضو:</b>\n'+esc(x.answer)+'</div>';
       html+='<details style="margin-top:9px"><summary style="cursor:pointer;font-weight:900">📌 عرض الإجابة النموذجية ومعيار التقييم</summary><div style="margin-top:8px;background:#f2f9f5;padding:11px;border-radius:10px;line-height:1.8"><b>الإجابة النموذجية:</b><br>'+esc(x.model_answer||'')+'<br><br><b>معيار التقييم:</b><br>'+esc(x.rubric||'')+'</div></details>';
-      html+='<div class="row" style="margin-top:9px;align-items:center"><input id="score-'+x.id+'" type="number" min="0" max="100" value="'+Number(x.score||0)+'" placeholder="الدرجة" style="width:100px"><input id="note-'+x.id+'" type="text" value="'+esc(x.reviewer_note||'')+'" placeholder="ملاحظة مختصرة للقائد" style="flex:1"><button class="primary" type="button" onclick="reviewTrainingAnswer(\''+esc(x.id)+'\',\'approved\')">✅ اعتماد</button><button type="button" onclick="reviewTrainingAnswer(\''+esc(x.id)+'\',\'retry\')">🔁 إعادة</button></div></div>';
+      html+='<div style="margin-top:9px;background:#f9f7ff;padding:11px;border-radius:10px;line-height:1.8"><b>الدرجة:</b> '+Number(x.score||0)+'/100'+(x.reviewer_note?'<br><b>ملاحظة التقييم:</b> '+esc(x.reviewer_note):'')+'</div></div>';
     });
     wrap.innerHTML=html;box.appendChild(wrap);
   }
@@ -114,23 +114,18 @@
       state.all_answers=d&&Array.isArray(d.all_answers)?d.all_answers:[];
       state.loaded=true;
       renderMember(!!force);renderLeader(!!force);
-    }catch(e){console.error('V86.44.2 training assessment',e)}
+    }catch(e){console.error('V86.46.1 training assessment',e)}
   }
   window.submitTrainingAnswer=async function(qid){
-    var el=document.querySelector('[data-assessment-q="'+String(qid).replace(/"/g,'\\"')+'"]');
+    var el=document.querySelector('[data-assessment-q="'+String(qid).replace(/\"/g,'\\\"')+'"]');
     var value=el?String(el.value||'').trim():'';
     if(value.length<2){alert('اكتب إجابة قبل الإرسال.');return}
     var old=ansFor(qid),attempt=Math.max(1,Number(old&&old.attempt_no||0)+(old&&old.status==='retry'?1:0));
     try{
       await rpc('submit_training_answer',{p_token:token(),p_question_id:qid,p_answer:value,p_attempt_no:attempt});
       await load(true);
-      alert('تم إرسال الإجابة للمراجعة.');
+      alert('تم إرسال الإجابة للتقييم التلقائي.');
     }catch(e){alert('تعذر إرسال الإجابة: '+e.message)}
-  };
-  window.reviewTrainingAnswer=async function(id,status){
-    var s=document.getElementById('score-'+id),n=document.getElementById('note-'+id);
-    var score=Math.max(0,Math.min(100,Number(s&&s.value||0))),note=String(n&&n.value||'');
-    try{await rpc('review_training_answer',{p_token:token(),p_answer_id:id,p_status:status,p_score:score,p_note:note});await load(true)}catch(e){alert('تعذر حفظ المراجعة: '+e.message)}
   };
   function start(){
     var tries=0,t=setInterval(function(){if(token()){load(true);clearInterval(t)}else if(++tries>300)clearInterval(t)},100);
