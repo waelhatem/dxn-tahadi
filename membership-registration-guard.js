@@ -23,21 +23,11 @@
   }
 
   function showDuplicate(no,name){
-    var app=document.getElementById('app');
-    if(!app)return;
-    var displayName=name?String(name):'';
-    app.innerHTML='<div class="login card" style="max-width:700px;text-align:center">'
-      +'<div style="text-align:center">'
-      +'<img class="logo" src="logo.png" alt="شعار مجتمع الصحة والثراء">'
-      +'<div style="font-size:44px;margin:10px 0">✅</div>'
-      +'<h1>رقم العضوية مسجل مسبقًا</h1>'
-      +'<p style="font-size:18px;line-height:2;margin:10px auto;max-width:560px">'
-      +'رقم العضوية <b>'+String(no).replace(/[<>]/g,'')+'</b> مسجل مسبقًا كعضو في مجتمع الصحة والثراء، ولا يمكن إنشاء عضوية ثانية باستخدام رقم العضوية نفسه.'
-      +'</p>'
-      +(displayName?'<div class="muted" style="margin-top:8px">الاسم المسجل: <b>'+displayName.replace(/[<>]/g,'')+'</b></div>':'')
-      +'<button class="primary" style="width:100%;margin-top:18px" onclick="renderLogin()">🔐 العودة لتسجيل الدخول</button>'
-      +'</div></div>';
-    if(typeof renderViewSwitch==='function')renderViewSwitch();
+    var status=document.getElementById('verifyMemberStatus');
+    if(!status)return;
+    status.textContent='⚠️ رقم العضوية مسجل مسبقًا في مجتمع الصحة والثراء، ولا يمكن إنشاء عضوية ثانية باستخدام رقم العضوية نفسه.';
+    status.style.cssText='text-align:center;min-height:24px;margin-top:10px;padding:10px 12px;border:1px solid #d99a18;border-radius:12px;background:#fff8df;color:#7a5300;font-weight:900;line-height:1.8;';
+    if(typeof toast==='function')toast('رقم العضوية مسجل مسبقًا في مجتمع الصحة والثراء.');
   }
 
   async function guardedVerify(){
@@ -78,9 +68,6 @@
       if(status)status.textContent='✅ تم التحقق بنجاح.';
       if(typeof renderMemberAccountSetup==='function')renderMemberAccountSetup(no,r.name||'');
     }catch(e){
-      /* Keep the original eligibility flow usable if the new optional status RPC has not
-         reached the live database yet. The database unique constraint still blocks duplicates
-         at final creation, while the UI guard activates immediately after the RPC is deployed. */
       if(status)status.textContent='❌ تعذر الاتصال بخدمة التحقق: '+(e.message||'خطأ غير معروف');
       if(typeof toast==='function')toast(e.message||'تعذر التحقق من العضوية.');
     }finally{
