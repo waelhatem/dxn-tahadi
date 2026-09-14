@@ -1,9 +1,11 @@
-/* V86.46.2 — تقييم إجابات التدريب + اعتماد تلقائي + تكريم 90+ */
+/* V86.46.4 — تقييم إجابات التدريب + اعتماد تلقائي + تكريم 90+ مع صوت الجمهور */
 (function(){
-  if(window.__DXN_TRAINING_AI_GRADER_V86462__) return;
-  window.__DXN_TRAINING_AI_GRADER_V86462__=true;
+  if(window.__DXN_TRAINING_AI_GRADER_V86464__) return;
+  window.__DXN_TRAINING_AI_GRADER_V86464__=true;
 
   var GENERIC_RETRY='ركز في إجابتك. حصلت الإجابة على أقل من 60/100 وتحتاج إلى مراجعة وإعادة.';
+  var CROWD_AUDIO='/achievement_crowd_5s.mp3';
+  var crowdAudio=null;
 
   function token(){return localStorage.getItem('dxn_session')||''}
 
@@ -21,7 +23,30 @@
     return d;
   }
 
+  function prepareCrowdAudio(){
+    try{
+      if(!crowdAudio){
+        crowdAudio=new Audio(CROWD_AUDIO);
+        crowdAudio.preload='auto';
+        crowdAudio.volume=0.95;
+      }
+      crowdAudio.load();
+    }catch(e){}
+  }
+
+  function playCrowdAudio(){
+    try{
+      if(!crowdAudio){prepareCrowdAudio()}
+      if(!crowdAudio)return;
+      crowdAudio.currentTime=0;
+      var p=crowdAudio.play();
+      if(p&&typeof p.catch==='function')p.catch(function(){});
+    }catch(e){}
+  }
+
   function celebrate90(){
+    playCrowdAudio();
+
     var old=document.getElementById('dxn-training-success-celebration');
     if(old)old.remove();
 
@@ -59,6 +84,8 @@
     var value=el?String(el.value||'').trim():'';
     if(value.length<2){alert('اكتب إجابة قبل الإرسال.');return}
 
+    prepareCrowdAudio();
+
     var btn=el&&el.closest('.challenge')?el.closest('.challenge').querySelector('button.primary'):null;
     var originalText=btn?btn.textContent:'';
     if(btn){btn.disabled=true;btn.textContent='🤖 جارٍ التقييم...'}
@@ -95,9 +122,9 @@
 
   function install(){
     if(typeof window.submitTrainingAnswer!=='function')return false;
-    if(window.submitTrainingAnswer.__dxnAiV86462)return true;
+    if(window.submitTrainingAnswer.__dxnAiV86464)return true;
     window.submitTrainingAnswer=submit;
-    window.submitTrainingAnswer.__dxnAiV86462=true;
+    window.submitTrainingAnswer.__dxnAiV86464=true;
     return true;
   }
 
