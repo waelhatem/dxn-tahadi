@@ -3,21 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="icon" type="image/svg+xml" href="/logo.svg?v=2">
+  <link rel="shortcut icon" href="/logo.svg?v=2">
   <title>مجتمع الصحة والثراء</title>
 </head>
 <body style="margin:0;background:#eef5f1">
 <script>
 (async function(){
   try{
-    const res=await fetch('/index.html?dxn_repair=86471',{cache:'no-store'});
+    const res=await fetch('/index.html?dxn_repair=86472',{cache:'no-store'});
     if(!res.ok) throw new Error('تعذر تحميل الصفحة الأساسية: HTTP '+res.status);
     let html=await res.text();
     const broken='<script src="training-question-admin-v864622.js?v=86.46.61" defer></script>';
     if(!html.includes(broken)) throw new Error('لم يتم العثور على موضع الإصلاح المتوقع في index.html.');
     html=html.replace(broken,'</style>'+broken);
-    // The deployed app references the historical logo.png path, but that asset is not present in the repository.
-    // Redirect all existing logo references to the restored vector logo without changing application logic.
-    html=html.replace(/logo\.png/g,'logo.svg');
+    html=html.replace(/logo\.png/g,'logo.svg?v=2');
+    html=html.replace('</head>','<link rel="icon" type="image/svg+xml" href="/logo.svg?v=2"><link rel="shortcut icon" href="/logo.svg?v=2"></head>');
     document.open();
     document.write(html);
     document.close();
