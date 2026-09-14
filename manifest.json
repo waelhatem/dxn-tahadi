@@ -16,12 +16,6 @@
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
-    },
-    {
-      "src": "assets/site-logo.png?v=20260914",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
     }
   ]
 }
