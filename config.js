@@ -1,76 +1,21 @@
 // إعدادات مشروع مجتمع الصحة والثراء
 window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezzn.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_pD9m1Z3gN--2HAfhf_t2YA_2RiAeUh'};
-/* V86.46.52 — إصلاح تحميل واجهة العضو وتحديث cache-busting للمركز الذكي. */
+/* V86.44.6 — corrected Supabase proxy contract, hide leader training progress card, add priority challenge, Phase-1 training assessments, per-video assessment layout, and locked assessment buttons. */
 (function(){
   if(window.__DXN_LOGIN_RUNTIME_V8632__)return; window.__DXN_LOGIN_RUNTIME_V8632__=true;
-  async function rpc(name,args){var r=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn:name,args:args||{}}),cache:'no-store'});var text=await r.text(),data=null;try{data=text?JSON.parse(text):null}catch(e){}if(!r.ok){var er=new Error((data&&(data.message||data.error))||text||('HTTP '+r.status));er.status=r.status;er.code=data&&data.code;er.details=data&&data.details;er.hint=data&&data.hint;throw er}return data}
+  async function rpc(name,args){
+    var r=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn:name,args:args||{}}),cache:'no-store'});
+    var text=await r.text(),data=null; try{data=text?JSON.parse(text):null}catch(e){}
+    if(!r.ok){var er=new Error((data&&(data.message||data.error))||text||('HTTP '+r.status));er.status=r.status;er.code=data&&data.code;er.details=data&&data.details;er.hint=data&&data.hint;throw er} return data;
+  }
   function sdkRpc(name,args){return rpc(name,args).then(function(data){return {data:data,error:null}}).catch(function(error){return {data:null,error:error}})}
   function showError(title,e){var old=document.getElementById('dxnLoginDiag');if(old)old.remove();var b=document.getElementById('loginButton'),d=document.createElement('div');d.id='dxnLoginDiag';d.setAttribute('role','alert');d.style.cssText='margin-top:12px;padding:14px;border:2px solid #b42318;border-radius:14px;background:#fff5f4;color:#7a1b15;line-height:1.7;font-weight:700;direction:rtl;text-align:right';var detail='HTTP: '+(e&&e.status||'')+'\nCode: '+(e&&e.code||'')+'\nMessage: '+(e&&e.message||e)+'\nDetails: '+(e&&e.details||'')+'\nHint: '+(e&&e.hint||'');d.innerHTML='<b>'+title+'</b><div style="margin-top:6px;font-weight:500;white-space:pre-wrap">'+String(detail).replace(/[<>]/g,'')+'</div>';if(b&&b.parentNode)b.parentNode.insertBefore(d,b.nextSibling)}
-  async function login(){var n=document.getElementById('loginNo'),p=document.getElementById('pin'),b=document.getElementById('loginButton'),no=n?String(n.value||'').trim():'',pin=p?String(p.value||'').trim():'';if(!no||!pin){showError('بيانات الدخول ناقصة',new Error('أدخل رقم العضوية ورمز PIN.'));return}if(b){b.disabled=true;b.textContent='⏳ جارٍ التحقق...'}try{var x=await rpc('login',{p_login_no:no,p_pin:pin});if(!x||!x.token)throw new Error('لم يصل رمز الجلسة من الخادم.');localStorage.setItem('dxn_session',String(x.token));localStorage.setItem('dxn_session_issued',String(Date.now()));localStorage.setItem('dxn_role',String(x.role||''));await rpc('bootstrap',{p_token:x.token});location.reload()}catch(e){localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');localStorage.removeItem('dxn_role');showError('فشل مسار الدخول عبر الخادم الوسيط',e)}finally{if(b){b.disabled=false;b.textContent='🔐 دخول'}}}
+  async function login(){var n=document.getElementById('loginNo'),p=document.getElementById('pin'),b=document.getElementById('loginButton'),no=n?String(n.value||'').trim():'',pin=p?String(p.value||'').trim():'';if(!no||!pin){showError('بيانات الدخول ناقصة',new Error('أدخل رقم العضوية ورمز PIN.'));return}if(b){b.disabled=true;b.textContent='⏳ جارٍ التحقق...'}try{var x=await rpc('login',{p_login_no:no,p_pin:pin});if(!x||!x.token)throw new Error('لم يصل رمز الجلسة من الخادم.');localStorage.setItem('dxn_session',String(x.token));localStorage.setItem('dxn_session_issued',String(Date.now()));await rpc('bootstrap',{p_token:x.token});location.reload()}catch(e){localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');showError('فشل مسار الدخول عبر الخادم الوسيط',e)}finally{if(b){b.disabled=false;b.textContent='🔐 دخول'}}}
   function install(){try{var b=document.getElementById('loginButton');if(!b)return false;if(!b.__dxnV8632){b.__dxnV8632=true;b.removeAttribute('onclick');b.type='button';b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();login()},true)}window.login=login;return true}catch(e){return false}}
   var n=0,t=setInterval(function(){if(install()||++n>240)clearInterval(t)},50);
   function patchClient(){try{if(!window.supabase||typeof window.supabase.createClient!=='function'||window.supabase.createClient.__dxnV8632)return false;var original=window.supabase.createClient;function wrapped(){var client=original.apply(this,arguments);if(client&&typeof client.rpc==='function'&&!client.rpc.__dxnV8632){client.rpc=sdkRpc;client.rpc.__dxnV8632=true}return client}wrapped.__dxnV8632=true;window.supabase.createClient=wrapped;return true}catch(e){return false}}
   patchClient();var c=0,ct=setInterval(function(){if(patchClient()||++c>240)clearInterval(ct)},50);
 })();
-(function(){
-  function load(src){var s=document.createElement('script');s.src=src;s.async=false;document.head.appendChild(s)}
-  function roleOf(d){var x=d&&d.data?d.data:d;return String(x&&(x.role||(x.session&&x.session.role)||(x.user&&x.user.role)||(x.account&&x.account.role))||'').toLowerCase()}
-  function removeQuestionAdmin(){var ids=['dxn-training-question-admin-tab','dxn-training-question-admin','dxn-training-question-admin-center-button','dxn-qadmin-page-bottom','dxn-training-question-admin-direct-panel','dxn-training-question-admin-subtabs','dxn-training-question-force-subtabs','dxn-training-question-single-nav'];for(var i=0;i<ids.length;i++){var x=document.getElementById(ids[i]);if(x)x.remove()}}
-  function removeMemberAdmin(){removeQuestionAdmin()}
-  function loadQuestionAdminForLeader(){
-    var token=localStorage.getItem('dxn_session')||'';
-    var cachedRole=String(localStorage.getItem('dxn_role')||'').toLowerCase();
-    if(!token){removeQuestionAdmin();return}
-    if(cachedRole!=='leader')fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn:'training_get_session',args:{p_token:token}}),cache:'no-store'}).then(function(r){return r.json()}).then(function(d){var role=roleOf(d);if(role)localStorage.setItem('dxn_role',role);if(role!=='leader'&&role)removeMemberAdmin()}).catch(function(){if(cachedRole!=='leader')removeMemberAdmin()});
-  }
-  function go(){
-    load('member-training-profile.js?v=86.13.8');
-    load('training-overall-progress.js?v=86.13');
-    load('mobile-nav-fix.js?v=86.27');
-    load('priority-notification.js?v=86.44');
-    load('training-assessment.js?v=86.44.8');
-    load('training-assessment-layout.js?v=86.46.44');
-    load('training-assessment-buttons.js?v=86.46.51');
-    load('training-assessment-lock.js?v=86.46.44');
-    loadQuestionAdminForLeader();
-    load('training-page-actions.js?v=86.46.50');
-    load('training-answer-dedup.js?v=86.46.18');
-    load('training-review-draft.js?v=86.44.9');
-    load('training-ai-grader.js?v=86.45');
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go,{once:true});else go();
-  new MutationObserver(function(){if(String(localStorage.getItem('dxn_role')||'').toLowerCase()!=='leader')removeMemberAdmin()}).observe(document.documentElement,{childList:true,subtree:true});
-})();/* إخفاء زر تعديل أسئلة الاختبارات لحساب العضو */
-(function hideQuestionEditorForMember() {
-  function checkAndHide() {
-    var role = (window.role || window.currentRole || localStorage.getItem('dxn_role') || localStorage.getItem('user_role') || '').toString().toLowerCase();
-    var isMember = role === 'member' || role === 'عضو' || !!document.querySelector('.member-tag, [data-role="member"]') || (document.body && document.body.innerText.includes('العضو'));
-    var isLeader = role === 'leader' || role === 'admin' || role === 'قائد' || !!document.querySelector('[data-role="leader"], [data-role="admin"]');
-
-    if (isMember && !isLeader) {
-      document.querySelectorAll('button, a, div, span').forEach(function(el) {
-        if (el.children.length === 0 && el.textContent.includes('تعديل أسئلة الاختبارات')) {
-          var container = el.closest('div, p') || el;
-          container.style.display = 'none';
-          container.remove();
-        }
-      });
-
-      document.querySelectorAll('div').forEach(function(div) {
-        if (div.innerText.trim() === '' && div.clientHeight > 20 && div.clientHeight < 90) {
-          div.style.display = 'none';
-        }
-      });
-    }
-  }
-
-  checkAndHide();
-  setTimeout(checkAndHide, 400);
-  setTimeout(checkAndHide, 1200);
-
-  try {
-    var observer = new MutationObserver(checkAndHide);
-    observer.observe(document.body, { childList: true, subtree: true });
-  } catch(e){}
-})();
-(function(){function hideLeaderTrainingCard(){var cards=document.querySelectorAll('.card');for(var i=0;i<cards.length;i++){var title=cards[i].querySelector('.title');if(title&&title.textContent.indexOf('متابعة التدريبات')!==-1)cards[i].remove()}}function start(){hideLeaderTrainingCard();var root=document.body;if(!root)return;new MutationObserver(function(){hideLeaderTrainingCard()}).observe(root,{childList:true,subtree:true})}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start()})();
+(function(){function load(src){var s=document.createElement('script');s.src=src;s.async=false;document.head.appendChild(s)}function go(){load('member-training-profile.js?v=86.13.8');load('training-overall-progress.js?v=86.13');load('mobile-nav-fix.js?v=86.27');load('priority-notification.js?v=86.44');load('training-assessment.js?v=86.44.2');load('training-assessment-layout.js?v=86.44.4');load('training-assessment-buttons.js?v=86.44.6')}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go,{once:true});else go()})();
+/* V86.41 — remove only the leader-admin card titled "📚 متابعة التدريبات". */
+(function(){function hideLeaderTrainingCard(){var cards=document.querySelectorAll('.card');for(var i=0;i<cards.length;i++){var title=cards[i].querySelector('.title');if(title&&title.textContent.indexOf('متابعة التدريبات')!==-1){cards[i].remove()}}}function start(){hideLeaderTrainingCard();var root=document.body;if(!root)return;new MutationObserver(function(){hideLeaderTrainingCard()}).observe(root,{childList:true,subtree:true})}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start()})();
