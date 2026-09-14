@@ -2,7 +2,7 @@
   "version": 2,
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/:path*" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    { "source": "/((?!api/|.*\\.).*)", "destination": "/index.html" }
   ],
   "functions": {
     "api/rpc.js": { "maxDuration": 60 }
