@@ -1,71 +1,22 @@
-/* V86.46.6 — تقييم إجابات التدريب + اعتماد تلقائي + تكريم 90+ مع صوت الجمهور + انتقال تلقائي للسؤال التالي */
+/* V86.46.7 — تقييم إجابات التدريب + اعتماد تلقائي + تكريم 90+ مع صوت الجمهور + انتقال داخل الاختبار بدون إعادة تحميل */
 (function(){
-  if(window.__DXN_TRAINING_AI_GRADER_V86466__) return;
-  window.__DXN_TRAINING_AI_GRADER_V86466__=true;
-
+  if(window.__DXN_TRAINING_AI_GRADER_V86467__) return;
+  window.__DXN_TRAINING_AI_GRADER_V86467__=true;
   var GENERIC_RETRY='ركز في إجابتك. حصلت الإجابة على أقل من 60/100 وتحتاج إلى مراجعة وإعادة.';
   var CROWD_AUDIO='/achievement_crowd_5s.mp3';
   var NEXT_KEY='dxn_training_next_destination';
   var crowdAudio=null;
-
   function token(){return localStorage.getItem('dxn_session')||''}
   async function rpc(fn,args){var r=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn:fn,args:args||{}}),cache:'no-store'});var t=await r.text(),d=null;try{d=t?JSON.parse(t):null}catch(e){}if(!r.ok)throw new Error((d&&(d.message||d.error||d.hint))||t||('HTTP '+r.status));return d;}
   async function grade(payload){var r=await fetch('/api/grade-training',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store'});var t=await r.text(),d=null;try{d=t?JSON.parse(t):null}catch(e){}if(!r.ok)throw new Error((d&&(d.error||d.message))||t||('HTTP '+r.status));return d;}
   function prepareCrowdAudio(){try{if(!crowdAudio){crowdAudio=new Audio(CROWD_AUDIO);crowdAudio.preload='auto';crowdAudio.volume=0.95}crowdAudio.load()}catch(e){}}
-  function playCrowdAudio(){try{if(!crowdAudio)prepareCrowdAudio();if(!crowdAudio)return;crowdAudio.currentTime=0;var p=crowdAudio.play();if(p&&typeof p.catch==='function')p.catch(function(){})}catch(e){}}
-
-  function rememberCurrentDestination(qid){try{sessionStorage.setItem(NEXT_KEY,JSON.stringify({kind:'question',qid:String(qid)}))}catch(e){}}
-
-  function rememberNextDestination(qid){
-    try{
-      var current=document.querySelector('[data-assessment-q="'+String(qid).replace(/"/g,'\\"')+'"]');if(!current)return;
-      var currentDetail=current.closest('details');
-      var same=currentDetail?Array.prototype.slice.call(currentDetail.querySelectorAll('textarea[data-assessment-q]')):[];
-      var at=same.findIndex(function(x){return String(x.getAttribute('data-assessment-q'))===String(qid)});
-      if(at>=0&&same[at+1]){sessionStorage.setItem(NEXT_KEY,JSON.stringify({kind:'question',qid:String(same[at+1].getAttribute('data-assessment-q')||'')}));return;}
-      var details=Array.prototype.slice.call(document.querySelectorAll('details.dxn-training-assessment-inline'));
-      if(currentDetail&&details.indexOf(currentDetail)<0)details.push(currentDetail);
-      details.sort(function(a,b){return (a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING)?-1:1});
-      var idx=details.indexOf(currentDetail);
-      if(idx<0){for(var i=0;i<details.length;i++){if(details[i].contains(current)){idx=i;break}}}
-      if(idx>=0&&details[idx+1]){var next=details[idx+1].querySelector('textarea[data-assessment-q]');if(next){sessionStorage.setItem(NEXT_KEY,JSON.stringify({kind:'question',qid:String(next.getAttribute('data-assessment-q')||'')}));return}}
-      sessionStorage.setItem(NEXT_KEY,JSON.stringify({kind:'stay',qid:String(qid)}));
-    }catch(e){try{sessionStorage.setItem(NEXT_KEY,JSON.stringify({kind:'stay',qid:String(qid)}))}catch(_e){}}
-  }
-
-  function restoreNextDestination(){
-    var raw=null;try{raw=sessionStorage.getItem(NEXT_KEY);sessionStorage.removeItem(NEXT_KEY)}catch(e){}if(!raw)return;
-    var dest=null;try{dest=JSON.parse(raw)}catch(e){return};var tries=0;
-    var timer=setInterval(function(){
-      tries++;var target=null;
-      if(dest&&dest.qid)target=document.querySelector('[data-assessment-q="'+String(dest.qid).replace(/"/g,'\\"')+'"]');
-      if(target){clearInterval(timer);var detail=target.closest('details');if(detail)detail.open=true;setTimeout(function(){target.scrollIntoView({behavior:'smooth',block:'center'});try{target.focus({preventScroll:true})}catch(e){try{target.focus()}catch(_e){}}},120);return}
-      if(tries>80)clearInterval(timer);
-    },250);
-  }
-
-  function celebrate90(){
-    playCrowdAudio();
-    var old=document.getElementById('dxn-training-success-celebration');if(old)old.remove();
-    var wrap=document.createElement('div');wrap.id='dxn-training-success-celebration';wrap.setAttribute('role','status');wrap.style.cssText='position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;pointer-events:none;overflow:hidden;background:rgba(255,255,255,.08);backdrop-filter:blur(1px);';
-    var style=document.createElement('style');style.textContent='@keyframes dxnCupPop{0%{transform:scale(.3) rotate(-8deg);opacity:0}60%{transform:scale(1.15) rotate(3deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}@keyframes dxnConfettiFall{0%{transform:translate3d(0,-12vh,0) rotate(0deg);opacity:0}10%{opacity:1}100%{transform:translate3d(var(--dx),110vh,0) rotate(var(--rot));opacity:0}}#dxn-training-success-celebration .dxn-cup{font-size:110px;animation:dxnCupPop .75s cubic-bezier(.2,.85,.25,1) both;filter:drop-shadow(0 12px 22px rgba(0,0,0,.22))}#dxn-training-success-celebration .dxn-message{position:absolute;top:50%;transform:translateY(95px);background:#fff;border-radius:22px;padding:14px 24px;box-shadow:0 14px 40px rgba(0,0,0,.18);font:900 22px/1.4 system-ui,sans-serif;color:#0f513f;direction:rtl;text-align:center;animation:dxnCupPop .75s .12s both}';wrap.appendChild(style);
-    var cup=document.createElement('div');cup.className='dxn-cup';cup.textContent='🏆';wrap.appendChild(cup);
-    var msg=document.createElement('div');msg.className='dxn-message';msg.textContent='ممتاز! حصلت على 90 درجة أو أكثر 🎉';wrap.appendChild(msg);
-    for(var i=0;i<90;i++){var c=document.createElement('i');c.style.cssText='position:absolute;top:-6vh;left:'+(Math.random()*100)+'%;width:'+(6+Math.random()*8)+'px;height:'+(10+Math.random()*12)+'px;border-radius:2px;background:hsl('+(Math.random()*360)+',85%,'+(45+Math.random()*15)+'%);transform:rotate('+(Math.random()*180)+'deg);--dx:'+((Math.random()-.5)*34)+'vw;--rot:'+((Math.random()>.5?1:-1)*(180+Math.random()*720))+'deg;animation:dxnConfettiFall '+(2.2+Math.random()*2.6)+'s '+(Math.random()*.25)+'s linear forwards;';wrap.appendChild(c)}
-    document.body.appendChild(wrap);setTimeout(function(){if(wrap&&wrap.parentNode)wrap.remove()},4600);
-  }
-
-  async function submit(qid){
-    var el=document.querySelector('[data-assessment-q="'+String(qid).replace(/"/g,'\\"')+'"]');var value=el?String(el.value||'').trim():'';if(value.length<2){alert('اكتب إجابة قبل الإرسال.');return}
-    prepareCrowdAudio();var btn=el&&el.closest('.challenge')?el.closest('.challenge').querySelector('button.primary'):null;var originalText=btn?btn.textContent:'';if(btn){btn.disabled=true;btn.textContent='🤖 جارٍ التقييم...'}
-    try{
-      var boot=await rpc('training_assessment_bootstrap',{p_token:token()});var rows=Array.isArray(boot&&boot.my_answers)?boot.my_answers:[];var old=rows.filter(function(x){return String(x.question_id)===String(qid)}).sort(function(a,b){return Number(b.attempt_no||0)-Number(a.attempt_no||0)})[0]||null;var attempt=Math.max(1,Number(old&&old.attempt_no||0)+(old&&old.status==='retry'?1:0));
-      var submitted=await rpc('submit_training_answer',{p_token:token(),p_question_id:qid,p_answer:value,p_attempt_no:attempt});var answerId=submitted&&submitted.answer_id;if(!answerId)throw new Error('تم إرسال الإجابة لكن لم يصل رقم الإجابة للخادم.');
-      var result=await grade({token:token(),question_id:qid,answer_id:answerId,answer:value});var score=Number(result&&result.score||0),status=String(result&&result.status||'retry');
-      if(status==='retry'){rememberCurrentDestination(qid);alert(GENERIC_RETRY+'\n\nالدرجة: '+score+'/100')}else{rememberNextDestination(qid);if(score>=90)celebrate90();else alert('✅ تم اعتماد السؤال تلقائيًا بالذكاء الاصطناعي\n\nالدرجة: '+score+'/100')}
-      var waitMs=score>=90?4500:0;if(waitMs)setTimeout(function(){location.reload()},waitMs);else location.reload();
-    }catch(e){if(btn){btn.disabled=false;btn.textContent=originalText||'📤 إرسال الإجابة'}alert('تعذر إكمال التقييم التلقائي: '+e.message+'\n\nيمكنك المحاولة مرة أخرى.')}
-  }
-  function install(){if(typeof window.submitTrainingAnswer!=='function')return false;if(window.submitTrainingAnswer.__dxnAiV86466)return true;window.submitTrainingAnswer=submit;window.submitTrainingAnswer.__dxnAiV86466=true;return true}
-  var n=0,t=setInterval(function(){install();if(++n>400)clearInterval(t)},100);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restoreNextDestination,{once:true});else restoreNextDestination();
+  function playCrowdAudio(){try{if(!crowdAudio)prepareCrowdAudio();if(!crowdAudio)return;crowdAudio.currentTime=0;var p=crowdAudio.play();if(p&&typeof p.catch==='function')p.catch(function(){});}catch(e){}}
+  function findNextDestination(qid){try{var current=document.querySelector('[data-assessment-q="'+String(qid).replace(/"/g,'\\"')+'"]');if(!current)return null;var currentDetail=current.closest('details');var same=currentDetail?Array.prototype.slice.call(currentDetail.querySelectorAll('textarea[data-assessment-q]')):[];var at=same.findIndex(function(x){return String(x.getAttribute('data-assessment-q'))===String(qid)});if(at>=0&&same[at+1])return {kind:'question',qid:String(same[at+1].getAttribute('data-assessment-q')||'')};var details=Array.prototype.slice.call(document.querySelectorAll('details.dxn-training-assessment-inline'));if(currentDetail&&details.indexOf(currentDetail)<0)details.push(currentDetail);details.sort(function(a,b){return (a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING)?-1:1});var idx=details.indexOf(currentDetail);if(idx<0){for(var i=0;i<details.length;i++){if(details[i].contains(current)){idx=i;break}}}if(idx>=0&&details[idx+1]){var next=details[idx+1].querySelector('textarea[data-assessment-q]');if(next)return {kind:'question',qid:String(next.getAttribute('data-assessment-q')||'')}}return {kind:'stay',qid:String(qid)};}catch(e){return {kind:'stay',qid:String(qid)}}}
+  function rememberNextDestination(qid){try{sessionStorage.setItem(NEXT_KEY,JSON.stringify(findNextDestination(qid)||{kind:'stay',qid:String(qid)}));}catch(e){}}
+  function clearRememberedDestination(){try{sessionStorage.removeItem(NEXT_KEY)}catch(e){}}
+  function goToRememberedDestination(){var raw=null;try{raw=sessionStorage.getItem(NEXT_KEY);sessionStorage.removeItem(NEXT_KEY)}catch(e){}if(!raw)return;var dest=null;try{dest=JSON.parse(raw)}catch(e){return}if(!dest||!dest.qid||dest.kind==='stay')return;var tries=0;var timer=setInterval(function(){tries++;var target=document.querySelector('[data-assessment-q="'+String(dest.qid).replace(/"/g,'\\"')+'"]');if(target){clearInterval(timer);var detail=target.closest('details');if(detail)detail.open=true;setTimeout(function(){target.scrollIntoView({behavior:'smooth',block:'center'});try{target.focus({preventScroll:true})}catch(e){try{target.focus()}catch(_e){}}},120);return}if(tries>80)clearInterval(timer)},250);}
+  function celebrate90(score){playCrowdAudio();var old=document.getElementById('dxn-training-success-celebration');if(old)old.remove();var wrap=document.createElement('div');wrap.id='dxn-training-success-celebration';wrap.setAttribute('role','status');wrap.style.cssText='position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;pointer-events:none;overflow:hidden;background:rgba(255,255,255,.08);backdrop-filter:blur(1px);';var style=document.createElement('style');style.textContent='@keyframes dxnCupPop{0%{transform:scale(.3) rotate(-8deg);opacity:0}60%{transform:scale(1.15) rotate(3deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}@keyframes dxnConfettiFall{0%{transform:translate3d(0,-12vh,0) rotate(0deg);opacity:0}10%{opacity:1}100%{transform:translate3d(var(--dx),110vh,0) rotate(var(--rot));opacity:0}}#dxn-training-success-celebration .dxn-cup{font-size:110px;animation:dxnCupPop .75s cubic-bezier(.2,.85,.25,1) both;filter:drop-shadow(0 12px 22px rgba(0,0,0,.22))}#dxn-training-success-celebration .dxn-message{position:absolute;top:50%;transform:translateY(95px);background:#fff;border-radius:22px;padding:14px 24px;box-shadow:0 14px 40px rgba(0,0,0,.18);font:900 22px/1.4 system-ui,sans-serif;color:#0f513f;direction:rtl;text-align:center;animation:dxnCupPop .75s .12s both}';wrap.appendChild(style);var cup=document.createElement('div');cup.className='dxn-cup';cup.textContent='🏆';wrap.appendChild(cup);var msg=document.createElement('div');msg.className='dxn-message';msg.textContent='🎉 مبروك! حصلت على '+score+'/100';wrap.appendChild(msg);for(var i=0;i<90;i++){var c=document.createElement('i');c.style.cssText='position:absolute;top:-6vh;left:'+(Math.random()*100)+'%;width:'+(6+Math.random()*8)+'px;height:'+(10+Math.random()*12)+'px;border-radius:2px;background:hsl('+(Math.random()*360)+',85%,'+(45+Math.random()*15)+'%);transform:rotate('+(Math.random()*180)+'deg);--dx:'+((Math.random()-.5)*34)+'vw;--rot:'+((Math.random()>.5?1:-1)*(180+Math.random()*720))+'deg;animation:dxnConfettiFall '+(2.2+Math.random()*2.6)+'s '+(Math.random()*.25)+'s linear forwards;';wrap.appendChild(c)}document.body.appendChild(wrap);setTimeout(function(){if(wrap&&wrap.parentNode)wrap.remove()},4600);}
+  async function submit(qid){var el=document.querySelector('[data-assessment-q="'+String(qid).replace(/"/g,'\\"')+'"]');var value=el?String(el.value||'').trim():'';if(value.length<2){alert('اكتب إجابة قبل الإرسال.');return}prepareCrowdAudio();var btn=el&&el.closest('.challenge')?el.closest('.challenge').querySelector('button.primary'):null;var originalText=btn?btn.textContent:'';if(btn){btn.disabled=true;btn.textContent='🤖 جارٍ التقييم...'}try{var boot=await rpc('training_assessment_bootstrap',{p_token:token()});var rows=Array.isArray(boot&&boot.my_answers)?boot.my_answers:[];var old=rows.filter(function(x){return String(x.question_id)===String(qid)}).sort(function(a,b){return Number(b.attempt_no||0)-Number(a.attempt_no||0)})[0]||null;var attempt=Math.max(1,Number(old&&old.attempt_no||0)+(old&&old.status==='retry'?1:0));var submitted=await rpc('submit_training_answer',{p_token:token(),p_question_id:qid,p_answer:value,p_attempt_no:attempt});var answerId=submitted&&submitted.answer_id;if(!answerId)throw new Error('تم إرسال الإجابة لكن لم يصل رقم الإجابة للخادم.');var result=await grade({token:token(),question_id:qid,answer_id:answerId,answer:value});var score=Number(result&&result.score||0),status=String(result&&result.status||'retry');if(status==='retry'){clearRememberedDestination();alert(GENERIC_RETRY+'\n\nالدرجة: '+score+'/100');}else{rememberNextDestination(qid);if(score>=90){celebrate90(score);setTimeout(goToRememberedDestination,4600);}else{alert('✅ تم اعتماد السؤال تلقائيًا بالذكاء الاصطناعي\n\nالدرجة: '+score+'/100');setTimeout(goToRememberedDestination,250);}}}catch(e){if(btn){btn.disabled=false;btn.textContent=originalText||'📤 إرسال الإجابة'}alert('تعذر إكمال التقييم التلقائي: '+e.message+'\n\nيمكنك المحاولة مرة أخرى.')}}
+  function install(){if(typeof window.submitTrainingAnswer!=='function')return false;if(window.submitTrainingAnswer.__dxnAiV86467)return true;window.submitTrainingAnswer=submit;window.submitTrainingAnswer.__dxnAiV86467=true;return true}
+  var n=0,t=setInterval(function(){install();if(++n>400)clearInterval(t)},100);
 })();
