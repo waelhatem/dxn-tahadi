@@ -15,6 +15,9 @@
     const broken='<script src="training-question-admin-v864622.js?v=86.46.61" defer></script>';
     if(!html.includes(broken)) throw new Error('لم يتم العثور على موضع الإصلاح المتوقع في index.html.');
     html=html.replace(broken,'</style>'+broken);
+    // The deployed app references the historical logo.png path, but that asset is not present in the repository.
+    // Redirect all existing logo references to the restored vector logo without changing application logic.
+    html=html.replace(/logo\.png/g,'logo.svg');
     document.open();
     document.write(html);
     document.close();
