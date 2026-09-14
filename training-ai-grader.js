@@ -1,10 +1,11 @@
-/* V86.46.4 — تقييم إجابات التدريب + اعتماد تلقائي + تكريم 90+ مع صوت الجمهور */
+/* V86.46.5 — تقييم إجابات التدريب + اعتماد تلقائي + تكريم 90+ مع صوت الجمهور + انتقال تلقائي للسؤال التالي */
 (function(){
-  if(window.__DXN_TRAINING_AI_GRADER_V86464__) return;
-  window.__DXN_TRAINING_AI_GRADER_V86464__=true;
+  if(window.__DXN_TRAINING_AI_GRADER_V86465__) return;
+  window.__DXN_TRAINING_AI_GRADER_V86465__=true;
 
   var GENERIC_RETRY='ركز في إجابتك. حصلت الإجابة على أقل من 60/100 وتحتاج إلى مراجعة وإعادة.';
   var CROWD_AUDIO='/achievement_crowd_5s.mp3';
+  var NEXT_KEY='dxn_training_next_destination';
   var crowdAudio=null;
 
   function token(){return localStorage.getItem('dxn_session')||''}
@@ -42,6 +43,69 @@
       var p=crowdAudio.play();
       if(p&&typeof p.catch==='function')p.catch(function(){});
     }catch(e){}
+  }
+
+  function rememberNextDestination(qid){
+    try{
+      var current=document.querySelector('[data-assessment-q="'+String(qid).replace(/"/g,'\\"')+'"]');
+      if(!current)return;
+      var currentDetail=current.closest('details');
+      var same=currentDetail?Array.prototype.slice.call(currentDetail.querySelectorAll('textarea[data-assessment-q]')):[];
+      var at=same.findIndex(function(x){return String(x.getAttribute('data-assessment-q'))===String(qid)});
+
+      if(at>=0 && same[at+1]){
+        sessionStorage.setItem(NEXT_KEY,JSON.stringify({kind:'question',qid:String(same[at+1].getAttribute('data-assessment-q')||'')}));
+        return;
+      }
+
+      var details=Array.prototype.slice.call(document.querySelectorAll('details.dxn-training-assessment-inline'));
+      if(currentDetail && !details.includes(currentDetail))details.push(currentDetail);
+      details.sort(function(a,b){return (a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING)?-1:1});
+      var idx=details.indexOf(currentDetail);
+      if(idx<0){
+        for(var i=0;i<details.length;i++){
+          if(details[i].contains(current)){idx=i;break;}
+        }
+      }
+      if(idx>=0 && details[idx+1]){
+        var next=details[idx+1].querySelector('textarea[data-assessment-q]');
+        if(next){
+          sessionStorage.setItem(NEXT_KEY,JSON.stringify({kind:'question',qid:String(next.getAttribute('data-assessment-q')||'')}));
+          return;
+        }
+      }
+
+      /* آخر سؤال في آخر تدريب: لا نفرض انتقالًا إلى الواجهة الرئيسية من هنا. */
+      sessionStorage.setItem(NEXT_KEY,JSON.stringify({kind:'stay',qid:String(qid)}));
+    }catch(e){
+      try{sessionStorage.setItem(NEXT_KEY,JSON.stringify({kind:'stay',qid:String(qid)}))}catch(_e){}
+    }
+  }
+
+  function restoreNextDestination(){
+    var raw=null;
+    try{raw=sessionStorage.getItem(NEXT_KEY);sessionStorage.removeItem(NEXT_KEY)}catch(e){}
+    if(!raw)return;
+    var dest=null;try{dest=JSON.parse(raw)}catch(e){return}
+    var tries=0;
+    var timer=setInterval(function(){
+      tries++;
+      var target=null;
+      if(dest&&dest.qid){
+        target=document.querySelector('[data-assessment-q="'+String(dest.qid).replace(/"/g,'\\"')+'"]');
+      }
+      if(target){
+        clearInterval(timer);
+        var detail=target.closest('details');
+        if(detail)detail.open=true;
+        setTimeout(function(){
+          target.scrollIntoView({behavior:'smooth',block:'center'});
+          try{target.focus({preventScroll:true})}catch(e){try{target.focus()}catch(_e){}}
+        },120);
+        return;
+      }
+      if(tries>80)clearInterval(timer);
+    },250);
   }
 
   function celebrate90(){
@@ -98,18 +162,21 @@
 
       var submitted=await rpc('submit_training_answer',{p_token:token(),p_question_id:qid,p_answer:value,p_attempt_no:attempt});
       var answerId=submitted&&submitted.answer_id;
-      var attemptNo=Number(submitted&&submitted.attempt_no||attempt||1);
       if(!answerId)throw new Error('تم إرسال الإجابة لكن لم يصل رقم الإجابة للخادم.');
 
       var result=await grade({token:token(),question_id:qid,answer_id:answerId,answer:value});
       var score=Number(result&&result.score||0),status=String(result&&result.status||'retry');
 
       if(status==='retry'){
+        rememberNextDestination(qid);
         alert(GENERIC_RETRY+'\n\nالدرجة: '+score+'/100');
-      }else if(score>=90){
-        celebrate90();
       }else{
-        alert('✅ تم اعتماد السؤال تلقائيًا بالذكاء الاصطناعي\n\nالدرجة: '+score+'/100');
+        rememberNextDestination(qid);
+        if(score>=90){
+          celebrate90();
+        }else{
+          alert('✅ تم اعتماد السؤال تلقائيًا بالذكاء الاصطناعي\n\nالدرجة: '+score+'/100');
+        }
       }
 
       var waitMs=score>=90?4500:0;
@@ -122,11 +189,12 @@
 
   function install(){
     if(typeof window.submitTrainingAnswer!=='function')return false;
-    if(window.submitTrainingAnswer.__dxnAiV86464)return true;
+    if(window.submitTrainingAnswer.__dxnAiV86465)return true;
     window.submitTrainingAnswer=submit;
-    window.submitTrainingAnswer.__dxnAiV86464=true;
+    window.submitTrainingAnswer.__dxnAiV86465=true;
     return true;
   }
 
   var n=0,t=setInterval(function(){install();if(++n>400)clearInterval(t)},100);
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restoreNextDestination,{once:true});else restoreNextDestination();
 })();
