@@ -1,7 +1,7 @@
-/* V86.46.32 — separate member/leader training labels; never show question management inside member learning tab */
+/* V86.46.33 — exact distinct member/leader training tab names */
 (function(){
-  if(window.__DXN_TRAINING_ROLE_UI_FIX_V864632__)return;
-  window.__DXN_TRAINING_ROLE_UI_FIX_V864632__=true;
+  if(window.__DXN_TRAINING_ROLE_UI_FIX_V864633__)return;
+  window.__DXN_TRAINING_ROLE_UI_FIX_V864633__=true;
 
   function token(){try{return String(localStorage.getItem('dxn_session')||'')}catch(e){return ''}}
   function localRole(){try{return String(localStorage.getItem('dxn_role')||'').toLowerCase()}catch(e){return ''}}
@@ -13,11 +13,11 @@
   }
 
   function renameTrainingTab(role){
-    var label=role==='leader'?'📚 إدارة الشروحات والتدريبات':'🎓 التعلم والتدريب';
-    var aria=role==='leader'?'إدارة الشروحات والتدريبات':'التعلم والتدريب';
+    var label=role==='leader'?'ادارة الشروحات والتدريبات':'التدريب والتعلم';
+    var aria=role==='leader'?'ادارة الشروحات والتدريبات':'التدريب والتعلم';
     document.querySelectorAll('.tabs .tab').forEach(function(tab){
       var text=String(tab.textContent||'').replace(/\s+/g,' ').trim();
-      if(!/الشروحات\s*والتدريبات/.test(text) && text!==label)return;
+      if(!/الشروحات\s*والتدريبات/.test(text) && !/التعلم\s*والتدريب/.test(text) && !/التدريب\s*والتعلم/.test(text) && !/ادارة\s*الشروحات\s*والتدريبات/.test(text))return;
       if(String(tab.textContent||'').trim()!==label)tab.textContent=label;
       if(tab.getAttribute('aria-label')!==aria)tab.setAttribute('aria-label',aria);
     });
@@ -27,7 +27,7 @@
     var active=document.querySelector('.tabs .tab.active');
     if(!active)return false;
     var text=String(active.textContent||'').replace(/\s+/g,' ').trim();
-    return /التعلم\s*والتدريب/.test(text);
+    return /التدريب\s*والتعلم/.test(text);
   }
 
   function removeMemberQuestionManager(){
@@ -38,8 +38,6 @@
 
   function applyRole(role){
     renameTrainingTab(role);
-    // قاعدة واجهة مستقلة: داخل تبويب العضو «التعلم والتدريب» لا يظهر مدير الأسئلة مهما كانت
-    // قيمة الدور المخزنة محليًا أو توقيت تحميل باقي الملفات.
     if(role!=='leader' || isMemberLearningTabActive())removeMemberQuestionManager();
   }
 
