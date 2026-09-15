@@ -1,7 +1,10 @@
-/* V86.46.15 — إخفاء نتائج التدريب من لوحة القائد فقط + حذف إجابات تدريب بالكامل + الانتقال للسؤال التالي دون إعادة تحميل */
+/* V86.46.17 — إصلاح حذف نتيجة الاختبار من لوحة القائد وربط كل بطاقة برقم الإجابة الحقيقي */
 (function(){
-  if(window.__DXN_TRAINING_LEADER_CLEANUP_V864615__) return;
-  window.__DXN_TRAINING_LEADER_CLEANUP_V864615__=true;
+  if(window.__DXN_TRAINING_LEADER_CLEANUP_V864617__) return;
+  window.__DXN_TRAINING_LEADER_CLEANUP_V864617__=true;
+
+  var hiddenAnswers=window.__DXN_LEADER_HIDDEN_ANSWERS__||{};
+  window.__DXN_LEADER_HIDDEN_ANSWERS__=hiddenAnswers;
 
   async function rpc(fn,args){
     var r=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn:fn,args:args||{}}),cache:'no-store'});
@@ -25,45 +28,56 @@
     (document.head||document.documentElement).appendChild(s);
   }
 
+  function findCardByAnswerId(answerId){
+    var id=String(answerId||''),cards=document.querySelectorAll('#dxn-training-answer-center .challenge');
+    for(var i=0;i<cards.length;i++){
+      if(String(cards[i].getAttribute('data-dxn-answer-id')||'')===id)return cards[i];
+    }
+    return null;
+  }
+
   function scrollToNextAfterRemoval(card){
     try{
-      if(!card)return;
-      var section=card.closest('.dxn-leader-training-group');
+      var section=card&&card.parentNode&&card.parentNode.classList&&card.parentNode.classList.contains('dxn-leader-training-group')?card.parentNode:null;
       var next=null;
       if(section){
         var cards=Array.prototype.slice.call(section.querySelectorAll('.challenge'));
-        var idx=cards.indexOf(card);
-        if(idx>=0&&cards[idx+1]) next=cards[idx+1];
+        next=cards[0]||null;
         if(!next){
           var sections=Array.prototype.slice.call(document.querySelectorAll('.dxn-leader-training-group'));
           var sidx=sections.indexOf(section);
-          if(sidx>=0&&sections[sidx+1]) next=sections[sidx+1].querySelector('.challenge');
+          if(sidx>=0&&sections[sidx+1])next=sections[sidx+1].querySelector('.challenge');
         }
       }
-      if(!next) next=document.querySelector('#dxn-training-answer-center .challenge');
+      if(!next)next=document.querySelector('#dxn-training-answer-center .challenge');
       if(next){
         var details=next.closest('details');
         if(details)details.open=true;
-        setTimeout(function(){
-          try{next.scrollIntoView({behavior:'smooth',block:'center'})}catch(e){next.scrollIntoView()}
-        },120);
+        setTimeout(function(){try{next.scrollIntoView({behavior:'smooth',block:'center'})}catch(e){try{next.scrollIntoView()}catch(_){}}},120);
       }
-    }catch(e){console.error('V86.46.15 next leader result',e)}
+    }catch(e){console.error('V86.46.17 next leader result',e)}
   }
 
   async function hideAnswer(answerId){
+    answerId=String(answerId||'').trim();
     if(!answerId)return;
     if(!confirm('حذف هذا الاختبار من لوحة القائد؟\nستبقى النتيجة والحالة محفوظتين للعضو كما هي.'))return;
-    var btn=document.querySelector('.dxn-leader-delete-btn[data-answer-id="'+String(answerId).replace(/"/g,'\\"')+'"]');
-    var card=btn&&btn.closest('.challenge');
+    var btn=document.querySelector('.dxn-leader-delete-btn[data-answer-id="'+answerId.replace(/"/g,'\\"')+'"]');
+    var card=findCardByAnswerId(answerId)||(btn&&btn.closest('.challenge'));
     try{
+      if(!token())throw new Error('جلسة القائد غير موجودة. يرجى تسجيل الدخول من جديد.');
       if(btn){btn.disabled=true;btn.textContent='⏳ جارٍ الحذف...'}
-      await rpc('leader_hide_training_answer',{p_token:token(),p_answer_id:answerId});
+      var d=await rpc('leader_hide_training_answer',{p_token:token(),p_answer_id:answerId});
+      if(!d||d.ok!==true)throw new Error('لم يؤكد الخادم نجاح الحذف.');
+
+      hiddenAnswers[answerId]=true;
       if(card){
+        card.setAttribute('data-dxn-leader-hidden','1');
         var section=card.closest('.dxn-leader-training-group');
         card.remove();
         if(section&&!section.querySelector('.challenge'))section.remove();
       }
+      window.dispatchEvent(new CustomEvent('dxn:leader-answer-hidden',{detail:{answerId:answerId}}));
       scrollToNextAfterRemoval(card);
     }catch(e){
       if(btn){btn.disabled=false;btn.textContent='🗑️ حذف من لوحة القائد'}
@@ -94,13 +108,33 @@
     if(!box||box.getAttribute('data-dxn-training-groups')==='1')return;
     var cards=Array.prototype.slice.call(box.querySelectorAll('.challenge'));
     if(!cards.length||!rows.length)return;
+
+    for(var m=0;m<cards.length&&m<rows.length;m++){
+      var rr=rows[m];
+      if(rr&&rr.id)cards[m].setAttribute('data-dxn-answer-id',String(rr.id));
+    }
+
+    for(var h=cards.length-1;h>=0;h--){
+      var cid=String(cards[h].getAttribute('data-dxn-answer-id')||'');
+      if(cid&&hiddenAnswers[cid])cards[h].remove();
+    }
+    cards=Array.prototype.slice.call(box.querySelectorAll('.challenge'));
+    if(!cards.length)return;
+
     var groupsHost=document.createElement('div');
     groupsHost.id='dxn-leader-training-groups';
     var order=[],groups={};
-    for(var i=0;i<cards.length&&i<rows.length;i++){
-      var row=rows[i],no=Number(row&&row.lesson_no||0);
+    for(var i=0;i<cards.length;i++){
+      var no=Number((rows[i]||{}).lesson_no||0);
+      if(!no){
+        var rid=String(cards[i].getAttribute('data-dxn-answer-id')||'');
+        for(var z=0;z<rows.length;z++){if(String(rows[z]&&rows[z].id||'')===rid){no=Number(rows[z].lesson_no||0);break}}
+      }
       if(!no)continue;
-      if(!groups[no]){groups[no]={lesson_no:no,title:String(row.lesson_title||('التدريب '+no)),cards:[]};order.push(no)}
+      var matched=null;
+      for(var r=0;r<rows.length;r++){if(String(rows[r]&&rows[r].id||'')===String(cards[i].getAttribute('data-dxn-answer-id')||'')){matched=rows[r];break}}
+      if(!matched)continue;
+      if(!groups[no]){groups[no]={lesson_no:no,title:String(matched.lesson_title||('التدريب '+no)),cards:[]};order.push(no)}
       groups[no].cards.push(cards[i]);
     }
     if(!order.length)return;
@@ -129,18 +163,18 @@
       var rows=d&&Array.isArray(d.all_answers)?d.all_answers:[];
       groupByTraining(box,rows);
       var cards=box.querySelectorAll('.challenge');
-      for(var i=0;i<cards.length&&i<rows.length;i++){
-        var card=cards[i],row=rows[i];
-        if(!row||!row.id||card.querySelector('.dxn-leader-delete-btn'))continue;
+      for(var i=0;i<cards.length;i++){
+        var card=cards[i],answerId=String(card.getAttribute('data-dxn-answer-id')||'');
+        if(!answerId||hiddenAnswers[answerId]||card.querySelector('.dxn-leader-delete-btn'))continue;
         var host=card.querySelector('.row');
         if(!host)continue;
         var btn=document.createElement('button');
-        btn.type='button';btn.className='dxn-leader-delete-btn';btn.textContent='🗑️ حذف من لوحة القائد';btn.setAttribute('data-answer-id',String(row.id));
+        btn.type='button';btn.className='dxn-leader-delete-btn';btn.textContent='🗑️ حذف من لوحة القائد';btn.setAttribute('data-answer-id',answerId);
         btn.title='إزالة هذا الاختبار من لوحة القائد مع إبقاء نتيجته وحالته محفوظتين للعضو';
-        btn.addEventListener('click',function(id){return function(){hideAnswer(id)}}(String(row.id)),false);
+        btn.addEventListener('click',function(id){return function(){hideAnswer(id)}}(answerId),false);
         host.appendChild(btn);
       }
-    }).catch(function(e){console.error('V86.46.15 leader cleanup',e)});
+    }).catch(function(e){console.error('V86.46.17 leader cleanup',e)});
   }
 
   function boot(){
