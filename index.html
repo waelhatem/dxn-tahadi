@@ -8,17 +8,31 @@
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%;background:#eef5f1}
 body{overflow:auto;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
-.page{min-height:100svh;display:flex;align-items:flex-start;justify-content:center;padding:0}
-.poster{position:relative;width:min(100vw,1024px);line-height:0}
+.device-bar{position:sticky;top:0;z-index:20;display:flex;justify-content:center;align-items:center;gap:8px;padding:10px 12px;background:rgba(238,245,241,.96);backdrop-filter:blur(8px);border-bottom:1px solid rgba(15,81,63,.12)}
+.device-btn{border:1px solid rgba(15,81,63,.22);background:#fff;color:#17372d;border-radius:999px;padding:9px 18px;font:800 14px/1 "Tajawal","Segoe UI",Tahoma,Arial,sans-serif;cursor:pointer;transition:.2s;min-width:130px}
+.device-btn.active{background:#0f513f;color:#fff;border-color:#0f513f;box-shadow:0 6px 14px rgba(15,81,63,.16)}
+.page{min-height:calc(100svh - 57px);display:flex;align-items:flex-start;justify-content:center;padding:0}
+.poster{position:relative;width:min(100vw,1024px);line-height:0;transition:width .2s ease}
 .poster img{display:block;width:100%;height:auto;image-rendering:auto}
 .hotspot{position:absolute;border:0;background:transparent;cursor:pointer;padding:0;margin:0;outline:none;z-index:5}
 .hotspot:focus-visible{box-shadow:0 0 0 4px rgba(15,81,63,.45);border-radius:999px}
 #previousUser{left:7.5%;bottom:13.0%;width:43%;height:9%}
 #newVisitor{right:7.0%;bottom:13.0%;width:43%;height:9%}
-@media(max-width:700px){.poster{width:100vw}}
+body.mobile-preview .poster{width:min(390px,100vw)}
+body.mobile-preview .device-bar{position:sticky}
+body.desktop-preview .poster{width:min(100vw,1024px)}
+@media(max-width:700px){
+  .poster{width:100vw}
+  .device-btn{min-width:120px;padding:8px 14px}
+  body.desktop-preview .poster{width:100vw}
+}
 </style>
 </head>
-<body>
+<body class="desktop-preview">
+<nav class="device-bar" aria-label="معاينة الجهاز">
+  <button id="mobilePreview" class="device-btn" type="button" aria-pressed="false">📱 الموبايل</button>
+  <button id="desktopPreview" class="device-btn active" type="button" aria-pressed="true">🖥️ الحاسوب</button>
+</nav>
 <main class="page">
   <div class="poster">
     <img src="11.png" alt="مجتمع الصحة والثراء">
@@ -27,6 +41,19 @@ body{overflow:auto;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
   </div>
 </main>
 <script>
+const mobileBtn=document.getElementById("mobilePreview");
+const desktopBtn=document.getElementById("desktopPreview");
+function setPreview(mode){
+  const mobile=mode==="mobile";
+  document.body.classList.toggle("mobile-preview",mobile);
+  document.body.classList.toggle("desktop-preview",!mobile);
+  mobileBtn.classList.toggle("active",mobile);
+  desktopBtn.classList.toggle("active",!mobile);
+  mobileBtn.setAttribute("aria-pressed",String(mobile));
+  desktopBtn.setAttribute("aria-pressed",String(!mobile));
+}
+mobileBtn.addEventListener("click",()=>setPreview("mobile"));
+desktopBtn.addEventListener("click",()=>setPreview("desktop"));
 document.getElementById("newVisitor").addEventListener("click",()=>{
   location.href="/02-pretest-intro.html";
 });
