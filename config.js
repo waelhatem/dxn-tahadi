@@ -1,6 +1,6 @@
 // إعدادات مشروع مجتمع الصحة والثراء
 window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezz.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_pD9m1Z3gN--2HAfhf_t2YA_2RiAeUh'};
-/* V86.46.15 — corrected Supabase proxy contract, hide leader training progress card, add priority challenge, Phase-1 training assessments, per-video assessment layout, per-training assessment locks, AI grading runtime, next-question navigation, leader result cleanup and leader-only training answer reset. */
+/* V86.46.16 — corrected Supabase proxy contract, hide leader training progress card, add priority challenge, Phase-1 training assessments, per-video assessment layout, per-training assessment locks, AI grading runtime, next-question navigation, leader result cleanup and leader-only training answer reset. */
 (function(){
   if(window.__DXN_LOGIN_RUNTIME_V8632__)return; window.__DXN_LOGIN_RUNTIME_V8632__=true;
   async function rpc(name,args){
