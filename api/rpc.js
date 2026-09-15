@@ -49,23 +49,45 @@ function openaiResponses(payload){
   });
 }
 
+function supabaseRpcRequest(fn,args,key,timeoutMs){
+  return new Promise((resolve,reject)=>{
+    const base=new URL(SUPABASE_URL);
+    const body=JSON.stringify(args||{});
+    const request=https.request({
+      protocol:base.protocol,
+      hostname:base.hostname,
+      port:base.port||443,
+      method:'POST',
+      path:`/rest/v1/rpc/${encodeURIComponent(fn)}`,
+      headers:{
+        'Content-Type':'application/json',
+        Accept:'application/json',
+        ...(key?{apikey:key,Authorization:`Bearer ${key}`}:{})
+        ,'Content-Length':Buffer.byteLength(body)
+      },
+      timeout:timeoutMs||10000
+    },response=>{
+      let text='';
+      response.setEncoding('utf8');
+      response.on('data',chunk=>{text+=chunk});
+      response.on('end',()=>{
+        let data=null;
+        try{data=text?JSON.parse(text):null}catch(_){data=text}
+        resolve({ok:response.statusCode>=200&&response.statusCode<300,status:response.statusCode||0,data,text});
+      });
+    });
+    request.on('timeout',()=>request.destroy(new Error('انتهت مهلة الاتصال بخدمة Supabase')));
+    request.on('error',reject);
+    request.write(body);
+    request.end();
+  });
+}
+
 async function supabaseSecretRpc(fn,args){
   if(!SUPABASE_SECRET_KEY) throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
-  const response=await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`,{
-    method:'POST',
-    headers:{
-      apikey:SUPABASE_SECRET_KEY,
-      Authorization:`Bearer ${SUPABASE_SECRET_KEY}`,
-      'Content-Type':'application/json',
-      Accept:'application/json'
-    },
-    body:JSON.stringify(args||{})
-  });
-  const text=await response.text();
-  let data=null;
-  try{data=text?JSON.parse(text):null}catch(_){data=text}
-  if(!response.ok) throw new Error((data&&(data.message||data.error||data.hint))||text||`Supabase HTTP ${response.status}`);
-  return data;
+  const response=await supabaseRpcRequest(fn,args,SUPABASE_SECRET_KEY,12000);
+  if(!response.ok) throw new Error((response.data&&(response.data.message||response.data.error||response.data.hint))||response.text||`Supabase HTTP ${response.status}`);
+  return response.data;
 }
 
 async function generateIdealTrainingAnswer(args){
@@ -127,7 +149,6 @@ async function generateIdealTrainingAnswer(args){
 }
 
 module.exports = async function handler(req, res) {
-  // CORS Headers لضمان عدم حظر الطلب من المتصفح
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, apikey, Authorization');
@@ -158,7 +179,6 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid RPC name' });
     }
 
-    // المسار الخاص لتوليد الجواب المثالي يستخدم نفس نقطة RPC المستقرة.
     if (fn === 'generate_training_answer') {
       try {
         const question = await generateIdealTrainingAnswer({
@@ -172,36 +192,12 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // تحديد وقت أقصى 8 ثوانٍ لتفادي الـ 504 Timeout في Vercel
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-    const headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    };
-
-    if (SUPABASE_KEY) {
-      headers['apikey'] = SUPABASE_KEY;
-      headers['Authorization'] = `Bearer ${SUPABASE_KEY}`;
-    }
-
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(args),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    const data = await response.json().catch(() => ({}));
-    return res.status(response.status).json(data);
+    const response=await supabaseRpcRequest(fn,args,SUPABASE_KEY,10000);
+    return res.status(response.status||500).json(response.data||{error:response.text||'Supabase request failed'});
 
   } catch (error) {
-    const isTimeout = error.name === 'AbortError';
-    return res.status(isTimeout ? 504 : 500).json({
-      error: isTimeout ? 'Supabase request timed out' : String(error.message || error)
+    return res.status(500).json({
+      error: String(error.message || error)
     });
   }
 };
