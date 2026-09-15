@@ -36,9 +36,8 @@
     return null;
   }
 
-  function scrollToNextAfterRemoval(card){
+  function scrollToNextAfterRemoval(section){
     try{
-      var section=card&&card.parentNode&&card.parentNode.classList&&card.parentNode.classList.contains('dxn-leader-training-group')?card.parentNode:null;
       var next=null;
       if(section){
         var cards=Array.prototype.slice.call(section.querySelectorAll('.challenge'));
@@ -62,8 +61,10 @@
     answerId=String(answerId||'').trim();
     if(!answerId)return;
     if(!confirm('حذف هذا الاختبار من لوحة القائد؟\nستبقى النتيجة والحالة محفوظتين للعضو كما هي.'))return;
-    var btn=document.querySelector('.dxn-leader-delete-btn[data-answer-id="'+answerId.replace(/"/g,'\\"')+'"]');
+    var btn=null,cards=document.querySelectorAll('.dxn-leader-delete-btn');
+    for(var bi=0;bi<cards.length;bi++){if(String(cards[bi].getAttribute('data-answer-id')||'')===answerId){btn=cards[bi];break}}
     var card=findCardByAnswerId(answerId)||(btn&&btn.closest('.challenge'));
+    var section=card&&card.closest('.dxn-leader-training-group');
     try{
       if(!token())throw new Error('جلسة القائد غير موجودة. يرجى تسجيل الدخول من جديد.');
       if(btn){btn.disabled=true;btn.textContent='⏳ جارٍ الحذف...'}
@@ -73,12 +74,11 @@
       hiddenAnswers[answerId]=true;
       if(card){
         card.setAttribute('data-dxn-leader-hidden','1');
-        var section=card.closest('.dxn-leader-training-group');
         card.remove();
         if(section&&!section.querySelector('.challenge'))section.remove();
       }
       window.dispatchEvent(new CustomEvent('dxn:leader-answer-hidden',{detail:{answerId:answerId}}));
-      scrollToNextAfterRemoval(card);
+      scrollToNextAfterRemoval(section);
     }catch(e){
       if(btn){btn.disabled=false;btn.textContent='🗑️ حذف من لوحة القائد'}
       alert('تعذر حذف الاختبار من لوحة القائد: '+e.message);
@@ -125,15 +125,14 @@
     groupsHost.id='dxn-leader-training-groups';
     var order=[],groups={};
     for(var i=0;i<cards.length;i++){
-      var no=Number((rows[i]||{}).lesson_no||0);
-      if(!no){
-        var rid=String(cards[i].getAttribute('data-dxn-answer-id')||'');
-        for(var z=0;z<rows.length;z++){if(String(rows[z]&&rows[z].id||'')===rid){no=Number(rows[z].lesson_no||0);break}}
-      }
-      if(!no)continue;
+      var rid=String(cards[i].getAttribute('data-dxn-answer-id')||'');
       var matched=null;
-      for(var r=0;r<rows.length;r++){if(String(rows[r]&&rows[r].id||'')===String(cards[i].getAttribute('data-dxn-answer-id')||'')){matched=rows[r];break}}
+      for(var r=0;r<rows.length;r++){
+        if(String(rows[r]&&rows[r].id||'')===rid){matched=rows[r];break}
+      }
       if(!matched)continue;
+      var no=Number(matched.lesson_no||0);
+      if(!no)continue;
       if(!groups[no]){groups[no]={lesson_no:no,title:String(matched.lesson_title||('التدريب '+no)),cards:[]};order.push(no)}
       groups[no].cards.push(cards[i]);
     }
