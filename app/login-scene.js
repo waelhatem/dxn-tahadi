@@ -1,4 +1,4 @@
-/* V86.50 — Full visual login scene for the page opened from "مستخدم سابق".
+/* V86.51 — Full visual login scene for the page opened from "مستخدم سابق".
    Functional controls remain real; the approved scene is only the visual layer. */
 (function(){
   'use strict';
@@ -9,7 +9,7 @@
     s.id='dxn-login-scene-style';
     s.textContent=`
 html,body{min-height:100%;}
-body.${MODE}{background:#dfe9e3 url('/login-scene.webp?v=86.50') center center/cover fixed no-repeat!important;overflow-x:hidden}
+body.${MODE}{background:#dfe9e3 url('/logo2.png?v=86.51') center center/cover fixed no-repeat!important;overflow-x:hidden}
 body.${MODE}::before{content:'';position:fixed;inset:0;z-index:-1;background:rgba(249,247,238,.18);pointer-events:none}
 body.${MODE} #site-language-bar{background:rgba(255,255,255,.04)!important;border-bottom:0!important;box-shadow:none!important;color:#fff!important;backdrop-filter:blur(2px)}
 body.${MODE} #site-language-bar .site-language-inner{color:#fff!important;max-width:none;padding-inline:18px}
