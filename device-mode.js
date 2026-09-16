@@ -1,9 +1,9 @@
 (function () {
   'use strict';
 
-  // V86.63 — responsive default with manual Mobile/Desktop selector restored.
-  // The page starts from the detected device layout, while the user may still
-  // choose Mobile or Desktop from the existing selector at the top.
+  // V86.64 — responsive default with a shared Mobile/Desktop selector.
+  // The page starts from the detected device layout, while the user may choose
+  // Mobile or Desktop from the selector. The selector is shared across pages.
 
   function detectDeviceMode() {
     const ua = navigator.userAgent || navigator.vendor || window.opera || '';
@@ -39,25 +39,150 @@
         html[data-device-mode="mobile"] body.desktop-mode .challenge,
         html[data-device-mode="mobile"] body.desktop-mode .question { padding:14px; }
       }
+
+      /* Shared device selector for pages that do not already render one. */
+      #dxn-global-device-switch {
+        position:sticky;
+        top:0;
+        z-index:10050;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:6px;
+        width:100%;
+        min-height:52px;
+        padding:7px 10px;
+        background:rgba(255,255,255,.96);
+        border-bottom:1px solid rgba(15,81,63,.12);
+        box-shadow:0 3px 12px rgba(0,0,0,.06);
+        direction:rtl;
+        backdrop-filter:blur(8px);
+        -webkit-backdrop-filter:blur(8px);
+      }
+      #dxn-global-device-switch button {
+        border:1px solid #dce8e2;
+        border-radius:999px;
+        min-width:124px;
+        min-height:38px;
+        padding:8px 16px;
+        background:#fff;
+        color:#0f513f;
+        font:800 14px/1.2 system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif;
+        cursor:pointer;
+        transition:background .18s ease,color .18s ease,transform .18s ease,box-shadow .18s ease;
+      }
+      #dxn-global-device-switch button:hover{transform:translateY(-1px)}
+      #dxn-global-device-switch button.active{
+        color:#fff;
+        background:linear-gradient(135deg,#0f513f,#176b55);
+        border-color:#0f513f;
+        box-shadow:0 5px 12px rgba(15,81,63,.20);
+      }
+      @media(max-width:700px){
+        #dxn-global-device-switch{min-height:46px;padding:5px 8px;gap:4px}
+        #dxn-global-device-switch button{min-width:105px;min-height:34px;padding:7px 12px;font-size:12px}
+      }
     `;
     document.head.appendChild(style);
   }
 
-  function applyDetectedDefault() {
+  function getSavedMode() {
+    try {
+      const saved = localStorage.getItem('dxn_view_mode');
+      return saved === 'mobile' || saved === 'desktop' ? saved : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function applyMode(mode) {
     const root = document.documentElement;
     const body = document.body;
     if (!body) return;
-
-    let saved = null;
-    try { saved = localStorage.getItem('dxn_view_mode'); } catch (e) {}
-    const mode = saved === 'mobile' || saved === 'desktop' ? saved : detectDeviceMode();
     const isDesktop = mode === 'desktop';
-
     root.dataset.deviceMode = mode;
     body.classList.toggle('desktop-mode', isDesktop);
     body.classList.toggle('mobile-mode', !isDesktop);
-    body.classList.toggle('manual-desktop', isDesktop && saved === 'desktop');
-    body.classList.toggle('manual-mobile', !isDesktop && saved === 'mobile');
+    body.classList.toggle('manual-desktop', isDesktop);
+    body.classList.toggle('manual-mobile', !isDesktop);
+    syncGlobalDeviceSwitch(mode);
+
+    // Keep the page's own selector/API in sync when it exists.
+    try {
+      document.querySelectorAll('.view-switch button,.device-switch button').forEach(function (button) {
+        const text = (button.textContent || '').toLowerCase();
+        const isMobileButton = /موبايل|الهاتف|mobile/.test(text);
+        const active = (isMobileButton && mode === 'mobile') || (!isMobileButton && mode === 'desktop');
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
+    } catch (e) {}
+  }
+
+  function selectMode(mode) {
+    try { localStorage.setItem('dxn_view_mode', mode); } catch (e) {}
+    applyMode(mode);
+
+    // Give existing page-specific selectors a chance to perform their own
+    // extra layout handling without taking control away from this shared mode.
+    try {
+      if (typeof window.setViewMode === 'function' && !window.setViewMode.__dxnSharedDeviceSelector) {
+        window.setViewMode(mode);
+      }
+    } catch (e) {}
+  }
+
+  function shouldCreateSharedSelector() {
+    // Pages such as the pre-test already provide their own selector.
+    return !document.querySelector('.view-switch,.device-switch,#viewSwitch,#deviceViewSwitch,#dxn-global-device-switch');
+  }
+
+  function syncGlobalDeviceSwitch(mode) {
+    const wrap = document.getElementById('dxn-global-device-switch');
+    if (!wrap) return;
+    const mobile = wrap.querySelector('[data-mode="mobile"]');
+    const desktop = wrap.querySelector('[data-mode="desktop"]');
+    const isMobile = mode === 'mobile';
+    if (mobile) {
+      mobile.classList.toggle('active', isMobile);
+      mobile.setAttribute('aria-pressed', String(isMobile));
+    }
+    if (desktop) {
+      desktop.classList.toggle('active', !isMobile);
+      desktop.setAttribute('aria-pressed', String(!isMobile));
+    }
+  }
+
+  function removeSharedSelectorIfPageHasOwn() {
+    const own = document.querySelector('.view-switch,.device-switch,#viewSwitch,#deviceViewSwitch');
+    const shared = document.getElementById('dxn-global-device-switch');
+    if (own && shared) shared.remove();
+  }
+
+  function ensureGlobalDeviceSelector() {
+    if (!document.body || !shouldCreateSharedSelector()) return;
+    const wrap = document.createElement('div');
+    wrap.id = 'dxn-global-device-switch';
+    wrap.setAttribute('role', 'group');
+    wrap.setAttribute('aria-label', 'اختيار واجهة العرض');
+    wrap.innerHTML =
+      '<button type="button" data-mode="mobile" aria-pressed="false">📱 الموبايل</button>' +
+      '<button type="button" data-mode="desktop" aria-pressed="false">💻 الحاسوب</button>';
+    const anchor = document.body.firstElementChild;
+    if (anchor) document.body.insertBefore(wrap, anchor);
+    else document.body.appendChild(wrap);
+    wrap.querySelectorAll('button').forEach(function (button) {
+      button.addEventListener('click', function () {
+        selectMode(button.getAttribute('data-mode'));
+      });
+    });
+    syncGlobalDeviceSwitch(document.documentElement.dataset.deviceMode || detectDeviceMode());
+  }
+
+  function applyDetectedDefault() {
+    const saved = getSavedMode();
+    const mode = saved || detectDeviceMode();
+    applyMode(mode);
   }
 
   function addNavigationButtons() {
@@ -88,9 +213,18 @@
     }, true);
   }
 
+  function watchDynamicInterface() {
+    if (!window.MutationObserver || !document.body) return;
+    const observer = new MutationObserver(function () {
+      removeSharedSelectorIfPageHasOwn();
+      const mode = getSavedMode() || detectDeviceMode();
+      syncGlobalDeviceSwitch(mode);
+    });
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
+  }
+
   function refreshResponsiveDefault() {
-    let saved = null;
-    try { saved = localStorage.getItem('dxn_view_mode'); } catch (e) {}
+    const saved = getSavedMode();
     if (saved === 'mobile' || saved === 'desktop') return;
     applyDetectedDefault();
   }
@@ -98,9 +232,15 @@
   function init() {
     installDeviceCss();
     applyDetectedDefault();
+    ensureGlobalDeviceSelector();
+    removeSharedSelectorIfPageHasOwn();
     bindPreviousUserEntry();
     addNavigationButtons();
+    watchDynamicInterface();
 
+    window.addEventListener('storage', function (event) {
+      if (event.key === 'dxn_view_mode') applyDetectedDefault();
+    });
     window.addEventListener('resize', refreshResponsiveDefault, { passive: true });
     window.addEventListener('orientationchange', function () { setTimeout(refreshResponsiveDefault, 100); }, { passive: true });
   }
