@@ -63,10 +63,10 @@ function setMode(m){
   desktop.classList.toggle('active',!isMobile);
 }
 mobile.onclick=()=>setMode('mobile');desktop.onclick=()=>setMode('desktop');
-function goNew(){location.href='/02-pretest-intro.html'}
+function goNew(mode){location.href='/02-pretest-intro.html?device='+mode}
 function goPrevious(){location.href='/app/index.html'}
-document.getElementById('mobileNewVisitor').onclick=goNew;
-document.getElementById('desktopNewVisitor').onclick=goNew;
+document.getElementById('mobileNewVisitor').onclick=()=>goNew('mobile');
+document.getElementById('desktopNewVisitor').onclick=()=>goNew('desktop');
 document.getElementById('mobilePreviousUser').onclick=goPrevious;
 document.getElementById('desktopPreviousUser').onclick=goPrevious;
 setMode('desktop');
