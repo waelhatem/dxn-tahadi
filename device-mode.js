@@ -1,17 +1,21 @@
 (function () {
   'use strict';
 
-  // V86.48 — Device-first interface selection.
-  // The current device always decides the interface. Manual mode selection
-  // is hidden/ignored so every page follows the same device automatically.
+  // V86.49 — Device-first interface selection.
+  // No manual mobile/desktop choice is exposed. The current device decides the
+  // interface, including when a phone browser requests the desktop site.
 
   function detectDeviceMode() {
     const ua = navigator.userAgent || navigator.vendor || window.opera || '';
     const mobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(ua);
     const coarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
     const noHover = window.matchMedia && window.matchMedia('(hover: none)').matches;
-    const compactTouchDevice = coarsePointer && noHover && Math.min(screen.width || 9999, screen.height || 9999) <= 1024;
-    return (mobileUA || compactTouchDevice) ? 'mobile' : 'desktop';
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 9999;
+    const screenWidth = screen.width || 9999;
+    const touchDevice = Number(navigator.maxTouchPoints || 0) > 0;
+    const compactTouchDevice = coarsePointer && noHover && Math.min(viewportWidth, screenWidth) <= 1366;
+    const touchTabletOrPhone = touchDevice && viewportWidth <= 1100;
+    return (mobileUA || compactTouchDevice || touchTabletOrPhone) ? 'mobile' : 'desktop';
   }
 
   function applyMode(mode) {
@@ -26,17 +30,19 @@
     body.classList.toggle('manual-desktop', isDesktop);
     body.classList.toggle('manual-mobile', !isDesktop);
 
-    // Remove any previously saved manual choice so it cannot override device detection.
+    // Remove any previously saved manual choice so it can never override detection.
     try { localStorage.removeItem('dxn_view_mode'); } catch (e) {}
 
-    document.querySelectorAll('.view-switch, .device-switch').forEach(function (el) {
-      el.style.display = 'none';
+    // Hide every legacy device selector, including dynamically rendered copies.
+    document.querySelectorAll('.view-switch, .device-switch, #viewSwitch').forEach(function (el) {
+      el.style.setProperty('display', 'none', 'important');
       el.setAttribute('aria-hidden', 'true');
     });
 
-    document.querySelectorAll('.view-switch button, .device-switch button').forEach(function (button) {
+    document.querySelectorAll('.view-switch button, .device-switch button, #viewSwitch button').forEach(function (button) {
       button.disabled = true;
       button.setAttribute('tabindex', '-1');
+      button.style.setProperty('display', 'none', 'important');
     });
   }
 
@@ -73,22 +79,31 @@
     }, true);
   }
 
+  function hideSelectors() {
+    document.querySelectorAll('.view-switch, .device-switch, #viewSwitch').forEach(function (el) {
+      el.style.setProperty('display', 'none', 'important');
+      el.setAttribute('aria-hidden', 'true');
+    });
+    document.querySelectorAll('.view-switch button, .device-switch button, #viewSwitch button').forEach(function (button) {
+      button.disabled = true;
+      button.setAttribute('tabindex', '-1');
+      button.style.setProperty('display', 'none', 'important');
+    });
+  }
+
   function watchDynamicInterface() {
     if (!window.MutationObserver || !document.body) return;
     const observer = new MutationObserver(function () {
-      const mode = detectDeviceMode();
-      if (document.documentElement.dataset.deviceMode !== mode) applyMode(mode);
-      document.querySelectorAll('.view-switch, .device-switch').forEach(function (el) {
-        el.style.display = 'none';
-        el.setAttribute('aria-hidden', 'true');
-      });
+      // Always reapply the detected mode: the legacy renderViewSwitch() can
+      // otherwise overwrite the body class after a view/navigation change.
+      applyMode(detectDeviceMode());
+      hideSelectors();
     });
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
   }
 
   function protectManualModeFunction() {
-    // The legacy app contains setViewMode(). Keep it harmless: device detection
-    // remains authoritative even if old UI code calls the function.
+    // Keep the legacy function harmless even if old UI code calls it later.
     if (typeof window.setViewMode === 'function' && !window.setViewMode.__dxnDeviceFirst) {
       const automatic = function () {
         applyMode(detectDeviceMode());
@@ -111,6 +126,8 @@
       if (mode !== lastMode) {
         lastMode = mode;
         applyMode(mode);
+      } else {
+        hideSelectors();
       }
     };
     window.addEventListener('resize', refreshMode, { passive: true });
