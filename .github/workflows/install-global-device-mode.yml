@@ -2,7 +2,7 @@ name: Apply Global Device Mode
 
 on:
   push:
-    branches: ["global-device-mode"]
+    branches: ["main", "global-device-mode"]
 
 permissions:
   contents: write
@@ -33,9 +33,10 @@ jobs:
               if '/device-mode.js' in text:
                   continue
               marker = '</body>'
-              if marker not in text.lower():
+              lower = text.lower()
+              if marker not in lower:
                   continue
-              idx = text.lower().rfind(marker)
+              idx = lower.rfind(marker)
               text = text[:idx] + script + '\n' + text[idx:]
               path.write_text(text, encoding='utf-8')
               changed.append(str(path))
