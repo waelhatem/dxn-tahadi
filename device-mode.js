@@ -6,6 +6,23 @@
   // Reload behavior: keep the user on the current page.
   // The selected device mode remains untouched in localStorage.
 
+  // The new homepage owns the "مستخدم سابق" entry point.
+  // Capture the click before any page-specific handler so the complete
+  // previous interface opens as one unit, without changing the homepage file.
+  function bindPreviousUserEntry() {
+    if (document.documentElement.dataset.previousUserEntryBound === '1') return;
+    document.documentElement.dataset.previousUserEntryBound = '1';
+    document.addEventListener('click', function (event) {
+      const target = event.target && event.target.closest
+        ? event.target.closest('#mobilePreviousUser, #desktopPreviousUser')
+        : null;
+      if (!target) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      window.location.href = '/app/index.html';
+    }, true);
+  }
+
   function addNavigationButtons() {
     if (document.getElementById('global-page-navigation')) return;
 
@@ -83,6 +100,7 @@
 
   function init() {
     applyMode(readMode());
+    bindPreviousUserEntry();
     bind();
     addNavigationButtons();
     new MutationObserver(bind).observe(document.documentElement, { childList: true, subtree: true });
