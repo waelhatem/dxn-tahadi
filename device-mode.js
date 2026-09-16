@@ -1,9 +1,8 @@
 (function () {
   'use strict';
 
-  // V86.64 — responsive default with a shared Mobile/Desktop selector.
-  // The page starts from the detected device layout, while the user may choose
-  // Mobile or Desktop from the selector. The selector is shared across pages.
+  // V86.65 — responsive default with a shared Mobile/Desktop selector.
+  // Prevent duplicate selectors when a page already has its own selector.
 
   function detectDeviceMode() {
     const ua = navigator.userAgent || navigator.vendor || window.opera || '';
@@ -107,7 +106,6 @@
     body.classList.toggle('manual-mobile', !isDesktop);
     syncGlobalDeviceSwitch(mode);
 
-    // Keep the page's own selector/API in sync when it exists.
     try {
       document.querySelectorAll('.view-switch button,.device-switch button').forEach(function (button) {
         const text = (button.textContent || '').toLowerCase();
@@ -122,9 +120,6 @@
   function selectMode(mode) {
     try { localStorage.setItem('dxn_view_mode', mode); } catch (e) {}
     applyMode(mode);
-
-    // Give existing page-specific selectors a chance to perform their own
-    // extra layout handling without taking control away from this shared mode.
     try {
       if (typeof window.setViewMode === 'function' && !window.setViewMode.__dxnSharedDeviceSelector) {
         window.setViewMode(mode);
@@ -132,9 +127,12 @@
     } catch (e) {}
   }
 
+  function hasOwnDeviceSelector() {
+    return !!document.querySelector('.view-switch,.device-switch,#viewSwitch,#deviceViewSwitch');
+  }
+
   function shouldCreateSharedSelector() {
-    // Pages such as the pre-test already provide their own selector.
-    return !document.querySelector('.view-switch,.device-switch,#viewSwitch,#deviceViewSwitch,#dxn-global-device-switch');
+    return !hasOwnDeviceSelector() && !document.getElementById('dxn-global-device-switch');
   }
 
   function syncGlobalDeviceSwitch(mode) {
@@ -153,13 +151,28 @@
     }
   }
 
-  function removeSharedSelectorIfPageHasOwn() {
-    const own = document.querySelector('.view-switch,.device-switch,#viewSwitch,#deviceViewSwitch');
-    const shared = document.getElementById('dxn-global-device-switch');
-    if (own && shared) shared.remove();
+  function deduplicateDeviceSelectors() {
+    const ownSelectors = Array.from(document.querySelectorAll('.view-switch,.device-switch,#viewSwitch,#deviceViewSwitch'));
+    const sharedSelectors = Array.from(document.querySelectorAll('#dxn-global-device-switch'));
+
+    // A page-specific selector always takes priority over the shared one.
+    if (ownSelectors.length) {
+      sharedSelectors.forEach(function (el) { el.remove(); });
+      if (ownSelectors.length > 1) {
+        ownSelectors.slice(1).forEach(function (el) { el.remove(); });
+      }
+      return;
+    }
+
+    // There should never be more than one shared selector, even if the script
+    // was loaded more than once or a previous render inserted a duplicate.
+    if (sharedSelectors.length > 1) {
+      sharedSelectors.slice(1).forEach(function (el) { el.remove(); });
+    }
   }
 
   function ensureGlobalDeviceSelector() {
+    deduplicateDeviceSelectors();
     if (!document.body || !shouldCreateSharedSelector()) return;
     const wrap = document.createElement('div');
     wrap.id = 'dxn-global-device-switch';
@@ -177,6 +190,34 @@
       });
     });
     syncGlobalDeviceSwitch(document.documentElement.dataset.deviceMode || detectDeviceMode());
+  }
+
+  function bindPreviousUserEntry() {
+    if (document.documentElement.dataset.previousUserEntryBound === '1') return;
+    document.documentElement.dataset.previousUserEntryBound = '1';
+    document.addEventListener('click', function (event) {
+      const target = event.target && event.target.closest ? event.target.closest('#mobilePreviousUser, #desktopPreviousUser, #previousUser') : null;
+      if (!target) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      window.location.href = '/app/index.html';
+    }, true);
+  }
+
+  function watchDynamicInterface() {
+    if (!window.MutationObserver || !document.body) return;
+    const observer = new MutationObserver(function () {
+      deduplicateDeviceSelectors();
+      const mode = getSavedMode() || detectDeviceMode();
+      syncGlobalDeviceSwitch(mode);
+    });
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
+  }
+
+  function refreshResponsiveDefault() {
+    const saved = getSavedMode();
+    if (saved === 'mobile' || saved === 'desktop') return;
+    applyDetectedDefault();
   }
 
   function applyDetectedDefault() {
@@ -201,39 +242,11 @@
     document.getElementById('globalForward').addEventListener('click', function () { window.history.forward(); });
   }
 
-  function bindPreviousUserEntry() {
-    if (document.documentElement.dataset.previousUserEntryBound === '1') return;
-    document.documentElement.dataset.previousUserEntryBound = '1';
-    document.addEventListener('click', function (event) {
-      const target = event.target && event.target.closest ? event.target.closest('#mobilePreviousUser, #desktopPreviousUser, #previousUser') : null;
-      if (!target) return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      window.location.href = '/app/index.html';
-    }, true);
-  }
-
-  function watchDynamicInterface() {
-    if (!window.MutationObserver || !document.body) return;
-    const observer = new MutationObserver(function () {
-      removeSharedSelectorIfPageHasOwn();
-      const mode = getSavedMode() || detectDeviceMode();
-      syncGlobalDeviceSwitch(mode);
-    });
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
-  }
-
-  function refreshResponsiveDefault() {
-    const saved = getSavedMode();
-    if (saved === 'mobile' || saved === 'desktop') return;
-    applyDetectedDefault();
-  }
-
   function init() {
     installDeviceCss();
     applyDetectedDefault();
+    deduplicateDeviceSelectors();
     ensureGlobalDeviceSelector();
-    removeSharedSelectorIfPageHasOwn();
     bindPreviousUserEntry();
     addNavigationButtons();
     watchDynamicInterface();
