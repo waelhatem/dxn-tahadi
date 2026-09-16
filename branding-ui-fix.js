@@ -1,4 +1,4 @@
-/* V86.46.34 — use the uploaded full logo in the previous-user interface. */
+/* V86.46.34 — use the uploaded full logo in the previous-user login and authenticated interface. */
 (function(){
   'use strict';
   function addStyle(){
@@ -10,12 +10,14 @@
   }
   function apply(){
     var top=document.querySelector('.top');
-    if(!top || top.__dxnBrandingApplied)return false;
-    top.__dxnBrandingApplied=true;
+    var login=document.querySelector('.login');
+    var host=top||login;
+    if(!host || host.__dxnBrandingApplied)return false;
+    host.__dxnBrandingApplied=true;
     addStyle();
-    var oldLogo=top.querySelector('.logo');
-    var oldTitle=top.querySelector('h1');
-    var oldTagline=top.querySelector('p');
+    var oldLogo=host.querySelector('.logo');
+    var oldTitle=host.querySelector('h1');
+    var oldTagline=host.querySelector('p');
     if(oldLogo)oldLogo.style.display='none';
     if(oldTitle)oldTitle.style.display='none';
     if(oldTagline)oldTagline.style.display='none';
@@ -23,8 +25,8 @@
     brand.className='dxn-full-brand';
     brand.setAttribute('aria-label','مجتمع الصحة والثراء');
     brand.innerHTML='<img src="/logo-full.png" alt="مجتمع الصحة والثراء" class="dxn-full-brand-image">';
-    var identity=top.querySelector('.member-identity');
-    top.insertBefore(brand, identity || top.firstChild);
+    var identity=host.querySelector('.member-identity');
+    host.insertBefore(brand, identity || host.firstChild);
     return true;
   }
   function start(){
