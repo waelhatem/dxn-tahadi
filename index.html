@@ -30,10 +30,10 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 }
 </style>
 </head>
-<body class="desktop-preview">
+<body>
 <nav class="device-bar" aria-label="معاينة الجهاز">
   <button id="mobilePreview" class="device-btn" type="button" aria-pressed="false">📱 الموبايل</button>
-  <button id="desktopPreview" class="device-btn active" type="button" aria-pressed="true">🖥️ الحاسوب</button>
+  <button id="desktopPreview" class="device-btn" type="button" aria-pressed="true">🖥️ الحاسوب</button>
 </nav>
 <main class="page">
   <section id="desktopView" class="view desktop-view">
@@ -63,6 +63,9 @@ function setPreview(mode){
   mobileBtn.setAttribute('aria-pressed',String(mobile));
   desktopBtn.setAttribute('aria-pressed',String(!mobile));
 }
+function syncToViewport(){
+  setPreview(window.matchMedia('(max-width: 700px)').matches?'mobile':'desktop');
+}
 function goNew(){location.href='/02-pretest-intro.html'}
 function goPrevious(){location.href='/app/index.html'}
 mobileBtn.addEventListener('click',()=>setPreview('mobile'));
@@ -71,7 +74,8 @@ document.getElementById('desktopNewVisitor').addEventListener('click',goNew);
 document.getElementById('desktopPreviousUser').addEventListener('click',goPrevious);
 document.getElementById('mobileNewVisitor').addEventListener('click',goNew);
 document.getElementById('mobilePreviousUser').addEventListener('click',goPrevious);
-setPreview('desktop');
+syncToViewport();
+window.addEventListener('resize',syncToViewport);
 </script>
 </body>
 </html>
