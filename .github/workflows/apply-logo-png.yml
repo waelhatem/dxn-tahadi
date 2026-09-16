@@ -1,0 +1,19 @@
+name: Apply new transparent logo
+on:
+  push:
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: github.event.head_commit.message != 'Apply new transparent logo'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replace logo
+        run: sed -i 's/src="logo.webp"/src="logo.png"/' 02-pretest-intro.html
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add 02-pretest-intro.html
+          git diff --cached --quiet || (git commit -m 'Apply new transparent logo' && git push)
