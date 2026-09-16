@@ -1,4 +1,4 @@
-/* V86.58 — Previous-user login scene: preserve design and separate login controls from logo. */
+/* V86.59 — Previous-user login scene: hide bottom Next/Back navigation without changing the design. */
 (function(){
   'use strict';
   var MODE='dxn-login-scene-mode';
@@ -8,7 +8,7 @@
     s.id='dxn-login-scene-style';
     s.textContent=`
 html,body{min-height:100%;}
-body.${MODE}{background:#efe8dc url('/logo2.png?v=86.58') center center/cover fixed no-repeat!important;overflow-x:hidden}
+body.${MODE}{background:#efe8dc url('/logo2.png?v=86.59') center center/cover fixed no-repeat!important;overflow-x:hidden}
 body.${MODE}::before{display:none!important}
 body.${MODE} #site-language-bar{display:none!important}
 body.${MODE} #app{padding:0!important;min-height:100vh!important;max-width:none!important;background:transparent!important;position:relative!important}
@@ -33,9 +33,7 @@ body.${MODE} .login button[onclick*="renderMemberVerify"]::before{content:'👤 
 body.${MODE} .login button[onclick*="renderMemberVerify"]::after{content:'تسجيل الدخول إلى حسابك';position:absolute;left:0;right:0;bottom:10px;color:#53645f;font-size:12px;font-weight:700;text-align:center}
 body.${MODE} .login button[onclick*="renderIdea"]{position:absolute!important;left:0!important;right:0!important;top:100%!important;width:100%!important;height:1px!important;margin:0!important;padding:0!important;opacity:0!important;pointer-events:auto!important;border:0!important;overflow:hidden!important}
 body.${MODE} .dxn-login-account-note{display:block!important;margin:13px 0 0!important;text-align:center!important;color:#254740!important;font-size:15px!important;font-weight:700!important}
-body.${MODE} #dxnInAppNav{bottom:20px!important;background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;gap:12px!important}
-body.${MODE} #dxnInAppNav .dxn-nav-btn{min-width:200px!important;height:56px!important;background:rgba(255,255,255,.10)!important;color:#173b31!important;border:1px solid rgba(36,91,80,.28)!important;border-radius:18px!important;font-size:17px!important;font-weight:900!important;backdrop-filter:blur(2px)!important}
-body.${MODE} #dxnInAppNav .dxn-nav-btn:disabled{opacity:.45!important}
+body.${MODE} #dxnInAppNav{display:none!important}
 body.${MODE} .dxn-login-footer-note{display:block!important;margin:18px 0 0!important;text-align:center!important;color:#23473e!important;font-size:19px!important;font-weight:700!important}
 @media(max-width:799px){
   body.${MODE}{background-position:center center!important;background-attachment:scroll!important}
@@ -47,8 +45,6 @@ body.${MODE} .dxn-login-footer-note{display:block!important;margin:18px 0 0!impo
   body.${MODE} .login #loginButton{height:52px!important;font-size:17px!important}
   body.${MODE} .login button[onclick*="renderMemberVerify"]{height:68px!important;margin-top:13px!important}
   body.${MODE} .dxn-login-account-note{font-size:13px!important;margin-top:9px!important}
-  body.${MODE} #dxnInAppNav{bottom:8px!important;gap:8px!important}
-  body.${MODE} #dxnInAppNav .dxn-nav-btn{min-width:calc(45vw - 12px)!important;height:46px!important;font-size:14px!important}
 }
 `;
     document.head.appendChild(s);
@@ -60,7 +56,7 @@ body.${MODE} .dxn-login-footer-note{display:block!important;margin:18px 0 0!impo
     if(header&&!header.querySelector('.dxn-scene-logo')){
       var logo=document.createElement('img');
       logo.className='dxn-scene-logo';
-      logo.src='/logo.png?v=86.58';
+      logo.src='/logo.png?v=86.59';
       logo.alt='مجتمع الصحة والثراء';
       header.insertBefore(logo,header.firstChild);
     }
