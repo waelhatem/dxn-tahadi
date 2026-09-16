@@ -1,10 +1,9 @@
 (function () {
   'use strict';
 
-  // V86.47 — Device-first interface selection.
-  // The interface is determined automatically for every page load.
-  // No previous manual selection is persisted, so opening the same URL
-  // on a phone and on a computer selects the appropriate interface.
+  // V86.48 — Device-first interface selection.
+  // The current device always decides the interface. Manual mode selection
+  // is hidden/ignored so every page follows the same device automatically.
 
   function detectDeviceMode() {
     const ua = navigator.userAgent || navigator.vendor || window.opera || '';
@@ -23,18 +22,21 @@
 
     root.dataset.deviceMode = mode;
     body.classList.toggle('desktop-mode', isDesktop);
+    body.classList.toggle('mobile-mode', !isDesktop);
     body.classList.toggle('manual-desktop', isDesktop);
     body.classList.toggle('manual-mobile', !isDesktop);
 
+    // Remove any previously saved manual choice so it cannot override device detection.
+    try { localStorage.removeItem('dxn_view_mode'); } catch (e) {}
+
+    document.querySelectorAll('.view-switch, .device-switch').forEach(function (el) {
+      el.style.display = 'none';
+      el.setAttribute('aria-hidden', 'true');
+    });
+
     document.querySelectorAll('.view-switch button, .device-switch button').forEach(function (button) {
-      const id = (button.id || '').toLowerCase();
-      const text = (button.textContent || '').toLowerCase();
-      const buttonMode = id.includes('mobile') || text.includes('الموبايل') || text.includes('mobile') ? 'mobile'
-        : id.includes('desktop') || text.includes('الحاسوب') || text.includes('desktop') ? 'desktop' : null;
-      if (!buttonMode) return;
-      const active = buttonMode === mode;
-      button.classList.toggle('active', active);
-      button.setAttribute('aria-pressed', String(active));
+      button.disabled = true;
+      button.setAttribute('tabindex', '-1');
     });
   }
 
@@ -53,12 +55,8 @@
     document.head.appendChild(style);
     document.body.appendChild(wrap);
 
-    document.getElementById('globalBack').addEventListener('click', function () {
-      window.history.back();
-    });
-    document.getElementById('globalForward').addEventListener('click', function () {
-      window.history.forward();
-    });
+    document.getElementById('globalBack').addEventListener('click', function () { window.history.back(); });
+    document.getElementById('globalForward').addEventListener('click', function () { window.history.forward(); });
   }
 
   function bindPreviousUserEntry() {
@@ -66,7 +64,7 @@
     document.documentElement.dataset.previousUserEntryBound = '1';
     document.addEventListener('click', function (event) {
       const target = event.target && event.target.closest
-        ? event.target.closest('#mobilePreviousUser, #desktopPreviousUser')
+        ? event.target.closest('#mobilePreviousUser, #desktopPreviousUser, #previousUser')
         : null;
       if (!target) return;
       event.preventDefault();
@@ -75,13 +73,38 @@
     }, true);
   }
 
+  function watchDynamicInterface() {
+    if (!window.MutationObserver || !document.body) return;
+    const observer = new MutationObserver(function () {
+      const mode = detectDeviceMode();
+      if (document.documentElement.dataset.deviceMode !== mode) applyMode(mode);
+      document.querySelectorAll('.view-switch, .device-switch').forEach(function (el) {
+        el.style.display = 'none';
+        el.setAttribute('aria-hidden', 'true');
+      });
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+
+  function protectManualModeFunction() {
+    // The legacy app contains setViewMode(). Keep it harmless: device detection
+    // remains authoritative even if old UI code calls the function.
+    if (typeof window.setViewMode === 'function' && !window.setViewMode.__dxnDeviceFirst) {
+      const automatic = function () {
+        applyMode(detectDeviceMode());
+      };
+      automatic.__dxnDeviceFirst = true;
+      window.setViewMode = automatic;
+    }
+  }
+
   function init() {
-    // Always use the current device. Do not reuse a mode chosen on another device.
     applyMode(detectDeviceMode());
     bindPreviousUserEntry();
     addNavigationButtons();
+    protectManualModeFunction();
+    watchDynamicInterface();
 
-    // Keep the interface correct if the device/browser changes its display mode.
     let lastMode = document.documentElement.dataset.deviceMode;
     const refreshMode = function () {
       const mode = detectDeviceMode();
@@ -91,9 +114,7 @@
       }
     };
     window.addEventListener('resize', refreshMode, { passive: true });
-    window.addEventListener('orientationchange', function () {
-      setTimeout(refreshMode, 100);
-    }, { passive: true });
+    window.addEventListener('orientationchange', function () { setTimeout(refreshMode, 100); }, { passive: true });
   }
 
   if (document.readyState === 'loading') {
