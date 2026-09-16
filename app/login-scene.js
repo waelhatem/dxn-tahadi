@@ -1,4 +1,4 @@
-/* V86.55 — Previous-user login scene with approved logo only. */
+/* V86.56 — Previous-user login scene: footer correction and lower login content. */
 (function(){
   'use strict';
   var MODE='dxn-login-scene-mode';
@@ -8,12 +8,12 @@
     s.id='dxn-login-scene-style';
     s.textContent=`
 html,body{min-height:100%;}
-body.${MODE}{background:#efe8dc url('/logo2.png?v=86.55') center center/cover fixed no-repeat!important;overflow-x:hidden}
+body.${MODE}{background:#efe8dc url('/logo2.png?v=86.56') center center/cover fixed no-repeat!important;overflow-x:hidden}
 body.${MODE}::before{display:none!important}
 body.${MODE} #site-language-bar{display:none!important}
 body.${MODE} #app{padding:0!important;min-height:100vh!important;max-width:none!important;background:transparent!important;position:relative!important}
 body.${MODE} #viewSwitch,body.${MODE} .view-switch{display:none!important}
-body.${MODE} .login{position:absolute!important;left:50%!important;top:8.6vh!important;transform:translateX(-50%)!important;width:min(430px,88vw)!important;max-width:none!important;margin:0!important;padding:0!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;color:#183d33!important;text-align:right!important}
+body.${MODE} .login{position:absolute!important;left:50%!important;top:13.5vh!important;transform:translateX(-50%)!important;width:min(430px,88vw)!important;max-width:none!important;margin:0!important;padding:0!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;color:#183d33!important;text-align:right!important}
 body.${MODE} .login>div:first-child{display:block!important;text-align:center!important;margin:0 0 28px!important;padding:0!important;background:transparent!important;color:#173b31!important}
 body.${MODE} .login>div:first-child .dxn-scene-logo{display:block!important;width:min(360px,78vw)!important;height:auto!important;max-height:190px!important;object-fit:contain!important;margin:0 auto 18px!important;background:transparent!important;border:0!important;box-shadow:none!important}
 body.${MODE} .login>div:first-child>img:not(.dxn-scene-logo){display:none!important}
@@ -37,9 +37,10 @@ body.${MODE} #dxnInAppNav{bottom:20px!important;background:transparent!important
 body.${MODE} #dxnInAppNav .dxn-nav-btn{min-width:200px!important;height:56px!important;background:rgba(255,255,255,.10)!important;color:#173b31!important;border:1px solid rgba(36,91,80,.28)!important;border-radius:18px!important;font-size:17px!important;font-weight:900!important;backdrop-filter:blur(2px)!important}
 body.${MODE} #dxnInAppNav .dxn-nav-btn:disabled{opacity:.45!important}
 body.${MODE} .dxn-login-footer-note{display:block!important;margin:18px 0 0!important;text-align:center!important;color:#23473e!important;font-size:19px!important;font-weight:700!important}
+body.${MODE} .dxn-login-copyright{position:fixed!important;left:50%!important;bottom:14px!important;transform:translateX(-50%)!important;z-index:120!important;width:max-content!important;max-width:90vw!important;margin:0!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important;text-align:center!important;color:rgba(24,61,51,.72)!important;font-size:12px!important;line-height:1.5!important;font-weight:600!important;pointer-events:none!important}
 @media(max-width:799px){
   body.${MODE}{background-position:center center!important;background-attachment:scroll!important}
-  body.${MODE} .login{top:6.3vh!important;width:min(390px,90vw)!important}
+  body.${MODE} .login{top:9.5vh!important;width:min(390px,90vw)!important}
   body.${MODE} .login>div:first-child{margin-bottom:20px!important}
   body.${MODE} .login>div:first-child .dxn-scene-logo{width:min(300px,78vw)!important;max-height:150px!important;margin-bottom:14px!important}
   body.${MODE} .login>label{font-size:15px!important;margin-bottom:5px!important}
@@ -47,6 +48,7 @@ body.${MODE} .dxn-login-footer-note{display:block!important;margin:18px 0 0!impo
   body.${MODE} .login #loginButton{height:52px!important;font-size:17px!important}
   body.${MODE} .login button[onclick*="renderMemberVerify"]{height:68px!important;margin-top:13px!important}
   body.${MODE} .dxn-login-account-note{font-size:13px!important;margin-top:9px!important}
+  body.${MODE} .dxn-login-copyright{bottom:8px!important;font-size:10px!important}
   body.${MODE} #dxnInAppNav{bottom:8px!important;gap:8px!important}
   body.${MODE} #dxnInAppNav .dxn-nav-btn{min-width:calc(45vw - 12px)!important;height:46px!important;font-size:14px!important}
 }
@@ -56,11 +58,11 @@ body.${MODE} .dxn-login-footer-note{display:block!important;margin:18px 0 0!impo
   function addCosmeticNodes(){
     var form=document.querySelector('.login');
     if(!form)return;
-    var header=form.querySelector('>div:first-child');
+    var header=form.querySelector(':scope>div:first-child');
     if(header&&!header.querySelector('.dxn-scene-logo')){
       var logo=document.createElement('img');
       logo.className='dxn-scene-logo';
-      logo.src='/logo.png?v=86.55';
+      logo.src='/logo.png?v=86.56';
       logo.alt='مجتمع الصحة والثراء';
       header.insertBefore(logo,header.firstChild);
     }
@@ -76,6 +78,18 @@ body.${MODE} .dxn-login-footer-note{display:block!important;margin:18px 0 0!impo
       foot.className='dxn-login-footer-note';
       foot.textContent='🌿 معاً نحو حياة أفضل';
       form.appendChild(foot);
+    }
+    if(!document.querySelector('.dxn-login-copyright')){
+      var all=document.querySelectorAll('body *');
+      var candidate=null;
+      for(var i=0;i<all.length;i++){
+        var el=all[i],txt=(el.textContent||'').replace(/\s+/g,' ').trim();
+        if(txt&&txt.indexOf('جميع الحقوق محفوظة')!==-1&&txt.indexOf('مجتمع الصحة والثراء')!==-1&&txt.indexOf('2026')!==-1){candidate=el;}
+      }
+      if(candidate){
+        candidate.classList.add('dxn-login-copyright');
+        candidate.setAttribute('aria-label','جميع الحقوق محفوظة — مجتمع الصحة والثراء 2026');
+      }
     }
   }
   function active(){return !!document.querySelector('#loginButton')&&!!document.querySelector('.login')}
