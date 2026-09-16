@@ -1,8 +1,9 @@
 (function () {
   'use strict';
 
-  // V86.50 — Device-first interface selection with CSS enforcement.
-  // The device decides the layout; legacy desktop classes cannot override it.
+  // V86.63 — responsive default with manual Mobile/Desktop selector restored.
+  // The page starts from the detected device layout, while the user may still
+  // choose Mobile or Desktop from the existing selector at the top.
 
   function detectDeviceMode() {
     const ua = navigator.userAgent || navigator.vendor || window.opera || '';
@@ -10,7 +11,7 @@
     const coarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
     const noHover = window.matchMedia && window.matchMedia('(hover: none)').matches;
     const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 9999;
-    const screenWidth = (window.screen && screen.width) || 9999;
+    const screenWidth = (window.screen && window.screen.width) || 9999;
     const touchDevice = Number(navigator.maxTouchPoints || 0) > 0;
     const compactTouchDevice = coarsePointer && noHover && Math.min(viewportWidth, screenWidth) <= 1366;
     const touchTabletOrPhone = touchDevice && viewportWidth <= 1100;
@@ -22,8 +23,6 @@
     const style = document.createElement('style');
     style.id = 'dxn-device-first-css';
     style.textContent = `
-      /* V86.50: mobile devices always receive the mobile layout, even if
-         legacy code adds desktop-mode after page rendering. */
       @media (max-width: 799px), (pointer: coarse) and (hover: none) and (max-width: 1100px) {
         html[data-device-mode="mobile"] body.desktop-mode .app,
         html[data-device-mode="mobile"] .app { max-width: 980px; padding: 14px 14px 85px; }
@@ -39,39 +38,26 @@
         html[data-device-mode="mobile"] body.desktop-mode .login { max-width:480px; margin:40px auto; }
         html[data-device-mode="mobile"] body.desktop-mode .challenge,
         html[data-device-mode="mobile"] body.desktop-mode .question { padding:14px; }
-        html[data-device-mode="mobile"] body.desktop-mode .view-switch,
-        html[data-device-mode="mobile"] body.mobile-mode .view-switch { display:none !important; }
       }
     `;
     document.head.appendChild(style);
   }
 
-  function applyMode(mode) {
-    const isDesktop = mode === 'desktop';
+  function applyDetectedDefault() {
     const root = document.documentElement;
     const body = document.body;
     if (!body) return;
 
+    let saved = null;
+    try { saved = localStorage.getItem('dxn_view_mode'); } catch (e) {}
+    const mode = saved === 'mobile' || saved === 'desktop' ? saved : detectDeviceMode();
+    const isDesktop = mode === 'desktop';
+
     root.dataset.deviceMode = mode;
     body.classList.toggle('desktop-mode', isDesktop);
     body.classList.toggle('mobile-mode', !isDesktop);
-    body.classList.toggle('manual-desktop', isDesktop);
-    body.classList.toggle('manual-mobile', !isDesktop);
-
-    try { localStorage.removeItem('dxn_view_mode'); } catch (e) {}
-    hideSelectors();
-  }
-
-  function hideSelectors() {
-    document.querySelectorAll('.view-switch, .device-switch, #viewSwitch').forEach(function (el) {
-      el.style.setProperty('display', 'none', 'important');
-      el.setAttribute('aria-hidden', 'true');
-    });
-    document.querySelectorAll('.view-switch button, .device-switch button, #viewSwitch button').forEach(function (button) {
-      button.disabled = true;
-      button.setAttribute('tabindex', '-1');
-      button.style.setProperty('display', 'none', 'important');
-    });
+    body.classList.toggle('manual-desktop', isDesktop && saved === 'desktop');
+    body.classList.toggle('manual-mobile', !isDesktop && saved === 'mobile');
   }
 
   function addNavigationButtons() {
@@ -102,42 +88,21 @@
     }, true);
   }
 
-  function watchDynamicInterface() {
-    if (!window.MutationObserver || !document.body) return;
-    const observer = new MutationObserver(function () {
-      applyMode(detectDeviceMode());
-    });
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
-  }
-
-  function protectManualModeFunction() {
-    if (typeof window.setViewMode === 'function' && !window.setViewMode.__dxnDeviceFirst) {
-      const automatic = function () { applyMode(detectDeviceMode()); };
-      automatic.__dxnDeviceFirst = true;
-      window.setViewMode = automatic;
-    }
+  function refreshResponsiveDefault() {
+    let saved = null;
+    try { saved = localStorage.getItem('dxn_view_mode'); } catch (e) {}
+    if (saved === 'mobile' || saved === 'desktop') return;
+    applyDetectedDefault();
   }
 
   function init() {
     installDeviceCss();
-    applyMode(detectDeviceMode());
+    applyDetectedDefault();
     bindPreviousUserEntry();
     addNavigationButtons();
-    protectManualModeFunction();
-    watchDynamicInterface();
 
-    let lastMode = document.documentElement.dataset.deviceMode;
-    const refreshMode = function () {
-      const mode = detectDeviceMode();
-      if (mode !== lastMode) {
-        lastMode = mode;
-        applyMode(mode);
-      } else {
-        hideSelectors();
-      }
-    };
-    window.addEventListener('resize', refreshMode, { passive: true });
-    window.addEventListener('orientationchange', function () { setTimeout(refreshMode, 100); }, { passive: true });
+    window.addEventListener('resize', refreshResponsiveDefault, { passive: true });
+    window.addEventListener('orientationchange', function () { setTimeout(refreshResponsiveDefault, 100); }, { passive: true });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
