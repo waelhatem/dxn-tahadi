@@ -3,23 +3,31 @@
   const KEY = 'dxnDeviceMode';
   const VALID = new Set(['mobile', 'desktop']);
 
-  // Project-wide reload behavior: F5 / Ctrl+R / hard reload returns to the homepage.
+  // Reload behavior: keep the user on the current page.
   // The selected device mode remains untouched in localStorage.
-  function redirectReloadToHome() {
-    try {
-      const navigation = performance.getEntriesByType('navigation')[0];
-      const isReload = navigation && navigation.type === 'reload';
-      const path = window.location.pathname.replace(/\/+$/, '') || '/';
-      const isHome = path === '' || path === '/';
-      if (isReload && !isHome) {
-        window.location.replace('/');
-        return true;
-      }
-    } catch (_) {}
-    return false;
-  }
 
-  if (redirectReloadToHome()) return;
+  function addNavigationButtons() {
+    if (document.getElementById('global-page-navigation')) return;
+
+    const wrap = document.createElement('div');
+    wrap.id = 'global-page-navigation';
+    wrap.setAttribute('aria-label', 'التنقل بين الصفحات');
+    wrap.innerHTML = '<button type="button" id="globalBack" title="العودة إلى الصفحة السابقة" aria-label="العودة إلى الصفحة السابقة">‹</button>' +
+      '<button type="button" id="globalForward" title="التقدم إلى الصفحة التالية" aria-label="التقدم إلى الصفحة التالية">›</button>';
+
+    const style = document.createElement('style');
+    style.id = 'global-page-navigation-style';
+    style.textContent = '#global-page-navigation{position:fixed;bottom:18px;left:18px;z-index:10000;display:flex;gap:8px;direction:ltr}#global-page-navigation button{width:46px;height:46px;border:0;border-radius:50%;background:rgba(255,255,255,.94);color:#0f513f;font:900 30px/1 Arial,sans-serif;cursor:pointer;box-shadow:0 7px 20px rgba(0,0,0,.18);display:grid;place-items:center;transition:transform .15s ease,opacity .15s ease}#global-page-navigation button:hover{transform:scale(1.06)}#global-page-navigation button:active{transform:scale(.96)}@media(max-width:700px){#global-page-navigation{bottom:12px;left:12px;gap:6px}#global-page-navigation button{width:42px;height:42px;font-size:27px}}';
+    document.head.appendChild(style);
+    document.body.appendChild(wrap);
+
+    document.getElementById('globalBack').addEventListener('click', function () {
+      window.history.back();
+    });
+    document.getElementById('globalForward').addEventListener('click', function () {
+      window.history.forward();
+    });
+  }
 
   function readMode() {
     try {
@@ -76,6 +84,7 @@
   function init() {
     applyMode(readMode());
     bind();
+    addNavigationButtons();
     new MutationObserver(bind).observe(document.documentElement, { childList: true, subtree: true });
   }
 
