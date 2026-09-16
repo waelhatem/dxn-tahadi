@@ -54,7 +54,8 @@ const mobileBtn=document.getElementById('mobilePreview');
 const desktopBtn=document.getElementById('desktopPreview');
 const mobileView=document.getElementById('mobileView');
 const desktopView=document.getElementById('desktopView');
-function setPreview(mode){
+const DEVICE_KEY='dxn_selected_device_mode';
+function setPreview(mode,persist=true){
   const mobile=mode==='mobile';
   mobileView.style.display=mobile?'flex':'none';
   desktopView.style.display=mobile?'none':'block';
@@ -62,20 +63,26 @@ function setPreview(mode){
   desktopBtn.classList.toggle('active',!mobile);
   mobileBtn.setAttribute('aria-pressed',String(mobile));
   desktopBtn.setAttribute('aria-pressed',String(!mobile));
+  if(persist) localStorage.setItem(DEVICE_KEY,mobile?'mobile':'desktop');
 }
-function syncToViewport(){
-  setPreview(window.matchMedia('(max-width: 700px)').matches?'mobile':'desktop');
+function getInitialMode(){
+  const saved=localStorage.getItem(DEVICE_KEY);
+  if(saved==='mobile'||saved==='desktop') return saved;
+  return window.matchMedia('(max-width: 700px)').matches?'mobile':'desktop';
 }
-function goNew(){location.href='/02-pretest-intro.html'}
+function goNew(){
+  const mode=localStorage.getItem(DEVICE_KEY)||getInitialMode();
+  localStorage.setItem(DEVICE_KEY,mode);
+  location.href='/02-pretest-intro.html?device='+encodeURIComponent(mode);
+}
 function goPrevious(){location.href='/app/index.html'}
-mobileBtn.addEventListener('click',()=>setPreview('mobile'));
-desktopBtn.addEventListener('click',()=>setPreview('desktop'));
+mobileBtn.addEventListener('click',()=>setPreview('mobile',true));
+desktopBtn.addEventListener('click',()=>setPreview('desktop',true));
 document.getElementById('desktopNewVisitor').addEventListener('click',goNew);
 document.getElementById('desktopPreviousUser').addEventListener('click',goPrevious);
 document.getElementById('mobileNewVisitor').addEventListener('click',goNew);
 document.getElementById('mobilePreviousUser').addEventListener('click',goPrevious);
-syncToViewport();
-window.addEventListener('resize',syncToViewport);
+setPreview(getInitialMode(),false);
 </script>
 </body>
 </html>
