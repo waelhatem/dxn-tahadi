@@ -1,5 +1,4 @@
-/* V86.52 — Approved full visual login scene for the page opened from "مستخدم سابق".
-   Functional controls remain real; this file only changes the presentation layer and adds cosmetic labels. */
+/* V86.55 — Previous-user login scene with approved logo only. */
 (function(){
   'use strict';
   var MODE='dxn-login-scene-mode';
@@ -9,19 +8,16 @@
     s.id='dxn-login-scene-style';
     s.textContent=`
 html,body{min-height:100%;}
-body.${MODE}{background:#efe8dc url('/logo2.png?v=86.52') center center/cover fixed no-repeat!important;overflow-x:hidden}
+body.${MODE}{background:#efe8dc url('/logo2.png?v=86.55') center center/cover fixed no-repeat!important;overflow-x:hidden}
 body.${MODE}::before{display:none!important}
 body.${MODE} #site-language-bar{display:none!important}
 body.${MODE} #app{padding:0!important;min-height:100vh!important;max-width:none!important;background:transparent!important;position:relative!important}
 body.${MODE} #viewSwitch,body.${MODE} .view-switch{display:none!important}
 body.${MODE} .login{position:absolute!important;left:50%!important;top:8.6vh!important;transform:translateX(-50%)!important;width:min(430px,88vw)!important;max-width:none!important;margin:0!important;padding:0!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;color:#183d33!important;text-align:right!important}
 body.${MODE} .login>div:first-child{display:block!important;text-align:center!important;margin:0 0 28px!important;padding:0!important;background:transparent!important;color:#173b31!important}
-body.${MODE} .login>div:first-child img{display:none!important}
-body.${MODE} .login>div:first-child h1{margin:34px 0 8px!important;font-size:42px!important;line-height:1.15!important;font-weight:900!important;color:#153d33!important;letter-spacing:-.7px!important;text-align:center!important}
-body.${MODE} .login>div:first-child h1::before{content:'مرحباً بك في';display:block!important;margin:0 0 14px!important;font-size:25px!important;line-height:1.25!important;font-weight:500!important;letter-spacing:0!important;color:#23443c!important}
-body.${MODE} .login>div:first-child p{margin:0!important;font-size:19px!important;line-height:1.35!important;font-weight:600!important;color:#23443c!important;text-align:center!important}
-body.${MODE} .login>div:first-child p::before{content:'معاً نحو حياة أفضل';font-size:19px!important}
-body.${MODE} .login>div:first-child p{font-size:0!important}
+body.${MODE} .login>div:first-child .dxn-scene-logo{display:block!important;width:min(360px,78vw)!important;height:auto!important;max-height:190px!important;object-fit:contain!important;margin:0 auto 18px!important;background:transparent!important;border:0!important;box-shadow:none!important}
+body.${MODE} .login>div:first-child>img:not(.dxn-scene-logo){display:none!important}
+body.${MODE} .login>div:first-child h1,body.${MODE} .login>div:first-child p{display:none!important}
 body.${MODE} .login>label{display:block!important;position:static!important;width:auto!important;height:auto!important;padding:0!important;margin:0 0 7px!important;overflow:visible!important;clip:auto!important;white-space:normal!important;border:0!important;background:transparent!important;color:#183d33!important;font-size:18px!important;font-weight:800!important;text-align:right!important}
 body.${MODE} .login #role,
 body.${MODE} .login #loginNo,
@@ -45,9 +41,7 @@ body.${MODE} .dxn-login-footer-note{display:block!important;margin:18px 0 0!impo
   body.${MODE}{background-position:center center!important;background-attachment:scroll!important}
   body.${MODE} .login{top:6.3vh!important;width:min(390px,90vw)!important}
   body.${MODE} .login>div:first-child{margin-bottom:20px!important}
-  body.${MODE} .login>div:first-child h1{margin-top:24px!important;font-size:31px!important}
-  body.${MODE} .login>div:first-child h1::before{font-size:19px!important;margin-bottom:9px!important}
-  body.${MODE} .login>div:first-child p::before{font-size:15px!important}
+  body.${MODE} .login>div:first-child .dxn-scene-logo{width:min(300px,78vw)!important;max-height:150px!important;margin-bottom:14px!important}
   body.${MODE} .login>label{font-size:15px!important;margin-bottom:5px!important}
   body.${MODE} .login #role,body.${MODE} .login #loginNo,body.${MODE} .login #pin{height:48px!important;margin-bottom:12px!important;font-size:15px!important}
   body.${MODE} .login #loginButton{height:52px!important;font-size:17px!important}
@@ -62,6 +56,14 @@ body.${MODE} .dxn-login-footer-note{display:block!important;margin:18px 0 0!impo
   function addCosmeticNodes(){
     var form=document.querySelector('.login');
     if(!form)return;
+    var header=form.querySelector('>div:first-child');
+    if(header&&!header.querySelector('.dxn-scene-logo')){
+      var logo=document.createElement('img');
+      logo.className='dxn-scene-logo';
+      logo.src='/logo.png?v=86.55';
+      logo.alt='مجتمع الصحة والثراء';
+      header.insertBefore(logo,header.firstChild);
+    }
     var member=form.querySelector('button[onclick*="renderMemberVerify"]');
     if(member&&!form.querySelector('.dxn-login-account-note')){
       var note=document.createElement('div');
@@ -83,10 +85,8 @@ body.${MODE} .dxn-login-footer-note{display:block!important;margin:18px 0 0!impo
     document.body.classList.toggle(MODE,on);
     if(on){
       addCosmeticNodes();
-      var b=document.getElementById('loginButton');
-      if(b){b.setAttribute('aria-label','دخول');b.title='دخول'}
-      var m=document.querySelector('.login button[onclick*="renderMemberVerify"]');
-      if(m){m.setAttribute('aria-label','مستخدم سابق — تسجيل الدخول إلى حسابك');m.title='مستخدم سابق — تسجيل الدخول إلى حسابك'}
+      var b=document.getElementById('loginButton'); if(b){b.setAttribute('aria-label','دخول');b.title='دخول'}
+      var m=document.querySelector('.login button[onclick*="renderMemberVerify"]'); if(m){m.setAttribute('aria-label','مستخدم سابق — تسجيل الدخول إلى حسابك');m.title='مستخدم سابق — تسجيل الدخول إلى حسابك'}
       var role=document.getElementById('role'); if(role)role.setAttribute('aria-label','نوع الدخول');
       var no=document.getElementById('loginNo'); if(no)no.setAttribute('aria-label','رقم العضوية أو رمز القائد');
       var pin=document.getElementById('pin'); if(pin)pin.setAttribute('aria-label','رمز الدخول PIN');
