@@ -3,6 +3,24 @@
   const KEY = 'dxnDeviceMode';
   const VALID = new Set(['mobile', 'desktop']);
 
+  // Project-wide reload behavior: F5 / Ctrl+R / hard reload returns to the homepage.
+  // The selected device mode remains untouched in localStorage.
+  function redirectReloadToHome() {
+    try {
+      const navigation = performance.getEntriesByType('navigation')[0];
+      const isReload = navigation && navigation.type === 'reload';
+      const path = window.location.pathname.replace(/\/+$/, '') || '/';
+      const isHome = path === '' || path === '/';
+      if (isReload && !isHome) {
+        window.location.replace('/');
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  if (redirectReloadToHome()) return;
+
   function readMode() {
     try {
       const value = localStorage.getItem(KEY);
