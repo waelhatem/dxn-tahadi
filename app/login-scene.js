@@ -1,4 +1,4 @@
-/* V86.55 — Previous-user login scene with approved logo only. */
+/* V86.58 — Previous-user login scene: preserve design and separate login controls from logo. */
 (function(){
   'use strict';
   var MODE='dxn-login-scene-mode';
@@ -8,14 +8,14 @@
     s.id='dxn-login-scene-style';
     s.textContent=`
 html,body{min-height:100%;}
-body.${MODE}{background:#efe8dc url('/logo2.png?v=86.55') center center/cover fixed no-repeat!important;overflow-x:hidden}
+body.${MODE}{background:#efe8dc url('/logo2.png?v=86.58') center center/cover fixed no-repeat!important;overflow-x:hidden}
 body.${MODE}::before{display:none!important}
 body.${MODE} #site-language-bar{display:none!important}
 body.${MODE} #app{padding:0!important;min-height:100vh!important;max-width:none!important;background:transparent!important;position:relative!important}
 body.${MODE} #viewSwitch,body.${MODE} .view-switch{display:none!important}
 body.${MODE} .login{position:absolute!important;left:50%!important;top:8.6vh!important;transform:translateX(-50%)!important;width:min(430px,88vw)!important;max-width:none!important;margin:0!important;padding:0!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;color:#183d33!important;text-align:right!important}
-body.${MODE} .login>div:first-child{display:block!important;text-align:center!important;margin:0 0 28px!important;padding:0!important;background:transparent!important;color:#173b31!important}
-body.${MODE} .login>div:first-child .dxn-scene-logo{display:block!important;width:min(360px,78vw)!important;height:auto!important;max-height:190px!important;object-fit:contain!important;margin:0 auto 18px!important;background:transparent!important;border:0!important;box-shadow:none!important}
+body.${MODE} .login>div:first-child{display:block!important;text-align:center!important;margin:0 0 58px!important;padding:0!important;background:transparent!important;color:#173b31!important}
+body.${MODE} .login>div:first-child .dxn-scene-logo{display:block!important;width:min(360px,78vw)!important;height:auto!important;max-height:190px!important;object-fit:contain!important;margin:0 auto!important;background:transparent!important;border:0!important;box-shadow:none!important}
 body.${MODE} .login>div:first-child>img:not(.dxn-scene-logo){display:none!important}
 body.${MODE} .login>div:first-child h1,body.${MODE} .login>div:first-child p{display:none!important}
 body.${MODE} .login>label{display:block!important;position:static!important;width:auto!important;height:auto!important;padding:0!important;margin:0 0 7px!important;overflow:visible!important;clip:auto!important;white-space:normal!important;border:0!important;background:transparent!important;color:#183d33!important;font-size:18px!important;font-weight:800!important;text-align:right!important}
@@ -40,8 +40,8 @@ body.${MODE} .dxn-login-footer-note{display:block!important;margin:18px 0 0!impo
 @media(max-width:799px){
   body.${MODE}{background-position:center center!important;background-attachment:scroll!important}
   body.${MODE} .login{top:6.3vh!important;width:min(390px,90vw)!important}
-  body.${MODE} .login>div:first-child{margin-bottom:20px!important}
-  body.${MODE} .login>div:first-child .dxn-scene-logo{width:min(300px,78vw)!important;max-height:150px!important;margin-bottom:14px!important}
+  body.${MODE} .login>div:first-child{margin-bottom:42px!important}
+  body.${MODE} .login>div:first-child .dxn-scene-logo{width:min(300px,78vw)!important;max-height:150px!important;margin:0 auto!important}
   body.${MODE} .login>label{font-size:15px!important;margin-bottom:5px!important}
   body.${MODE} .login #role,body.${MODE} .login #loginNo,body.${MODE} .login #pin{height:48px!important;margin-bottom:12px!important;font-size:15px!important}
   body.${MODE} .login #loginButton{height:52px!important;font-size:17px!important}
@@ -60,7 +60,7 @@ body.${MODE} .dxn-login-footer-note{display:block!important;margin:18px 0 0!impo
     if(header&&!header.querySelector('.dxn-scene-logo')){
       var logo=document.createElement('img');
       logo.className='dxn-scene-logo';
-      logo.src='/logo.png?v=86.55';
+      logo.src='/logo.png?v=86.58';
       logo.alt='مجتمع الصحة والثراء';
       header.insertBefore(logo,header.firstChild);
     }
