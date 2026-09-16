@@ -1,4 +1,4 @@
-/* V86.60 — Lower previous-user login controls to the reference line while preserving logo and design. */
+/* V86.61 — Rename previous-user button without changing position, style, or functionality. */
 (function(){
   'use strict';
   var MODE='dxn-login-scene-mode';
@@ -8,7 +8,7 @@
     s.id='dxn-login-scene-style';
     s.textContent=`
 html,body{min-height:100%;}
-body.${MODE}{background:#efe8dc url('/logo2.png?v=86.60') center center/cover fixed no-repeat!important;overflow-x:hidden}
+body.${MODE}{background:#efe8dc url('/logo2.png?v=86.61') center center/cover fixed no-repeat!important;overflow-x:hidden}
 body.${MODE}::before{display:none!important}
 body.${MODE} #site-language-bar{display:none!important}
 body.${MODE} #app{padding:0!important;min-height:100vh!important;max-width:none!important;background:transparent!important;position:relative!important}
@@ -29,8 +29,8 @@ body.${MODE} .login #loginButton::after{content:'🔒';margin-inline-start:8px;f
 body.${MODE} .login #loginButton:focus-visible{outline:3px solid #fff!important;outline-offset:3px!important}
 body.${MODE} .login #dxnBuildMarker,body.${MODE} .login>p:last-child{display:none!important}
 body.${MODE} .login button[onclick*="renderMemberVerify"]{position:relative!important;width:100%!important;height:74px!important;margin:20px 0 0!important;padding:0!important;background:rgba(255,255,255,.10)!important;border:1.5px solid #245b50!important;border-radius:20px!important;box-shadow:none!important;color:transparent!important;font-size:0!important;overflow:hidden!important;backdrop-filter:blur(1px)!important}
-body.${MODE} .login button[onclick*="renderMemberVerify"]::before{content:'👤  مستخدم سابق';position:absolute;inset:10px 12px auto;line-height:25px;color:#173d33;font-size:20px;font-weight:900;text-align:center}
-body.${MODE} .login button[onclick*="renderMemberVerify"]::after{content:'تسجيل الدخول إلى حسابك';position:absolute;left:0;right:0;bottom:10px;color:#53645f;font-size:12px;font-weight:700;text-align:center}
+body.${MODE} .login button[onclick*="renderMemberVerify"]::before{content:'👤  عضو في بداية أمل';position:absolute;inset:10px 12px auto;line-height:25px;color:#173d33;font-size:20px;font-weight:900;text-align:center;direction:rtl;unicode-bidi:plaintext}
+body.${MODE} .login button[onclick*="renderMemberVerify"]::after{content:'عمل حساب جديد';position:absolute;left:0;right:0;bottom:10px;color:#53645f;font-size:12px;font-weight:700;text-align:center;direction:rtl;unicode-bidi:plaintext}
 body.${MODE} .login button[onclick*="renderIdea"]{position:absolute!important;left:0!important;right:0!important;top:100%!important;width:100%!important;height:1px!important;margin:0!important;padding:0!important;opacity:0!important;pointer-events:auto!important;border:0!important;overflow:hidden!important}
 body.${MODE} .dxn-login-account-note{display:block!important;margin:13px 0 0!important;text-align:center!important;color:#254740!important;font-size:15px!important;font-weight:700!important}
 body.${MODE} #dxnInAppNav{display:none!important}
@@ -56,7 +56,7 @@ body.${MODE} .dxn-login-footer-note{display:block!important;margin:18px 0 0!impo
     if(header&&!header.querySelector('.dxn-scene-logo')){
       var logo=document.createElement('img');
       logo.className='dxn-scene-logo';
-      logo.src='/logo.png?v=86.60';
+      logo.src='/logo.png?v=86.61';
       logo.alt='مجتمع الصحة والثراء';
       header.insertBefore(logo,header.firstChild);
     }
@@ -82,7 +82,7 @@ body.${MODE} .dxn-login-footer-note{display:block!important;margin:18px 0 0!impo
     if(on){
       addCosmeticNodes();
       var b=document.getElementById('loginButton'); if(b){b.setAttribute('aria-label','دخول');b.title='دخول'}
-      var m=document.querySelector('.login button[onclick*="renderMemberVerify"]'); if(m){m.setAttribute('aria-label','مستخدم سابق — تسجيل الدخول إلى حسابك');m.title='مستخدم سابق — تسجيل الدخول إلى حسابك'}
+      var m=document.querySelector('.login button[onclick*="renderMemberVerify"]'); if(m){m.setAttribute('aria-label','عضو في بداية أمل — عمل حساب جديد');m.title='عضو في بداية أمل — عمل حساب جديد'}
       var role=document.getElementById('role'); if(role)role.setAttribute('aria-label','نوع الدخول');
       var no=document.getElementById('loginNo'); if(no)no.setAttribute('aria-label','رقم العضوية أو رمز القائد');
       var pin=document.getElementById('pin'); if(pin)pin.setAttribute('aria-label','رمز الدخول PIN');
