@@ -1,4 +1,4 @@
-/* V86.55 — Previous-user login scene with approved logo only. */
+/* V86.57 — Previous-user login scene with approved logo only; hide global copyright text on login. */
 (function(){
   'use strict';
   var MODE='dxn-login-scene-mode';
@@ -8,7 +8,7 @@
     s.id='dxn-login-scene-style';
     s.textContent=`
 html,body{min-height:100%;}
-body.${MODE}{background:#efe8dc url('/logo2.png?v=86.55') center center/cover fixed no-repeat!important;overflow-x:hidden}
+body.${MODE}{background:#efe8dc url('/logo2.png?v=86.57') center center/cover fixed no-repeat!important;overflow-x:hidden}
 body.${MODE}::before{display:none!important}
 body.${MODE} #site-language-bar{display:none!important}
 body.${MODE} #app{padding:0!important;min-height:100vh!important;max-width:none!important;background:transparent!important;position:relative!important}
@@ -53,14 +53,23 @@ body.${MODE} .dxn-login-footer-note{display:block!important;margin:18px 0 0!impo
 `;
     document.head.appendChild(s);
   }
+  function hideGlobalCopyright(){
+    var all=document.querySelectorAll('body *');
+    for(var i=0;i<all.length;i++){
+      var el=all[i],txt=(el.textContent||'').replace(/\s+/g,' ').trim();
+      if(txt && txt.indexOf('جميع الحقوق محفوظة')!==-1 && txt.indexOf('2026')!==-1 && txt.indexOf('مجتمع الصحة والثراء')!==-1){
+        el.style.display='none';
+      }
+    }
+  }
   function addCosmeticNodes(){
     var form=document.querySelector('.login');
     if(!form)return;
-    var header=form.querySelector('>div:first-child');
+    var header=form.querySelector(':scope>div:first-child');
     if(header&&!header.querySelector('.dxn-scene-logo')){
       var logo=document.createElement('img');
       logo.className='dxn-scene-logo';
-      logo.src='/logo.png?v=86.55';
+      logo.src='/logo.png?v=86.57';
       logo.alt='مجتمع الصحة والثراء';
       header.insertBefore(logo,header.firstChild);
     }
@@ -84,6 +93,7 @@ body.${MODE} .dxn-login-footer-note{display:block!important;margin:18px 0 0!impo
     var on=active();
     document.body.classList.toggle(MODE,on);
     if(on){
+      hideGlobalCopyright();
       addCosmeticNodes();
       var b=document.getElementById('loginButton'); if(b){b.setAttribute('aria-label','دخول');b.title='دخول'}
       var m=document.querySelector('.login button[onclick*="renderMemberVerify"]'); if(m){m.setAttribute('aria-label','مستخدم سابق — تسجيل الدخول إلى حسابك');m.title='مستخدم سابق — تسجيل الدخول إلى حسابك'}
