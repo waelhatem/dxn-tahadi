@@ -29,4 +29,5 @@ async function decide(id,q,ok){try{await rpc(q?'approve_question':'approve_chall
 async function setPoints(id){const v=prompt('أدخل نقاط DXN الفعلية لهذا العضو هذا الشهر:','100');if(v===null)return;try{await rpc('set_monthly_points',{p_token:token,p_member:id,p_points:Number(v)});if(Number(v)>=100&&confirm('العضو حقق 100 نقطة. هل تضيف مكافأة ⭐100؟'))await rpc('award_monthly_target',{p_token:token,p_member:id});toast('تم تحديث التارجت.');await refresh()}catch(e){toast(e.message||'تعذر تحديث التارجت')}}
 async function refresh(){const d=await rpc('bootstrap',{p_token:token});data=d;role=d.role;me=(d.members||[]).find(x=>role==='member')||null;render()}
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{}); boot();
-</script></body></html>
+</script><script src="/device-mode.js" defer></script>
+</body></html>

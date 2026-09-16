@@ -20,4 +20,5 @@ function prev(){if(current>0){current--;render();window.scrollTo(0,0)}}
 function finish(){const weights=[10,5,0],score=answers.reduce((s,a)=>s+(weights[a]??0),0);quiz.style.display='none';bar.style.width='100%';result.style.display='block';const passed=score>=90;result.innerHTML=`<div class="qno">اكتمل الاختبار</div><div class="score">${score}</div><div class="status">${passed?'🎉 لديك بوابة الاكتشاف مفتوحة':'تم تسجيل نتيجتك'}</div>${passed?`<div class="gate"><b>نتيجتك 90 أو أكثر</b><p>يمكنك الآن الانتقال إلى الخطوة التالية والتعرف على المسار الكامل.</p><a class="discover" href="/app/index.html">✨ اكتشف عالم الصحة والثراء والحرية</a></div>`:`<div class="gate"><b>النتيجة أقل من 90</b><p>يمكنك إعادة الاختبار متى شئت واستكشاف الأسئلة من جديد.</p><button class="retry" onclick="restart()">إعادة الاختبار</button></div>`}`;localStorage.setItem('dxn_pretest_score',String(score));localStorage.setItem('dxn_pretest_passed',passed?'1':'0');window.scrollTo(0,0)}
 function restart(){current=0;answers=Array(questions.length).fill(null);quiz.style.display='block';result.style.display='none';render();window.scrollTo(0,0)}
 render();
-</script></body></html>
+</script><script src="/device-mode.js" defer></script>
+</body></html>
