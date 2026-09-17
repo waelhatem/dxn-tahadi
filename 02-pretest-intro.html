@@ -47,6 +47,18 @@ async function typeText(el,text,speed){for(const ch of [...text]){el.appendChild
 async function run(){const cursor=document.createElement("span");cursor.className="seg typing active";cursor.style.display="inline-block";cursor.textContent="";head.appendChild(cursor);await typeText(cursor,"قبل أن تبدأ...",120);cursor.classList.remove("typing");for(const text of segments){const seg=document.createElement("div");seg.className="seg active typing";box.innerHTML="";box.appendChild(seg);await typeText(seg,text,115);seg.classList.remove("typing");await sleep(1100);}start.classList.add("ready");}
 start.addEventListener("click",()=>location.href="03-questions-final-blended-v12.html");run();
 </script>
-<script src="/device-mode.js" defer></script>
+<script>
+(function removeDuplicateDeviceSelector(){
+  function cleanup(){
+    document.querySelectorAll('#dxn-global-device-switch').forEach(function(el){el.remove();});
+  }
+  cleanup();
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',cleanup,{once:true});
+  if(window.MutationObserver){
+    new MutationObserver(cleanup).observe(document.body,{childList:true,subtree:true});
+  }
+})();
+</script>
+<script src="/device-mode.js?v=86.66" defer></script>
 </body>
 </html>
