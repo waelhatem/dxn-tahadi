@@ -1,8 +1,7 @@
 (function () {
   'use strict';
 
-  // V86.67 — responsive default. The main homepage never shows a manual
-  // Mobile/Desktop selector; responsive layout is automatic there.
+  // V86.68 — automatic responsive layout. Main homepage has no manual selector.
 
   function isMainHomepage() {
     const p = (window.location.pathname || '/').replace(/\/+$/, '') || '/';
@@ -106,9 +105,9 @@
     root.dataset.deviceMode = mode;
     body.classList.toggle('desktop-mode', isDesktop);
     body.classList.toggle('mobile-mode', !isDesktop);
-    body.classList.toggle('manual-desktop', isDesktop);
-    body.classList.toggle('manual-mobile', !isDesktop);
+    body.classList.remove('manual-desktop', 'manual-mobile');
     syncGlobalDeviceSwitch(mode);
+
     try {
       document.querySelectorAll('.view-switch button,.device-switch button').forEach(function (button) {
         const text = (button.textContent || '').toLowerCase();
