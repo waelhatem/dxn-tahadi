@@ -76,7 +76,7 @@ body.dxn-login-scene-mode .login .dxn-login-footer-note{font-size:clamp(16px,1.7
 
 /* Mobile portrait: use the dedicated mobile framing when available so the family scene remains recognizable. */
 @media (max-width:600px) and (orientation:portrait){
-  body.dxn-login-scene-mode{background-image:url('/mobile-scene.webp?v=86.61')!important;background-size:cover!important;background-position:center center!important;background-attachment:scroll!important}
+  body.dxn-login-scene-mode{background-image:url('/logo2.png?v=86.61')!important;background-size:auto 100%!important;background-position:center center!important;background-repeat:no-repeat!important;background-attachment:scroll!important}
   body.dxn-login-scene-mode .login{width:min(390px,90vw)!important;margin-top:clamp(18px,5.5vh,50px)!important;margin-bottom:48px!important}
   body.dxn-login-scene-mode .login>div:first-child{margin-bottom:clamp(28px,5.5vh,65px)!important}
   body.dxn-login-scene-mode .login>div:first-child .dxn-scene-logo{width:min(300px,76vw)!important}
