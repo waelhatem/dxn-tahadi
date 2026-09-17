@@ -1,7 +1,35 @@
-/* V86.61 — Rename previous-user button without changing position, style, or functionality. */
+/* V86.62 — Main login page: remove all Mobile/Desktop selector controls. Keep login scene and responsive behavior unchanged. */
 (function(){
   'use strict';
   var MODE='dxn-login-scene-mode';
+
+  function removeDeviceControls(){
+    var selectors=['#dxn-global-device-switch','.device-switch','.view-switch','#viewSwitch','#deviceViewSwitch'];
+    selectors.forEach(function(selector){
+      try{
+        document.querySelectorAll(selector).forEach(function(el){el.remove();});
+      }catch(e){}
+    });
+  }
+
+  function enforceAutomaticResponsiveMode(){
+    try{
+      var ua=navigator.userAgent||'';
+      var mobileUA=/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(ua);
+      var coarse=window.matchMedia&&window.matchMedia('(pointer: coarse)').matches;
+      var noHover=window.matchMedia&&window.matchMedia('(hover: none)').matches;
+      var width=window.innerWidth||document.documentElement.clientWidth||9999;
+      var touch=Number(navigator.maxTouchPoints||0)>0;
+      var mobile=mobileUA||(coarse&&noHover&&width<=1100)||(touch&&width<=1100);
+      document.documentElement.dataset.deviceMode=mobile?'mobile':'desktop';
+      if(document.body){
+        document.body.classList.toggle('mobile-mode',mobile);
+        document.body.classList.toggle('desktop-mode',!mobile);
+        document.body.classList.remove('manual-mobile','manual-desktop');
+      }
+    }catch(e){}
+  }
+
   function addStyle(){
     if(document.getElementById('dxn-login-scene-style'))return;
     var s=document.createElement('style');
@@ -12,7 +40,6 @@ body.${MODE}{background:#efe8dc url('/logo2.png?v=86.61') center center/cover fi
 body.${MODE}::before{display:none!important}
 body.${MODE} #site-language-bar{display:none!important}
 body.${MODE} #app{padding:0!important;min-height:100vh!important;max-width:none!important;background:transparent!important;position:relative!important}
-body.${MODE} #viewSwitch,body.${MODE} .view-switch{display:none!important}
 body.${MODE} .login{position:absolute!important;left:50%!important;top:8.6vh!important;transform:translateX(-50%)!important;width:min(430px,88vw)!important;max-width:none!important;margin:0!important;padding:0!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;color:#183d33!important;text-align:right!important}
 body.${MODE} .login>div:first-child{display:block!important;text-align:center!important;margin:0 0 105px!important;padding:0!important;background:transparent!important;color:#173b31!important}
 body.${MODE} .login>div:first-child .dxn-scene-logo{display:block!important;width:min(360px,78vw)!important;height:auto!important;max-height:190px!important;object-fit:contain!important;margin:0 auto!important;background:transparent!important;border:0!important;box-shadow:none!important}
@@ -77,6 +104,8 @@ body.${MODE} .dxn-login-footer-note{display:block!important;margin:18px 0 0!impo
   function active(){return !!document.querySelector('#loginButton')&&!!document.querySelector('.login')}
   function apply(){
     addStyle();
+    removeDeviceControls();
+    enforceAutomaticResponsiveMode();
     var on=active();
     document.body.classList.toggle(MODE,on);
     if(on){
@@ -90,12 +119,14 @@ body.${MODE} .dxn-login-footer-note{display:block!important;margin:18px 0 0!impo
   }
   function install(){
     addStyle();
+    removeDeviceControls();
     var n=0,t=setInterval(function(){
       if(typeof window.renderLogin==='function'&&!window.__DXN_LOGIN_SCENE_WRAPPED__){
         var original=window.renderLogin;
         window.renderLogin=function(){var r=original.apply(this,arguments);setTimeout(apply,0);return r};
         window.__DXN_LOGIN_SCENE_WRAPPED__=true;clearInterval(t);
       }
+      removeDeviceControls();
       if(++n>240)clearInterval(t);
     },50);
     apply();
@@ -104,6 +135,12 @@ body.${MODE} .dxn-login-footer-note{display:block!important;margin:18px 0 0!impo
       window.__DXN_LOGIN_SCENE_OBSERVED__=true;
       new MutationObserver(function(){clearTimeout(window.__dxnLoginSceneTimer);window.__dxnLoginSceneTimer=setTimeout(apply,20)}).observe(app,{childList:true,subtree:true});
     }
+    if(!window.__DXN_LOGIN_DEVICE_OBSERVED__){
+      window.__DXN_LOGIN_DEVICE_OBSERVED__=true;
+      new MutationObserver(function(){removeDeviceControls();enforceAutomaticResponsiveMode();}).observe(document.body,{childList:true,subtree:true});
+    }
+    window.addEventListener('resize',enforceAutomaticResponsiveMode,{passive:true});
+    window.addEventListener('orientationchange',function(){setTimeout(enforceAutomaticResponsiveMode,100)},{passive:true});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
