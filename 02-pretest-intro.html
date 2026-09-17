@@ -45,7 +45,7 @@ const segments=["خذ لحظة لنفسك...", "أحيانًا تكون أفضل
 const box=document.getElementById("typewriter");const head=document.getElementById("headline");const start=document.getElementById("start");const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function typeText(el,text,speed){for(const ch of [...text]){el.appendChild(document.createTextNode(ch));await sleep(speed);}}
 async function run(){const cursor=document.createElement("span");cursor.className="seg typing active";cursor.style.display="inline-block";cursor.textContent="";head.appendChild(cursor);await typeText(cursor,"قبل أن تبدأ...",120);cursor.classList.remove("typing");for(const text of segments){const seg=document.createElement("div");seg.className="seg active typing";box.innerHTML="";box.appendChild(seg);await typeText(seg,text,115);seg.classList.remove("typing");await sleep(1100);}start.classList.add("ready");}
-start.addEventListener("click",()=>location.href="03-questions-final-blended-v12.html");run();
+start.addEventListener("click",()=>location.href="/03-pretest.html");run();
 </script>
 <script>
 (function removeDuplicateDeviceSelector(){
