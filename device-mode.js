@@ -1,8 +1,13 @@
 (function () {
   'use strict';
 
-  // V86.65 — responsive default with a shared Mobile/Desktop selector.
-  // Prevent duplicate selectors when a page already has its own selector.
+  // V86.67 — responsive default. The main homepage never shows a manual
+  // Mobile/Desktop selector; responsive layout is automatic there.
+
+  function isMainHomepage() {
+    const p = (window.location.pathname || '/').replace(/\/+$/, '') || '/';
+    return p === '/' || p === '/index.html' || p === '/landing.html';
+  }
 
   function detectDeviceMode() {
     const ua = navigator.userAgent || navigator.vendor || window.opera || '';
@@ -39,7 +44,6 @@
         html[data-device-mode="mobile"] body.desktop-mode .question { padding:14px; }
       }
 
-      /* Shared device selector for pages that do not already render one. */
       #dxn-global-device-switch {
         position:sticky;
         top:0;
@@ -105,7 +109,6 @@
     body.classList.toggle('manual-desktop', isDesktop);
     body.classList.toggle('manual-mobile', !isDesktop);
     syncGlobalDeviceSwitch(mode);
-
     try {
       document.querySelectorAll('.view-switch button,.device-switch button').forEach(function (button) {
         const text = (button.textContent || '').toLowerCase();
@@ -131,7 +134,15 @@
     return !!document.querySelector('.view-switch,.device-switch,#viewSwitch,#deviceViewSwitch');
   }
 
+  function removeAllDeviceSelectorsOnHomepage() {
+    if (!isMainHomepage()) return;
+    document.querySelectorAll('#dxn-global-device-switch,.view-switch,.device-switch,#viewSwitch,#deviceViewSwitch').forEach(function (el) {
+      el.remove();
+    });
+  }
+
   function shouldCreateSharedSelector() {
+    if (isMainHomepage()) return false;
     return !hasOwnDeviceSelector() && !document.getElementById('dxn-global-device-switch');
   }
 
@@ -152,23 +163,18 @@
   }
 
   function deduplicateDeviceSelectors() {
-    const ownSelectors = Array.from(document.querySelectorAll('.view-switch,.device-switch,#viewSwitch,#deviceViewSwitch'));
-    const sharedSelectors = Array.from(document.querySelectorAll('#dxn-global-device-switch'));
-
-    // A page-specific selector always takes priority over the shared one.
-    if (ownSelectors.length) {
-      sharedSelectors.forEach(function (el) { el.remove(); });
-      if (ownSelectors.length > 1) {
-        ownSelectors.slice(1).forEach(function (el) { el.remove(); });
-      }
+    if (isMainHomepage()) {
+      removeAllDeviceSelectorsOnHomepage();
       return;
     }
-
-    // There should never be more than one shared selector, even if the script
-    // was loaded more than once or a previous render inserted a duplicate.
-    if (sharedSelectors.length > 1) {
-      sharedSelectors.slice(1).forEach(function (el) { el.remove(); });
+    const ownSelectors = Array.from(document.querySelectorAll('.view-switch,.device-switch,#viewSwitch,#deviceViewSwitch'));
+    const sharedSelectors = Array.from(document.querySelectorAll('#dxn-global-device-switch'));
+    if (ownSelectors.length) {
+      sharedSelectors.forEach(function (el) { el.remove(); });
+      if (ownSelectors.length > 1) ownSelectors.slice(1).forEach(function (el) { el.remove(); });
+      return;
     }
+    if (sharedSelectors.length > 1) sharedSelectors.slice(1).forEach(function (el) { el.remove(); });
   }
 
   function ensureGlobalDeviceSelector() {
