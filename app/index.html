@@ -2100,5 +2100,16 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
   }
 }
 </style>
+<script>
+/* Open the existing Health & Wealth opportunity journey when requested from the final assessment. */
+(function(){
+  try{
+    var params=new URLSearchParams(window.location.search);
+    if(params.get('open')==='idea'){
+      setTimeout(function(){ if(typeof window.renderIdea==='function') window.renderIdea(); },0);
+    }
+  }catch(e){}
+})();
+</script>
 </body></html>
 <script src="/device-mode.js" defer></script>
