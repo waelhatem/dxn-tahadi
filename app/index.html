@@ -1353,20 +1353,12 @@ async function deleteDXNMembershipRequest(id){
 }
 function prospectRequestsPanel(){
   const list=Array.isArray(prospectRequests)?[...prospectRequests].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)):[];
-  return `<div class="card leaderbox">
-    <div class="title">📩 طلبات التواصل الجديدة</div>
-    <p class="muted">هنا تظهر بيانات الأشخاص الذين تركوا معلوماتهم للتواصل والتعرف أكثر على الفكرة والعمل. هذه الطلبات مستقلة عن طلبات تسجيل DXN.</p>
-    <div class="admin-toolbar">
-      <button onclick="backToLeaderDashboard()">↩️ العودة إلى مركز القيادة</button>
-      <button class="primary" onclick="openProspectRequests()">🔄 تحديث</button>
-    </div>
-  </div>
-  <div class="card">
-    <div class="title">📋 الأشخاص الذين تركوا بياناتهم (\${list.length})</div>
-    \${list.length?list.map(r=>`<div class="row"><div><b>\${esc(r.name||'')}</b><div class="muted">🌍 بلد الإقامة: \${esc(r.country||'')} · 📱 واتساب: \${esc(r.mobile||'')}<br>👤 الشخص الذي شارك الفكرة: <b>\${esc(r.referrer_name||'')}</b>\${r.created_at?`<br>🕒 تاريخ الإرسال: \${esc(new Date(r.created_at).toLocaleString('ar-IQ'))}`:''}</div></div></div>`).join(''):'<div class="empty">لا توجد طلبات تواصل جديدة.</div>'}
-  </div>`;
+  const rows=list.map(r=>{
+    const sent=r.created_at?'<br>🕒 تاريخ الإرسال: '+esc(new Date(r.created_at).toLocaleString('ar-IQ')):'';
+    return '<div class="row"><div><b>'+esc(r.name||'')+'</b><div class="muted">🌍 بلد الإقامة: '+esc(r.country||'')+' · 📱 واتساب: '+esc(r.mobile||'')+'<br>👤 الشخص الذي شارك الفكرة: <b>'+esc(r.referrer_name||'')+'</b>'+sent+'</div></div></div>';
+  }).join('');
+  return '<div class="card leaderbox"><div class="title">📩 طلبات التواصل الجديدة</div><p class="muted">هنا تظهر بيانات الأشخاص الذين تركوا معلوماتهم للتواصل والتعرف أكثر على الفكرة والعمل. هذه الطلبات مستقلة عن طلبات تسجيل DXN.</p><div class="admin-toolbar"><button onclick="backToLeaderDashboard()">↩️ العودة إلى مركز القيادة</button><button class="primary" onclick="openProspectRequests()">🔄 تحديث</button></div></div><div class="card"><div class="title">📋 الأشخاص الذين تركوا بياناتهم ('+list.length+')</div>'+(rows||'<div class="empty">لا توجد طلبات تواصل جديدة.</div>')+'</div>';
 }
-
 function dxnMembershipRequestsPanel(){
   const pending=membershipRequests.filter(r=>String(r.status||'pending')==='pending').sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
   const approved=membershipRequests.filter(r=>String(r.status||'')==='approved').sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
