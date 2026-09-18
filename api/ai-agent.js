@@ -9,33 +9,27 @@ const APP_BASE_URL = String(
   process.env.AI_AGENT_APP_URL ||
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://dxn-tahadi.vercel.app')
 ).replace(/\\/$/,'');
-const rpcHandler = require('./rpc');
-
-function supabaseRpc(fn,args){
-  // Reuse the platform's existing /api/rpc implementation in-process.
-  // This avoids a second HTTP/DNS path from one Vercel function to another.
+function httpJson(url,body,headers,timeout){
   return new Promise((resolve,reject)=>{
-    let status=200, settled=false;
-    const finish=(payload)=>{
-      if(settled)return;
-      settled=true;
-      const ok=status>=200&&status<300;
-      resolve({ok,status,data:payload,text:typeof payload==='string'?payload:JSON.stringify(payload||{})});
-    };
-    const res={
-      status(code){status=Number(code)||500;return this;},
-      json(payload){finish(payload);},
-      end(payload){finish(payload||{});},
-      setHeader(){},
-      getHeader(){return undefined;},
-      removeHeader(){}
-    };
-    Promise.resolve(rpcHandler({
-      method:'POST',
-      body:{fn,args:args||{}},
-      headers:{'content-type':'application/json'}
-    },res)).catch(reject);
+    const target=new URL(url);
+    const raw=JSON.stringify(body||{});
+    const req=https.request({
+      protocol:target.protocol,hostname:target.hostname,port:target.port||443,method:'POST',path:target.pathname+target.search,
+      headers:{'Content-Type':'application/json',Accept:'application/json',...(headers||{}),'Content-Length':Buffer.byteLength(raw)},timeout:timeout||15000
+    },res=>{
+      let text='';res.setEncoding('utf8');res.on('data',c=>text+=c);res.on('end',()=>{
+        let data=null;try{data=text?JSON.parse(text):null}catch(_){data=text}
+        resolve({ok:res.statusCode>=200&&res.statusCode<300,status:res.statusCode||0,data,text});
+      });
+    });
+    req.on('timeout',()=>req.destroy(new Error('انتهت مهلة الاتصال بمسار RPC')));
+    req.on('error',reject);req.write(raw);req.end();
   });
+}
+function supabaseRpc(fn,args){
+  // Use the same-origin RPC endpoint already used by the application.
+  // Do not fall back to direct Supabase here: that would hide the real RPC error.
+  return httpJson(`${APP_BASE_URL}/api/rpc`,{fn,args:args||{}},{},15000);
 }
 
 function openai(payload){
