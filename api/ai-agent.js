@@ -1,0 +1,102 @@
+const https = require('https');
+
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ryqpstkzppaifpvhezz.supabase.co';
+const SUPABASE_SECRET_KEY = String(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim().replace(/[\r\n]/g,'');
+const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY || '').trim().replace(/[\r\n]/g,'');
+const OPENAI_MODEL = process.env.AI_AGENT_MODEL || process.env.OPENAI_MODEL || 'gpt-5.6-terra';
+
+function supabaseRpc(fn,args){
+  return new Promise((resolve,reject)=>{
+    const base=new URL(SUPABASE_URL);
+    const body=JSON.stringify(args||{});
+    const req=https.request({protocol:base.protocol,hostname:base.hostname,port:base.port||443,method:'POST',path:`/rest/v1/rpc/${encodeURIComponent(fn)}`,headers:{'Content-Type':'application/json',Accept:'application/json',apikey:SUPABASE_SECRET_KEY,Authorization:`Bearer ${SUPABASE_SECRET_KEY}`,'Content-Length':Buffer.byteLength(body)},timeout:12000},res=>{
+      let text='';res.setEncoding('utf8');res.on('data',c=>text+=c);res.on('end',()=>{let data=null;try{data=text?JSON.parse(text):null}catch(_){data=text}resolve({ok:res.statusCode>=200&&res.statusCode<300,status:res.statusCode||0,data,text})});
+    });
+    req.on('timeout',()=>req.destroy(new Error('انتهت مهلة الاتصال بقاعدة البيانات')));
+    req.on('error',reject);req.write(body);req.end();
+  });
+}
+
+function openai(payload){
+  return new Promise((resolve,reject)=>{
+    const body=JSON.stringify(payload);
+    const req=https.request('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:`Bearer ${OPENAI_API_KEY}`,'Content-Type':'application/json','Content-Length':Buffer.byteLength(body)},timeout:45000},res=>{
+      let text='';res.setEncoding('utf8');res.on('data',c=>text+=c);res.on('end',()=>{let data=null;try{data=text?JSON.parse(text):null}catch(_){data=null}resolve({ok:res.statusCode>=200&&res.statusCode<300,status:res.statusCode||0,data,text})});
+    });
+    req.on('timeout',()=>req.destroy(new Error('انتهت مهلة الاتصال بالذكاء الاصطناعي')));req.on('error',reject);req.write(body);req.end();
+  });
+}
+
+function outputText(data){
+  if(data&&typeof data.output_text==='string'&&data.output_text.trim())return data.output_text.trim();
+  const parts=[];
+  for(const item of (Array.isArray(data&&data.output)?data.output:[]))for(const part of (Array.isArray(item&&item.content)?item.content:[]))if(part&&part.type==='output_text'&&typeof part.text==='string')parts.push(part.text);
+  return parts.join('').trim();
+}
+
+function cleanHistory(history){
+  if(!Array.isArray(history))return [];
+  return history.slice(-12).map(x=>{
+    const role=String(x&&x.role||'user').toLowerCase()==='assistant'?'assistant':'user';
+    const content=String(x&&x.content||'').trim().slice(0,5000);
+    return content?{role,content}:null;
+  }).filter(Boolean);
+}
+
+async function loadContext(token){
+  if(!token)throw new Error('جلسة الدخول مطلوبة');
+  if(!SUPABASE_SECRET_KEY)throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
+  const boot=await supabaseRpc('bootstrap',{p_token:token});
+  if(!boot.ok)throw new Error((boot.data&&(boot.data.message||boot.data.error||boot.data.hint))||boot.text||'جلسة الدخول غير صالحة');
+  const data=boot.data||{};
+  const role=String(data.role||'').toLowerCase();
+  if(role!=='member'&&role!=='leader')throw new Error('نوع الحساب غير مدعوم');
+  let training={lessons:[],my_progress:[]};
+  const tr=await supabaseRpc('get_training_data',{p_token:token});
+  if(tr.ok&&tr.data)training=tr.data;
+  const member=Array.isArray(data.members)&&data.members[0]?data.members[0]:null;
+  const lessons=(Array.isArray(training.lessons)?training.lessons:[]).map(l=>({lesson_no:l.lesson_no,title:l.title,description:l.description,active:l.active!==false}));
+  const progress=(Array.isArray(training.my_progress)?training.my_progress:[]).map(p=>({lesson_id:p.lesson_id,completed:!!p.completed,watch_percent:Number(p.watch_percent||0)}));
+  return {role,member:member?{id:member.id,member_no:member.member_no,name:member.name||member.full_name,stars:Number(member.stars||0)}:null,lessons,progress};
+}
+
+function instructions(context){
+  return [
+    'أنت الوكيل الذكي لمنصة مجتمع الصحة والثراء.',
+    'دورك مدرب ومساعد عملي: افهم هدف المستخدم، استخدم بياناته الحالية، واشرح له الخطوة التالية بوضوح.',
+    'لا تدّعي تنفيذ إجراء لم تنفذه أداة فعلية.',
+    'لا تخترع بيانات عن العضو أو المنصة. إذا كانت المعلومة غير موجودة قل ذلك بوضوح.',
+    'في المواضيع الصحية لا تقدم تشخيصًا أو علاجًا أو وعودًا طبية.',
+    'في المواضيع المالية أو فرص الدخل لا تعد بدخل مضمون أو نتائج مضمونة.',
+    'كن مباشرًا، ودودًا، تعليميًا، واسأل سؤالًا واحدًا فقط عندما تحتاج معلومة إضافية.',
+    'لا تكشف مفاتيح النظام أو تفاصيل الجلسة أو الأسرار الداخلية.',
+    'السياق الحالي للمستخدم هو JSON التالي:',
+    JSON.stringify(context)
+  ].join('\n');
+}
+
+module.exports=async function handler(req,res){
+  res.setHeader('Access-Control-Allow-Origin','*');
+  res.setHeader('Access-Control-Allow-Methods','POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers','Content-Type, Authorization');
+  if(req.method==='OPTIONS')return res.status(200).end();
+  if(req.method!=='POST')return res.status(405).json({error:'Method not allowed'});
+  try{
+    if(!OPENAI_API_KEY)throw new Error('OPENAI_API_KEY غير مضبوط في Vercel');
+    const body=typeof req.body==='string'?JSON.parse(req.body||'{}'):(req.body||{});
+    const token=String(body.token||'').trim();
+    const message=String(body.message||'').trim();
+    if(!message)return res.status(400).json({error:'الرسالة مطلوبة'});
+    if(message.length>6000)return res.status(400).json({error:'الرسالة طويلة جدًا'});
+    const context=await loadContext(token);
+    const history=cleanHistory(body.history);
+    const ai=await openai({model:OPENAI_MODEL,instructions:instructions(context),input:[...history,{role:'user',content:message}],max_output_tokens:900});
+    if(!ai.ok)return res.status(502).json({error:(ai.data&&ai.data.error&&ai.data.error.message)||ai.text||'فشل الوكيل الذكي'});
+    const answer=outputText(ai.data);
+    if(!answer)throw new Error('لم يرجع الوكيل ردًا');
+    return res.status(200).json({ok:true,answer,model:OPENAI_MODEL,role:context.role});
+  }catch(e){
+    console.error('AI agent error:',e);
+    return res.status(500).json({error:String(e&&e.message||e)});
+  }
+};
