@@ -1384,7 +1384,8 @@ function prospectStatusBox(r,key,label){
   const active=current===key;
   const shown=active?(key==='contacted_convinced'?'✓':key==='contacted_rejected'?'✕':''):'';
   const color=key==='contacted_convinced'?'#16a34a':key==='contacted_rejected'?'#dc2626':'#64748b';
-  return '<button type="button" onclick="setProspectStatus(\\''+r.id+'\\',\\''+key+'\\')" style="min-width:150px;padding:10px 12px;border:2px solid '+(active?(key==='contacted_convinced'?'#16a34a':key==='contacted_rejected'?'#dc2626':'#64748b'):'#d9e2e8')+';border-radius:12px;background:#fff;font-weight:800;cursor:pointer"><span style="display:block;font-size:14px">'+label+'</span><span style="display:block;font-size:28px;line-height:1.1;margin-top:5px;color:'+color+'">'+(shown||'⬜')+'</span></button>';
+  const border=active?(key==='contacted_convinced'?'#16a34a':key==='contacted_rejected'?'#dc2626':'#64748b'):'#d9e2e8';
+  return '<button type="button" data-prospect-id="'+esc(r.id||'')+'" data-prospect-status="'+key+'" onclick="setProspectStatus(this.dataset.prospectId,this.dataset.prospectStatus)" style="min-width:150px;padding:10px 12px;border:2px solid '+border+';border-radius:12px;background:#fff;font-weight:800;cursor:pointer"><span style="display:block;font-size:14px">'+label+'</span><span style="display:block;font-size:28px;line-height:1.1;margin-top:5px;color:'+color+'">'+(shown||'⬜')+'</span></button>';
 }
 function prospectRequestsPanel(){
   const list=Array.isArray(prospectRequests)?[...prospectRequests].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)):[];
@@ -1393,7 +1394,7 @@ function prospectRequestsPanel(){
     return '<div class="row" style="display:block;padding:18px 16px">'+
       '<div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap">'+
       '<div><b style="font-size:17px">'+esc(r.name||'')+'</b><div class="muted">🌍 بلد الإقامة: '+esc(r.country||'')+' · 📱 واتساب: '+esc(r.mobile||'')+'<br>👤 الشخص الذي شارك الفكرة: <b>'+esc(r.referrer_name||'')+'</b>'+sent+'</div></div>'+
-      '<button type="button" class="danger" onclick="deleteProspect(\\''+r.id+'\\')" style="white-space:nowrap">🗑️ حذف نهائي</button></div>'+
+      '<button type="button" class="danger" data-prospect-id="'+esc(r.id||'')+'" onclick="deleteProspect(this.dataset.prospectId)" style="white-space:nowrap">🗑️ حذف نهائي</button></div>'+
       '<div style="margin-top:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
       prospectStatusBox(r,'contacted_convinced','تم التواصل والاقتناع')+
       prospectStatusBox(r,'not_contacted','لم يتم التواصل بعد')+
