@@ -317,7 +317,30 @@ async function verifyTeamMember(){
   btn.disabled=true; btn.textContent='⏳ جارٍ التحقق...'; status.textContent='جارٍ التحقق من رقم العضوية...';
   try{
     const r=await rpc('verify_team_member',{p_member_no:no});
-    if(!r||!r.allowed){ status.textContent='❌ '+(r?.message||'هذه العضوية غير مسجلة ضمن فريق المجتمع.'); toast(r?.message||'هذه العضوية غير مسجلة ضمن فريق المجتمع.'); return; }
+    if(!r||!r.allowed){
+      /* A member who has already created an account must not be treated as an invalid member.
+         The verification screen is also the entry point for first-time setup, so detect an
+         existing member account and send the member to the normal login flow instead. */
+      try{
+        const sr=await fetch('/api/member-status?member_no='+encodeURIComponent(no),{cache:'no-store'});
+        const sd=await sr.json().catch(()=>null);
+        if(sr.ok&&sd&&sd.registered){
+          status.textContent='ℹ️ هذه العضوية مسجلة مسبقًا. سيتم نقلك إلى تسجيل الدخول.';
+          toast('هذه العضوية مسجلة مسبقًا. استخدم رقم العضوية وPIN الذي أنشأته سابقًا.');
+          renderLogin();
+          setTimeout(function(){
+            const role=$('role'), loginNo=$('loginNo');
+            if(role) role.value='member';
+            if(loginNo) loginNo.value=no;
+            const pin=$('pin'); if(pin) pin.focus();
+          },0);
+          return;
+        }
+      }catch(_){}
+      status.textContent='❌ '+(r?.message||'هذه العضوية غير مسجلة ضمن فريق المجتمع.');
+      toast(r?.message||'هذه العضوية غير مسجلة ضمن فريق المجتمع.');
+      return;
+    }
     status.textContent='✅ تم التحقق بنجاح.';
     renderMemberAccountSetup(no,r.name||'');
   }catch(e){
