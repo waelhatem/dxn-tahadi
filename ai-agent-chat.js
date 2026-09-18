@@ -30,29 +30,64 @@
     return x;
   }
   function sessionToken(){return String(localStorage.getItem('dxn_session')||'').trim();}
+  let audioContext=null;
+  let currentSource=null;
+  function ensureAudioContext(){
+    try{
+      if(!audioContext)audioContext=new (window.AudioContext||window.webkitAudioContext)();
+      if(audioContext.state==='suspended')audioContext.resume().catch(()=>{});
+      return audioContext;
+    }catch(_){return null;}
+  }
   function addMsg(text,who){
-    const box=document.getElementById('dxnAgentMessages');if(!box)return;
+    const box=document.getElementById('dxnAgentMessages');if(!box)return null;
     const d=el('div',{class:'dxn-agent-msg '+(who==='user'?'dxn-agent-user':'dxn-agent-ai')});
-    d.textContent=text;box.appendChild(d);box.scrollTop=box.scrollHeight;
+    d.textContent=text;box.appendChild(d);box.scrollTop=box.scrollHeight;return d;
+  }
+  function addReplayButton(node,text){
+    if(!node||!text)return;
+    const b=document.createElement('button');
+    b.type='button';b.textContent='🔊';b.title='تشغيل صوت محمد';
+    b.style.cssText='float:left;margin:4px 0 0 6px;border:0;background:#eef7f3;color:#0f513f;border-radius:10px;width:34px;height:30px;cursor:pointer;font-size:17px';
+    b.addEventListener('click',()=>speakAnswer(text,true));
+    node.appendChild(document.createTextNode(' '));node.appendChild(b);
   }
   function setStatus(s){const x=document.getElementById('dxnAgentStatus');if(x)x.textContent=s||'';}
-  async function speakAnswer(text){
+  async function speakAnswer(text,fromButton){
     try{
       const token=sessionToken();if(!token||!text)return;
+      ensureAudioContext();
+      setStatus('جارٍ تجهيز صوت محمد...');
       const r=await fetch('/api/ai-agent-voice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'speak',token,text})});
       if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.error||('HTTP '+r.status));}
-      const blob=await r.blob();
+      const data=await r.arrayBuffer();
+      const ctx=ensureAudioContext();
+      if(ctx){
+        const decoded=await ctx.decodeAudioData(data.slice(0));
+        if(currentSource){try{currentSource.stop();}catch(_){}}
+        currentSource=ctx.createBufferSource();
+        currentSource.buffer=decoded;
+        currentSource.connect(ctx.destination);
+        currentSource.onended=()=>{currentSource=null;setStatus('');};
+        if(ctx.state==='suspended')await ctx.resume();
+        currentSource.start(0);
+        return;
+      }
+      const blob=new Blob([data],{type:'audio/mpeg'});
       const url=URL.createObjectURL(blob);
       const audio=new Audio(url);audio.preload='auto';
-      audio.onended=()=>URL.revokeObjectURL(url);
-      try{await audio.play();}catch(e){URL.revokeObjectURL(url);throw e;}
-    }catch(e){setStatus('تم الرد نصيًا، وتعذر تشغيل الصوت تلقائيًا.');}
+      audio.onended=()=>{URL.revokeObjectURL(url);setStatus('');};
+      await audio.play();
+    }catch(e){
+      setStatus(fromButton?'تعذر تشغيل صوت محمد: '+String(e.message||e):'يمكن تشغيل صوت محمد من زر 🔊 داخل الرد.');
+    }
   }
   async function send(messageOverride){
     const input=document.getElementById('dxnAgentInput');const message=String(messageOverride!==undefined?messageOverride:(input&&input.value)||'').trim();
     if(!message)return;
     const token=sessionToken();
     if(!token){addMsg('يرجى تسجيل الدخول أولًا حتى أتمكن من قراءة بيانات حسابك.','ai');return;}
+    ensureAudioContext();
     addMsg(message,'user');input.value='';setStatus('جارٍ التفكير...');
     const history=[...document.querySelectorAll('#dxnAgentMessages .dxn-agent-msg')].slice(-14).map(x=>({
       role:x.classList.contains('dxn-agent-user')?'user':'assistant',content:x.textContent
@@ -61,7 +96,11 @@
       const r=await fetch('/api/ai-agent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,message,history})});
       const d=await r.json().catch(()=>({}));
       if(!r.ok)throw new Error(d.error||('HTTP '+r.status));
-      const answer=d.answer||'لم يصل رد من الوكيل.';addMsg(answer,'ai');setStatus('جارٍ تشغيل الرد الصوتي...');await speakAnswer(answer);setStatus('');
+      const answer=d.answer||'لم يصل رد من الوكيل.';
+      const node=addMsg(answer,'ai');
+      addReplayButton(node,answer);
+      setStatus('جارٍ تشغيل الرد الصوتي...');
+      await speakAnswer(answer,false);
     }catch(e){addMsg('تعذر الاتصال بالوكيل: '+String(e.message||e),'ai');setStatus('');}
   }
   let speechRecognition=null;
@@ -137,6 +176,7 @@
       }
       const token=sessionToken();
       if(!token){addMsg('يرجى تسجيل الدخول أولًا.','ai');return;}
+      ensureAudioContext();
       try{speechRecognition.start();}
       catch(e){setStatus('تعذر بدء الميكروفون. حاول مرة أخرى.');}
     });
