@@ -73,7 +73,7 @@
       setStatus('تعذر تشغيل صوت محمد تلقائيًا: '+String(e.message||e));
     }
   }
-  async function send(messageOverride){
+  async function send(messageOverride, fromVoice=false){
     const input=document.getElementById('dxnAgentInput');const message=String(messageOverride!==undefined?messageOverride:(input&&input.value)||'').trim();
     if(!message)return;
     const token=sessionToken();
@@ -89,7 +89,7 @@
       if(!r.ok)throw new Error(d.error||('HTTP '+r.status));
       const answer=d.answer||'لم يصل رد من الوكيل.';
       addMsg(answer,'ai');
-      await speakAnswer(answer);
+      if(fromVoice) await speakAnswer(answer);
     }catch(e){addMsg('تعذر الاتصال بالوكيل: '+String(e.message||e),'ai');setStatus('');}
   }
   let speechRecognition=null;
@@ -155,7 +155,7 @@
       voiceBusy=false;
       if(!text){setStatus('');return;}
       setStatus('جارٍ إرسال كلامك إلى محمد...');
-      await send(text);
+      await send(text,true);
     };
 
     mic.addEventListener('click',()=>{
