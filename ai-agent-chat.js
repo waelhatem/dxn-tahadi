@@ -175,6 +175,32 @@
     });
   }
 
+  let dailyBootstrapStarted=false;
+
+  async function startDailyBootstrap(){
+    if(dailyBootstrapStarted)return;
+    dailyBootstrapStarted=true;
+    const token=sessionToken();
+    if(!token)return;
+    try{
+      setStatus('محمد يجهّز جلسة اليوم...');
+      const r=await fetch('/api/ai-agent',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action:'daily_bootstrap',token})
+      });
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok)throw new Error(d.error||('HTTP '+r.status));
+      if(d.answer){
+        addMsg(d.answer,'ai');
+      }
+      setStatus('');
+    }catch(e){
+      setStatus('');
+      console.warn('Daily bootstrap failed:',e);
+    }
+  }
+
   function mount(){
     if(document.getElementById('dxnAgentLauncher'))return;
     const style=el('style',{},STYLE);document.head.appendChild(style);
@@ -182,7 +208,14 @@
     const panel=el('section',{id:'dxnAgentPanel','aria-label':'محادثة محمد'});
     panel.innerHTML='<div class="dxn-agent-head"><div><b>🤖 محمد</b><small>مدربك الذكي داخل المنصة</small></div><button class="dxn-agent-close" type="button">إغلاق</button></div><div id="dxnAgentMessages"></div><div id="dxnAgentStatus" class="dxn-agent-status"></div><form class="dxn-agent-form"><button id="dxnAgentMic" class="dxn-agent-mic" type="button" title="تحدث مع الوكيل">🎙️</button><textarea id="dxnAgentInput" placeholder="اكتب سؤالك هنا... أو اضغط 🎙️ للتحدث" rows="1"></textarea><button id="dxnAgentSend" type="submit">إرسال</button></form>';
     document.body.append(btn,panel);
-    btn.addEventListener('click',()=>{panel.classList.toggle('show');if(panel.classList.contains('show'))document.getElementById('dxnAgentInput')?.focus();});
+    btn.addEventListener('click',()=>{
+      const opening=!panel.classList.contains('show');
+      panel.classList.toggle('show');
+      if(opening){
+        document.getElementById('dxnAgentInput')?.focus();
+        startDailyBootstrap();
+      }
+    });
     panel.querySelector('.dxn-agent-close').addEventListener('click',()=>panel.classList.remove('show'));
     panel.querySelector('form').addEventListener('submit',e=>{e.preventDefault();send();});
     document.getElementById('dxnAgentInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
