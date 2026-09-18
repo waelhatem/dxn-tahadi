@@ -70,7 +70,12 @@
     var controls=d.querySelectorAll('textarea,button,input,select');for(var i=0;i<controls.length;i++)setManagedDisabled(controls[i],locked);
   }
   function refresh(){
-    addStyles();if(currentRole()==='leader')return {locked:0,total:0};
+    addStyles();
+    if(currentRole()==='leader'){
+      clearInterval(window.__dxnAssessmentLockPoll);
+      clearTimeout(window.__dxnAssessmentLockTimer);
+      return {locked:0,total:0};
+    }
     var ls=lessons();if(!ls.length)return {locked:0,total:0};
     var details=assessmentDetails(),lockedCount=0,total=0;
     for(var i=0;i<details.length;i++){
@@ -87,9 +92,13 @@
   function schedule(){clearTimeout(window.__dxnAssessmentLockTimer);window.__dxnAssessmentLockTimer=setTimeout(refresh,80)}
   function adaptiveWatch(){
     clearInterval(window.__dxnAssessmentLockPoll);
+    if(currentRole()==='leader')return;
     window.__dxnAssessmentLockPoll=setInterval(refresh,1500);
   }
-  function boot(){refresh();adaptiveWatch();setTimeout(refresh,300);setTimeout(refresh,900);setTimeout(refresh,1800)}
+  function boot(){
+    if(currentRole()==='leader')return;
+    refresh();adaptiveWatch();setTimeout(refresh,300);setTimeout(refresh,900);setTimeout(refresh,1800)
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
   try{new MutationObserver(schedule).observe(document.body,{childList:true,subtree:true})}catch(e){}
   document.addEventListener('dxn:training-progress-updated',function(){schedule();adaptiveWatch()});
