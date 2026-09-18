@@ -44,37 +44,62 @@ async function verifyToken(token){
   if(role!=='member'&&role!=='leader')throw new Error('نوع الحساب غير مدعوم');
 }
 
+function openaiTranscriptionMultipart(audio,filename,mime,model){
+  return new Promise((resolve,reject)=>{
+    const boundary='----DXNAudioBoundary'+Date.now().toString(16);
+    const parts=[];
+    const addField=(name,value)=>{
+      parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${String(value)}\r\n`));
+    };
+    addField('model',model);
+    addField('language','ar');
+    addField('response_format','json');
+    addField('prompt','اللهجة العراقية: شلون، هسه، تگدر، عندك، خلينا، مو، إذا تريد، وين، ليش. أسماء ومصطلحات المنصة: DXN، مجتمع الصحة والثراء، محمد، الوكيل الذكي، التدريب، العضو، القائد. حافظ على الكلمات العراقية كما نطقها المتحدث ولا تستبدلها بلهجة أخرى.');
+    parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: ${mime}\r\n\r\n`));
+    parts.push(Buffer.isBuffer(audio)?audio:Buffer.from(audio));
+    parts.push(Buffer.from(`\r\n--${boundary}--\r\n`));
+    const body=Buffer.concat(parts);
+    const req=https.request({
+      protocol:'https:',
+      hostname:'api.openai.com',
+      port:443,
+      method:'POST',
+      path:'/v1/audio/transcriptions',
+      headers:{
+        Authorization:`Bearer ${OPENAI_API_KEY}`,
+        'Content-Type':`multipart/form-data; boundary=${boundary}`,
+        'Content-Length':body.length
+      },
+      timeout:60000
+    },response=>{
+      let text='';response.setEncoding('utf8');
+      response.on('data',chunk=>text+=chunk);
+      response.on('end',()=>{
+        let data=null;try{data=text?JSON.parse(text):null}catch(_){data=text}
+        resolve({ok:response.statusCode>=200&&response.statusCode<300,status:response.statusCode||0,data,text});
+      });
+    });
+    req.on('timeout',()=>req.destroy(new Error('انتهت مهلة تحويل التسجيل الصوتي')));
+    req.on('error',reject);
+    req.write(body);req.end();
+  });
+}
+
 async function transcribe(audio,filename,mime){
-  const models=[
-    process.env.AI_AGENT_TRANSCRIBE_MODEL||'gpt-4o-mini-transcribe',
-    'gpt-4o-transcribe'
-  ].filter((v,i,a)=>v&&a.indexOf(v)===i);
+  const models=[process.env.AI_AGENT_TRANSCRIBE_MODEL,'gpt-4o-mini-transcribe','gpt-4o-transcribe']
+    .map(x=>String(x||'').trim())
+    .filter((v,i,a)=>v&&a.indexOf(v)===i);
 
   let lastError='تعذر تحويل الصوت إلى نص';
   for(const model of models){
     try{
-      const form=new FormData();
-      form.append('model',model);
-      form.append('language','ar');
-      form.append('response_format','json');
-      form.append('prompt','اللهجة العراقية: شلون، هسه، تگدر، عندك، خلينا، مو، إذا تريد، وين، ليش. أسماء ومصطلحات المنصة: DXN، مجتمع الصحة والثراء، محمد، الوكيل الذكي، التدريب، العضو، القائد. حافظ على الكلمات العراقية كما نطقها المتحدث ولا تستبدلها بلهجة أخرى.');
-      const safeMime=String(mime||'audio/webm');
-      const safeFilename=String(filename||'voice.webm');
-      form.append('file',new Blob([audio],{type:safeMime}),safeFilename);
-      const r=await fetch('https://api.openai.com/v1/audio/transcriptions',{
-        method:'POST',
-        headers:{Authorization:`Bearer ${OPENAI_API_KEY}`},
-        body:form
-      });
-      const raw=await r.text();
-      let data=null;
-      try{data=raw?JSON.parse(raw):null}catch(_){data=raw}
+      const r=await openaiTranscriptionMultipart(audio,filename||'voice.webm',mime||'audio/webm',model);
       if(r.ok){
-        const text=String(data&&data.text||'').trim();
+        const text=String(r.data&&r.data.text||'').trim();
         if(text)return text;
         lastError='عاد محرك التفريغ بدون نص واضح';
       }else{
-        lastError=(data&&data.error&&data.error.message)||raw||`OpenAI HTTP ${r.status}`;
+        lastError=(r.data&&r.data.error&&r.data.error.message)||r.text||`OpenAI HTTP ${r.status}`;
       }
     }catch(e){
       lastError=String(e&&e.message||e);
