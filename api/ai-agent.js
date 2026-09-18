@@ -701,6 +701,42 @@ async function executeAgentTool(call,token){
   return await fn(token,args);
 }
 
+async function generateDailyKickoff(context,coachingProfile,session,plan){
+  const action=Array.isArray(plan?.actions)?plan.actions[0]:null;
+  if(!session?.active||!action) return null;
+  const kickoffPrompt=[
+    'ابدأ جلسة اليوم الآن مع العضو بصورة طبيعية ومباشرة.',
+    'لا تقل إنك تنتظر سؤالًا. أنت من يبدأ الجلسة.',
+    'اعرض المهمة الحالية بجملة قصيرة جدًا ثم اطلب من العضو محاولة واحدة أو أجبْه بسؤال واحد فقط حسب نوع المهمة.',
+    'لا تعرض قائمة مهام كاملة ولا تشرح أكثر من اللازم.',
+    'إذا كانت المهمة مراجعة أو ممارسة، اجعل البداية تطبيقية. وإذا كانت تدريبًا جديدًا، افتح الموضوع بسؤال تمهيدي بسيط.',
+    'السياق:',
+    JSON.stringify({
+      member:context.member,
+      session,
+      action,
+      coaching_profile:coachingProfile||null
+    })
+  ].join('\\n');
+
+  const r=await openai({
+    model:OPENAI_MODEL,
+    instructions:instructions({
+      role:context.role,
+      member:context.member,
+      lessons:context.lessons,
+      progress:context.progress,
+      coaching_profile:coachingProfile,
+      coaching_session:session,
+      daily_auto_plan:plan
+    }),
+    input:[{role:'user',content:kickoffPrompt}],
+    max_output_tokens:350
+  });
+  if(!r.ok) throw new Error((r.data&&r.data.error&&r.data.error.message)||r.text||'تعذر بدء جلسة اليوم');
+  return outputText(r.data);
+}
+
 module.exports=async function handler(req,res){
   res.setHeader('Access-Control-Allow-Origin','*');
   res.setHeader('Access-Control-Allow-Methods','POST, OPTIONS');
@@ -711,6 +747,42 @@ module.exports=async function handler(req,res){
     if(!OPENAI_API_KEY)throw new Error('OPENAI_API_KEY غير مضبوط في Vercel');
     const body=typeof req.body==='string'?JSON.parse(req.body||'{}'):(req.body||{});
     const token=String(body.token||'').trim();
+    const action=String(body.action||'').trim();
+
+    if(action==='daily_bootstrap'){
+      if(!token)return res.status(400).json({error:'جلسة الدخول مطلوبة'});
+      const context=await loadContext(token);
+      if(context.role!=='member')return res.status(200).json({ok:true,started:false,answer:null});
+      const [coachingProfile,currentSession]=await Promise.all([
+        loadAgentProfile(token),
+        loadAgentSession(token)
+      ]);
+
+      let session=currentSession;
+      let plan=null;
+
+      if(!session?.active){
+        const started=await startNextDailySession(token,currentSession);
+        session=started.session;
+        plan=started.plan;
+      }else{
+        plan=await AGENT_TOOLS.get_daily_coaching_plan(token);
+      }
+
+      if(!session?.active){
+        return res.status(200).json({ok:true,started:false,answer:null});
+      }
+
+      const answer=await generateDailyKickoff(context,coachingProfile,session,plan);
+      if(answer) await saveAgentMessage(token,'assistant',answer).catch(()=>null);
+      return res.status(200).json({
+        ok:true,
+        started:true,
+        answer:answer||null,
+        session
+      });
+    }
+
     const message=String(body.message||'').trim();
     if(!message)return res.status(400).json({error:'الرسالة مطلوبة'});
     if(message.length>6000)return res.status(400).json({error:'الرسالة طويلة جدًا'});
