@@ -1,5 +1,6 @@
 (function(){
 'use strict';
+try{if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(function(){})}}catch(e){}
 if(window.__DXN_PWA_INSTALL__) return;
 window.__DXN_PWA_INSTALL__=true;
 
