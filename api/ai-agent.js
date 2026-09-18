@@ -98,8 +98,9 @@ function detectSessionCommand(message){
 }
 
 async function loadAgentSession(token){
-  const r=await supabaseRpc('get_ai_agent_coaching_session',{p_token:token});
-  if(!r.ok||!Array.isArray(r.data)||!r.data[0]) return null;
+  try{
+    const r=await supabaseRpc('get_ai_agent_coaching_session',{p_token:token});
+    if(!r.ok||!Array.isArray(r.data)||!r.data[0]) return null;
   const s=r.data[0];
   return {
     active:!!s.active,
@@ -108,7 +109,8 @@ async function loadAgentSession(token){
     phase:s.phase||'discover',
     turn_count:Number(s.turn_count||0),
     started_at:s.started_at||null
-  };
+    };
+  }catch(_){return null;}
 }
 
 async function saveAgentSession(token,session){
@@ -161,8 +163,9 @@ async function extractSessionUpdate(message,answer,currentSession){
 }
 
 async function loadAgentProfile(token){
-  const r=await supabaseRpc('get_ai_agent_coaching_profile',{p_token:token});
-  if(!r.ok||!Array.isArray(r.data)||!r.data[0]) return null;
+  try{
+    const r=await supabaseRpc('get_ai_agent_coaching_profile',{p_token:token});
+    if(!r.ok||!Array.isArray(r.data)||!r.data[0]) return null;
   const p=r.data[0];
   return {
     goal:p.goal||null,
@@ -171,7 +174,8 @@ async function loadAgentProfile(token){
     strengths:Array.isArray(p.strengths)?p.strengths.slice(0,8):[],
     gaps:Array.isArray(p.gaps)?p.gaps.slice(0,8):[],
     current_next_step:p.current_next_step||null
-  };
+    };
+  }catch(_){return null;}
 }
 
 async function saveAgentProfile(token,profile){
@@ -237,15 +241,17 @@ async function extractProfileUpdate(message,answer,currentProfile){
 }
 
 async function loadAgentMemory(token){
-  const r=await supabaseRpc('get_ai_agent_memory',{p_token:token,p_limit:24});
-  if(!r.ok) return [];
+  try{
+    const r=await supabaseRpc('get_ai_agent_memory',{p_token:token,p_limit:24});
+    if(!r.ok) return [];
   return Array.isArray(r.data)
     ? r.data.map(x=>{
         const role=String(x&&x.role||'').toLowerCase()==='assistant'?'assistant':'user';
         const content=String(x&&x.content||'').trim().slice(0,5000);
         return content?{role,content}:null;
       }).filter(Boolean)
-    : [];
+      : [];
+  }catch(_){return [];}
 }
 
 async function saveAgentMessage(token,role,content){
