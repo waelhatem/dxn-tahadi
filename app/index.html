@@ -341,14 +341,14 @@ async function completeMemberRegistration(no){
   }catch(e){toast(e.message||'تعذر إنشاء الحساب.')}
 }
 function renderProspectRegister(){
-  $('app').innerHTML=`<div class="view-switch" id="viewSwitch"></div><div class="login card" style="max-width:700px;text-align:right"><div style="text-align:center"><img src="/logo-full.png" alt="شعار مجتمع الصحة والثراء" style="display:block;margin:0 auto 16px;width:min(300px,90%);height:auto;object-fit:contain"><h1>🌱 ابدأ رحلتك معنا</h1><p class="muted" style="line-height:1.9">هذه الخطوة مخصصة لمن وجد أن الفكرة تناسبه ويرغب في متابعة التعرف على الرحلة بشكل أكبر. أدخل بياناتك الأساسية لكي نتواصل معك ونتعرف عليك أكثر، ونشرح لك الفكرة والعمل بصورة أوضح.</p></div><label>الاسم الكامل *</label><input id="prospectName" placeholder="اكتب الاسم الكامل"><label>رقم الواتساب *</label><input id="prospectMobile" type="tel" inputmode="tel" placeholder="اكتب رقم الواتساب"> <button class="primary" style="width:100%;margin-top:12px" onclick="submitProspectRegistration()">متابعة</button><button style="width:100%;margin-top:8px" onclick="renderIdea()">↩️ العودة إلى الرحلة</button></div>`;
+  $('app').innerHTML=`<div class="view-switch" id="viewSwitch"></div><div class="login card" style="max-width:700px;text-align:right"><div style="text-align:center"><img src="/logo-full.png" alt="شعار مجتمع الصحة والثراء" style="display:block;margin:0 auto 16px;width:min(300px,90%);height:auto;object-fit:contain"><h1>🌱 ابدأ رحلتك معنا</h1><p class="muted" style="line-height:1.9">هذه الخطوة مخصصة لمن وجد أن الفكرة تناسبه ويرغب في متابعة التعرف على الرحلة بشكل أكبر. أدخل بياناتك الأساسية لكي نتواصل معك ونتعرف عليك أكثر، ونشرح لك الفكرة والعمل بصورة أوضح.</p></div><label>الاسم الكامل *</label><input id="prospectName" placeholder="اكتب الاسم الكامل"><label>رقم الواتساب *</label><input id="prospectMobile" type="tel" inputmode="tel" placeholder="اكتب رقم الواتساب"><label>اسم الشخص الذي شاركك الفكرة أو دلك عليها *</label><input id="prospectReferrer" placeholder="اكتب الاسم"><button class="primary" style="width:100%;margin-top:12px" onclick="submitProspectRegistration()">متابعة</button><button style="width:100%;margin-top:8px" onclick="renderIdea()">↩️ العودة إلى الرحلة</button></div>`;
   renderViewSwitch();
 }
 async function submitProspectRegistration(){
-  const name=$('prospectName').value.trim(), mobile=$('prospectMobile').value.trim();
-  if(!name||!mobile)return toast('يرجى إدخال الاسم الكامل ورقم الواتساب.');
+  const name=$('prospectName').value.trim(), mobile=$('prospectMobile').value.trim(), ref=$('prospectReferrer').value.trim();
+  if(!name||!mobile||!ref)return toast('يرجى إدخال الاسم الكامل ورقم الواتساب واسم الشخص الذي شاركك الفكرة أو دلك عليها.');
   try{
-    await rpc('register_prospect',{p_name:name,p_mobile:mobile,p_email:null,p_country:null,p_referrer_name:null});
+    await rpc('register_prospect',{p_name:name,p_mobile:mobile,p_email:null,p_country:null,p_referrer_name:ref});
     $('app').innerHTML=`<div class="login card"><div style="text-align:center"><img class="logo" src="logo.png" alt="شعار مجتمع الصحة والثراء"><h1>🎉 مرحبًا بك</h1><p style="line-height:2">تم إنشاء حسابك التعريفي بنجاح. سيتواصل معك الفريق لإكمال الخطوة التالية، ويمكنك بعد ذلك ربط حسابك بعضوية DXN عند حصولك على رقم العضوية.</p><button class="primary" style="width:100%" onclick="renderLogin()">🔐 العودة</button></div></div>`;
   }catch(e){toast(e.message||'تعذر إنشاء حساب Prospect.')}
 }
