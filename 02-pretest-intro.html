@@ -27,10 +27,11 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#eef5f1;fon
 .seg-text{display:block;width:100%}
 .seg.fade-out{opacity:0;transform:translateY(-10px)}
 .continue-wrap{position:relative;left:clamp(18px,2vw,28px);top:auto!important;margin:8px 0 0;text-align:left;z-index:5;height:82px}
-.continue-btn{position:relative;width:118px;height:70px;min-width:118px;min-height:70px;border:0;border-radius:0;padding:0;background:transparent;color:#fff;font-size:86px;line-height:.65;font-family:Arial,sans-serif;font-weight:950;cursor:pointer;box-shadow:none;text-shadow:0 3px 0 rgba(0,0,0,.55),0 0 4px #fff,0 0 10px #fff,0 0 18px rgba(0,255,132,.95),0 0 30px rgba(0,255,132,.75),0 8px 18px rgba(0,0,0,.38);-webkit-text-stroke:6px #00d878;paint-order:stroke fill;transition:transform .55s ease,filter .35s ease;z-index:2}
-.continue-btn::before{content:"";position:absolute;left:35px;top:50%;width:78px;height:5px;transform:translateY(-50%);border-radius:99px;background:#00ed82;box-shadow:0 0 5px #fff,0 0 12px #00ff8a,0 0 24px rgba(0,255,132,.9),0 0 40px rgba(0,255,132,.65);z-index:-1;opacity:.9}
-.continue-btn::after{content:"";position:absolute;left:49px;top:calc(50% + 9px);width:62px;height:3px;border-radius:99px;background:#00d878;box-shadow:0 0 8px rgba(0,255,132,.95);z-index:-1;opacity:.7}
+.continue-btn{position:relative;width:150px;height:82px;min-width:150px;min-height:82px;border:0;border-radius:0;padding:0;background:transparent;cursor:pointer;box-shadow:none;transition:transform .55s ease,filter .35s ease;z-index:2;display:grid;place-items:center}
+.continue-btn svg{width:150px;height:82px;display:block;overflow:visible;filter:drop-shadow(0 0 3px rgba(0,255,110,.95)) drop-shadow(0 0 10px rgba(0,255,110,.85)) drop-shadow(0 0 22px rgba(0,255,110,.65))}
 .continue-btn:hover{transform:translateX(-10px) scale(1.07);filter:brightness(1.25)}
+.continue-btn:active{transform:translateX(-5px) scale(.98)}
+.continue-btn:focus-visible{outline:3px solid rgba(0,255,132,.7);outline-offset:4px}
 .continue-btn:focus-visible{outline:3px solid rgba(0,255,132,.7);outline-offset:4px}
 @keyframes dxnContinueArrow{
   0%,100%{transform:translateX(0)}
@@ -93,7 +94,7 @@ function makeContinue(){
   btn.className="continue-btn";
   btn.type="button";
   btn.setAttribute("aria-label","الاستمرار إلى الفقرة التالية");
-  btn.textContent="←";
+  btn.innerHTML='<svg viewBox="0 0 320 200" role="img" aria-hidden="true" focusable="false"><path d="M305 60H155V22L18 100l137 78v-38h150V60Z" fill="none" stroke="#00d878" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/><path d="M305 60H155V22L18 100l137 78v-38h150V60Z" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   wrap.appendChild(btn);
   return {wrap,btn};
 }
