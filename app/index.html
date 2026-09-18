@@ -1353,7 +1353,24 @@ function prospectRequestsButton(){
   const unread=prospectUnreadCount();
   return `<span style="position:relative;display:inline-flex;align-items:center"><button onclick="openProspectRequests()">📩 طلبات التواصل (${prospectRequests.length})</button>${unread?`<span aria-label="طلبات تواصل غير مقروءة" title="طلبات تواصل غير مقروءة" style="position:absolute;top:-10px;right:-8px;min-width:24px;height:24px;padding:0 6px;border-radius:999px;background:#d92d20;color:#fff;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid #fff;line-height:1">${unread}</span>`:''}</span>`;
 }
-function openDXNMembershipRequests(){leaderSection='dxn_requests';render()}
+const DXN_MEMBERSHIP_SEEN_KEY='dxn_membership_requests_seen_at_v1';
+function dxnMembershipUnreadCount(){
+  const seen=Number(localStorage.getItem(DXN_MEMBERSHIP_SEEN_KEY)||0);
+  return (Array.isArray(membershipRequests)?membershipRequests:[]).filter(r=>{
+    if(String(r.status||'pending')!=='pending') return false;
+    const t=Date.parse(r.created_at||'');
+    return isFinite(t)&&t>seen;
+  }).length;
+}
+function dxnMembershipRequestsButton(){
+  const unread=dxnMembershipUnreadCount();
+  return `<span style="position:relative;display:inline-flex;align-items:center"><button onclick="openDXNMembershipRequests()">📋 سجل طلبات عضوية DXN (${membershipRequests.length})</button>${unread?`<span aria-label="طلبات عضوية DXN غير مقروءة" title="طلبات عضوية DXN غير مقروءة" style="position:absolute;top:-10px;right:-8px;min-width:24px;height:24px;padding:0 6px;border-radius:999px;background:#d92d20;color:#fff;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid #fff;line-height:1">${unread}</span>`:''}</span>`;
+}
+function openDXNMembershipRequests(){
+  localStorage.setItem(DXN_MEMBERSHIP_SEEN_KEY,String(Date.now()));
+  leaderSection='dxn_requests';
+  render();
+}
 function openProspectRequests(){localStorage.setItem(PROSPECT_SEEN_KEY,String(Date.now()));leaderSection='prospects';render()}
 let teamRegistryRows=[];
 async function openTeamRegistry(){
@@ -1662,7 +1679,7 @@ function leader(){
  </div>`+siteVisitStatsPanel()+leaderDailyPlan()+`<div class="card leaderbox">
    <div class="title">👑 مركز القيادة — تحليل وإدارة الموقع</div>
    <p class="muted">من هنا تتابع حالة الموقع، الأعضاء والفرق، التحديات، التارجت، الطلبات، وحركة الإنجازات. أدوات الإدارة تبقى للقائد فقط.</p>
-   <div class="admin-toolbar"><button class="primary" onclick="refresh()">🔄 تحديث البيانات</button><button onclick="createMemberForm()">➕ عضو</button><button onclick="createTeamForm()">🏆 فريق</button><button onclick="openChallengeEditor()">🎯 تحدٍ</button>${prospectRequestsButton()}<button onclick="openProspectLog()">📋 سجل الطلبات (${prospectRequests.length})</button><button onclick="openDXNMembershipRequests()">📋 سجل طلبات عضوية DXN (${membershipRequests.length})</button><button onclick="openTeamRegistry()">👥 سجل أعضاء الفريق</button><button onclick="openTrainingManager()">📚 إدارة التدريبات</button><button onclick="changePin()">🔐 PIN القائد</button></div>
+   <div class="admin-toolbar"><button class="primary" onclick="refresh()">🔄 تحديث البيانات</button><button onclick="createMemberForm()">➕ عضو</button><button onclick="createTeamForm()">🏆 فريق</button><button onclick="openChallengeEditor()">🎯 تحدٍ</button>${prospectRequestsButton()}<button onclick="openProspectLog()">📋 سجل الطلبات (${prospectRequests.length})</button>${dxnMembershipRequestsButton()}<button onclick="openTeamRegistry()">👥 سجل أعضاء الفريق</button><button onclick="openTrainingManager()">📚 إدارة التدريبات</button><button onclick="changePin()">🔐 PIN القائد</button></div>
  </div>
  ${showProspectRequests?prospectRequestsPanel():""}
  <div class="admin-grid">
