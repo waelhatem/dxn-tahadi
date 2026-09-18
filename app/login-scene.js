@@ -1,4 +1,4 @@
-/* V86.63 — Separate mobile login background from desktop background. */
+/* V86.64 — Dedicated mobile login background image. */
 (function(){
   'use strict';
   var MODE='dxn-login-scene-mode';
@@ -37,7 +37,7 @@
     s.textContent=`
 html,body{min-height:100%;}
 body.${MODE}{background:#efe8dc url('/logo2.png?v=86.61') center center/cover fixed no-repeat!important;overflow-x:hidden}
-html[data-device-mode="mobile"] body.${MODE}{background-image:url('/mobile-login-background.png?v=86.63')!important;}
+html[data-device-mode="mobile"] body.${MODE}{background-image:url('/mobile-login-background.webp?v=86.64')!important;}
 body.${MODE}::before{display:none!important}
 body.${MODE} #site-language-bar{display:none!important}
 body.${MODE} #app{padding:0!important;min-height:100vh!important;max-width:none!important;background:transparent!important;position:relative!important}
