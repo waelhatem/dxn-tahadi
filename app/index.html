@@ -233,14 +233,14 @@ async function loadSiteVisitStats(){if(role!=='leader')return;try{siteVisitStats
 function siteVisitStatsPanel(){const x=siteVisitStats||{};const n=v=>Number(v||0).toLocaleString('ar-IQ');return `<div class="card leaderbox" style="margin-top:14px;background:linear-gradient(180deg,#fff,#f7fbf9)"><div class="admin-section-title">📈 إحصائيات دخول الموقع</div><p class="muted" style="line-height:1.8">تُسجّل جلسات الزوار والأعضاء والقائد تلقائيًا، مع فصل عدد الزيارات عن عدد الجلسات الفريدة. لا يتم حفظ عنوان IP أو بصمة الجهاز.</p><div class="admin-grid" style="margin-top:12px"><div class="admin-stat"><div class="emoji">👁️</div><div class="label">إجمالي الزيارات</div><b>${n(x.total_page_views)}</b><div class="muted">جميع مرات فتح الصفحات المسجلة</div></div><div class="admin-stat"><div class="emoji">🧑‍🤝‍🧑</div><div class="label">جلسات فريدة</div><b>${n(x.unique_sessions)}</b><div class="muted">متصفح/جلسة مميزة</div></div><div class="admin-stat"><div class="emoji">📅</div><div class="label">جلسات اليوم</div><b>${n(x.today_sessions)}</b><div class="muted">منذ بداية اليوم</div></div><div class="admin-stat"><div class="emoji">👤</div><div class="label">جلسات الأعضاء</div><b>${n(x.member_sessions)}</b><div class="muted">أعضاء مسجلون</div></div><div class="admin-stat"><div class="emoji">🌱</div><div class="label">جلسات الزوار</div><b>${n(x.visitor_sessions)}</b><div class="muted">لم يسجلوا دخولًا</div></div><div class="admin-stat"><div class="emoji">👑</div><div class="label">جلسات القائد</div><b>${n(x.leader_sessions)}</b><div class="muted">دخول القائد</div></div><div class="admin-stat"><div class="emoji">🗓️</div><div class="label">آخر 7 أيام</div><b>${n(x.last_7_days_sessions)}</b><div class="muted">جلسات فريدة</div></div><div class="admin-stat"><div class="emoji">⏱️</div><div class="label">آخر نشاط</div><b style="font-size:16px">${x.last_seen?esc(new Date(x.last_seen).toLocaleString('ar-IQ',{dateStyle:'short',timeStyle:'short'})):'لا توجد بيانات'}</b><div class="muted">آخر جلسة مسجلة</div></div></div><div class="command-actions" style="margin-top:12px"><button class="primary" onclick="refreshSiteVisitStats()">🔄 تحديث الإحصائيات</button></div></div>`}
 async function refreshSiteVisitStats(){await loadSiteVisitStats();render()}
 async function boot(){
+  if(!ready()){renderSetup();return}
+  if(!sb) sb=supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY);
   try{
     if(new URLSearchParams(window.location.search).get('open')==='idea'){
       renderIdea();
       return;
     }
   }catch(e){}
-  if(!ready()){renderSetup();return}
-  sb=supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY);
   if(!token){recordSiteVisit('visitor','login');renderLogin();return}
   const issued=Number(localStorage.getItem('dxn_session_issued')||0);
   if(!issued||Date.now()-issued>SESSION_MAX_MS){localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');token='';renderLogin();toast('انتهت الجلسة، يرجى تسجيل الدخول من جديد.');return}
