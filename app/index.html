@@ -1403,6 +1403,40 @@ function prospectRequestsPanel(){
   }).join('');
   return '<div class="card leaderbox"><div class="title">📩 طلبات التواصل الجديدة</div><p class="muted">حدد حالة التواصل مباشرة بالضغط على المربع المناسب.</p><div class="admin-toolbar"><button onclick="backToLeaderDashboard()">↩️ العودة إلى مركز القيادة</button><button class="primary" onclick="openProspectRequests()">🔄 تحديث</button></div></div><div class="card"><div class="title">📋 الأشخاص الذين تركوا بياناتهم ('+list.length+')</div>'+(rows||'<div class="empty">لا توجد طلبات تواصل جديدة.</div>')+'</div>';
 }
+function prospectRequestsLogPanel(){
+  const list=Array.isArray(prospectRequests)?[...prospectRequests].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)):[];
+  const statusLabel=s=>s==='contacted_convinced'?'🟢 تم التواصل والاقتناع':s==='contacted_rejected'?'🔴 تم التواصل ورفض الانضمام':'⬜ لم يتم التواصل بعد';
+  return '<div class="card leaderbox"><div class="title">📋 سجل طلبات التواصل</div><p class="muted">هذا السجل يعرض نفس طلبات التواصل الموجودة في زر «طلبات التواصل». أي تغيير في حالة الطلب من أي مكان يظهر هنا مباشرة.</p><div class="admin-toolbar"><button onclick="backToLeaderDashboard()">↩️ العودة إلى مركز القيادة</button><button class="primary" onclick="openProspectLog()">🔄 تحديث السجل</button></div></div>'+
+    '<div class="card"><div class="title">📋 سجل جميع طلبات التواصل ('+list.length+')</div>'+
+    (list.length?'<div style="overflow-x:auto"><table style="width:100%;border-collapse:separate;border-spacing:0;min-width:850px"><thead><tr>'+
+      '<th style="padding:12px;text-align:right;background:#f3f7f5;border-bottom:1px solid #dfe7e3">الاسم</th>'+
+      '<th style="padding:12px;text-align:right;background:#f3f7f5;border-bottom:1px solid #dfe7e3">واتساب</th>'+
+      '<th style="padding:12px;text-align:right;background:#f3f7f5;border-bottom:1px solid #dfe7e3">البلد</th>'+
+      '<th style="padding:12px;text-align:right;background:#f3f7f5;border-bottom:1px solid #dfe7e3">الشخص الذي شارك الفكرة</th>'+
+      '<th style="padding:12px;text-align:right;background:#f3f7f5;border-bottom:1px solid #dfe7e3">الحالة</th>'+
+      '<th style="padding:12px;text-align:right;background:#f3f7f5;border-bottom:1px solid #dfe7e3">تاريخ الطلب</th>'+
+      '<th style="padding:12px;text-align:center;background:#f3f7f5;border-bottom:1px solid #dfe7e3">تعديل</th>'+
+      '</tr></thead><tbody>'+
+      list.map(r=>{
+        const current=String(r.contact_status||'not_contacted');
+        return '<tr>'+
+          '<td style="padding:12px;border-bottom:1px solid #edf1ef"><b>'+esc(r.name||'')+'</b></td>'+
+          '<td style="padding:12px;border-bottom:1px solid #edf1ef;direction:ltr;text-align:right">'+esc(r.mobile||'')+'</td>'+
+          '<td style="padding:12px;border-bottom:1px solid #edf1ef">'+esc(r.country||'')+'</td>'+
+          '<td style="padding:12px;border-bottom:1px solid #edf1ef">'+esc(r.referrer_name||'')+'</td>'+
+          '<td style="padding:12px;border-bottom:1px solid #edf1ef"><b>'+statusLabel(current)+'</b></td>'+
+          '<td style="padding:12px;border-bottom:1px solid #edf1ef;white-space:nowrap">'+(r.created_at?esc(new Date(r.created_at).toLocaleString('ar-IQ')):'')+'</td>'+
+          '<td style="padding:8px;border-bottom:1px solid #edf1ef"><div style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap">'+
+            prospectStatusBox(r,'contacted_convinced','✓')+
+            prospectStatusBox(r,'not_contacted','⬜')+
+            prospectStatusBox(r,'contacted_rejected','✕')+
+          '</div></td>'+
+        '</tr>';
+      }).join('')+
+      '</tbody></table></div>':'<div class="empty">لا توجد طلبات تواصل في السجل.</div>')+
+    '</div>';
+}
+function openProspectLog(){leaderSection='prospect_log';render()}
 function dxnMembershipRequestsPanel(){
   const pending=membershipRequests.filter(r=>String(r.status||'pending')==='pending').sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
   const approved=membershipRequests.filter(r=>String(r.status||'')==='approved').sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
@@ -1518,6 +1552,7 @@ function leader(){
  if(leaderSection==='team_registry') return teamRegistryPanel();
  const members=data.members||[], teams=data.teams||[], challenges=data.challenges||[], subs=data.my_submissions||[], answers=data.my_answers||[], pendingRegs=data.pending_registrations||[], monthly=data.monthly||[];
  const showProspectRequests=leaderSection==='prospects';
+ if(leaderSection==='prospect_log') return prospectRequestsLogPanel();
  if(leaderSection==='dxn_requests'||leaderSection==='dxn_approved'||leaderSection==='dxn_rejected') return dxnMembershipRequestsPanel();
  const activeMembers=members.filter(m=>m.active!==false), activeTeams=teams.filter(t=>t.active!==false), activeChallenges=challenges.filter(c=>c.active!==false && !c.deleted_at);
  const pendingChallenges=subs.filter(x=>x.status==='pending'&&x.challenge_id), pendingAnswers=answers.filter(x=>x.status==='pending'&&x.question_id);
@@ -1571,7 +1606,7 @@ function leader(){
  </div>`+siteVisitStatsPanel()+leaderDailyPlan()+`<div class="card leaderbox">
    <div class="title">👑 مركز القيادة — تحليل وإدارة الموقع</div>
    <p class="muted">من هنا تتابع حالة الموقع، الأعضاء والفرق، التحديات، التارجت، الطلبات، وحركة الإنجازات. أدوات الإدارة تبقى للقائد فقط.</p>
-   <div class="admin-toolbar"><button class="primary" onclick="refresh()">🔄 تحديث البيانات</button><button onclick="createMemberForm()">➕ عضو</button><button onclick="createTeamForm()">🏆 فريق</button><button onclick="openChallengeEditor()">🎯 تحدٍ</button>${prospectRequestsButton()}<button onclick="openDXNMembershipRequests()">📋 سجل الطلبات (${membershipRequests.length})</button><button onclick="openTeamRegistry()">👥 سجل أعضاء الفريق</button><button onclick="openTrainingManager()">📚 إدارة التدريبات</button><button onclick="changePin()">🔐 PIN القائد</button></div>
+   <div class="admin-toolbar"><button class="primary" onclick="refresh()">🔄 تحديث البيانات</button><button onclick="createMemberForm()">➕ عضو</button><button onclick="createTeamForm()">🏆 فريق</button><button onclick="openChallengeEditor()">🎯 تحدٍ</button>${prospectRequestsButton()}<button onclick="openProspectLog()">📋 سجل الطلبات (${prospectRequests.length})</button><button onclick="openTeamRegistry()">👥 سجل أعضاء الفريق</button><button onclick="openTrainingManager()">📚 إدارة التدريبات</button><button onclick="changePin()">🔐 PIN القائد</button></div>
  </div>
  ${showProspectRequests?prospectRequestsPanel():""}
  <div class="admin-grid">
