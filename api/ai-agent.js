@@ -156,6 +156,13 @@ async function startNextDailySession(token,currentSession){
   if(!action){
     const doneState={...prepared.state,current_task_key:null};
     await saveDailyState(token,doneState).catch(()=>null);
+    if(currentSession?.active){
+      await saveAgentSession(token,{
+        ...currentSession,
+        active:false,
+        phase:'complete'
+      }).catch(()=>null);
+    }
     return {session:null,plan:{...plan,actions:[]}};
   }
 
