@@ -109,7 +109,10 @@
     root.dataset.deviceMode = mode;
     body.classList.toggle('desktop-mode', isDesktop);
     body.classList.toggle('mobile-mode', !isDesktop);
-    body.classList.remove('manual-desktop', 'manual-mobile');
+    // Keep the page-specific classes so visual pages such as the pre-test intro
+    // can switch their actual image/layout in sync with the global saved mode.
+    body.classList.toggle('manual-desktop', isDesktop);
+    body.classList.toggle('manual-mobile', !isDesktop);
     syncGlobalDeviceSwitch(mode);
 
     try {
