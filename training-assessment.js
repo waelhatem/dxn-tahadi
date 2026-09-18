@@ -36,7 +36,7 @@
   function ansFor(qid){var rows=answersFor(qid);return rows[0]||null}
   function statusBadge(a){
     if(!a)return '<span class="muted">لم تُجب بعد</span>';
-    if(a.status==='approved')return '<span style="font-weight:900;color:#176b55">✅ معتمدة تلقائيًا بالذكاء الاصطناعي · '+Number(a.score||0)+'/100</span>';
+    if(a.status==='approved')return '<span style="font-weight:900;color:#176b55">✅ الدرجة · '+Number(a.score||0)+'/100</span>';
     if(a.status==='retry')return '<span style="font-weight:900;color:#8a5300">🔁 تحتاج إعادة المحاولة · '+Number(a.score||0)+'/100</span>';
     return '<span style="font-weight:900;color:#8a5300">🤖 جارٍ التقييم التلقائي</span>';
   }
