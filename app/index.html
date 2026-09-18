@@ -945,7 +945,10 @@ function trainings(){
           <div class="muted">${done?'✅ مكتمل':locked?'🔒 مغلق — أكمل التدريب السابق أولاً':'▶️ متاح الآن'}</div>
           ${p?`<div class="muted">📊 نسبة المشاهدة: ${Number(p.watch_percent||0).toFixed(0)}%</div>`:''}
         </div>
-        <button class="primary" ${locked?'disabled':''} onclick="startTrainingLesson('${l.id}')">${done?'🔁 إعادة المشاهدة':locked?'🔒 مغلق':'▶️ بدء التدريب'}</button>
+        <div style="display:flex;flex-direction:column;gap:8px;min-width:180px;align-items:stretch">
+          <button class="primary" ${locked?'disabled':''} onclick="startTrainingLesson('${l.id}')">${done?'🔁 إعادة المشاهدة':locked?'🔒 مغلق':'▶️ بدء التدريب'}</button>
+          ${role==='member'?`<button type="button" data-training-assessment-button="${n}" ${locked?'disabled':''} onclick="openTrainingAssessment(${n})" style="width:100%;border:1px solid ${locked?'#d8dee0':'#cfe4da'};background:${locked?'#eef1f1':'#eef8f2'};color:${locked?'#7b8790':'#0f513f'};font-weight:950;min-height:44px">${locked?'🔒 اختبار التدريب — مغلق حتى يفتح التدريب':'🧠 اختبار التدريب'}</button>`:''}
+        </div>
       </div>
     </div>`;
   }).join('');
