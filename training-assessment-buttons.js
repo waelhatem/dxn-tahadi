@@ -5,6 +5,7 @@
 
   function isMember(){
     var r=String(window.role||window.currentRole||'').toLowerCase();
+    try{r=r||String(localStorage.getItem('dxn_role')||'').toLowerCase()}catch(e){}
     return r==='member' || !!document.querySelector('[data-role="member"]') || !!document.getElementById('dxn-training-assessment');
   }
   function lessons(){
