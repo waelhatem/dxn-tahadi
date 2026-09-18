@@ -105,9 +105,8 @@ async function showSegment(index){
     seg.appendChild(wrap);
     function positionArrow(){
       const gap=8;
-      wrap.style.top=(panel.offsetTop + panel.offsetHeight + gap)+"px";
+      wrap.style.top=(panel.offsetHeight + gap)+"px";
     }
-    positionArrow();
     if(window.ResizeObserver){
       const ro=new ResizeObserver(positionArrow);
       ro.observe(panel);
@@ -127,7 +126,10 @@ async function showSegment(index){
   }
 
   box.appendChild(seg);
-  requestAnimationFrame(()=>requestAnimationFrame(()=>seg.classList.add("visible")));
+  requestAnimationFrame(()=>{
+    positionArrow();
+    requestAnimationFrame(()=>seg.classList.add("visible"));
+  });
 }
 
 function run(){
