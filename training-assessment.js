@@ -128,6 +128,8 @@
     }catch(e){alert('تعذر إرسال الإجابة: '+e.message)}
   };
   function start(){
+    var initialRole='';try{initialRole=String(localStorage.getItem('dxn_role')||'').toLowerCase()}catch(e){}
+    if(initialRole==='leader')return;
     var tries=0,t=setInterval(function(){if(token()){load(true);clearInterval(t)}else if(++tries>300)clearInterval(t)},100);
     var mo=new MutationObserver(function(){if(state.loaded){if(state.role==='member')renderMember(false);if(state.role==='leader')renderLeader(false)}});
     mo.observe(document.body,{childList:true,subtree:true});
