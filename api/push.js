@@ -97,22 +97,15 @@ module.exports=async function handler(req,res){
       const sub=body.subscription;
       if(!validSubscription(sub))return res.status(400).json({error:'بيانات الاشتراك غير صالحة'});
 
-      const verified=await verifyToken(token);
-      const userId=verified.userId;
+      await verifyToken(token);
 
-      const upsert=await supabaseRequest(
-        'POST',
-        '/rest/v1/ai_agent_push_subscriptions?on_conflict=endpoint',
-        {
-          user_id:userId,
-          endpoint:sub.endpoint,
-          p256dh:sub.keys.p256dh,
-          auth:sub.keys.auth,
-          user_agent:String(body.userAgent||'').slice(0,500),
-          active:true,
-          updated_at:new Date().toISOString()
-        }
-      );
+      const upsert=await supabaseRpc('upsert_ai_agent_push_subscription',{
+        p_token:token,
+        p_endpoint:sub.endpoint,
+        p_p256dh:sub.keys.p256dh,
+        p_auth:sub.keys.auth,
+        p_user_agent:String(body.userAgent||'').slice(0,500)
+      });
 
       if(!upsert.ok){
         return res.status(400).json({
@@ -120,17 +113,20 @@ module.exports=async function handler(req,res){
         });
       }
 
-      const row=Array.isArray(upsert.data)?upsert.data[0]:upsert.data;
-      return res.status(200).json({ok:true,id:row?.id||null});
+      return res.status(200).json({
+        ok:true,
+        id:Array.isArray(upsert.data)?upsert.data[0]||null:upsert.data||null
+      });
     }
 
     if(action==='unsubscribe'){
       const endpoint=String(body.endpoint||'').trim();
       if(!endpoint)return res.status(400).json({error:'عنوان الاشتراك مطلوب'});
 
-      const verified=await verifyToken(token);
-      const filter=`/rest/v1/ai_agent_push_subscriptions?user_id=eq.${encodeURIComponent(verified.userId)}&endpoint=eq.${encodeURIComponent(endpoint)}`;
-      const r=await supabaseRequest('PATCH',filter,{active:false,updated_at:new Date().toISOString()});
+      const r=await supabaseRpc('remove_ai_agent_push_subscription',{
+        p_token:token,
+        p_endpoint:endpoint
+      });
 
       if(!r.ok)return res.status(400).json({error:(r.data&&r.data.message)||r.text||'تعذر إلغاء الاشتراك'});
       return res.status(200).json({ok:true});
