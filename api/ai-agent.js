@@ -5,31 +5,16 @@ const SUPABASE_SECRET_KEY = String(process.env.SUPABASE_SECRET_KEY || process.en
 const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY || '').trim().replace(/[\r\n]/g,'');
 const OPENAI_MODEL = process.env.AI_AGENT_MODEL || process.env.OPENAI_MODEL || 'gpt-5.6-terra';
 
-const APP_BASE_URL = String(
-  process.env.AI_AGENT_APP_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://dxn-tahadi.vercel.app')
-).replace(/\\/$/,'');
-function httpJson(url,body,headers,timeout){
-  return new Promise((resolve,reject)=>{
-    const target=new URL(url);
-    const raw=JSON.stringify(body||{});
-    const req=https.request({
-      protocol:target.protocol,hostname:target.hostname,port:target.port||443,method:'POST',path:target.pathname+target.search,
-      headers:{'Content-Type':'application/json',Accept:'application/json',...(headers||{}),'Content-Length':Buffer.byteLength(raw)},timeout:timeout||15000
-    },res=>{
-      let text='';res.setEncoding('utf8');res.on('data',c=>text+=c);res.on('end',()=>{
-        let data=null;try{data=text?JSON.parse(text):null}catch(_){data=text}
-        resolve({ok:res.statusCode>=200&&res.statusCode<300,status:res.statusCode||0,data,text});
-      });
-    });
-    req.on('timeout',()=>req.destroy(new Error('انتهت مهلة الاتصال بمسار RPC')));
-    req.on('error',reject);req.write(raw);req.end();
-  });
-}
+const SUPABASE_URL_FIXED = 'https://ryqpstkzppaifpvhezzn.supabase.co';
+
 function supabaseRpc(fn,args){
-  // Use the same-origin RPC endpoint already used by the application.
-  // Do not fall back to direct Supabase here: that would hide the real RPC error.
-  return httpJson(`${APP_BASE_URL}/api/rpc`,{fn,args:args||{}},{},15000);
+  // Use the verified Supabase project endpoint directly from the agent.
+  // The previous DNS failures were caused by the old project URL typo.
+  if(!SUPABASE_SECRET_KEY)throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
+  return httpJson(`${SUPABASE_URL_FIXED}/rest/v1/rpc/${encodeURIComponent(fn)}`,args||{},{
+    apikey:SUPABASE_SECRET_KEY,
+    Authorization:`Bearer ${SUPABASE_SECRET_KEY}`
+  },15000);
 }
 
 function openai(payload){
