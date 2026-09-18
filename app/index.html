@@ -214,7 +214,7 @@ function validateDXNAge18(birthDate){
     : {ok:false, age, message:'⚠️ عذرًا، يشترط أن يكون عمر المتقدم 18 سنة أو أكثر للتسجيل.'};
 }
 
-const C=window.DXN_CONFIG||{};const SESSION_MAX_MS=12*60*60*1000;let sb=null,token=localStorage.getItem('dxn_session')||'',me=null,role=null,data=null,tab='home',membershipRequests=[],monthlyPointRequests=[],trainingData={lessons:[],my_progress:[],member_progress:[]},trainingWatch={player:null,timer:null,guardTimer:null,lessonId:null,videoId:null,invalid:false,maxWatchedSeconds:0,lastSampleSeconds:0,suppressSeek:false},siteVisitStats={};
+const C=window.DXN_CONFIG||{};const SESSION_MAX_MS=12*60*60*1000;let sb=null,token=localStorage.getItem('dxn_session')||'',me=null,role=null,data=null,tab='home',membershipRequests=[],prospectRequests=[],monthlyPointRequests=[],trainingData={lessons:[],my_progress:[],member_progress:[]},trainingWatch={player:null,timer:null,guardTimer:null,lessonId:null,videoId:null,invalid:false,maxWatchedSeconds:0,lastSampleSeconds:0,suppressSeek:false},siteVisitStats={};
 const $=id=>document.getElementById(id); const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(s){$('toast').textContent=s;$('toast').classList.remove('hidden');setTimeout(()=>$('toast').classList.add('hidden'),2600)}
 
@@ -253,14 +253,15 @@ async function boot(){
           rpc('leader_dxn_membership_requests',{p_token:token}).catch(()=>[]),
           rpc('leader_monthly_point_requests',{p_token:token}).catch(()=>[]),
           rpc('leader_team_registry',{p_token:token}).catch(()=>[]),
+          rpc('leader_prospect_requests',{p_token:token}).catch(()=>[]),
           loadSiteVisitStats().catch(()=>{})
         ])
       : rpc('my_monthly_point_requests',{p_token:token}).catch(()=>[]);
     await Promise.all([trainingP,extras]);
     trainingData=await trainingP;
     if(role==='leader'){
-      const [mr,pr,tr]=await extras;
-      membershipRequests=mr||[];monthlyPointRequests=pr||[];
+      const [mr,pr,tr,prospects]=await extras;
+      membershipRequests=mr||[];prospectRequests=prospects||[];monthlyPointRequests=pr||[];
       let rr=tr;
       if(typeof rr==='string'){try{rr=JSON.parse(rr)}catch(e){rr=[]}}
       teamRegistryRows=Array.isArray(rr)?rr:(Array.isArray(rr?.data)?rr.data:(Array.isArray(rr?.members)?rr.members:(Array.isArray(rr?.result)?rr.result:[])));
@@ -1300,6 +1301,7 @@ function teams(){
 }
 let leaderSection='dashboard';
 function openDXNMembershipRequests(){leaderSection='dxn_requests';render()}
+function openProspectRequests(){leaderSection='prospects';render()}
 let teamRegistryRows=[];
 async function openTeamRegistry(){
   leaderSection='team_registry';
@@ -1349,6 +1351,22 @@ async function deleteDXNMembershipRequest(id){
     await refresh();
   }catch(e){toast(e.message||'تعذر حذف الطلب نهائيًا')}
 }
+function prospectRequestsPanel(){
+  const list=Array.isArray(prospectRequests)?[...prospectRequests].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)):[];
+  return `<div class="card leaderbox">
+    <div class="title">📩 طلبات التواصل الجديدة</div>
+    <p class="muted">هنا تظهر بيانات الأشخاص الذين تركوا معلوماتهم للتواصل والتعرف أكثر على الفكرة والعمل. هذه الطلبات مستقلة عن طلبات تسجيل DXN.</p>
+    <div class="admin-toolbar">
+      <button onclick="backToLeaderDashboard()">↩️ العودة إلى مركز القيادة</button>
+      <button class="primary" onclick="openProspectRequests()">🔄 تحديث</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="title">📋 الأشخاص الذين تركوا بياناتهم (\${list.length})</div>
+    \${list.length?list.map(r=>`<div class="row"><div><b>\${esc(r.name||'')}</b><div class="muted">🌍 بلد الإقامة: \${esc(r.country||'')} · 📱 واتساب: \${esc(r.mobile||'')}<br>👤 الشخص الذي شارك الفكرة: <b>\${esc(r.referrer_name||'')}</b>\${r.created_at?`<br>🕒 تاريخ الإرسال: \${esc(new Date(r.created_at).toLocaleString('ar-IQ'))}`:''}</div></div></div>`).join(''):'<div class="empty">لا توجد طلبات تواصل جديدة.</div>'}
+  </div>`;
+}
+
 function dxnMembershipRequestsPanel(){
   const pending=membershipRequests.filter(r=>String(r.status||'pending')==='pending').sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
   const approved=membershipRequests.filter(r=>String(r.status||'')==='approved').sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
@@ -1463,6 +1481,7 @@ function teamRegistryPanel(){
 function leader(){
  if(leaderSection==='team_registry') return teamRegistryPanel();
  const members=data.members||[], teams=data.teams||[], challenges=data.challenges||[], subs=data.my_submissions||[], answers=data.my_answers||[], pendingRegs=data.pending_registrations||[], monthly=data.monthly||[];
+ if(leaderSection==='prospects') return prospectRequestsPanel();
  if(leaderSection==='dxn_requests'||leaderSection==='dxn_approved'||leaderSection==='dxn_rejected') return dxnMembershipRequestsPanel();
  const activeMembers=members.filter(m=>m.active!==false), activeTeams=teams.filter(t=>t.active!==false), activeChallenges=challenges.filter(c=>c.active!==false && !c.deleted_at);
  const pendingChallenges=subs.filter(x=>x.status==='pending'&&x.challenge_id), pendingAnswers=answers.filter(x=>x.status==='pending'&&x.question_id);
@@ -1516,7 +1535,7 @@ function leader(){
  </div>`+siteVisitStatsPanel()+leaderDailyPlan()+`<div class="card leaderbox">
    <div class="title">👑 مركز القيادة — تحليل وإدارة الموقع</div>
    <p class="muted">من هنا تتابع حالة الموقع، الأعضاء والفرق، التحديات، التارجت، الطلبات، وحركة الإنجازات. أدوات الإدارة تبقى للقائد فقط.</p>
-   <div class="admin-toolbar"><button class="primary" onclick="refresh()">🔄 تحديث البيانات</button><button onclick="createMemberForm()">➕ عضو</button><button onclick="createTeamForm()">🏆 فريق</button><button onclick="openChallengeEditor()">🎯 تحدٍ</button><button onclick="openDXNMembershipRequests()">📋 طلبات تسجيل DXN</button><button onclick="openTeamRegistry()">👥 سجل أعضاء الفريق</button><button onclick="openTrainingManager()">📚 إدارة التدريبات</button><button onclick="changePin()">🔐 PIN القائد</button></div>
+   <div class="admin-toolbar"><button class="primary" onclick="refresh()">🔄 تحديث البيانات</button><button onclick="createMemberForm()">➕ عضو</button><button onclick="createTeamForm()">🏆 فريق</button><button onclick="openChallengeEditor()">🎯 تحدٍ</button><button onclick="openProspectRequests()">📩 طلبات التواصل (${prospectRequests.length})</button><button onclick="openDXNMembershipRequests()">📋 طلبات تسجيل DXN</button><button onclick="openTeamRegistry()">👥 سجل أعضاء الفريق</button><button onclick="openTrainingManager()">📚 إدارة التدريبات</button><button onclick="changePin()">🔐 PIN القائد</button></div>
  </div>
  <div class="admin-grid">
    <div class="admin-stat"><div class="emoji">👥</div><div class="label">إجمالي الأعضاء</div><b>${members.length}</b><div class="muted">نشط: ${activeMembers.length}</div></div>
@@ -1698,13 +1717,14 @@ async function refresh(){
     ? Promise.all([
         rpc('leader_dxn_membership_requests',{p_token:token}).catch(()=>[]),
         rpc('leader_monthly_point_requests',{p_token:token}).catch(()=>[]),
+        rpc('leader_prospect_requests',{p_token:token}).catch(()=>[]),
         loadSiteVisitStats().catch(()=>{})
       ])
     : rpc('my_monthly_point_requests',{p_token:token}).catch(()=>[]);
   await Promise.all([trainingP,extras]);
   trainingData=await trainingP;
   if(role==='leader'){
-    const [mr,pr]=await extras;membershipRequests=mr||[];monthlyPointRequests=pr||[];
+    const [mr,pr,prospects]=await extras;membershipRequests=mr||[];monthlyPointRequests=pr||[];prospectRequests=prospects||[];
   }else monthlyPointRequests=(await extras)||[];
   recordSiteVisit(role||'visitor',tab||'home');
   render()
