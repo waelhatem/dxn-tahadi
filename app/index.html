@@ -1300,8 +1300,20 @@ function teams(){
 </div><span class="badge">${esc(r.status)}</span></div>`).join('')||'<div class="empty">لا توجد طلبات عضوية DXN.</div>'}</div><div class="card"><div class="title">🏆 إدارة الفرق</div>${teams.map(t=>`<div class="row"><div><b>${esc(t.name)}</b><div class="muted">👥 ${t.members||0} · ⭐ ${t.stars||0} · ${t.active===false?'⛔ معطل':'✅ نشط'}</div></div><div class="actions"><button onclick="editTeam('${t.id}')">✏️ تعديل</button>${t.active===false?`<button onclick="toggleTeam('${t.id}',true)">✅ تفعيل</button>`:`<button class="danger" onclick="toggleTeam('${t.id}',false)">🗑️ تعطيل</button>`}</div></div>`).join('')||'<div class="empty">لا توجد فرق.</div>'}</div><div class="card"><div class="title">👤 إدارة الأعضاء</div>${members.map(m=>`<div class="row"><div><b>${esc(m.name)}</b><div class="muted">🪪 ${esc(m.member_no)} · ${esc(m.team_name||'بدون فريق')} · ⭐${m.stars||0} · ${m.active===false?'⛔ معطل':'✅ نشط'}</div></div><div class="actions"><button onclick="editMember('${m.id}')">✏️ تعديل</button><button onclick="changeMemberPin('${m.id}')">🔑 PIN</button>${m.active===false?`<button onclick="toggleMember('${m.id}',true)">✅ تفعيل</button><button class="danger" onclick="deleteMember('${m.id}')">🗑️ حذف نهائي</button>`:`<button class="danger" onclick="toggleMember('${m.id}',false)">🗑️ تعطيل</button><button class="danger" onclick="deleteMember('${m.id}')">🗑️ حذف نهائي</button>`}</div></div>`).join('')||'<div class="empty">لا يوجد أعضاء.</div>'}</div>`;
 }
 let leaderSection='dashboard';
+const PROSPECT_SEEN_KEY='dxn_prospect_seen_at_v1';
+function prospectUnreadCount(){
+  const seen=Number(localStorage.getItem(PROSPECT_SEEN_KEY)||0);
+  return (Array.isArray(prospectRequests)?prospectRequests:[]).filter(r=>{
+    const t=Date.parse(r.created_at||'');
+    return isFinite(t)&&t>seen;
+  }).length;
+}
+function prospectRequestsButton(){
+  const unread=prospectUnreadCount();
+  return `<span style="position:relative;display:inline-flex;align-items:center"><button onclick="openProspectRequests()">📩 طلبات التواصل (${prospectRequests.length})</button>${unread?`<span aria-label="طلبات تواصل غير مقروءة" title="طلبات تواصل غير مقروءة" style="position:absolute;top:-10px;right:-8px;min-width:24px;height:24px;padding:0 6px;border-radius:999px;background:#d92d20;color:#fff;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid #fff;line-height:1">${unread}</span>`:''}</span>`;
+}
 function openDXNMembershipRequests(){leaderSection='dxn_requests';render()}
-function openProspectRequests(){leaderSection='prospects';render()}
+function openProspectRequests(){localStorage.setItem(PROSPECT_SEEN_KEY,String(Date.now()));leaderSection='prospects';render()}
 let teamRegistryRows=[];
 async function openTeamRegistry(){
   leaderSection='team_registry';
@@ -1527,7 +1539,7 @@ function leader(){
  </div>`+siteVisitStatsPanel()+leaderDailyPlan()+`<div class="card leaderbox">
    <div class="title">👑 مركز القيادة — تحليل وإدارة الموقع</div>
    <p class="muted">من هنا تتابع حالة الموقع، الأعضاء والفرق، التحديات، التارجت، الطلبات، وحركة الإنجازات. أدوات الإدارة تبقى للقائد فقط.</p>
-   <div class="admin-toolbar"><button class="primary" onclick="refresh()">🔄 تحديث البيانات</button><button onclick="createMemberForm()">➕ عضو</button><button onclick="createTeamForm()">🏆 فريق</button><button onclick="openChallengeEditor()">🎯 تحدٍ</button><button onclick="openProspectRequests()">📩 طلبات التواصل (${prospectRequests.length})</button><button onclick="openTeamRegistry()">👥 سجل أعضاء الفريق</button><button onclick="openTrainingManager()">📚 إدارة التدريبات</button><button onclick="changePin()">🔐 PIN القائد</button></div>
+   <div class="admin-toolbar"><button class="primary" onclick="refresh()">🔄 تحديث البيانات</button><button onclick="createMemberForm()">➕ عضو</button><button onclick="createTeamForm()">🏆 فريق</button><button onclick="openChallengeEditor()">🎯 تحدٍ</button>${prospectRequestsButton()}<button onclick="openTeamRegistry()">👥 سجل أعضاء الفريق</button><button onclick="openTrainingManager()">📚 إدارة التدريبات</button><button onclick="changePin()">🔐 PIN القائد</button></div>
  </div>
  ${showProspectRequests?prospectRequestsPanel():""}
  <div class="admin-grid">
