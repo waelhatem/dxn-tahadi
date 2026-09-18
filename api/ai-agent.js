@@ -188,8 +188,47 @@ module.exports=async function handler(req,res){
     if(message.length>6000)return res.status(400).json({error:'الرسالة طويلة جدًا'});
     const context=await loadContext(token);
     const history=cleanHistory(body.history);
-    const ai=await openai({model:OPENAI_MODEL,instructions:instructions(context),input:[...history,{role:'user',content:message}],max_output_tokens:900});
-    if(!ai.ok)return res.status(502).json({error:(ai.data&&ai.data.error&&ai.data.error.message)||ai.text||'فشل الوكيل الذكي'});
+    const baseInput=[...history,{role:'user',content:message}];
+    let input=baseInput;
+    let ai=null;
+    const maxToolRounds=3;
+
+    for(let round=0;round<=maxToolRounds;round++){
+      ai=await openai({
+        model:OPENAI_MODEL,
+        instructions:instructions(context),
+        input,
+        tools:AGENT_TOOL_DEFINITIONS,
+        tool_choice:'auto',
+        max_output_tokens:900
+      });
+      if(!ai.ok)return res.status(502).json({error:(ai.data&&ai.data.error&&ai.data.error.message)||ai.text||'فشل الوكيل الذكي'});
+
+      const calls=getFunctionCalls(ai.data);
+      if(!calls.length)break;
+      if(round===maxToolRounds)throw new Error('تجاوز الوكيل الحد المسموح لاستدعاءات الأدوات');
+
+      const outputs=[];
+      for(const call of calls){
+        try{
+          const result=await executeAgentTool(call,token);
+          outputs.push({
+            type:'function_call_output',
+            call_id:call.call_id,
+            output:JSON.stringify(result)
+          });
+        }catch(toolError){
+          outputs.push({
+            type:'function_call_output',
+            call_id:call.call_id,
+            output:JSON.stringify({error:String(toolError&&toolError.message||toolError)})
+          });
+        }
+      }
+
+      input=[...(Array.isArray(ai.data.output)?ai.data.output:[]),...outputs];
+    }
+
     const answer=outputText(ai.data);
     if(!answer)throw new Error('لم يرجع الوكيل ردًا');
     return res.status(200).json({ok:true,answer,model:OPENAI_MODEL,role:context.role});
