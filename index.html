@@ -1,1 +1,77 @@
-<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0f513f"><title>مجتمع الصحة والثراء</title><style>*{box-sizing:border-box}html,body{margin:0;background:#000;width:100%;height:100%;min-height:100%;overflow:hidden}.page{width:100vw;height:100svh;min-height:100svh;display:block;position:relative;overflow:hidden}.poster{position:relative;width:100%;height:100%;line-height:0}.poster img{display:block;width:100%;height:100%;object-fit:cover;object-position:center center;user-select:none;-webkit-user-drag:none}.hotspot{position:absolute;border:0;background:transparent;cursor:pointer;padding:0;margin:0;outline:none;z-index:5}.hotspot:focus-visible{box-shadow:0 0 0 4px rgba(15,81,63,.45);border-radius:999px}#previousUser{left:7.5%;bottom:13%;width:43%;height:9%}#newVisitor{right:7%;bottom:13%;width:43%;height:9%}@media(max-width:700px){.page{width:100vw;height:100svh;min-height:100svh;display:flex;align-items:flex-start;justify-content:center}.poster{width:100vw;height:auto;line-height:0}.poster img{width:100%;height:auto;object-fit:initial;object-position:initial}}</style></head><body><main class="page"><div class="poster"><img src="11.png" alt="مجتمع الصحة والثراء"><button id="previousUser" class="hotspot" aria-label="مستخدم سابق"></button><button id="newVisitor" class="hotspot" aria-label="زائر جديد"></button></div></main><script>document.getElementById('previousUser').addEventListener('click',()=>{location.href='/app/index.html'});document.getElementById('newVisitor').addEventListener('click',()=>{location.href='/02-pretest-intro.html'});</script><script>(function(){function cleanup(){document.querySelectorAll('#dxn-global-device-switch,.view-switch,.device-switch,#viewSwitch,#deviceViewSwitch').forEach(function(el){el.remove();});}cleanup();if(window.MutationObserver)new MutationObserver(cleanup).observe(document.documentElement,{childList:true,subtree:true});})();</script><script src="/device-mode.js" defer></script></body></html>
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>مجتمع الصحة والثراء</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;background:#eef5f1}
+body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
+.device-bar{height:57px;display:flex;justify-content:center;align-items:center;gap:8px;padding:8px 12px;background:rgba(238,245,241,.96);backdrop-filter:blur(8px);border-bottom:1px solid rgba(15,81,63,.12);position:relative;z-index:30}
+.device-btn{border:1px solid rgba(15,81,63,.22);background:#fff;color:#17372d;border-radius:999px;padding:9px 18px;font:800 14px/1 "Tajawal","Segoe UI",Arial,sans-serif;cursor:pointer;transition:.2s;min-width:130px}
+.device-btn.active{background:#0f513f;color:#fff;border-color:#0f513f;box-shadow:0 6px 14px rgba(15,81,63,.16)}
+.page{height:calc(100svh - 57px);width:100vw;overflow:hidden;background:#eef5f1;display:flex;align-items:center;justify-content:center}
+.view{width:100%;height:100%}
+.mobile-view{display:none;align-items:center;justify-content:center}
+.mobile-poster{position:relative;height:100%;max-height:100%;aspect-ratio:2 / 3;line-height:0}
+.mobile-poster img{width:100%;height:100%;object-fit:contain;display:block}
+.desktop-view{position:relative;display:block;height:100%;width:100%;overflow:hidden;line-height:0;background:#eef5f1}
+.desktop-hero{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center center;display:block}
+.hotspot{position:absolute;border:0;background:transparent;cursor:pointer;padding:0;margin:0;outline:none;z-index:10}
+.hotspot:focus-visible{box-shadow:0 0 0 4px rgba(15,81,63,.45);border-radius:999px}
+#desktopPreviousUser{left:30.3%;top:74.9%;width:18.9%;height:12.3%}
+#desktopNewVisitor{left:51.2%;top:74.9%;width:18.9%;height:12.3%}
+#mobilePreviousUser{left:7.5%;bottom:13%;width:43%;height:9%}
+#mobileNewVisitor{right:7%;bottom:13%;width:43%;height:9%}
+@media (max-width:700px){
+  .device-bar{height:57px}
+  .device-btn{min-width:120px;padding:8px 14px}
+}
+</style>
+</head>
+<body class="desktop-preview">
+<nav class="device-bar" aria-label="معاينة الجهاز">
+  <button id="mobilePreview" class="device-btn" type="button" aria-pressed="false">📱 الموبايل</button>
+  <button id="desktopPreview" class="device-btn active" type="button" aria-pressed="true">🖥️ الحاسوب</button>
+</nav>
+<main class="page">
+  <section id="desktopView" class="view desktop-view">
+    <img class="desktop-hero" src="11.png" alt="مجتمع الصحة والثراء">
+    <button id="desktopPreviousUser" class="hotspot" type="button" aria-label="مستخدم سابق"></button>
+    <button id="desktopNewVisitor" class="hotspot" type="button" aria-label="زائر جديد"></button>
+  </section>
+  <section id="mobileView" class="view mobile-view">
+    <div class="mobile-poster">
+      <img src="11.png" alt="مجتمع الصحة والثراء">
+      <button id="mobilePreviousUser" class="hotspot" type="button" aria-label="مستخدم سابق"></button>
+      <button id="mobileNewVisitor" class="hotspot" type="button" aria-label="زائر جديد"></button>
+    </div>
+  </section>
+</main>
+<script>
+const mobileBtn=document.getElementById('mobilePreview');
+const desktopBtn=document.getElementById('desktopPreview');
+const mobileView=document.getElementById('mobileView');
+const desktopView=document.getElementById('desktopView');
+function setPreview(mode){
+  const mobile=mode==='mobile';
+  mobileView.style.display=mobile?'flex':'none';
+  desktopView.style.display=mobile?'none':'block';
+  mobileBtn.classList.toggle('active',mobile);
+  desktopBtn.classList.toggle('active',!mobile);
+  mobileBtn.setAttribute('aria-pressed',String(mobile));
+  desktopBtn.setAttribute('aria-pressed',String(!mobile));
+}
+function goNew(){location.href='/02-pretest-intro.html'}
+function goPrevious(){location.href='/app/index.html'}
+mobileBtn.addEventListener('click',()=>setPreview('mobile'));
+desktopBtn.addEventListener('click',()=>setPreview('desktop'));
+document.getElementById('desktopNewVisitor').addEventListener('click',goNew);
+document.getElementById('desktopPreviousUser').addEventListener('click',goPrevious);
+document.getElementById('mobileNewVisitor').addEventListener('click',goNew);
+document.getElementById('mobilePreviousUser').addEventListener('click',goPrevious);
+setPreview('desktop');
+</script>
+</body>
+</html>
