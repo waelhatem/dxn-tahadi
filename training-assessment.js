@@ -71,7 +71,7 @@
       if(!qs.length)return;
       var done=qs.filter(function(q){return !!ansFor(q.id)}).length;
       var url=lessonUrl(no);
-      html+='<details class="card" style="margin-top:14px;border:1px solid var(--line);background:#fff" '+(done<qs.length?'open':'')+'><summary style="cursor:pointer;list-style:none"><div class="row" style="border:0"><div><div class="title">📚 التدريب '+no+': '+esc(l.title||l.lesson_title||lessonTitle(no))+'</div><div class="muted">'+done+'/'+qs.length+' أسئلة تمت الإجابة عنها</div></div><div style="display:flex;gap:6px;align-items:center">'+(url?'<a href="'+esc(url)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="text-decoration:none"><button type="button">▶️ التدريب</button></a>':'')+'<span class="badge">10 أسئلة</span></div></div></summary>';
+      html+='<details class="card" data-dxn-assessment-lesson="'+no+'" style="margin-top:14px;border:1px solid var(--line);background:#fff" '+(done<qs.length?'open':'')+'><summary style="cursor:pointer;list-style:none"><div class="row" style="border:0"><div><div class="title">📚 التدريب '+no+': '+esc(l.title||l.lesson_title||lessonTitle(no))+'</div><div class="muted">'+done+'/'+qs.length+' أسئلة تمت الإجابة عنها</div></div><div style="display:flex;gap:6px;align-items:center">'+(url?'<a href="'+esc(url)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="text-decoration:none"><button type="button">▶️ التدريب</button></a>':'')+'<span class="badge">10 أسئلة</span></div></div></summary>';
       qs.forEach(function(q){
         var old=ansFor(q.id), canRetry=old&&old.status==='retry', disabled=old&&old.status==='approved';
         html+='<div class="challenge" style="margin-top:12px;border-color:#d9e7e1"><div style="font-weight:900;line-height:1.8">'+Number(q.question_no)+'. '+esc(q.question)+'</div>';
@@ -118,6 +118,23 @@
     }catch(e){console.error('V86.46.1 training assessment',e);return false}
   }
   window.__DXN_LOAD_TRAINING_ASSESSMENT=function(force){return load(force!==false)};
+  window.openTrainingAssessment=window.openTrainingAssessment||async function(no){
+    var root=document.getElementById('dxn-training-assessment');
+    if(!root||!root.querySelector('details[data-dxn-assessment-lesson="'+Number(no)+'"]')){
+      if(typeof window.__DXN_LOAD_TRAINING_ASSESSMENT==='function') await window.__DXN_LOAD_TRAINING_ASSESSMENT(true);
+      root=document.getElementById('dxn-training-assessment');
+    }
+    if(!root){alert('تعذر تحميل نظام الاختبار الآن. تأكد من تسجيل الدخول ثم أعد المحاولة.');return}
+    var d=root.querySelector('details[data-dxn-assessment-lesson="'+Number(no)+'"]');
+    if(!d){
+      var ds=root.querySelectorAll('details');
+      d=ds[Number(no)-1]||null;
+    }
+    if(!d){alert('تعذر العثور على اختبار التدريب '+Number(no)+' الآن.');return}
+    d.open=true;
+    d.scrollIntoView({behavior:'smooth',block:'start'});
+    setTimeout(function(){var q=d.querySelector('textarea[data-assessment-q]');if(q)try{q.focus({preventScroll:true})}catch(e){try{q.focus()}catch(_e){}}},450);
+  };
   window.submitTrainingAnswer=async function(qid){
     var el=document.querySelector('[data-assessment-q="'+String(qid).replace(/\"/g,'\\\"')+'"]');
     var value=el?String(el.value||'').trim():'';
