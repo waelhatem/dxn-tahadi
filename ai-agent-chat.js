@@ -4,8 +4,8 @@
   window.__DXN_AI_AGENT_CHAT_V1__=true;
 
   const STYLE=`
-  #dxnAgentLauncher{position:fixed;left:18px;bottom:78px;z-index:10001;width:56px;height:56px;border-radius:50%;background:#fff;color:#0f513f;border:2px solid #0f513f;box-shadow:0 8px 24px #0003;font-size:25px;font-weight:900;cursor:pointer}
-  #dxnAgentPanel{position:fixed;left:18px;bottom:145px;z-index:10002;width:min(420px,calc(100vw - 36px));height:min(620px,calc(100vh - 175px));background:#fff;border:1px solid #dce8e3;border-radius:22px;box-shadow:0 18px 55px #0004;display:none;overflow:hidden;direction:rtl}
+  #dxnAgentLauncher{position:fixed;left:18px;bottom:78px;z-index:2147483000;width:56px;height:56px;border-radius:50%;background:#fff;color:#0f513f;border:2px solid #0f513f;box-shadow:0 8px 24px #0003;font-size:25px;font-weight:900;cursor:pointer}
+  #dxnAgentPanel{position:fixed;left:18px;bottom:145px;z-index:2147483001;width:min(420px,calc(100vw - 36px));height:min(620px,calc(100vh - 175px));background:#fff;border:1px solid #dce8e3;border-radius:22px;box-shadow:0 18px 55px #0004;display:none;overflow:hidden;direction:rtl}
   #dxnAgentPanel.show{display:flex;flex-direction:column}
   .dxn-agent-head{background:linear-gradient(135deg,#0c4738,#1a725b);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
   .dxn-agent-head-actions{display:flex;align-items:center;gap:6px}
