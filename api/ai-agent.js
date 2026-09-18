@@ -124,7 +124,7 @@ async function extractProfileUpdate(message,answer,currentProfile){
     'ممنوع التخمين أو استنتاج معلومات شخصية غير مذكورة.',
     'لا تحفظ معلومات صحية أو سياسية أو أسرارًا أو أرقامًا حساسة.',
     'أعد JSON صالحًا فقط بالمفاتيح: goal, experience_level, focus_area, strengths, gaps, current_next_step.',
-    'لكل قيمة غير مؤكدة استخدم null أو []، وexperience_level واحدة من unknown,beginnner,intermediate,advanced.',
+    'لكل قيمة غير مؤكدة استخدم null أو []، وexperience_level واحدة من unknown,beginner,intermediate,advanced.',
     'اجعل القوائم قصيرة ومحددة.',
     'الملف الحالي:',
     JSON.stringify(currentProfile||{}),
