@@ -341,7 +341,25 @@ async function verifyTeamMember(){
       toast(r?.message||'هذه العضوية غير مسجلة ضمن فريق المجتمع.');
       return;
     }
-    status.textContent='✅ تم التحقق بنجاح.';
+    status.textContent='✅ تم التحقق من وجود العضوية ضمن سجل أعضاء الفريق.';
+    /* Eligibility comes only from the team-members registry.
+       If that member already has a Community account, go to login instead of setup. */
+    try{
+      const sr=await fetch('/api/member-status?member_no='+encodeURIComponent(no),{cache:'no-store'});
+      const sd=await sr.json().catch(()=>null);
+      if(sr.ok&&sd&&sd.registered){
+        status.textContent='ℹ️ العضوية موجودة في سجل أعضاء الفريق ولها حساب مسجل مسبقًا.';
+        toast('هذه العضوية لديها حساب في المجتمع مسبقًا. استخدم رقم العضوية وPIN للدخول.');
+        renderLogin();
+        setTimeout(function(){
+          const role=$('role'), loginNo=$('loginNo');
+          if(role) role.value='member';
+          if(loginNo) loginNo.value=no;
+          const pin=$('pin'); if(pin) pin.focus();
+        },0);
+        return;
+      }
+    }catch(_){}
     renderMemberAccountSetup(no,r.name||'');
   }catch(e){
     status.textContent='❌ تعذر الاتصال بخدمة التحقق: '+(e.message||'خطأ غير معروف');
