@@ -21,16 +21,14 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#eef5f1;fon
 .headline{margin-top:2.1%;text-align:right;width:100%}
 .headline h2{margin:0;color:#fff;font-size:clamp(26px,3.1vw,40px);font-weight:950;line-height:1.12}
 .typewriter{flex:1;width:100%;margin-top:1.6%;overflow:hidden;font-size:clamp(16px,1.9vw,23px);line-height:1.92;font-weight:900;display:flex;align-items:flex-start;justify-content:flex-start}
-.seg{display:none;width:100%;margin:0;opacity:0;transform:translateY(10px) scale(.985);transition:opacity .45s ease,transform .45s ease}
+.seg{display:none;width:100%;margin:0;opacity:0;transform:translateY(8px);transition:opacity 1.2s ease,transform 1.2s ease}
 .seg.active{display:block;opacity:1;transform:none}
 .seg-box{width:100%;min-height:clamp(120px,16vh,190px);padding:clamp(18px,2vw,28px);border:1px solid rgba(255,255,255,.55);border-radius:22px;background:rgba(7,39,29,.48);box-shadow:0 14px 30px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.18);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;text-align:right}
 .seg-text{display:block;width:100%}
-.seg.fade-out{opacity:0;transform:translateY(-8px) scale(.985)}
+.seg.fade-out{opacity:0;transform:translateY(-8px)}
 .continue-wrap{margin-top:14px;text-align:center}
-.continue-btn{min-width:150px;min-height:48px;border:1px solid rgba(255,255,255,.65);border-radius:999px;padding:0 24px;background:rgba(255,255,255,.96);color:#0f513f;font-size:16px;font-weight:950;cursor:pointer;box-shadow:0 8px 18px rgba(0,0,0,.2);transition:.25s}
-.continue-btn:hover{transform:translateY(-2px);box-shadow:0 11px 22px rgba(0,0,0,.25)}
-.typewriter.typing .seg-box:after{content:"";display:inline-block;width:2px;height:1em;background:#fff;margin-right:4px;vertical-align:-2px;animation:blink .8s steps(1) infinite}
-@keyframes blink{50%{opacity:0}}
+.continue-btn{width:54px;height:54px;min-width:54px;min-height:54px;border:0;border-radius:50%;padding:0;background:#22a447;color:#fff;font-size:30px;font-weight:950;cursor:pointer;box-shadow:0 8px 18px rgba(0,0,0,.25);transition:transform .25s,box-shadow .25s}
+.continue-btn:hover{transform:translateY(-2px) scale(1.04);box-shadow:0 11px 22px rgba(0,0,0,.3)}
 .actions{margin-top:1.1%;width:100%;text-align:right;transform:translateY(-18px)}
 .start{min-width:285px;min-height:64px;border:0;border-radius:999px;padding:0 24px;background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;font-size:18px;font-weight:950;cursor:pointer;box-shadow:0 12px 25px rgba(0,0,0,.20);opacity:0;pointer-events:none;transform:translateY(7px);transition:.3s}
 .start.ready{opacity:1;pointer-events:auto;transform:none}
