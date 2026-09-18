@@ -1,13 +1,15 @@
 const https = require('https');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ryqpstkzppaifpvhezzn.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || '';
 const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-5.6-luna';
 
 async function supabaseRpc(fn,args){
-  if(!SUPABASE_SECRET_KEY)throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
-  const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`,{method:'POST',headers:{apikey:SUPABASE_SECRET_KEY,Authorization:`Bearer ${SUPABASE_SECRET_KEY}`,'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(args||{})});
+  const key=SUPABASE_KEY || SUPABASE_SECRET_KEY;
+  if(!key)throw new Error('SUPABASE_PUBLISHABLE_KEY / SUPABASE_ANON_KEY غير مضبوط في Vercel');
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`,{method:'POST',headers:{apikey:key,Authorization:`Bearer ${key}`,'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(args||{})});
   const text=await r.text();let data=null;try{data=text?JSON.parse(text):null}catch(_){data=text}
   if(!r.ok)throw new Error((data&&(data.message||data.error||data.hint))||text||`Supabase HTTP ${r.status}`);
   return data;
@@ -60,7 +62,7 @@ function openaiResponses(payload){
 module.exports=async function handler(req,res){
   if(req.method!=='POST')return json(res,405,{error:'Method not allowed'});
   if(!OPENAI_API_KEY)return json(res,503,{error:'OPENAI_API_KEY غير مضبوط في Vercel'});
-  if(!SUPABASE_SECRET_KEY)return json(res,503,{error:'SUPABASE_SECRET_KEY غير مضبوط في Vercel'});
+  if(!SUPABASE_KEY&&!SUPABASE_SECRET_KEY)return json(res,503,{error:'SUPABASE_PUBLISHABLE_KEY / SUPABASE_ANON_KEY غير مضبوط في Vercel'});
   try{
     const body=typeof req.body==='string'?JSON.parse(req.body||'{}'):(req.body||{});
     const token=String(body.token||'').trim();
