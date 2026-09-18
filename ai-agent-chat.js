@@ -205,6 +205,8 @@
       addMsg('يرجى تسجيل الدخول أولًا حتى نفعّل إشعارات محمد.','ai');
       return;
     }
+
+    const existingEnabled=!!document.getElementById('dxnAgentPush')?.classList.contains('enabled');
     if(!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)){
       addMsg('هذا المتصفح لا يدعم إشعارات Push المطلوبة. استخدم Chrome أو Edge أو Safari حديثًا.','ai');
       return;
@@ -240,6 +242,16 @@
         userAgent:navigator.userAgent
       });
 
+      if(existingEnabled){
+        addMsg('سيتم الآن إرسال اختبار بعد 12 ثانية. أغلق تبويب المنصة مباشرة، ثم انتظر الإشعار.','ai');
+        await pushApi({
+          action:'test_delayed',
+          token,
+          subscription:json
+        });
+        return;
+      }
+
       await pushApi({
         action:'test',
         token,
@@ -249,9 +261,9 @@
       if(btn){
         btn.classList.add('enabled');
         btn.textContent='🔔 مفعّلة';
-        btn.title='إشعارات محمد مفعّلة';
+        btn.title='إشعارات محمد مفعّلة — اضغط مرة أخرى لاختبار الخلفية';
       }
-      addMsg('تم تفعيل إشعارات محمد الدائمة. أرسلت لك إشعار اختبار للتأكد من أن الجهاز يستقبلها.','ai');
+      addMsg('تم تفعيل إشعارات محمد الدائمة. أرسلت لك إشعار اختبار للتأكد من أن الجهاز يستقبله.','ai');
     }catch(e){
       addMsg('تعذر تفعيل إشعارات محمد: '+String(e.message||e),'ai');
     }
