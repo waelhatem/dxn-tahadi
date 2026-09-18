@@ -1363,17 +1363,11 @@ async function deleteDXNMembershipRequest(id){
     await refresh();
   }catch(e){toast(e.message||'تعذر حذف الطلب نهائيًا')}
 }
-let prospectSelectedMark='check';
-function chooseProspectMark(mark){
-  prospectSelectedMark=mark;
-  toast(mark==='check'?'✓ تم اختيار علامة الصح الخضراء. الآن اختر المربع.':'✕ تم اختيار علامة X الحمراء. الآن اختر المربع.');
-  render();
-}
 async function setProspectStatus(id,status){
-  if(!prospectSelectedMark){toast('اختر أولًا علامة ✓ أو ✕.');return}
   try{
-    await rpc('update_prospect_status',{p_token:token,p_prospect:id,p_status:status,p_mark:prospectSelectedMark});
-    toast(prospectSelectedMark==='check'?'🟢 تم حفظ ✓ في المربع المختار.':'🔴 تم حفظ ✕ في المربع المختار.');
+    const mark=status==='contacted_convinced'?'check':status==='contacted_rejected'?'x':'';
+    await rpc('update_prospect_status',{p_token:token,p_prospect:id,p_status:status,p_mark:mark});
+    toast(status==='contacted_convinced'?'🟢 تم تسجيل القبول.':status==='contacted_rejected'?'🔴 تم تسجيل الرفض.':'⬜ تم تسجيل أنه لم يتم التواصل بعد.');
     await refresh();
   }catch(e){toast(e.message||'تعذر حفظ حالة طلب التواصل')}
 }
@@ -1387,31 +1381,26 @@ async function deleteProspect(id){
 }
 function prospectStatusBox(r,key,label){
   const current=String(r.contact_status||'not_contacted');
-  const mark=String(r.status_mark||'');
   const active=current===key;
-  const shown=active&&mark?(mark==='check'?'✓':'✕'):'';
-  return '<button type="button" onclick="setProspectStatus(\''+r.id+'\',\''+key+'\')" style="min-width:150px;padding:10px 12px;border:2px solid '+(active?'#16a34a':'#d9e2e8')+';border-radius:12px;background:#fff;font-weight:800;cursor:pointer"><span style="display:block;font-size:14px">'+label+'</span><span style="display:block;font-size:25px;line-height:1.1;margin-top:5px;color:'+(shown==='✓'?'#16a34a':shown==='✕'?'#dc2626':'#a0aab4')+'">'+(shown||'⬜')+'</span></button>';
+  const shown=active?(key==='contacted_convinced'?'✓':key==='contacted_rejected'?'✕':''):'';
+  const color=key==='contacted_convinced'?'#16a34a':key==='contacted_rejected'?'#dc2626':'#64748b';
+  return '<button type="button" onclick="setProspectStatus(\\''+r.id+'\\',\\''+key+'\\')" style="min-width:150px;padding:10px 12px;border:2px solid '+(active?(key==='contacted_convinced'?'#16a34a':key==='contacted_rejected'?'#dc2626':'#64748b'):'#d9e2e8')+';border-radius:12px;background:#fff;font-weight:800;cursor:pointer"><span style="display:block;font-size:14px">'+label+'</span><span style="display:block;font-size:28px;line-height:1.1;margin-top:5px;color:'+color+'">'+(shown||'⬜')+'</span></button>';
 }
 function prospectRequestsPanel(){
   const list=Array.isArray(prospectRequests)?[...prospectRequests].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)):[];
   const rows=list.map(r=>{
     const sent=r.created_at?'<br>🕒 تاريخ الإرسال: '+esc(new Date(r.created_at).toLocaleString('ar-IQ')):'';
-    const mark=String(r.status_mark||'');
-    const markText=mark==='check'?'✓':mark==='x'?'✕':'—';
-    const markColor=mark==='check'?'#16a34a':mark==='x'?'#dc2626':'#8a96a3';
     return '<div class="row" style="display:block;padding:18px 16px">'+
       '<div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap">'+
       '<div><b style="font-size:17px">'+esc(r.name||'')+'</b><div class="muted">🌍 بلد الإقامة: '+esc(r.country||'')+' · 📱 واتساب: '+esc(r.mobile||'')+'<br>👤 الشخص الذي شارك الفكرة: <b>'+esc(r.referrer_name||'')+'</b>'+sent+'</div></div>'+
-      '<button type="button" class="danger" onclick="deleteProspect(\''+r.id+'\')" style="white-space:nowrap">🗑️ حذف نهائي</button></div>'+
-      '<div style="margin-top:16px"><div class="muted" style="font-weight:800;margin-bottom:8px">حالة التواصل — العلامة الحالية: <span style="color:'+markColor+'">'+markText+'</span></div>'+
-      '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+      '<button type="button" class="danger" onclick="deleteProspect(\\''+r.id+'\\')" style="white-space:nowrap">🗑️ حذف نهائي</button></div>'+
+      '<div style="margin-top:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
       prospectStatusBox(r,'contacted_convinced','تم التواصل والاقتناع')+
       prospectStatusBox(r,'not_contacted','لم يتم التواصل بعد')+
       prospectStatusBox(r,'contacted_rejected','تم التواصل ورفض الانضمام')+
-      '</div>'+
-      '<div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="font-size:13px;font-weight:800">اختر العلامة ثم اضغط المربع:</span><button type="button" onclick="chooseProspectMark(\'check\')" style="padding:6px 14px;border:2px solid '+(prospectSelectedMark==='check'?'#16a34a':'#d9e2e8')+';border-radius:10px;background:#fff;color:#16a34a;font-size:20px;font-weight:900;cursor:pointer">✓</button><button type="button" onclick="chooseProspectMark(\'x\')" style="padding:6px 14px;border:2px solid '+(prospectSelectedMark==='x'?'#dc2626':'#d9e2e8')+';border-radius:10px;background:#fff;color:#dc2626;font-size:20px;font-weight:900;cursor:pointer">✕</button></div></div></div>';
+      '</div></div>';
   }).join('');
-  return '<div class="card leaderbox"><div class="title">📩 طلبات التواصل الجديدة</div><p class="muted">هنا تظهر بيانات الأشخاص الذين تركوا معلوماتهم للتواصل والتعرف أكثر على الفكرة.</p><div class="admin-toolbar"><button onclick="backToLeaderDashboard()">↩️ العودة إلى مركز القيادة</button><button class="primary" onclick="openProspectRequests()">🔄 تحديث</button></div></div><div class="card"><div class="title">📋 الأشخاص الذين تركوا بياناتهم ('+list.length+')</div>'+(rows||'<div class="empty">لا توجد طلبات تواصل جديدة.</div>')+'</div>';
+  return '<div class="card leaderbox"><div class="title">📩 طلبات التواصل الجديدة</div><p class="muted">حدد حالة التواصل مباشرة بالضغط على المربع المناسب.</p><div class="admin-toolbar"><button onclick="backToLeaderDashboard()">↩️ العودة إلى مركز القيادة</button><button class="primary" onclick="openProspectRequests()">🔄 تحديث</button></div></div><div class="card"><div class="title">📋 الأشخاص الذين تركوا بياناتهم ('+list.length+')</div>'+(rows||'<div class="empty">لا توجد طلبات تواصل جديدة.</div>')+'</div>';
 }
 function dxnMembershipRequestsPanel(){
   const pending=membershipRequests.filter(r=>String(r.status||'pending')==='pending').sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
