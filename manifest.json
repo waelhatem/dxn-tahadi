@@ -12,8 +12,8 @@
   "lang": "ar",
   "icons": [
     {
-      "src": "logo.png",
-      "sizes": "512x512",
+      "src": "favicon.png",
+      "sizes": "64x64",
       "type": "image/png",
       "purpose": "any"
     }
