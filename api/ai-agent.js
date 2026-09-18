@@ -82,6 +82,84 @@ function cleanHistory(history){
   }).filter(Boolean);
 }
 
+function detectSessionCommand(message){
+  const s=String(message||'').trim().toLowerCase();
+  if(/انهي|انهِ|أنهي|انتهت|خلصنا|وقف الجلسة|إنهاء الجلسة|انهاء الجلسة/.test(s))
+    return {action:'end'};
+  if(/ابدأ جلسة|ابدأ|خلينا نسوي جلسة|خلينا نبدأ جلسة|جلسة تدريب|جلسة ممارسة|جلسة تمثيل|جلسة مراجعة/.test(s)){
+    let type='coaching';
+    if(/تمثيل|roleplay|عميل|متردد/.test(s)) type='roleplay';
+    else if(/ممارسة|تطبيق/.test(s)) type='practice';
+    else if(/مراجعة|راجع/.test(s)) type='review';
+    const objective=s.replace(/.*?(جلسة تدريب|جلسة ممارسة|جلسة تمثيل|جلسة مراجعة|جلسة)/,'').trim();
+    return {action:'start',session_type:type,objective:objective||null};
+  }
+  return null;
+}
+
+async function loadAgentSession(token){
+  const r=await supabaseRpc('get_ai_agent_coaching_session',{p_token:token});
+  if(!r.ok||!Array.isArray(r.data)||!r.data[0]) return null;
+  const s=r.data[0];
+  return {
+    active:!!s.active,
+    session_type:s.session_type||'coaching',
+    objective:s.objective||null,
+    phase:s.phase||'discover',
+    turn_count:Number(s.turn_count||0),
+    started_at:s.started_at||null
+  };
+}
+
+async function saveAgentSession(token,session){
+  if(!session) return null;
+  const r=await supabaseRpc('upsert_ai_agent_coaching_session',{
+    p_token:token,
+    p_active:!!session.active,
+    p_session_type:session.session_type||'coaching',
+    p_objective:session.objective||null,
+    p_phase:session.phase||'discover',
+    p_turn_count:Number(session.turn_count||0),
+    p_started_at:session.started_at||null
+  });
+  return r.ok ? true : false;
+}
+
+async function extractSessionUpdate(message,answer,currentSession){
+  if(!currentSession?.active) return null;
+  const prompt=[
+    'حلل دور محمد في جلسة تدريبية مستمرة، واستخرج الحالة الجديدة للجلسة فقط.',
+    'لا تخترع هدفًا غير مذكور. لا تحفظ معلومات حساسة.',
+    'phase يجب أن تكون واحدة من discover,explain,practice,feedback,next_step,complete.',
+    'إذا كان محمد يشرح مفهومًا فاختر explain. إذا كان العضو يطبق أو يؤدي تمرينًا فاختر practice. إذا كان محمد يقيم أو يصحح فاختر feedback. إذا انتقلا للخطوة التالية فاختر next_step. إذا اكتملت الجلسة فاختر complete.',
+    'أعد JSON فقط بالمفاتيح: phase, objective.',
+    'الحالة الحالية:',
+    JSON.stringify(currentSession),
+    'رسالة العضو:',
+    String(message).slice(0,5000),
+    'رد محمد:',
+    String(answer).slice(0,5000)
+  ].join('\\n');
+  try{
+    const r=await openai({
+      model:OPENAI_MODEL,
+      instructions:'أنت محلل حالة جلسة تدريبية. أعد JSON فقط.',
+      input:[{role:'user',content:prompt}],
+      max_output_tokens:180
+    });
+    if(!r.ok) return null;
+    const text=outputText(r.data);
+    const start=text.indexOf('{'),end=text.lastIndexOf('}');
+    if(start<0||end<=start) return null;
+    const p=JSON.parse(text.slice(start,end+1));
+    const phases=['discover','explain','practice','feedback','next_step','complete'];
+    return {
+      phase:phases.includes(p.phase)?p.phase:currentSession.phase,
+      objective:p.objective||currentSession.objective||null
+    };
+  }catch(_){return null;}
+}
+
 async function loadAgentProfile(token){
   const r=await supabaseRpc('get_ai_agent_coaching_profile',{p_token:token});
   if(!r.ok||!Array.isArray(r.data)||!r.data[0]) return null;
@@ -340,6 +418,15 @@ module.exports=async function handler(req,res){
     if(!message)return res.status(400).json({error:'الرسالة مطلوبة'});
     if(message.length>6000)return res.status(400).json({error:'الرسالة طويلة جدًا'});
     const context=await loadContext(token);
+    const sessionCommand=detectSessionCommand(message);
+    let currentSession=await loadAgentSession(token);
+    if(sessionCommand?.action==='end'){
+      currentSession={...(currentSession||{}),active:false,session_type:currentSession?.session_type||'coaching',objective:currentSession?.objective||null,phase:'complete',turn_count:currentSession?.turn_count||0,started_at:currentSession?.started_at||null};
+      await saveAgentSession(token,currentSession).catch(()=>null);
+    }else if(sessionCommand?.action==='start'){
+      currentSession={active:true,session_type:sessionCommand.session_type||'coaching',objective:sessionCommand.objective||null,phase:'discover',turn_count:0,started_at:new Date().toISOString()};
+      await saveAgentSession(token,currentSession).catch(()=>null);
+    }
     const [persistentMemory,coachingProfile]=await Promise.all([
       loadAgentMemory(token),
       loadAgentProfile(token)
@@ -347,7 +434,7 @@ module.exports=async function handler(req,res){
     const fallbackHistory=cleanHistory(body.history);
     const history=(persistentMemory.length?persistentMemory:fallbackHistory).slice(-24);
     const baseInput=[...history,{role:'user',content:message}];
-    const enrichedContext={...context,coaching_profile:coachingProfile};
+    const enrichedContext={...context,coaching_profile:coachingProfile,coaching_session:currentSession};
     let input=baseInput;
     let ai=null;
     const maxToolRounds=3;
@@ -394,6 +481,17 @@ module.exports=async function handler(req,res){
     // Persist the successful turn so محمد can continue naturally across future sessions.
     await saveAgentMessage(token,'user',message).catch(()=>null);
     await saveAgentMessage(token,'assistant',answer).catch(()=>null);
+
+    if(currentSession?.active){
+      const sessionUpdate=await extractSessionUpdate(message,answer,currentSession);
+      const nextSession={
+        ...currentSession,
+        ...(sessionUpdate||{}),
+        turn_count:Number(currentSession.turn_count||0)+1
+      };
+      await saveAgentSession(token,nextSession).catch(()=>null);
+      currentSession=nextSession;
+    }
 
     const profileUpdate=await extractProfileUpdate(message,answer,coachingProfile);
     if(profileUpdate){
