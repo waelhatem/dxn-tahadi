@@ -367,6 +367,98 @@ const AGENT_TOOLS = {
     };
   },
 
+  async get_daily_coaching_plan(token){
+    const ctx = await loadContext(token);
+    if(ctx.role!=='member') throw new Error('هذه الخطة مخصصة للعضو');
+
+    const byId = new Map(ctx.progress.map(p=>[String(p.lesson_id),p]));
+    const training = ctx.lessons
+      .filter(l=>l.active)
+      .map(l=>{
+        const p=byId.get(String(l.id))||byId.get(String(l.lesson_id))||{};
+        return {
+          lesson_no:l.lesson_no,
+          title:l.title,
+          completed:!!p.completed,
+          watch_percent:Number(p.watch_percent||0)
+        };
+      });
+
+    let performance=null;
+    try{
+      performance=await AGENT_TOOLS.get_member_assessment_performance(token);
+    }catch(_){performance=null}
+
+    const retryLessons=(performance&&Array.isArray(performance.lessons)?performance.lessons:[])
+      .filter(x=>Number(x.retry||0)>0)
+      .sort((a,b)=>(Number(b.retry||0)-Number(a.retry||0))||((Number(a.average_score||0))-(Number(b.average_score||0))));
+
+    const weakLessons=(performance&&Array.isArray(performance.lessons)?performance.lessons:[])
+      .filter(x=>Number(x.answered||0)>0 && Number(x.average_score||0)<75)
+      .sort((a,b)=>Number(a.average_score||0)-Number(b.average_score||0));
+
+    const nextTraining=training.find(x=>!x.completed && x.watch_percent<100) || training.find(x=>!x.completed) || null;
+
+    const actions=[];
+    let priority='continue';
+
+    if(retryLessons[0]){
+      priority='review';
+      actions.push({
+        type:'review',
+        lesson_no:retryLessons[0].lesson_no,
+        title:retryLessons[0].lesson_title||'مراجعة تدريب سابق',
+        reason:'يوجد اختبار يحتاج إلى إعادة أو تحسين في هذا التدريب.'
+      });
+    }
+
+    if(nextTraining){
+      actions.push({
+        type:'training',
+        lesson_no:nextTraining.lesson_no,
+        title:nextTraining.title,
+        reason:nextTraining.watch_percent>0
+          ? 'استكمال التدريب المفتوح أولًا.'
+          : 'هذا هو التدريب التالي غير المكتمل.'
+      });
+    }
+
+    if(weakLessons[0] && !actions.some(a=>Number(a.lesson_no)===Number(weakLessons[0].lesson_no))){
+      actions.push({
+        type:'practice',
+        lesson_no:weakLessons[0].lesson_no,
+        title:weakLessons[0].lesson_title||'تطبيق على نقطة الضعف',
+        reason:`متوسط أداء الاختبار في هذا التدريب ${Number(weakLessons[0].average_score||0)}.`
+      });
+    }
+
+    if(actions.length===0){
+      actions.push({
+        type:'progression',
+        title:'تثبيت المهارة وتوسيع التطبيق',
+        reason:'لا توجد مهمة تدريبية معلقة واضحة في البيانات الحالية.'
+      });
+    }
+
+    return {
+      generated_for:'today',
+      priority,
+      member:ctx.member,
+      training:{
+        completed:training.filter(x=>x.completed).length,
+        total:training.length,
+        remaining:training.filter(x=>!x.completed).length
+      },
+      performance:performance?{
+        average_score:performance.average_score,
+        approved:performance.approved,
+        retry:performance.retry,
+        pending:performance.pending
+      }:null,
+      actions:actions.slice(0,3)
+    };
+  },
+
   async get_member_summary(token){
     const ctx = await loadContext(token);
     const byId = new Map(ctx.progress.map(p=>[String(p.lesson_id),p]));
@@ -403,6 +495,7 @@ function instructions(context){
     'في التصحيح: إذا أخطأ العضو، اذكر الخطأ بوضوح ثم قل له كيف يصححه، مع مثال عراقي قصير عند الحاجة.',
     'في المتابعة: إذا كان العضو متقدمًا، انتقل من الشرح إلى التحدي والتطبيق. إذا كان جديدًا، استخدم شرحًا أبسط وأكثر تدرجًا.',
     'عند الحاجة إلى تحليل مستوى العضو أو نقاط قوته وضعفه في الاختبارات، استخدم أداة أداء الاختبارات بدل الاعتماد على الانطباع من المحادثة فقط.',
+    'عندما يسأل العضو: شنو أسوي هسه؟ أو شنو أشتغل اليوم؟ أو ماذا أفعل الآن؟ استخدم أداة الخطة اليومية الشخصية، ثم حوّل نتيجتها إلى خطوة عملية واحدة واضحة قبل اقتراح الخطوة التالية.'
     'في المحاكاة: يمكنك لعب دور عميل أو شخص متردد أو عضو جديد، ثم تقييم رد العضو واقتراح تحسين واحد أو اثنين في كل مرة.',
     'في التشجيع: استخدم عبارات عراقية طبيعية مثل زين، ممتاز، خلينا نكمل، هسه نركز على الخطوة الجاية، لكن لا تكررها في كل رد.',
     'لا تتصرف كصديق شخصي يعتمد عليه المستخدم عاطفيًا، ولا تحاول خلق تبعية. كن مدربًا مساعدًا يحافظ على استقلال قرار المستخدم.',
@@ -444,6 +537,13 @@ const AGENT_TOOL_DEFINITIONS = [
     type:'function',
     name:'get_member_assessment_performance',
     description:'قراءة أداء العضو في اختبارات التدريبات الفعلية، بما في ذلك الدرجات وحالات approved/retry ومتوسط الأداء لكل تدريب. استخدمها عند تحليل نقاط القوة والضعف أو اقتراح مراجعة.',
+    parameters:{type:'object',properties:{},additionalProperties:false},
+    strict:true
+  },
+  {
+    type:'function',
+    name:'get_daily_coaching_plan',
+    description:'بناء خطة يومية شخصية للعضو اعتمادًا على تقدمه في التدريبات ونتائج الاختبارات ونقاط الضعف. استخدمها عندما يسأل العضو ماذا يفعل الآن أو اليوم، أو عندما يحتاج إلى خطة عملية للخطوة التالية.',
     parameters:{type:'object',properties:{},additionalProperties:false},
     strict:true
   },
