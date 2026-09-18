@@ -2118,6 +2118,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
   document.addEventListener('click',function(e){const btn=e.target&&e.target.closest?e.target.closest('#loginButton'):null;if(!btn)return;e.preventDefault();e.stopImmediatePropagation();proxyLogin()},true);
   let n=0,t=setInterval(function(){if(patchClient()||++n>240)clearInterval(t)},50);
 })();
+</script>
 <script src="membership-registration-guard.js?v=1"></script>
 <script src="login-scene.js?v=86.65"></script>
 
