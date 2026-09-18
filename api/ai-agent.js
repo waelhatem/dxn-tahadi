@@ -220,7 +220,8 @@ async function loadAgentSession(token){
     objective:s.objective||null,
     phase:s.phase||'discover',
     turn_count:Number(s.turn_count||0),
-    started_at:s.started_at||null
+    started_at:s.started_at||null,
+    updated_at:s.updated_at||null
     };
   }catch(_){return null;}
 }
@@ -736,6 +737,33 @@ async function generateDailyKickoff(context,coachingProfile,session,plan){
   if(!r.ok) throw new Error((r.data&&r.data.error&&r.data.error.message)||r.text||'تعذر بدء جلسة اليوم');
   return outputText(r.data);
 }
+async function generateDailyReminder(context,coachingProfile,session,plan){
+  const action=Array.isArray(plan?.actions)?plan.actions[0]:null;
+  if(!session?.active||!action)return null;
+  const prompt=[
+    'هذه متابعة لجلسة يومية بدأها العضو ولم يكملها بعد.',
+    'ذكّره بلطف بالخطوة الحالية واطلب منه استكمالها الآن بسؤال أو تمرين واحد فقط.',
+    'لا تنشئ مهمة جديدة ولا تعرض قائمة.',
+    'النص يجب أن يكون قصيرًا وطبيعيًا باللهجة العراقية.',
+    JSON.stringify({member:context.member,session,action,coaching_profile:coachingProfile||null})
+  ].join('\\n');
+  const r=await openai({
+    model:OPENAI_MODEL,
+    instructions:instructions({
+      role:context.role,
+      member:context.member,
+      lessons:context.lessons,
+      progress:context.progress,
+      coaching_profile:coachingProfile,
+      coaching_session:session,
+      daily_auto_plan:plan
+    }),
+    input:[{role:'user',content:prompt}],
+    max_output_tokens:220
+  });
+  if(!r.ok)throw new Error((r.data&&r.data.error&&r.data.error.message)||r.text||'تعذر إنشاء التذكير');
+  return outputText(r.data);
+}
 
 module.exports=async function handler(req,res){
   res.setHeader('Access-Control-Allow-Origin','*');
@@ -760,24 +788,39 @@ module.exports=async function handler(req,res){
 
       let session=currentSession;
       let plan=null;
+      let started=false;
+      let reminder=false;
 
       if(!session?.active){
-        const started=await startNextDailySession(token,currentSession);
-        session=started.session;
-        plan=started.plan;
+        const startedResult=await startNextDailySession(token,currentSession);
+        session=startedResult.session;
+        plan=startedResult.plan;
+        started=!!session?.active;
       }else{
         plan=await AGENT_TOOLS.get_daily_coaching_plan(token);
+        const updatedAt=session.updated_at?new Date(session.updated_at).getTime():Date.now();
+        const stale=Date.now()-updatedAt >= 6*60*60*1000;
+        if(stale){
+          reminder=true;
+        }
       }
 
       if(!session?.active){
-        return res.status(200).json({ok:true,started:false,answer:null});
+        return res.status(200).json({ok:true,started:false,reminder:false,answer:null});
       }
 
-      const answer=await generateDailyKickoff(context,coachingProfile,session,plan);
+      let answer=null;
+      if(started){
+        answer=await generateDailyKickoff(context,coachingProfile,session,plan);
+      }else if(reminder){
+        answer=await generateDailyReminder(context,coachingProfile,session,plan);
+      }
+
       if(answer) await saveAgentMessage(token,'assistant',answer).catch(()=>null);
       return res.status(200).json({
         ok:true,
-        started:true,
+        started,
+        reminder,
         answer:answer||null,
         session
       });
