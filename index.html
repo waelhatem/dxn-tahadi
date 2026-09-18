@@ -8,62 +8,51 @@
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;background:#eef5f1}
-body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif;color:#17372d}
+body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 .device-bar{height:57px;display:flex;justify-content:center;align-items:center;gap:8px;padding:8px 12px;background:rgba(238,245,241,.96);backdrop-filter:blur(8px);border-bottom:1px solid rgba(15,81,63,.12);position:relative;z-index:30}
 .device-btn{border:1px solid rgba(15,81,63,.22);background:#fff;color:#17372d;border-radius:999px;padding:9px 18px;font:800 14px/1 "Tajawal","Segoe UI",Tahoma,Arial,sans-serif;cursor:pointer;transition:.2s;min-width:130px}
 .device-btn.active{background:#0f513f;color:#fff;border-color:#0f513f;box-shadow:0 6px 14px rgba(15,81,63,.16)}
-.page{height:calc(100svh - 57px);width:100vw;overflow:hidden;background:#eef5f1}
+.page{height:calc(100svh - 57px);width:100vw;overflow:hidden;position:relative;background:#eef5f1}
 .view{width:100%;height:100%}
 .hidden{display:none!important}
+.hotspot{position:absolute;border:0;background:transparent;cursor:pointer;padding:0;margin:0;outline:none;z-index:10}
+.hotspot:focus-visible{box-shadow:0 0 0 4px rgba(15,81,63,.45);border-radius:999px}
 
-/* الموبايل: الصورة الأصلية كما هي */
-.mobile-view{align-items:center;justify-content:center}
+/* واجهة الحاسوب: صورة سطح المكتب المعتمدة مستقلة عن صورة الموبايل */
+.desktop-view{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#dfeae5}
+.desktop-backdrop{position:absolute;inset:-28px;background-image:url("/desktop-hero.webp");background-size:cover;background-position:center;filter:blur(22px);transform:scale(1.08);opacity:.42}
+.desktop-poster{position:relative;height:100%;width:auto;aspect-ratio:5 / 6;line-height:0;z-index:2;box-shadow:0 0 40px rgba(15,81,63,.14)}
+.desktop-poster img{width:100%;height:100%;display:block;object-fit:contain}
+#desktopPreviousUser{left:16.5%;bottom:12.3%;width:31.5%;height:9.5%}
+#desktopNewVisitor{left:49.7%;bottom:12.3%;width:31.5%;height:9.5%}
+
+/* واجهة الموبايل: الصورة الأصلية كما هي */
+.mobile-view{display:flex;align-items:center;justify-content:center}
 .mobile-poster{position:relative;height:100%;max-height:100%;aspect-ratio:2 / 3;line-height:0}
 .mobile-poster img{width:100%;height:100%;object-fit:contain;display:block}
+#mobilePreviousUser{left:7.5%;bottom:13%;width:43%;height:9%}
+#mobileNewVisitor{right:7%;bottom:13%;width:43%;height:9%}
 
-/* الحاسوب: تكوين سطح مكتب مستقل، وليس تكبيراً لصورة الموبايل */
-.desktop-view{display:grid;grid-template-columns:minmax(0,58%) minmax(390px,42%);direction:ltr;background:#eef5f1}
-.desktop-visual{position:relative;min-width:0;height:100%;overflow:hidden;background-image:url("11.png");background-size:cover;background-position:center bottom}
-.desktop-visual:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(6,43,33,.06),rgba(6,43,33,0) 40%,rgba(255,255,255,.03));pointer-events:none}
-.desktop-panel{position:relative;height:100%;direction:rtl;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:clamp(22px,3vw,52px);background:linear-gradient(160deg,#ffffff 0%,#eef7f3 100%);text-align:center;overflow:hidden}
-.desktop-panel:after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;background:rgba(23,107,85,.06);left:-90px;bottom:-90px}
-.desktop-logo{width:clamp(82px,10vw,124px);height:auto;object-fit:contain;margin-bottom:10px;position:relative;z-index:1}
-.desktop-brand{font-size:clamp(28px,3.3vw,46px);font-weight:950;line-height:1.05;color:#0f513f;position:relative;z-index:1}
-.desktop-tag{margin-top:8px;font-size:clamp(12px,1.35vw,18px);font-weight:800;color:#487666;position:relative;z-index:1}
-.desktop-line{width:150px;height:3px;background:#4da76d;border-radius:9px;margin:16px auto 18px;position:relative;z-index:1}
-.desktop-headline{font-size:clamp(38px,5vw,74px);font-weight:950;line-height:1.02;color:#0f513f;letter-spacing:-1px;position:relative;z-index:1}
-.desktop-sub{margin-top:10px;font-size:clamp(20px,2.15vw,31px);font-weight:900;color:#176b55;line-height:1.2;position:relative;z-index:1}
-.desktop-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:640px;margin-top:28px;position:relative;z-index:2}
-.desktop-action{border:2px solid #176b55;border-radius:28px;min-height:92px;padding:14px 16px;background:#fff;color:#176b55;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;box-shadow:0 12px 24px rgba(23,107,85,.10);font-family:inherit}
-.desktop-action.primary{background:#0f513f;color:#fff;border-color:#0f513f}
-.desktop-action .icon{font-size:34px;line-height:1}
-.desktop-action .copy{display:flex;flex-direction:column;gap:4px;text-align:right}
-.desktop-action b{font-size:clamp(18px,1.7vw,26px);font-weight:950}
-.desktop-action span{font-size:clamp(10px,1.1vw,14px);font-weight:800;opacity:.88}
-.desktop-benefits{display:flex;justify-content:center;gap:clamp(14px,2vw,28px);flex-wrap:wrap;margin-top:25px;color:#456b5c;font-size:clamp(12px,1.25vw,17px);font-weight:900;position:relative;z-index:1}
-.desktop-benefit{display:flex;align-items:center;gap:5px;white-space:nowrap}
-.desktop-note{margin-top:14px;font-size:11px;font-weight:800;color:#7b9188;position:relative;z-index:1}
-.desktop-pictogram{position:absolute;right:7%;bottom:5%;width:120px;height:120px;border-radius:50%;background:rgba(15,81,63,.05);z-index:0}
-
-@media(max-width:900px){
-  .desktop-view{grid-template-columns:52% 48%}
-  .desktop-actions{max-width:520px;grid-template-columns:1fr}
-  .desktop-headline{font-size:clamp(34px,6vw,54px)}
-  .desktop-brand{font-size:clamp(25px,4vw,38px)}
-}
 @media(max-width:700px){
-  .device-bar{height:57px}
-  .device-btn{min-width:120px;padding:8px 14px}
+.device-bar{height:57px}
+.device-btn{min-width:120px;padding:8px 14px}
 }
 </style>
 </head>
-<body class="desktop-preview">
+<body>
 <nav class="device-bar" aria-label="معاينة الجهاز">
 <button id="mobilePreview" class="device-btn" type="button" aria-pressed="false">📱 الموبايل</button>
 <button id="desktopPreview" class="device-btn active" type="button" aria-pressed="true">🖥️ الحاسوب</button>
 </nav>
-
 <main class="page">
+<section id="desktopView" class="view desktop-view">
+<div class="desktop-backdrop" aria-hidden="true"></div>
+<div class="desktop-poster">
+<img src="/desktop-hero.webp" alt="مجتمع الصحة والثراء">
+<button id="desktopPreviousUser" class="hotspot" type="button" aria-label="مستخدم سابق"></button>
+<button id="desktopNewVisitor" class="hotspot" type="button" aria-label="زائر جديد"></button>
+</div>
+</section>
 <section id="mobileView" class="view mobile-view hidden">
 <div class="mobile-poster">
 <img src="11.png" alt="مجتمع الصحة والثراء">
@@ -71,45 +60,14 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif;co
 <button id="mobileNewVisitor" class="hotspot" type="button" aria-label="زائر جديد"></button>
 </div>
 </section>
-
-<section id="desktopView" class="view desktop-view">
-<div class="desktop-visual" aria-hidden="true"></div>
-<div class="desktop-panel">
-<img class="desktop-logo" src="logo.svg" alt="">
-<div class="desktop-brand">مجتمع الصحة والثراء</div>
-<div class="desktop-tag">حياة أفضل .. فرص أوسع .. لمستقبل أجمل</div>
-<div class="desktop-line"></div>
-<div class="desktop-headline">ابدأ بخطوة...</div>
-<div class="desktop-sub">اصنع مستقبل عائلتك بنفسك</div>
-<div class="desktop-actions">
-<button id="desktopPreviousUser" class="desktop-action primary" type="button">
-<div class="icon">👤</div><div class="copy"><b>مستخدم سابق</b><span>تسجيل الدخول إلى حسابك</span></div>
-</button>
-<button id="desktopNewVisitor" class="desktop-action" type="button">
-<div class="icon">🌿</div><div class="copy"><b>زائر جديد</b><span>اكتشف الفرص المناسبة لك</span></div>
-</button>
-</div>
-<div class="desktop-benefits">
-<div class="desktop-benefit">♥ صحة أفضل</div>
-<div class="desktop-benefit">🏆 فرص أكبر</div>
-<div class="desktop-benefit">👥 مستقبل أفضل</div>
-</div>
-<div class="desktop-note">مجتمع الصحة والثراء — ابدأ بخطوة</div>
-<div class="desktop-pictogram"></div>
-</div>
-</section>
 </main>
-
 <script>
 const mobileBtn=document.getElementById('mobilePreview');
 const desktopBtn=document.getElementById('desktopPreview');
 const mobileView=document.getElementById('mobileView');
 const desktopView=document.getElementById('desktopView');
-
 function setPreview(mode){
 const mobile=mode==='mobile';
-document.body.classList.toggle('mobile-preview',mobile);
-document.body.classList.toggle('desktop-preview',!mobile);
 mobileView.classList.toggle('hidden',!mobile);
 desktopView.classList.toggle('hidden',mobile);
 mobileBtn.classList.toggle('active',mobile);
@@ -117,17 +75,14 @@ desktopBtn.classList.toggle('active',!mobile);
 mobileBtn.setAttribute('aria-pressed',String(mobile));
 desktopBtn.setAttribute('aria-pressed',String(!mobile));
 }
-
 function goNew(){location.href='/02-pretest-intro.html'}
 function goPrevious(){location.href='/app/index.html'}
-
 mobileBtn.addEventListener('click',()=>setPreview('mobile'));
 desktopBtn.addEventListener('click',()=>setPreview('desktop'));
-document.getElementById('mobileNewVisitor').addEventListener('click',goNew);
-document.getElementById('mobilePreviousUser').addEventListener('click',goPrevious);
 document.getElementById('desktopNewVisitor').addEventListener('click',goNew);
 document.getElementById('desktopPreviousUser').addEventListener('click',goPrevious);
-
+document.getElementById('mobileNewVisitor').addEventListener('click',goNew);
+document.getElementById('mobilePreviousUser').addEventListener('click',goPrevious);
 setPreview('desktop');
 </script>
 </body>
