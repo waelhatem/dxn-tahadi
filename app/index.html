@@ -1473,7 +1473,7 @@ function teamRegistryPanel(){
 function leader(){
  if(leaderSection==='team_registry') return teamRegistryPanel();
  const members=data.members||[], teams=data.teams||[], challenges=data.challenges||[], subs=data.my_submissions||[], answers=data.my_answers||[], pendingRegs=data.pending_registrations||[], monthly=data.monthly||[];
- if(leaderSection==='prospects') return prospectRequestsPanel();
+ const showProspectRequests=leaderSection==='prospects';
  if(leaderSection==='dxn_requests'||leaderSection==='dxn_approved'||leaderSection==='dxn_rejected') return dxnMembershipRequestsPanel();
  const activeMembers=members.filter(m=>m.active!==false), activeTeams=teams.filter(t=>t.active!==false), activeChallenges=challenges.filter(c=>c.active!==false && !c.deleted_at);
  const pendingChallenges=subs.filter(x=>x.status==='pending'&&x.challenge_id), pendingAnswers=answers.filter(x=>x.status==='pending'&&x.question_id);
@@ -1529,6 +1529,7 @@ function leader(){
    <p class="muted">من هنا تتابع حالة الموقع، الأعضاء والفرق، التحديات، التارجت، الطلبات، وحركة الإنجازات. أدوات الإدارة تبقى للقائد فقط.</p>
    <div class="admin-toolbar"><button class="primary" onclick="refresh()">🔄 تحديث البيانات</button><button onclick="createMemberForm()">➕ عضو</button><button onclick="createTeamForm()">🏆 فريق</button><button onclick="openChallengeEditor()">🎯 تحدٍ</button><button onclick="openProspectRequests()">📩 طلبات التواصل (${prospectRequests.length})</button><button onclick="openTeamRegistry()">👥 سجل أعضاء الفريق</button><button onclick="openTrainingManager()">📚 إدارة التدريبات</button><button onclick="changePin()">🔐 PIN القائد</button></div>
  </div>
+ ${showProspectRequests?prospectRequestsPanel():""}
  <div class="admin-grid">
    <div class="admin-stat"><div class="emoji">👥</div><div class="label">إجمالي الأعضاء</div><b>${members.length}</b><div class="muted">نشط: ${activeMembers.length}</div></div>
    <div class="admin-stat"><div class="emoji">🏆</div><div class="label">الفرق</div><b>${teams.length}</b><div class="muted">نشط: ${activeTeams.length}</div></div>
