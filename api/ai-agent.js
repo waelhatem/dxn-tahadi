@@ -32,17 +32,20 @@ function supabaseRpc(fn,args){
   // a second database connection path.
   return httpJson(`${APP_BASE_URL}/api/rpc`,{fn,args:args||{}},{},15000).then(async proxy=>{
     if(proxy.ok) return proxy;
-    // If the proxy is temporarily unavailable, retain the original direct
-    // Supabase path as a fallback.
-    try{
-      const base=new URL(SUPABASE_URL);
-      const direct=await httpJson(`${base.origin}/rest/v1/rpc/${encodeURIComponent(fn)}`,args||{},{
-        apikey:SUPABASE_SECRET_KEY,Authorization:`Bearer ${SUPABASE_SECRET_KEY}`
-      },12000);
-      return direct;
-    }catch(e){
-      throw new Error(proxy.text||String(e&&e.message||e));
+    // Only use the direct Supabase fallback when a server-side secret exists.
+    // Otherwise return the proxy error instead of trying a second DNS path.
+    if(SUPABASE_SECRET_KEY){
+      try{
+        const base=new URL(SUPABASE_URL);
+        const direct=await httpJson(`${base.origin}/rest/v1/rpc/${encodeURIComponent(fn)}`,args||{},{
+          apikey:SUPABASE_SECRET_KEY,Authorization:`Bearer ${SUPABASE_SECRET_KEY}`
+        },12000);
+        return direct;
+      }catch(e){
+        throw new Error(proxy.text||String(e&&e.message||e));
+      }
     }
+    throw new Error(proxy.text||`تعذر الاتصال بمسار RPC الداخلي (HTTP ${proxy.status||0})`);
   });
 }
 
@@ -74,7 +77,6 @@ function cleanHistory(history){
 
 async function loadContext(token){
   if(!token)throw new Error('جلسة الدخول مطلوبة');
-  if(!SUPABASE_SECRET_KEY)throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
   const boot=await supabaseRpc('bootstrap',{p_token:token});
   if(!boot.ok)throw new Error((boot.data&&(boot.data.message||boot.data.error||boot.data.hint))||boot.text||'جلسة الدخول غير صالحة');
   const data=boot.data||{};
