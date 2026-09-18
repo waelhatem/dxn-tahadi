@@ -75,13 +75,13 @@ module.exports=async function handler(req,res){
         keys:{p256dh:row.p256dh,auth:row.auth}
       };
 
-      const baseBody=session.session_type==='practice'
+      const baseBody=row.session_type==='practice'
         ?'محمد يتابعك: لديك ممارسة تدريبية لم تكتمل بعد.'
-        :session.session_type==='review'
+        :row.session_type==='review'
           ?'محمد يتابعك: لديك مراجعة تدريبية لم تكتمل بعد.'
           :'محمد يتابعك: لديك جلسة تدريبية لم تكتمل بعد.';
 
-      const objective=String(session.objective||'').trim();
+      const objective=String(row.objective||'').trim();
       const payload={
         title:'🤖 محمد — متابعة التدريب',
         body:objective?baseBody+' '+objective:baseBody,
