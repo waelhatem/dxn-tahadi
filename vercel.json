@@ -3,5 +3,11 @@
     "api/rpc.js": {
       "maxDuration": 60
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/push-cron",
+      "schedule": "0 8 * * *"
+    }
+  ]
 }
