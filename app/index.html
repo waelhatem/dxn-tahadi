@@ -1405,35 +1405,34 @@ function prospectRequestsPanel(){
 }
 function prospectRequestsLogPanel(){
   const list=Array.isArray(prospectRequests)?[...prospectRequests].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)):[];
-  const statusLabel=s=>s==='contacted_convinced'?'🟢 تم التواصل والاقتناع':s==='contacted_rejected'?'🔴 تم التواصل ورفض الانضمام':'⬜ لم يتم التواصل بعد';
-  return '<div class="card leaderbox"><div class="title">📋 سجل طلبات التواصل</div><p class="muted">هذا السجل يعرض نفس طلبات التواصل الموجودة في زر «طلبات التواصل». أي تغيير في حالة الطلب من أي مكان يظهر هنا مباشرة.</p><div class="admin-toolbar"><button onclick="backToLeaderDashboard()">↩️ العودة إلى مركز القيادة</button><button class="primary" onclick="openProspectLog()">🔄 تحديث السجل</button></div></div>'+
-    '<div class="card"><div class="title">📋 سجل جميع طلبات التواصل ('+list.length+')</div>'+
-    (list.length?'<div style="overflow-x:auto"><table style="width:100%;border-collapse:separate;border-spacing:0;min-width:850px"><thead><tr>'+
-      '<th style="padding:12px;text-align:right;background:#f3f7f5;border-bottom:1px solid #dfe7e3">الاسم</th>'+
-      '<th style="padding:12px;text-align:right;background:#f3f7f5;border-bottom:1px solid #dfe7e3">واتساب</th>'+
-      '<th style="padding:12px;text-align:right;background:#f3f7f5;border-bottom:1px solid #dfe7e3">البلد</th>'+
-      '<th style="padding:12px;text-align:right;background:#f3f7f5;border-bottom:1px solid #dfe7e3">الشخص الذي شارك الفكرة</th>'+
-      '<th style="padding:12px;text-align:right;background:#f3f7f5;border-bottom:1px solid #dfe7e3">الحالة</th>'+
-      '<th style="padding:12px;text-align:right;background:#f3f7f5;border-bottom:1px solid #dfe7e3">تاريخ الطلب</th>'+
-      '<th style="padding:12px;text-align:center;background:#f3f7f5;border-bottom:1px solid #dfe7e3">تعديل</th>'+
-      '</tr></thead><tbody>'+
-      list.map(r=>{
-        const current=String(r.contact_status||'not_contacted');
-        return '<tr>'+
-          '<td style="padding:12px;border-bottom:1px solid #edf1ef"><b>'+esc(r.name||'')+'</b></td>'+
-          '<td style="padding:12px;border-bottom:1px solid #edf1ef;direction:ltr;text-align:right">'+esc(r.mobile||'')+'</td>'+
-          '<td style="padding:12px;border-bottom:1px solid #edf1ef">'+esc(r.country||'')+'</td>'+
-          '<td style="padding:12px;border-bottom:1px solid #edf1ef">'+esc(r.referrer_name||'')+'</td>'+
-          '<td style="padding:12px;border-bottom:1px solid #edf1ef"><b>'+statusLabel(current)+'</b></td>'+
-          '<td style="padding:12px;border-bottom:1px solid #edf1ef;white-space:nowrap">'+(r.created_at?esc(new Date(r.created_at).toLocaleString('ar-IQ')):'')+'</td>'+
-          '<td style="padding:8px;border-bottom:1px solid #edf1ef"><div style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap">'+
-            prospectStatusBox(r,'contacted_convinced','✓')+
-            prospectStatusBox(r,'not_contacted','⬜')+
-            prospectStatusBox(r,'contacted_rejected','✕')+
-          '</div></td>'+
-        '</tr>';
-      }).join('')+
-      '</tbody></table></div>':'<div class="empty">لا توجد طلبات تواصل في السجل.</div>')+
+  const statusMeta=s=>{
+    if(s==='contacted_convinced') return {label:'تم التواصل والاقتناع',cls:'prospect-status-ok',icon:'✓'};
+    if(s==='contacted_rejected') return {label:'تم التواصل ورفض الانضمام',cls:'prospect-status-no',icon:'✕'};
+    return {label:'لم يتم التواصل بعد',cls:'prospect-status-wait',icon:'•'};
+  };
+  const rows=list.map(r=>{
+    const s=statusMeta(String(r.contact_status||'not_contacted'));
+    return '<tr>'+
+      '<td><b>'+esc(r.name||'')+'</b></td>'+
+      '<td dir="ltr" style="text-align:right">'+esc(r.mobile||'')+'</td>'+
+      '<td>'+esc(r.country||'')+'</td>'+
+      '<td>'+esc(r.referrer_name||'')+'</td>'+
+      '<td><span class="prospect-status '+s.cls+'"><span class="prospect-status-icon">'+s.icon+'</span>'+s.label+'</span></td>'+
+      '<td style="white-space:nowrap">'+(r.created_at?esc(new Date(r.created_at).toLocaleString('ar-IQ')):'')+'</td>'+
+      '</tr>';
+  }).join('');
+  return '<div class="card leaderbox">'+
+    '<div class="title">📋 سجل طلبات التواصل</div>'+
+    '<p class="muted">سجل موحّد لنفس طلبات التواصل. الحالة هنا مطابقة للحالة الموجودة في «طلبات التواصل» وتتحدث معها تلقائيًا.</p>'+
+    '<div class="admin-toolbar"><button onclick="backToLeaderDashboard()">↩️ العودة إلى مركز القيادة</button><button class="primary" onclick="openProspectLog()">🔄 تحديث السجل</button></div>'+
+    '</div>'+
+    '<div class="card prospect-log-card">'+
+      '<div class="title">📋 جميع طلبات التواصل ('+list.length+')</div>'+
+      (list.length?
+        '<div class="prospect-table-wrap"><table class="prospect-log-table"><thead><tr>'+
+          '<th>الاسم</th><th>واتساب</th><th>البلد</th><th>الشخص الذي شارك الفكرة</th><th>الحالة</th><th>تاريخ الطلب</th>'+
+        '</tr></thead><tbody>'+rows+'</tbody></table></div>'
+        :'<div class="empty">لا توجد طلبات تواصل في السجل.</div>')+
     '</div>';
 }
 function openProspectLog(){leaderSection='prospect_log';render()}
