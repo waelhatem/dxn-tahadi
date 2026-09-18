@@ -111,24 +111,11 @@ async function transcribe(audio,filename,mime){
 async function speak(text){
   const input=String(text||'').trim();
   if(!input)throw new Error('النص المطلوب تحويله إلى صوت فارغ');
-  if(input.length>4096)throw new Error('رد محمد أطول من الحد المسموح للصوت؛ اختصر الرد وحاول مرة أخرى.');
+  if(input.length>4096)throw new Error('رد محمد أطول من الحد المسموح للصوت.');
 
   const attempts=[
-    {
-      model:'gpt-4o-mini-tts-2025-12-15',
-      voice:'cedar',
-      instructions:'أنت محمد، مدرب عراقي ودود ومرح. صوت رجل دافئ ومريح وحيوي، بحضور طبيعي وابتسامة خفيفة مسموعة. تكلم باللهجة العراقية الطبيعية، بسرعة محادثة مريحة، مع تنويع طبيعي في النبرة والوقفات. لا تكن متشنجًا أو رسميًا أو كأنك تقرأ نشرة أو إعلانًا. لا تبالغ في المزاح.',
-    },
-    {
-      model:'gpt-4o-mini-tts',
-      voice:'onyx',
-      instructions:'تحدث كمدرب عراقي رجل، ودود ومريح وحيوي، بإيقاع محادثة طبيعي ولهجة عراقية واضحة.',
-    },
-    {
-      model:'gpt-4o-mini-tts',
-      voice:'cedar',
-      instructions:'تحدث كمدرب عراقي رجل، ودود ومريح وواضح، بإيقاع محادثة طبيعي ولهجة عراقية واضحة.',
-    }
+    {model:'gpt-4o-mini-tts',voice:'onyx'},
+    {model:'gpt-4o-mini-tts',voice:'cedar'}
   ];
 
   let lastError='تعذر توليد الصوت';
@@ -145,17 +132,14 @@ async function speak(text){
           voice:attempt.voice,
           input,
           response_format:'mp3',
-          instructions:attempt.instructions
+          instructions:'أنت محمد، مدرب عراقي ودود ومرح. صوت رجل دافئ ومريح وحيوي. تكلم باللهجة العراقية الطبيعية، بإيقاع محادثة مريح ونبرة متفائلة وخفيفة، مع تنويع طبيعي في النبرة والوقفات. لا تكن متشنجًا أو رسميًا أو كأنك تقرأ نشرة. لا تبالغ في المزاح.'
         })
       });
       const buffer=Buffer.from(await r.arrayBuffer());
-      if(r.ok && buffer.length>0)return buffer;
-      let data=null;
-      try{data=JSON.parse(buffer.toString('utf8'))}catch(_){}
+      if(r.ok&&buffer.length>0)return buffer;
+      let data=null;try{data=JSON.parse(buffer.toString('utf8'))}catch(_){}
       lastError=(data&&data.error&&data.error.message)||buffer.toString('utf8')||`OpenAI HTTP ${r.status}`;
-    }catch(e){
-      lastError=String(e&&e.message||e);
-    }
+    }catch(e){lastError=String(e&&e.message||e)}
   }
   throw new Error(lastError);
 }
