@@ -311,6 +311,56 @@ const AGENT_TOOLS = {
     }
     return tasks;
   },
+  async get_member_assessment_performance(token){
+    const ctx = await loadContext(token);
+    if(ctx.role!=='member') throw new Error('هذه الأداة مخصصة للعضو');
+    const r = await supabaseRpc('training_assessment_bootstrap',{p_token:token});
+    if(!r.ok) throw new Error((r.data&&(r.data.message||r.data.error||r.data.hint))||r.text||'تعذر قراءة نتائج الاختبارات');
+    const d = r.data||{};
+    const answers = Array.isArray(d.my_answers)?d.my_answers:[];
+    const latest = new Map();
+    for(const a of answers){
+      const key=String(a.question_id||'');
+      const prev=latest.get(key);
+      if(!prev || Number(a.attempt_no||0)>Number(prev.attempt_no||0) || (Number(a.attempt_no||0)===Number(prev.attempt_no||0) && String(a.created_at||'')>String(prev.created_at||''))){
+        latest.set(key,a);
+      }
+    }
+    const byLesson=new Map();
+    for(const a of latest.values()){
+      // Match question -> lesson through assessment bootstrap questions.
+      const questionId=String(a.question_id||'');
+      let lessonNo=null,lessonTitle=null;
+      for(const lesson of (Array.isArray(d.assessments)?d.assessments:[])){
+        const q=(Array.isArray(lesson.questions)?lesson.questions:[]).find(x=>String(x.id||'')===questionId);
+        if(q){lessonNo=lesson.lesson_no;lessonTitle=lesson.lesson_title;break;}
+      }
+      const key=String(lessonNo||'unknown');
+      if(!byLesson.has(key)) byLesson.set(key,{lesson_no:lessonNo,lesson_title:lessonTitle,answered:0,total_score:0,approved:0,retry:0,pending:0});
+      const row=byLesson.get(key);
+      row.answered++;
+      row.total_score+=Number(a.score||0);
+      const st=String(a.status||'pending');
+      if(st==='approved') row.approved++;
+      else if(st==='retry') row.retry++;
+      else row.pending++;
+    }
+    const lessons=[...byLesson.values()].map(x=>({
+      ...x,
+      average_score:x.answered?Math.round(x.total_score/x.answered):0
+    }));
+    return {
+      total_answered:[...latest.values()].length,
+      approved:[...latest.values()].filter(x=>x.status==='approved').length,
+      retry:[...latest.values()].filter(x=>x.status==='retry').length,
+      pending:[...latest.values()].filter(x=>!x.status||x.status==='pending').length,
+      average_score:[...latest.values()].length
+        ? Math.round([...latest.values()].reduce((n,x)=>n+Number(x.score||0),0)/[...latest.values()].length)
+        : 0,
+      lessons
+    };
+  },
+
   async get_member_summary(token){
     const ctx = await loadContext(token);
     const byId = new Map(ctx.progress.map(p=>[String(p.lesson_id),p]));
@@ -346,6 +396,7 @@ function instructions(context){
     'في التدريب: لا تسكب معلومات كثيرة دفعة واحدة. قسّم التعلم إلى خطوات صغيرة، واطلب من العضو التطبيق عندما يكون التطبيق مفيدًا.',
     'في التصحيح: إذا أخطأ العضو، اذكر الخطأ بوضوح ثم قل له كيف يصححه، مع مثال عراقي قصير عند الحاجة.',
     'في المتابعة: إذا كان العضو متقدمًا، انتقل من الشرح إلى التحدي والتطبيق. إذا كان جديدًا، استخدم شرحًا أبسط وأكثر تدرجًا.',
+    'عند الحاجة إلى تحليل مستوى العضو أو نقاط قوته وضعفه في الاختبارات، استخدم أداة أداء الاختبارات بدل الاعتماد على الانطباع من المحادثة فقط.',
     'في المحاكاة: يمكنك لعب دور عميل أو شخص متردد أو عضو جديد، ثم تقييم رد العضو واقتراح تحسين واحد أو اثنين في كل مرة.',
     'في التشجيع: استخدم عبارات عراقية طبيعية مثل زين، ممتاز، خلينا نكمل، هسه نركز على الخطوة الجاية، لكن لا تكررها في كل رد.',
     'لا تتصرف كصديق شخصي يعتمد عليه المستخدم عاطفيًا، ولا تحاول خلق تبعية. كن مدربًا مساعدًا يحافظ على استقلال قرار المستخدم.',
@@ -381,6 +432,13 @@ const AGENT_TOOL_DEFINITIONS = [
     type:'function',
     name:'get_available_tasks',
     description:'تحديد المهام التدريبية المتاحة حاليًا للعضو والتي لم تكتمل بعد.',
+    parameters:{type:'object',properties:{},additionalProperties:false},
+    strict:true
+  },
+  {
+    type:'function',
+    name:'get_member_assessment_performance',
+    description:'قراءة أداء العضو في اختبارات التدريبات الفعلية، بما في ذلك الدرجات وحالات approved/retry ومتوسط الأداء لكل تدريب. استخدمها عند تحليل نقاط القوة والضعف أو اقتراح مراجعة.',
     parameters:{type:'object',properties:{},additionalProperties:false},
     strict:true
   },
