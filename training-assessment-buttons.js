@@ -65,7 +65,14 @@
     d.open=true;d.scrollIntoView({behavior:'smooth',block:'start'});
     setTimeout(function(){var q=d.querySelector('textarea');if(q)q.focus({preventScroll:true})},450);
   }
-  window.openTrainingAssessment=function(no){goToAssessment(no)};
+  window.openTrainingAssessment=async function(no){
+    var root=document.getElementById('dxn-training-assessment');
+    if(!root){
+      alert('جاري تحميل أسئلة الاختبار، أعد الضغط بعد لحظات.');
+      return;
+    }
+    goToAssessment(no);
+  };
   function addButton(card,lesson,action){
     if(!card||card.querySelector('[data-training-assessment-button="'+Number(lesson.lesson_no)+'"]'))return;
     var no=Number(lesson.lesson_no),locked=isLocked(card,action),b=document.createElement('button');
