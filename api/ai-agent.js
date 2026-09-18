@@ -5,15 +5,44 @@ const SUPABASE_SECRET_KEY = String(process.env.SUPABASE_SECRET_KEY || process.en
 const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY || '').trim().replace(/[\r\n]/g,'');
 const OPENAI_MODEL = process.env.AI_AGENT_MODEL || process.env.OPENAI_MODEL || 'gpt-5.6-terra';
 
-function supabaseRpc(fn,args){
+const APP_BASE_URL = String(
+  process.env.AI_AGENT_APP_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://dxn-tahadi.vercel.app')
+).replace(/\\/$/,'');
+function httpJson(url,body,headers,timeout){
   return new Promise((resolve,reject)=>{
-    const base=new URL(SUPABASE_URL);
-    const body=JSON.stringify(args||{});
-    const req=https.request({protocol:base.protocol,hostname:base.hostname,port:base.port||443,method:'POST',path:`/rest/v1/rpc/${encodeURIComponent(fn)}`,headers:{'Content-Type':'application/json',Accept:'application/json',apikey:SUPABASE_SECRET_KEY,Authorization:`Bearer ${SUPABASE_SECRET_KEY}`,'Content-Length':Buffer.byteLength(body)},timeout:12000},res=>{
-      let text='';res.setEncoding('utf8');res.on('data',c=>text+=c);res.on('end',()=>{let data=null;try{data=text?JSON.parse(text):null}catch(_){data=text}resolve({ok:res.statusCode>=200&&res.statusCode<300,status:res.statusCode||0,data,text})});
+    const target=new URL(url);
+    const raw=JSON.stringify(body||{});
+    const req=https.request({
+      protocol:target.protocol,hostname:target.hostname,port:target.port||443,method:'POST',path:target.pathname+target.search,
+      headers:{'Content-Type':'application/json',Accept:'application/json',...(headers||{}),'Content-Length':Buffer.byteLength(raw)},timeout:timeout||12000
+    },res=>{
+      let text='';res.setEncoding('utf8');res.on('data',c=>text+=c);res.on('end',()=>{
+        let data=null;try{data=text?JSON.parse(text):null}catch(_){data=text}
+        resolve({ok:res.statusCode>=200&&res.statusCode<300,status:res.statusCode||0,data,text});
+      });
     });
-    req.on('timeout',()=>req.destroy(new Error('انتهت مهلة الاتصال بقاعدة البيانات')));
-    req.on('error',reject);req.write(body);req.end();
+    req.on('timeout',()=>req.destroy(new Error('انتهت مهلة الاتصال')));
+    req.on('error',reject);req.write(raw);req.end();
+  });
+}
+function supabaseRpc(fn,args){
+  // Prefer the existing same-origin RPC proxy so the new agent reuses the
+  // platform's already-working Supabase connection instead of introducing
+  // a second database connection path.
+  return httpJson(`${APP_BASE_URL}/api/rpc`,{fn,args:args||{}},{},15000).then(async proxy=>{
+    if(proxy.ok) return proxy;
+    // If the proxy is temporarily unavailable, retain the original direct
+    // Supabase path as a fallback.
+    try{
+      const base=new URL(SUPABASE_URL);
+      const direct=await httpJson(`${base.origin}/rest/v1/rpc/${encodeURIComponent(fn)}`,args||{},{
+        apikey:SUPABASE_SECRET_KEY,Authorization:`Bearer ${SUPABASE_SECRET_KEY}`
+      },12000);
+      return direct;
+    }catch(e){
+      throw new Error(proxy.text||String(e&&e.message||e));
+    }
   });
 }
 
