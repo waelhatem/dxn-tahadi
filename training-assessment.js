@@ -105,7 +105,7 @@
     wrap.innerHTML=html;box.appendChild(wrap);
   }
   async function load(force){
-    var t=token();if(!t)return;
+    var t=token();if(!t)return false;
     try{
       var d=await rpc('training_assessment_bootstrap',{p_token:t});
       state.role=d&&d.role||state.role;
@@ -114,8 +114,10 @@
       state.all_answers=d&&Array.isArray(d.all_answers)?d.all_answers:[];
       state.loaded=true;
       renderMember(!!force);renderLeader(!!force);
-    }catch(e){console.error('V86.46.1 training assessment',e)}
+      return true;
+    }catch(e){console.error('V86.46.1 training assessment',e);return false}
   }
+  window.__DXN_LOAD_TRAINING_ASSESSMENT=function(force){return load(force!==false)};
   window.submitTrainingAnswer=async function(qid){
     var el=document.querySelector('[data-assessment-q="'+String(qid).replace(/\"/g,'\\\"')+'"]');
     var value=el?String(el.value||'').trim():'';
