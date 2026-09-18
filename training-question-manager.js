@@ -62,11 +62,19 @@
   function findTrainingCards(){
     var out=[];
     document.querySelectorAll('#section-training .card,#leader-training-center .card,.card').forEach(function(card){
-      var watch=Array.prototype.slice.call(card.querySelectorAll('button')).find(function(b){return /إعادة المشاهدة|بدء التدريب|مغلق/.test(String(b.textContent||''))});
-      if(!watch)return;
+      /* Detect the training card by its training number, not by button state.
+         This keeps the manager visible whether the lesson is available,
+         locked, completed, or being re-watched. */
       var txt=String(card.textContent||'').replace(/\s+/g,' ').trim();
       var m=txt.match(/التدريب\s*(\d+)/);
       if(!m)return;
+      var watch=Array.prototype.slice.call(card.querySelectorAll('button')).find(function(b){
+        return /بدء التدريب|إعادة المشاهدة|مغلق/.test(String(b.textContent||''));
+      });
+      if(!watch){
+        watch=card.querySelector('button');
+      }
+      if(!watch)return;
       out.push({card:card,watch:watch,lessonNo:Number(m[1])});
     });
     return out;
