@@ -67,8 +67,12 @@
   }
   window.openTrainingAssessment=async function(no){
     var root=document.getElementById('dxn-training-assessment');
+    if(!root && typeof window.__DXN_LOAD_TRAINING_ASSESSMENT==='function'){
+      await window.__DXN_LOAD_TRAINING_ASSESSMENT(true);
+      root=document.getElementById('dxn-training-assessment');
+    }
     if(!root){
-      alert('جاري تحميل أسئلة الاختبار، أعد الضغط بعد لحظات.');
+      alert('تعذر تحميل أسئلة الاختبار الآن. تأكد من تسجيل الدخول ثم أعد الضغط مرة أخرى.');
       return;
     }
     goToAssessment(no);
