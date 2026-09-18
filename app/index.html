@@ -360,7 +360,7 @@ async function submitProspectRegistration(){
       sb=supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY);
     }
     await rpc('register_prospect',{p_name:name,p_mobile:mobile,p_email:null,p_country:country,p_referrer_name:ref});
-    $('app').innerHTML=`<div class="login card"><div style="text-align:center"><img class="logo" src="logo.png" alt="شعار مجتمع الصحة والثراء"><h1>🎉 مرحبًا بك</h1><p style="line-height:2">تم إنشاء حسابك التعريفي بنجاح. سيتواصل معك الفريق لإكمال الخطوة التالية، ويمكنك بعد ذلك ربط حسابك بعضوية DXN عند حصولك على رقم العضوية.</p><button class="primary" style="width:100%" onclick="renderLogin()">🔐 العودة</button></div></div>`;
+    $('app').innerHTML=`<div class="login card"><div style="text-align:center"><img src="/logo-full.png" alt="شعار مجتمع الصحة والثراء" style="display:block;margin:0 auto 16px;width:min(300px,90%);height:auto;object-fit:contain"><h1>🎉 مرحبًا بك</h1><p style="line-height:2">تم إنشاء حسابك التعريفي بنجاح. سيتواصل معك الفريق لإكمال الخطوة التالية، ويمكنك بعد ذلك ربط حسابك بعضوية DXN عند حصولك على رقم العضوية.</p><button class="primary" style="width:100%" onclick="renderLogin()">🔐 العودة</button></div></div>`;
   }catch(e){toast(e.message||'تعذر إنشاء حساب Prospect.')}
 }
 async function selfRegister(){
