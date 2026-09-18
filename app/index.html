@@ -1448,8 +1448,7 @@ function printProspectLog(){
     clone.outerHTML.replace('class="prospect-log-table"','class="print-table"')+
     '</body></html>');
   w.document.close();
-  w.onload=function(){w.print();};
-  w.document.close();
+  setTimeout(function(){w.print();},300);
 }
 
 function openProspectLog(){leaderSection='prospect_log';render()}
