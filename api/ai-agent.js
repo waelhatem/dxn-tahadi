@@ -55,7 +55,7 @@ async function loadContext(token){
   const tr=await supabaseRpc('get_training_data',{p_token:token});
   if(tr.ok&&tr.data)training=tr.data;
   const member=Array.isArray(data.members)&&data.members[0]?data.members[0]:null;
-  const lessons=(Array.isArray(training.lessons)?training.lessons:[]).map(l=>({lesson_no:l.lesson_no,title:l.title,description:l.description,active:l.active!==false}));
+  const lessons=(Array.isArray(training.lessons)?training.lessons:[]).map(l=>({id:l.id||l.lesson_id,lesson_id:l.lesson_id||l.id,lesson_no:l.lesson_no,title:l.title,description:l.description,active:l.active!==false}));
   const progress=(Array.isArray(training.my_progress)?training.my_progress:[]).map(p=>({lesson_id:p.lesson_id,completed:!!p.completed,watch_percent:Number(p.watch_percent||0)}));
   return {role,member:member?{id:member.id,member_no:member.member_no,name:member.name||member.full_name,stars:Number(member.stars||0)}:null,lessons,progress};
 }
