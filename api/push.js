@@ -7,23 +7,25 @@ const VAPID_PUBLIC_KEY = String(process.env.VAPID_PUBLIC_KEY || '').trim();
 const VAPID_PRIVATE_KEY = String(process.env.VAPID_PRIVATE_KEY || '').trim();
 const VAPID_SUBJECT = String(process.env.VAPID_SUBJECT || 'mailto:admin@example.com').trim();
 
-function httpJson(url,body,headers,timeout=15000){
+function supabaseRequest(method,path,body){
   return new Promise((resolve,reject)=>{
-    const target=new URL(url);
-    const raw=JSON.stringify(body||{});
+    if(!SUPABASE_SECRET_KEY) return reject(new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel'));
+    const target=new URL(SUPABASE_URL);
+    const raw=body===undefined?'':JSON.stringify(body);
     const req=https.request({
       protocol:target.protocol,
       hostname:target.hostname,
       port:target.port||443,
-      method:'POST',
-      path:target.pathname+target.search,
+      method,
+      path,
       headers:{
-        'Content-Type':'application/json',
         Accept:'application/json',
-        ...(headers||{}),
-        'Content-Length':Buffer.byteLength(raw)
+        ...(raw?{'Content-Type':'application/json'}:{}),
+        apikey:SUPABASE_SECRET_KEY,
+        Authorization:`Bearer ${SUPABASE_SECRET_KEY}`,
+        ...(raw?{'Content-Length':Buffer.byteLength(raw)}:{})
       },
-      timeout
+      timeout:15000
     },res=>{
       let text='';
       res.setEncoding('utf8');
@@ -36,18 +38,24 @@ function httpJson(url,body,headers,timeout=15000){
     });
     req.on('timeout',()=>req.destroy(new Error('انتهت مهلة الاتصال بـ Supabase')));
     req.on('error',reject);
-    req.write(raw);
+    if(raw)req.write(raw);
     req.end();
   });
 }
 
-function supabaseRpc(fn,args){
-  if(!SUPABASE_SECRET_KEY)throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
-  return httpJson(
-    `${SUPABASE_URL}/rest/v1/rpc/${encodeURIComponent(fn)}`,
-    args||{},
-    {apikey:SUPABASE_SECRET_KEY,Authorization:`Bearer ${SUPABASE_SECRET_KEY}`}
-  );
+async function supabaseRpc(fn,args){
+  const response=await supabaseRequest('POST',`/rest/v1/rpc/${encodeURIComponent(fn)}`,args||{});
+  return response;
+}
+
+async function verifyToken(token){
+  const r=await supabaseRpc('bootstrap',{p_token:token});
+  if(!r.ok)throw new Error((r.data&&(r.data.message||r.data.error||r.data.hint))||r.text||'جلسة الدخول غير صالحة');
+  const d=r.data||{};
+  const member=Array.isArray(d.members)&&d.members[0]?d.members[0]:null;
+  const userId=String(member?.id||'').trim();
+  if(!userId)throw new Error('تعذر تحديد حساب المستخدم');
+  return {data:d,userId};
 }
 
 function configureWebPush(){
@@ -88,21 +96,42 @@ module.exports=async function handler(req,res){
     if(action==='subscribe'){
       const sub=body.subscription;
       if(!validSubscription(sub))return res.status(400).json({error:'بيانات الاشتراك غير صالحة'});
-      const r=await supabaseRpc('upsert_ai_agent_push_subscription',{
-        p_token:token,
-        p_endpoint:sub.endpoint,
-        p_p256dh:sub.keys.p256dh,
-        p_auth:sub.keys.auth,
-        p_user_agent:String(body.userAgent||'').slice(0,500)
-      });
-      if(!r.ok)return res.status(400).json({error:(r.data&&r.data.message)||r.text||'تعذر حفظ اشتراك الإشعارات'});
-      return res.status(200).json({ok:true,id:r.data});
+
+      const verified=await verifyToken(token);
+      const userId=verified.userId;
+
+      const upsert=await supabaseRequest(
+        'POST',
+        '/rest/v1/ai_agent_push_subscriptions?on_conflict=endpoint',
+        {
+          user_id:userId,
+          endpoint:sub.endpoint,
+          p256dh:sub.keys.p256dh,
+          auth:sub.keys.auth,
+          user_agent:String(body.userAgent||'').slice(0,500),
+          active:true,
+          updated_at:new Date().toISOString()
+        }
+      );
+
+      if(!upsert.ok){
+        return res.status(400).json({
+          error:(upsert.data&&upsert.data.message)||upsert.text||'تعذر حفظ اشتراك الإشعارات'
+        });
+      }
+
+      const row=Array.isArray(upsert.data)?upsert.data[0]:upsert.data;
+      return res.status(200).json({ok:true,id:row?.id||null});
     }
 
     if(action==='unsubscribe'){
       const endpoint=String(body.endpoint||'').trim();
       if(!endpoint)return res.status(400).json({error:'عنوان الاشتراك مطلوب'});
-      const r=await supabaseRpc('remove_ai_agent_push_subscription',{p_token:token,p_endpoint:endpoint});
+
+      const verified=await verifyToken(token);
+      const filter=`/rest/v1/ai_agent_push_subscriptions?user_id=eq.${encodeURIComponent(verified.userId)}&endpoint=eq.${encodeURIComponent(endpoint)}`;
+      const r=await supabaseRequest('PATCH',filter,{active:false,updated_at:new Date().toISOString()});
+
       if(!r.ok)return res.status(400).json({error:(r.data&&r.data.message)||r.text||'تعذر إلغاء الاشتراك'});
       return res.status(200).json({ok:true});
     }
@@ -111,9 +140,7 @@ module.exports=async function handler(req,res){
       const sub=body.subscription;
       if(!validSubscription(sub))return res.status(400).json({error:'بيانات الاشتراك غير صالحة'});
       configureWebPush();
-
-      const boot=await supabaseRpc('bootstrap',{p_token:token});
-      if(!boot.ok)return res.status(401).json({error:'جلسة الدخول غير صالحة'});
+      await verifyToken(token);
 
       await webpush.sendNotification(sub,JSON.stringify({
         title:'محمد — الإشعارات تعمل ✅',
