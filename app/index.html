@@ -2049,5 +2049,33 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 })();
 <script src="membership-registration-guard.js?v=1"></script>
 <script src="login-scene.js?v=86.65"></script>
+
+<style>
+/* V87.1 — Family page typography: darker/bolder text, muted form values. */
+/* Keep the family/dashboard interface readable on both desktop and mobile. */
+#app .app{
+  color:#123b30!important;
+}
+#app .app :where(h1,h2,h3,h4,h5,h6,p,label,th,td,.title,.admin-section-title,.admin-table th,.k,.label,.muted,.path-period,.path-content,.path-status,.path-next,.journey-item b,.journey-highlight b,.level-name,.level-number,.level-next,.streak-note,.badge-count,.small,.empty,.row,.teambar,.cycle-badge,.badge-card,.next-step-card,.target-card,.progress-stat,.notif-item,.notif-item h3,.notif-item .muted,.mission-head h2,.mission-star,.app-copyright-footer){
+  color:#123b30!important;
+  font-weight:800!important;
+}
+#app .app :where(h1,h2,h3,h4,h5,h6,.title,.admin-section-title,.level-name,.target-number,.streak-number,.mission-head h2){
+  font-weight:950!important;
+}
+/* Form fields remain intentionally softer so entered/example values do not compete with headings. */
+#app .app :where(input,textarea,select){
+  color:#66756f!important;
+  font-weight:500!important;
+}
+#app .app :where(input,textarea,select)::placeholder{
+  color:#8a9691!important;
+  opacity:1!important;
+  font-weight:500!important;
+}
+#app .app :where(input,textarea,select):focus{
+  color:#66756f!important;
+}
+</style>
 </body></html>
 <script src="/device-mode.js" defer></script>
