@@ -1389,7 +1389,7 @@ function prospectStatusBox(r,key,label){
   return '<button type="button" data-prospect-id="'+esc(r.id||'')+'" data-prospect-status="'+key+'" onclick="setProspectStatus(this.dataset.prospectId,this.dataset.prospectStatus)" style="min-width:150px;padding:10px 12px;border:2px solid '+border+';border-radius:12px;background:#fff;font-weight:800;cursor:pointer"><span style="display:block;font-size:14px">'+label+'</span><span style="display:block;font-size:28px;line-height:1.1;margin-top:5px;color:'+color+'">'+(shown||'⬜')+'</span></button>';
 }
 function prospectRequestsPanel(){
-  const list=Array.isArray(prospectRequests)?[...prospectRequests].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)):[];
+  const list=Array.isArray(prospectRequests)?[...prospectRequests].sort((a,b)=>{const ap=!a.contact_status||String(a.contact_status)==='not_contacted';const bp=!b.contact_status||String(b.contact_status)==='not_contacted';if(ap!==bp)return ap?-1:1;return new Date(b.created_at||0)-new Date(a.created_at||0)}):[];
   const rows=list.map(r=>{
     const sent=r.created_at?'<br>🕒 تاريخ الإرسال: '+esc(new Date(r.created_at).toLocaleString('ar-IQ')):'';
     return '<div class="row" style="display:block;padding:18px 16px">'+
@@ -1405,7 +1405,7 @@ function prospectRequestsPanel(){
   return '<div class="card leaderbox"><div class="title">📩 طلبات التواصل الجديدة</div><p class="muted">حدد حالة التواصل مباشرة بالضغط على المربع المناسب.</p><div class="admin-toolbar"><button onclick="backToLeaderDashboard()">↩️ العودة إلى مركز القيادة</button><button class="primary" onclick="openProspectRequests()">🔄 تحديث</button></div></div><div class="card"><div class="title">📋 الأشخاص الذين تركوا بياناتهم ('+list.length+')</div>'+(rows||'<div class="empty">لا توجد طلبات تواصل جديدة.</div>')+'</div>';
 }
 function prospectRequestsLogPanel(){
-  const list=Array.isArray(prospectRequests)?[...prospectRequests].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)):[];
+  const list=Array.isArray(prospectRequests)?[...prospectRequests].sort((a,b)=>{const ap=!a.contact_status||String(a.contact_status)==='not_contacted';const bp=!b.contact_status||String(b.contact_status)==='not_contacted';if(ap!==bp)return ap?-1:1;return new Date(b.created_at||0)-new Date(a.created_at||0)}):[];
   const statusMeta=s=>{
     if(s==='contacted_convinced') return {label:'تم القبول',cls:'prospect-status-ok'};
     if(s==='contacted_rejected') return {label:'تم الرفض',cls:'prospect-status-no'};
