@@ -372,7 +372,7 @@ body.dxn-device-tablet .option .txt{font-size:13px}
         <div class="score" id="score"></div>
         <h2 id="resultTitle"></h2>
         <p id="resultText"></p>
-        <button class="btn primary" id="restart" type="button">إعادة التقييم</button>
+        <button class="btn primary" id="restart" type="button">اكتشف فرصتك في مجتمع الصحة والثراء</button>
       </section>
 
       <div class="safe">نسخة مستقلة للتجربة — لا ترتبط حاليًا بأي نظام أو قاعدة بيانات.</div>
@@ -528,7 +528,7 @@ body.dxn-device-tablet .option .txt{font-size:13px}
     if(index>0) { index--; render(); }
   });
   el.restart.addEventListener("click",function() {
-    window.location.reload();
+    window.location.href="/app/index.html?open=idea";
   });
 
   render();
