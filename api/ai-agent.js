@@ -82,6 +82,82 @@ function cleanHistory(history){
   }).filter(Boolean);
 }
 
+async function loadAgentProfile(token){
+  const r=await supabaseRpc('get_ai_agent_coaching_profile',{p_token:token});
+  if(!r.ok||!Array.isArray(r.data)||!r.data[0]) return null;
+  const p=r.data[0];
+  return {
+    goal:p.goal||null,
+    experience_level:p.experience_level||'unknown',
+    focus_area:p.focus_area||null,
+    strengths:Array.isArray(p.strengths)?p.strengths.slice(0,8):[],
+    gaps:Array.isArray(p.gaps)?p.gaps.slice(0,8):[],
+    current_next_step:p.current_next_step||null
+  };
+}
+
+async function saveAgentProfile(token,profile){
+  if(!profile) return null;
+  const strengths=Array.isArray(profile.strengths)?profile.strengths.map(x=>String(x||'').trim()).filter(Boolean).slice(0,8):[];
+  const gaps=Array.isArray(profile.gaps)?profile.gaps.map(x=>String(x||'').trim()).filter(Boolean).slice(0,8):[];
+  const r=await supabaseRpc('upsert_ai_agent_coaching_profile',{
+    p_token:token,
+    p_goal:profile.goal||null,
+    p_experience_level:profile.experience_level||'unknown',
+    p_focus_area:profile.focus_area||null,
+    p_strengths:strengths,
+    p_gaps:gaps,
+    p_current_next_step:profile.current_next_step||null
+  });
+  return r.ok ? true : false;
+}
+
+function profileUpdateLikely(message){
+  const s=String(message||'').toLowerCase();
+  return /هدفي|هدفي هو|اريد|أريد|أحتاج|احتاج|أطمح|اطمح|خبرتي|مبتدئ|متوسط|متقدم|أواجه|اواجه|ضعيف|قوي|أطور|اطور|تركيزي|مجالي|الخطوة الجاية|الخطوة القادمة|أريد أتعلم/.test(s);
+}
+
+async function extractProfileUpdate(message,answer,currentProfile){
+  if(!profileUpdateLikely(message)) return null;
+  const prompt=[
+    'استخرج من الرسالة التالية معلومات coaching صريحة فقط لتحديث ملف المتدرب.',
+    'ممنوع التخمين أو استنتاج معلومات شخصية غير مذكورة.',
+    'لا تحفظ معلومات صحية أو سياسية أو أسرارًا أو أرقامًا حساسة.',
+    'أعد JSON صالحًا فقط بالمفاتيح: goal, experience_level, focus_area, strengths, gaps, current_next_step.',
+    'لكل قيمة غير مؤكدة استخدم null أو []، وexperience_level واحدة من unknown,beginnner,intermediate,advanced.',
+    'اجعل القوائم قصيرة ومحددة.',
+    'الملف الحالي:',
+    JSON.stringify(currentProfile||{}),
+    'رسالة العضو:',
+    String(message).slice(0,5000),
+    'رد محمد:',
+    String(answer).slice(0,5000)
+  ].join('\\n');
+  try{
+    const r=await openai({
+      model:OPENAI_MODEL,
+      instructions:'أنت محلل ذاكرة تدريبية. لا تضف أي معلومة غير موجودة صراحة في النص. أعد JSON فقط.',
+      input:[{role:'user',content:prompt}],
+      max_output_tokens:450
+    });
+    if(!r.ok) return null;
+    const text=outputText(r.data);
+    if(!text) return null;
+    const start=text.indexOf('{'), end=text.lastIndexOf('}');
+    if(start<0||end<=start) return null;
+    const p=JSON.parse(text.slice(start,end+1));
+    const allowed=['unknown','beginner','intermediate','advanced'];
+    return {
+      goal:p.goal||null,
+      experience_level:allowed.includes(p.experience_level)?p.experience_level:'unknown',
+      focus_area:p.focus_area||null,
+      strengths:Array.isArray(p.strengths)?p.strengths:[],
+      gaps:Array.isArray(p.gaps)?p.gaps:[],
+      current_next_step:p.current_next_step||null
+    };
+  }catch(_){return null;}
+}
+
 async function loadAgentMemory(token){
   const r=await supabaseRpc('get_ai_agent_memory',{p_token:token,p_limit:24});
   if(!r.ok) return [];
@@ -264,10 +340,14 @@ module.exports=async function handler(req,res){
     if(!message)return res.status(400).json({error:'الرسالة مطلوبة'});
     if(message.length>6000)return res.status(400).json({error:'الرسالة طويلة جدًا'});
     const context=await loadContext(token);
-    const persistentMemory=await loadAgentMemory(token);
+    const [persistentMemory,coachingProfile]=await Promise.all([
+      loadAgentMemory(token),
+      loadAgentProfile(token)
+    ]);
     const fallbackHistory=cleanHistory(body.history);
     const history=(persistentMemory.length?persistentMemory:fallbackHistory).slice(-24);
     const baseInput=[...history,{role:'user',content:message}];
+    const enrichedContext={...context,coaching_profile:coachingProfile};
     let input=baseInput;
     let ai=null;
     const maxToolRounds=3;
@@ -275,7 +355,7 @@ module.exports=async function handler(req,res){
     for(let round=0;round<=maxToolRounds;round++){
       ai=await openai({
         model:OPENAI_MODEL,
-        instructions:instructions(context),
+        instructions:instructions(enrichedContext),
         input,
         tools:AGENT_TOOL_DEFINITIONS,
         tool_choice:'auto',
@@ -314,6 +394,21 @@ module.exports=async function handler(req,res){
     // Persist the successful turn so محمد can continue naturally across future sessions.
     await saveAgentMessage(token,'user',message).catch(()=>null);
     await saveAgentMessage(token,'assistant',answer).catch(()=>null);
+
+    const profileUpdate=await extractProfileUpdate(message,answer,coachingProfile);
+    if(profileUpdate){
+      const merged={
+        ...(coachingProfile||{}),
+        ...profileUpdate,
+        goal:profileUpdate.goal||coachingProfile?.goal||null,
+        focus_area:profileUpdate.focus_area||coachingProfile?.focus_area||null,
+        current_next_step:profileUpdate.current_next_step||coachingProfile?.current_next_step||null,
+        experience_level:profileUpdate.experience_level==='unknown'?(coachingProfile?.experience_level||'unknown'):profileUpdate.experience_level,
+        strengths:Array.from(new Set([...(coachingProfile?.strengths||[]),...(profileUpdate.strengths||[])])).slice(-8),
+        gaps:Array.from(new Set([...(coachingProfile?.gaps||[]),...(profileUpdate.gaps||[])])).slice(-8)
+      };
+      await saveAgentProfile(token,merged).catch(()=>null);
+    }
 
     return res.status(200).json({ok:true,answer,model:OPENAI_MODEL,role:context.role});
   }catch(e){
