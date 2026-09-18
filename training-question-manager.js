@@ -62,7 +62,7 @@
   function findTrainingCards(){
     var out=[];
     document.querySelectorAll('#section-training .card,#leader-training-center .card,.card').forEach(function(card){
-      var watch=Array.prototype.slice.call(card.querySelectorAll('button')).find(function(b){return /إعادة المشاهدة/.test(String(b.textContent||''))});
+      var watch=Array.prototype.slice.call(card.querySelectorAll('button')).find(function(b){return /إعادة المشاهدة|بدء التدريب|مغلق/.test(String(b.textContent||''))});
       if(!watch)return;
       var txt=String(card.textContent||'').replace(/\s+/g,' ').trim();
       var m=txt.match(/التدريب\s*(\d+)/);
