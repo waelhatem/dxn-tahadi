@@ -132,6 +132,25 @@ module.exports=async function handler(req,res){
       return res.status(200).json({ok:true});
     }
 
+    if(action==='test_delayed'){
+      const sub=body.subscription;
+      if(!validSubscription(sub))return res.status(400).json({error:'بيانات الاشتراك غير صالحة'});
+      configureWebPush();
+      await verifyToken(token);
+
+      await new Promise(resolve=>setTimeout(resolve,12000));
+
+      await webpush.sendNotification(sub,JSON.stringify({
+        title:'محمد — اختبار الإشعار في الخلفية ✅',
+        body:'إذا وصل هذا الإشعار بعد إغلاق تبويب المنصة، فإشعارات الخلفية تعمل بنجاح.',
+        icon:'/logo.png',
+        badge:'/favicon.png',
+        data:{url:'/app/index.html'}
+      }),{TTL:300,urgency:'normal'});
+
+      return res.status(200).json({ok:true});
+    }
+
     if(action==='test'){
       const sub=body.subscription;
       if(!validSubscription(sub))return res.status(400).json({error:'بيانات الاشتراك غير صالحة'});
