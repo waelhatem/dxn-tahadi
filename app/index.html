@@ -2077,5 +2077,28 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
   color:#66756f!important;
 }
 </style>
+
+<style>
+/* V87.2 — Stronger mobile family typography. */
+@media (max-width:799px){
+  /* Make rendered family-page text visibly darker and heavier on phones. */
+  body.mobile-mode #app .app :where(h1,h2,h3,h4,h5,h6,p,label,span,div,li,th,td,button,a,strong,b,.title,.k,.muted,.small,.row,.card,.stat,.badge,.path-period,.path-content,.path-status,.journey-item,.journey-highlight,.level-card,.level-name,.level-number,.level-next,.streak-note,.target-card,.progress-stat,.notif-item,.mission-head,.mission-star,.admin-section-title,.admin-stat,.app-copyright-footer){
+    color:#082f26!important;
+    font-weight:900!important;
+    -webkit-text-stroke:.12px currentColor;
+  }
+  body.mobile-mode #app .app :where(h1,h2,h3,h4,h5,h6,.title,.admin-section-title,.level-name,.target-number,.streak-number,.mission-head h2){
+    font-weight:950!important;
+    -webkit-text-stroke:.18px currentColor;
+  }
+  /* Keep form values/placeholders intentionally light. */
+  body.mobile-mode #app .app :where(input,textarea,select),
+  body.mobile-mode #app .app :where(input,textarea,select)::placeholder{
+    color:#8a9691!important;
+    font-weight:500!important;
+    -webkit-text-stroke:0!important;
+  }
+}
+</style>
 </body></html>
 <script src="/device-mode.js" defer></script>
