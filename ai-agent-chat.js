@@ -172,8 +172,6 @@
         try{speechRecognition.start();}
         catch(e){setStatus('تعذر بدء الميكروفون. حاول مرة أخرى.');}
       });
-
-      catch(e){setStatus('تعذر بدء الميكروفون. حاول مرة أخرى.');}
     });
   }
 
