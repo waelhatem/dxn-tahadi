@@ -87,25 +87,101 @@ function isDailyPlanRequest(message){
   return /شنو\s+(?:أسوي|اسوي|أشتغل|اشتغل|أعمل|اعمل)\s+(?:هسه|اليوم)|ماذا\s+(?:أفعل|افعل|أعمل|اعمل)\s+(?:الآن|اليوم)|شنو\s+الخطوة\s+(?:الجايه|الجاية|القادمة)|ماذا\s+أفعل\s+الآن/.test(s);
 }
 
+async function loadDailyState(token){
+  const today=new Date().toISOString().slice(0,10);
+  try{
+    const r=await supabaseRpc('get_ai_agent_daily_coaching_state',{p_token:token});
+    if(!r.ok||!Array.isArray(r.data)||!r.data[0]){
+      return {plan_date:today,completed_task_keys:[],current_task_key:null};
+    }
+    const row=r.data[0];
+    if(String(row.plan_date||'')!==today){
+      return {plan_date:today,completed_task_keys:[],current_task_key:null};
+    }
+    return {
+      plan_date:today,
+      completed_task_keys:Array.isArray(row.completed_task_keys)?row.completed_task_keys.map(x=>String(x||'')).filter(Boolean):[],
+      current_task_key:row.current_task_key?String(row.current_task_key):null
+    };
+  }catch(_){
+    return {plan_date:today,completed_task_keys:[],current_task_key:null};
+  }
+}
+
+async function saveDailyState(token,state){
+  if(!state) return null;
+  const r=await supabaseRpc('upsert_ai_agent_daily_coaching_state',{
+    p_token:token,
+    p_plan_date:state.plan_date||new Date().toISOString().slice(0,10),
+    p_completed_task_keys:Array.isArray(state.completed_task_keys)?state.completed_task_keys.slice(-30):[],
+    p_current_task_key:state.current_task_key||null
+  });
+  return r.ok?true:false;
+}
+
+function makeDailyTaskKey(action){
+  const raw=[
+    action?.type||'task',
+    action?.lesson_no!=null?String(action.lesson_no):'',
+    action?.title||''
+  ].filter(Boolean).join(':');
+  return raw.slice(0,200)||'progression:general';
+}
+
+async function prepareDailyActionState(token,plan){
+  const state=await loadDailyState(token);
+  const completed=new Set(state.completed_task_keys||[]);
+  const actions=(Array.isArray(plan?.actions)?plan.actions:[]).map(action=>({
+    ...action,
+    task_key:makeDailyTaskKey(action)
+  })).filter(action=>!completed.has(action.task_key));
+  return {state,actions};
+}
+
+async function completeCurrentDailyTask(token){
+  const state=await loadDailyState(token);
+  if(!state.current_task_key) return {completed:false,reason:'لا توجد مهمة يومية نشطة حاليًا.'};
+  const r=await supabaseRpc('complete_ai_agent_daily_task',{
+    p_token:token,
+    p_task_key:state.current_task_key
+  });
+  if(!r.ok) throw new Error((r.data&&(r.data.message||r.data.error||r.data.hint))||r.text||'تعذر تسجيل إكمال المهمة اليومية');
+  return {completed:true,task_key:state.current_task_key};
+}
+
+async function startNextDailySession(token,currentSession){
+  const plan=await AGENT_TOOLS.get_daily_coaching_plan(token);
+  const prepared=await prepareDailyActionState(token,plan);
+  const action=prepared.actions[0];
+  if(!action){
+    const doneState={...prepared.state,current_task_key:null};
+    await saveDailyState(token,doneState).catch(()=>null);
+    return {session:null,plan:{...plan,actions:[]}};
+  }
+
+  let session_type='coaching';
+  if(action.type==='practice') session_type='practice';
+  else if(action.type==='review') session_type='review';
+
+  const objective=[action.title,action.reason].filter(Boolean).join(' — ').slice(0,500) || 'تنفيذ الخطوة التالية من الخطة اليومية';
+  const session={
+    active:true,
+    session_type,
+    objective,
+    phase:'discover',
+    turn_count:0,
+    started_at:new Date().toISOString()
+  };
+
+  await saveAgentSession(token,session).catch(()=>null);
+  await saveDailyState(token,{...prepared.state,current_task_key:action.task_key}).catch(()=>null);
+  return {session,plan:{...plan,actions:[action]},action};
+}
+
 async function buildDailyAutoSession(token,currentSession){
   if(currentSession?.active) return null;
   try{
-    const plan=await AGENT_TOOLS.get_daily_coaching_plan(token);
-    const action=Array.isArray(plan?.actions)?plan.actions[0]:null;
-    if(!action) return null;
-    let session_type='coaching';
-    if(action.type==='practice') session_type='practice';
-    else if(action.type==='review') session_type='review';
-    const objective=[action.title,action.reason].filter(Boolean).join(' — ').slice(0,500) || 'تنفيذ الخطوة الأولى من الخطة اليومية';
-    const session={
-      active:true,
-      session_type,
-      objective,
-      phase:'discover',
-      turn_count:0,
-      started_at:new Date().toISOString()
-    };
-    return {session,plan};
+    return await startNextDailySession(token,currentSession);
   }catch(_){
     return null;
   }
@@ -312,7 +388,7 @@ async function loadContext(token){
 
 
 
-// Agent Tools (read-only). These are executed server-side with the authenticated session token.
+// Agent Tools. Read and controlled state-changing actions are executed server-side with the authenticated session token.
 const AGENT_TOOLS = {
   async get_member_progress(token){
     const ctx = await loadContext(token);
@@ -400,6 +476,7 @@ const AGENT_TOOLS = {
     const ctx = await loadContext(token);
     if(ctx.role!=='member') throw new Error('هذه الخطة مخصصة للعضو');
 
+    const dailyState=await loadDailyState(token);
     const byId = new Map(ctx.progress.map(p=>[String(p.lesson_id),p]));
     const training = ctx.lessons
       .filter(l=>l.active)
@@ -484,8 +561,15 @@ const AGENT_TOOLS = {
         retry:performance.retry,
         pending:performance.pending
       }:null,
-      actions:actions.slice(0,3)
+      actions:actions
+        .slice(0,3)
+        .map(action=>({...action,task_key:makeDailyTaskKey(action)}))
+        .filter(action=>!(dailyState.completed_task_keys||[]).includes(action.task_key))
     };
+  },
+
+  async complete_daily_coaching_task(token){
+    return await completeCurrentDailyTask(token);
   },
 
   async get_member_summary(token){
@@ -526,6 +610,8 @@ function instructions(context){
     'عند الحاجة إلى تحليل مستوى العضو أو نقاط قوته وضعفه في الاختبارات، استخدم أداة أداء الاختبارات بدل الاعتماد على الانطباع من المحادثة فقط.',
     'عندما يسأل العضو: شنو أسوي هسه؟ أو شنو أشتغل اليوم؟ أو ماذا أفعل الآن؟ استخدم أداة الخطة اليومية الشخصية، ثم حوّل نتيجتها إلى خطوة عملية واحدة واضحة قبل اقتراح الخطوة التالية.',
     'إذا بدأت الجلسة تلقائيًا من الخطة اليومية، لا تكتفِ بإخبار العضو بالمهمة؛ ابدأ الجلسة فورًا من أول خطوة، ووجّه العضو بسؤال أو تمرين واحد فقط يناسب نوع المهمة.',
+    'إذا أكد العضو بوضوح أنه أنهى المهمة الحالية، استخدم أداة complete_daily_coaching_task لتسجيل إنجازها. لا تعتبر كلمة مثل تمام أو إي وحدها دليلًا على الإكمال.',
+    'بعد تسجيل إكمال المهمة اليومية، انتقل مباشرة إلى المهمة التالية إذا كانت متاحة، وابدأها بسؤال أو تمرين واحد فقط بدل إعطاء قائمة طويلة.',
     'في المحاكاة: يمكنك لعب دور عميل أو شخص متردد أو عضو جديد، ثم تقييم رد العضو واقتراح تحسين واحد أو اثنين في كل مرة.',
     'في التشجيع: استخدم عبارات عراقية طبيعية مثل زين، ممتاز، خلينا نكمل، هسه نركز على الخطوة الجاية، لكن لا تكررها في كل رد.',
     'لا تتصرف كصديق شخصي يعتمد عليه المستخدم عاطفيًا، ولا تحاول خلق تبعية. كن مدربًا مساعدًا يحافظ على استقلال قرار المستخدم.',
@@ -574,6 +660,13 @@ const AGENT_TOOL_DEFINITIONS = [
     type:'function',
     name:'get_daily_coaching_plan',
     description:'بناء خطة يومية شخصية للعضو اعتمادًا على تقدمه في التدريبات ونتائج الاختبارات ونقاط الضعف. استخدمها عندما يسأل العضو ماذا يفعل الآن أو اليوم، أو عندما يحتاج إلى خطة عملية للخطوة التالية.',
+    parameters:{type:'object',properties:{},additionalProperties:false},
+    strict:true
+  },
+  {
+    type:'function',
+    name:'complete_daily_coaching_task',
+    description:'تسجيل إكمال المهمة اليومية الحالية فقط بعد أن يؤكد العضو بوضوح أنه أنجزها. لا تستخدمها لمجرد قول العضو تمام أو إي.',
     parameters:{type:'object',properties:{},additionalProperties:false},
     strict:true
   },
@@ -642,7 +735,7 @@ module.exports=async function handler(req,res){
     const fallbackHistory=cleanHistory(body.history);
     const history=(persistentMemory.length?persistentMemory:fallbackHistory).slice(-24);
     const baseInput=[...history,{role:'user',content:message}];
-    const enrichedContext={
+    let enrichedContext={
       ...context,
       coaching_profile:coachingProfile,
       coaching_session:currentSession,
@@ -668,6 +761,7 @@ module.exports=async function handler(req,res){
       if(round===maxToolRounds)throw new Error('تجاوز الوكيل الحد المسموح لاستدعاءات الأدوات');
 
       const outputs=[];
+      let dailyTaskCompleted=false;
       for(const call of calls){
         try{
           const result=await executeAgentTool(call,token);
@@ -676,6 +770,9 @@ module.exports=async function handler(req,res){
             call_id:call.call_id,
             output:JSON.stringify(result)
           });
+          if(call.name==='complete_daily_coaching_task' && result?.completed){
+            dailyTaskCompleted=true;
+          }
         }catch(toolError){
           outputs.push({
             type:'function_call_output',
@@ -686,6 +783,20 @@ module.exports=async function handler(req,res){
       }
 
       input=[...(Array.isArray(ai.data.output)?ai.data.output:[]),...outputs];
+
+      if(dailyTaskCompleted){
+        const advanced=await startNextDailySession(token,currentSession).catch(()=>null);
+        if(advanced){
+          currentSession=advanced.session;
+          dailyAutoPlan=advanced.plan;
+          enrichedContext={
+            ...context,
+            coaching_profile:coachingProfile,
+            coaching_session:currentSession,
+            ...(dailyAutoPlan?{daily_auto_plan:dailyAutoPlan}: {})
+          };
+        }
+      }
     }
 
     const answer=outputText(ai.data);
