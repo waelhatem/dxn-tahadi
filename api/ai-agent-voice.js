@@ -45,21 +45,42 @@ async function verifyToken(token){
 }
 
 async function transcribe(audio,filename,mime){
-  const form=new FormData();
-  form.append('model',process.env.AI_AGENT_TRANSCRIBE_MODEL||'gpt-4o-mini-transcribe');
-  form.append('language','ar');
-  form.append('response_format','json');
-  form.append('prompt','اللهجة العراقية: شلون، هسه، تگدر، عندك، خلينا، مو، إذا تريد، وين، ليش. أسماء ومصطلحات المنصة: DXN، مجتمع الصحة والثراء، الوكيل الذكي، التدريب، العضو، القائد. حافظ على الكلمات العراقية كما نطقها المتحدث ولا تستبدلها بلهجة أخرى.');
-  form.append('file',new Blob([audio],{type:mime||'audio/webm'}),filename||'voice.webm');
-  const r=await fetch('https://api.openai.com/v1/audio/transcriptions',{
-    method:'POST',
-    headers:{Authorization:`Bearer ${OPENAI_API_KEY}`},
-    body:form
-  });
-  const text=await r.text();
-  let data=null;try{data=text?JSON.parse(text):null}catch(_){data=text}
-  if(!r.ok)throw new Error((data&&data.error&&data.error.message)||text||`OpenAI HTTP ${r.status}`);
-  return String(data&&data.text||'').trim();
+  const models=[
+    process.env.AI_AGENT_TRANSCRIBE_MODEL||'gpt-4o-mini-transcribe',
+    'gpt-4o-transcribe'
+  ].filter((v,i,a)=>v&&a.indexOf(v)===i);
+
+  let lastError='تعذر تحويل الصوت إلى نص';
+  for(const model of models){
+    try{
+      const form=new FormData();
+      form.append('model',model);
+      form.append('language','ar');
+      form.append('response_format','json');
+      form.append('prompt','اللهجة العراقية: شلون، هسه، تگدر، عندك، خلينا، مو، إذا تريد، وين، ليش. أسماء ومصطلحات المنصة: DXN، مجتمع الصحة والثراء، محمد، الوكيل الذكي، التدريب، العضو، القائد. حافظ على الكلمات العراقية كما نطقها المتحدث ولا تستبدلها بلهجة أخرى.');
+      const safeMime=String(mime||'audio/webm');
+      const safeFilename=String(filename||'voice.webm');
+      form.append('file',new Blob([audio],{type:safeMime}),safeFilename);
+      const r=await fetch('https://api.openai.com/v1/audio/transcriptions',{
+        method:'POST',
+        headers:{Authorization:`Bearer ${OPENAI_API_KEY}`},
+        body:form
+      });
+      const raw=await r.text();
+      let data=null;
+      try{data=raw?JSON.parse(raw):null}catch(_){data=raw}
+      if(r.ok){
+        const text=String(data&&data.text||'').trim();
+        if(text)return text;
+        lastError='عاد محرك التفريغ بدون نص واضح';
+      }else{
+        lastError=(data&&data.error&&data.error.message)||raw||`OpenAI HTTP ${r.status}`;
+      }
+    }catch(e){
+      lastError=String(e&&e.message||e);
+    }
+  }
+  throw new Error(lastError);
 }
 
 async function speak(text){
