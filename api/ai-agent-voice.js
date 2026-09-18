@@ -49,6 +49,7 @@ async function transcribe(audio,filename,mime){
   form.append('model',process.env.AI_AGENT_TRANSCRIBE_MODEL||'gpt-4o-mini-transcribe');
   form.append('language','ar');
   form.append('response_format','json');
+  form.append('prompt','اللهجة العراقية: شلون، هسه، تگدر، عندك، خلينا، مو، إذا تريد، وين، ليش. أسماء ومصطلحات المنصة: DXN، مجتمع الصحة والثراء، الوكيل الذكي، التدريب، العضو، القائد. حافظ على الكلمات العراقية كما نطقها المتحدث ولا تستبدلها بلهجة أخرى.');
   form.append('file',new Blob([audio],{type:mime||'audio/webm'}),filename||'voice.webm');
   const r=await fetch('https://api.openai.com/v1/audio/transcriptions',{
     method:'POST',
@@ -70,7 +71,7 @@ async function speak(text){
       voice:process.env.AI_AGENT_TTS_VOICE||'onyx',
       input:text,
       response_format:'mp3',
-      instructions:'تحدث بالعربية الفصحى بصوت رجل واضح وعميق وهادئ، بنبرة ودودة ومهنية كمدرب شخصي. لا تبالغ في السرعة.'
+      instructions:'تحدث باللهجة العراقية الطبيعية والواضحة بصوت رجل واضح وعميق وهادئ، بنبرة ودودة ومهنية كمدرب شخصي عراقي. استخدم مفردات عراقية حقيقية مثل شلون، هسه، تگدر، عندك، خلينا، مو، إذا تريد، وتجنب اللهجات المصرية والخليجية والشامية. لا تبالغ في العامية، واجعل النطق واضحًا وسلسًا ومناسبًا للمحادثة اليومية.'
     })
   });
   const buffer=Buffer.from(await r.arrayBuffer());
