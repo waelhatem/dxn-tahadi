@@ -123,8 +123,8 @@
     var old=ansFor(qid),attempt=Math.max(1,Number(old&&old.attempt_no||0)+(old&&old.status==='retry'?1:0));
     try{
       await rpc('submit_training_answer',{p_token:token(),p_question_id:qid,p_answer:value,p_attempt_no:attempt});
-      await load(true);
-      alert('تم إرسال الإجابة للتقييم التلقائي.');
+      try{await load(true)}catch(reloadError){console.warn('تم حفظ الإجابة لكن تعذر تحديث واجهة الاختبار تلقائيًا:',reloadError)}
+      alert('تم إرسال الإجابة وبدء/إكمال التقييم التلقائي.');
     }catch(e){alert('تعذر إرسال الإجابة: '+e.message)}
   };
   function start(){
