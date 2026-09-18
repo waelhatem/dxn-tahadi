@@ -8,6 +8,9 @@
   #dxnAgentPanel{position:fixed;left:18px;bottom:145px;z-index:71;width:min(420px,calc(100vw - 36px));height:min(620px,calc(100vh - 175px));background:#fff;border:1px solid #dce8e3;border-radius:22px;box-shadow:0 18px 55px #0004;display:none;overflow:hidden;direction:rtl}
   #dxnAgentPanel.show{display:flex;flex-direction:column}
   .dxn-agent-head{background:linear-gradient(135deg,#0c4738,#1a725b);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .dxn-agent-head-actions{display:flex;align-items:center;gap:6px}
+  .dxn-agent-push{background:#ffffff20!important;color:#fff!important;border:1px solid #ffffff55!important;min-height:36px!important;padding:7px 9px!important;font-size:15px!important}
+  .dxn-agent-push.enabled{background:#dff7e8!important;color:#0f513f!important;border-color:#dff7e8!important}
   .dxn-agent-head b{font-size:17px}.dxn-agent-head small{display:block;opacity:.85;margin-top:2px}
   .dxn-agent-close{background:#ffffff20!important;color:#fff!important;border:1px solid #ffffff55!important;min-height:36px!important;padding:7px 11px!important}
   #dxnAgentMessages{flex:1;overflow:auto;padding:14px;background:#f5f9f7}
@@ -178,14 +181,83 @@
   let dailyBootstrapStarted=false;
   let dailyHeartbeatTimer=null;
 
-  async function maybeRequestNotificationPermission(){
-    try{
-      if(!('Notification' in window))return;
-      if(Notification.permission==='default'){
-        await Notification.requestPermission();
-      }
-    }catch(_){}
+  function base64UrlToUint8Array(base64String){
+    const padding='='.repeat((4-(base64String.length%4))%4);
+    const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
+    const raw=atob(base64);
+    return Uint8Array.from([...raw].map(ch=>ch.charCodeAt(0)));
   }
+
+  async function pushApi(body){
+    const r=await fetch('/api/push',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(d.error||('HTTP '+r.status));
+    return d;
+  }
+
+  async function subscribePushNotifications(){
+    const token=sessionToken();
+    if(!token){
+      addMsg('يرجى تسجيل الدخول أولًا حتى نفعّل إشعارات محمد.','ai');
+      return;
+    }
+    if(!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)){
+      addMsg('هذا المتصفح لا يدعم إشعارات Push المطلوبة. استخدم Chrome أو Edge أو Safari حديثًا.','ai');
+      return;
+    }
+
+    const btn=document.getElementById('dxnAgentPush');
+    try{
+      if(Notification.permission==='denied'){
+        throw new Error('إشعارات المتصفح مرفوضة. فعّلها من إعدادات المتصفح ثم حاول مرة أخرى.');
+      }
+      const permission=Notification.permission==='granted'
+        ? 'granted'
+        : await Notification.requestPermission();
+      if(permission!=='granted')throw new Error('لم يتم السماح بإشعارات محمد.');
+
+      const registration=await navigator.serviceWorker.ready;
+      let subscription=await registration.pushManager.getSubscription();
+
+      if(!subscription){
+        const keyData=await pushApi({action:'public_key'});
+        if(!keyData.publicKey)throw new Error('مفتاح Push العام غير مضبوط.');
+        subscription=await registration.pushManager.subscribe({
+          userVisibleOnly:true,
+          applicationServerKey:base64UrlToUint8Array(keyData.publicKey)
+        });
+      }
+
+      const json=subscription.toJSON();
+      await pushApi({
+        action:'subscribe',
+        token,
+        subscription:json,
+        userAgent:navigator.userAgent
+      });
+
+      await pushApi({
+        action:'test',
+        token,
+        subscription:json
+      });
+
+      if(btn){
+        btn.classList.add('enabled');
+        btn.textContent='🔔 مفعّلة';
+        btn.title='إشعارات محمد مفعّلة';
+      }
+      addMsg('تم تفعيل إشعارات محمد الدائمة. أرسلت لك إشعار اختبار للتأكد من أن الجهاز يستقبلها.','ai');
+    }catch(e){
+      addMsg('تعذر تفعيل إشعارات محمد: '+String(e.message||e),'ai');
+    }
+  }
+
+
 
   function showAgentNotification(text){
     try{
@@ -240,18 +312,18 @@
     const style=el('style',{},STYLE);document.head.appendChild(style);
     const btn=el('button',{id:'dxnAgentLauncher',type:'button',title:'محمد'},'🤖');
     const panel=el('section',{id:'dxnAgentPanel','aria-label':'محادثة محمد'});
-    panel.innerHTML='<div class="dxn-agent-head"><div><b>🤖 محمد</b><small>مدربك الذكي داخل المنصة</small></div><button class="dxn-agent-close" type="button">إغلاق</button></div><div id="dxnAgentMessages"></div><div id="dxnAgentStatus" class="dxn-agent-status"></div><form class="dxn-agent-form"><button id="dxnAgentMic" class="dxn-agent-mic" type="button" title="تحدث مع الوكيل">🎙️</button><textarea id="dxnAgentInput" placeholder="اكتب سؤالك هنا... أو اضغط 🎙️ للتحدث" rows="1"></textarea><button id="dxnAgentSend" type="submit">إرسال</button></form>';
+    panel.innerHTML='<div class="dxn-agent-head"><div><b>🤖 محمد</b><small>مدربك الذكي داخل المنصة</small></div><div class="dxn-agent-head-actions"><button id="dxnAgentPush" class="dxn-agent-push" type="button" title="تفعيل إشعارات محمد">🔔</button><button class="dxn-agent-close" type="button">إغلاق</button></div></div><div id="dxnAgentMessages"></div><div id="dxnAgentStatus" class="dxn-agent-status"></div><form class="dxn-agent-form"><button id="dxnAgentMic" class="dxn-agent-mic" type="button" title="تحدث مع الوكيل">🎙️</button><textarea id="dxnAgentInput" placeholder="اكتب سؤالك هنا... أو اضغط 🎙️ للتحدث" rows="1"></textarea><button id="dxnAgentSend" type="submit">إرسال</button></form>';
     document.body.append(btn,panel);
     btn.addEventListener('click',()=>{
       const opening=!panel.classList.contains('show');
       panel.classList.toggle('show');
       if(opening){
         document.getElementById('dxnAgentInput')?.focus();
-        maybeRequestNotificationPermission().catch(()=>{});
         startDailyBootstrap({notify:false});
       }
     });
     panel.querySelector('.dxn-agent-close').addEventListener('click',()=>panel.classList.remove('show'));
+    document.getElementById('dxnAgentPush').addEventListener('click',subscribePushNotifications);
     panel.querySelector('form').addEventListener('submit',e=>{e.preventDefault();send();});
     document.getElementById('dxnAgentInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
     setupVoice();
