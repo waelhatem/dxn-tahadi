@@ -82,6 +82,29 @@ function cleanHistory(history){
   }).filter(Boolean);
 }
 
+async function loadAgentMemory(token){
+  const r=await supabaseRpc('get_ai_agent_memory',{p_token:token,p_limit:24});
+  if(!r.ok) return [];
+  return Array.isArray(r.data)
+    ? r.data.map(x=>{
+        const role=String(x&&x.role||'').toLowerCase()==='assistant'?'assistant':'user';
+        const content=String(x&&x.content||'').trim().slice(0,5000);
+        return content?{role,content}:null;
+      }).filter(Boolean)
+    : [];
+}
+
+async function saveAgentMessage(token,role,content){
+  const text=String(content||'').trim();
+  if(!text) return null;
+  const r=await supabaseRpc('save_ai_agent_message',{
+    p_token:token,
+    p_role:role,
+    p_content:text.slice(0,6000)
+  });
+  return r.ok ? r.data : null;
+}
+
 async function loadContext(token){
   if(!token)throw new Error('جلسة الدخول مطلوبة');
   const boot=await supabaseRpc('bootstrap',{p_token:token});
@@ -241,7 +264,9 @@ module.exports=async function handler(req,res){
     if(!message)return res.status(400).json({error:'الرسالة مطلوبة'});
     if(message.length>6000)return res.status(400).json({error:'الرسالة طويلة جدًا'});
     const context=await loadContext(token);
-    const history=cleanHistory(body.history);
+    const persistentMemory=await loadAgentMemory(token);
+    const fallbackHistory=cleanHistory(body.history);
+    const history=(persistentMemory.length?persistentMemory:fallbackHistory).slice(-24);
     const baseInput=[...history,{role:'user',content:message}];
     let input=baseInput;
     let ai=null;
@@ -285,6 +310,11 @@ module.exports=async function handler(req,res){
 
     const answer=outputText(ai.data);
     if(!answer)throw new Error('لم يرجع الوكيل ردًا');
+
+    // Persist the successful turn so محمد can continue naturally across future sessions.
+    await saveAgentMessage(token,'user',message).catch(()=>null);
+    await saveAgentMessage(token,'assistant',answer).catch(()=>null);
+
     return res.status(200).json({ok:true,answer,model:OPENAI_MODEL,role:context.role});
   }catch(e){
     console.error('AI agent error:',e);
