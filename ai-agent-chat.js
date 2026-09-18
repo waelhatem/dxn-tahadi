@@ -32,10 +32,10 @@
   function sessionToken(){return String(localStorage.getItem('dxn_session')||'').trim();}
   let audioContext=null;
   let currentSource=null;
-  function ensureAudioContext(){
+  async function ensureAudioContext(){
     try{
       if(!audioContext)audioContext=new (window.AudioContext||window.webkitAudioContext)();
-      if(audioContext.state==='suspended')audioContext.resume().catch(()=>{});
+      if(audioContext.state==='suspended')await audioContext.resume();
       return audioContext;
     }catch(_){return null;}
   }
@@ -44,24 +44,15 @@
     const d=el('div',{class:'dxn-agent-msg '+(who==='user'?'dxn-agent-user':'dxn-agent-ai')});
     d.textContent=text;box.appendChild(d);box.scrollTop=box.scrollHeight;return d;
   }
-  function addReplayButton(node,text){
-    if(!node||!text)return;
-    const b=document.createElement('button');
-    b.type='button';b.textContent='🔊';b.title='تشغيل صوت محمد';
-    b.style.cssText='float:left;margin:4px 0 0 6px;border:0;background:#eef7f3;color:#0f513f;border-radius:10px;width:34px;height:30px;cursor:pointer;font-size:17px';
-    b.addEventListener('click',()=>speakAnswer(text,true));
-    node.appendChild(document.createTextNode(' '));node.appendChild(b);
-  }
-  function setStatus(s){const x=document.getElementById('dxnAgentStatus');if(x)x.textContent=s||'';}
-  async function speakAnswer(text,fromButton){
+
+  async function speakAnswer(text){
     try{
       const token=sessionToken();if(!token||!text)return;
-      ensureAudioContext();
-      setStatus('جارٍ تجهيز صوت محمد...');
+      const ctx=await ensureAudioContext();
+      setStatus('جارٍ تشغيل صوت محمد...');
       const r=await fetch('/api/ai-agent-voice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'speak',token,text})});
       if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.error||('HTTP '+r.status));}
       const data=await r.arrayBuffer();
-      const ctx=ensureAudioContext();
       if(ctx){
         const decoded=await ctx.decodeAudioData(data.slice(0));
         if(currentSource){try{currentSource.stop();}catch(_){}}
@@ -79,7 +70,7 @@
       audio.onended=()=>{URL.revokeObjectURL(url);setStatus('');};
       await audio.play();
     }catch(e){
-      setStatus(fromButton?'تعذر تشغيل صوت محمد: '+String(e.message||e):'يمكن تشغيل صوت محمد من زر 🔊 داخل الرد.');
+      setStatus('تعذر تشغيل صوت محمد تلقائيًا: '+String(e.message||e));
     }
   }
   async function send(messageOverride){
@@ -87,7 +78,7 @@
     if(!message)return;
     const token=sessionToken();
     if(!token){addMsg('يرجى تسجيل الدخول أولًا حتى أتمكن من قراءة بيانات حسابك.','ai');return;}
-    ensureAudioContext();
+    ensureAudioContext().catch(()=>{});
     addMsg(message,'user');input.value='';setStatus('جارٍ التفكير...');
     const history=[...document.querySelectorAll('#dxnAgentMessages .dxn-agent-msg')].slice(-14).map(x=>({
       role:x.classList.contains('dxn-agent-user')?'user':'assistant',content:x.textContent
@@ -97,10 +88,8 @@
       const d=await r.json().catch(()=>({}));
       if(!r.ok)throw new Error(d.error||('HTTP '+r.status));
       const answer=d.answer||'لم يصل رد من الوكيل.';
-      const node=addMsg(answer,'ai');
-      addReplayButton(node,answer);
-      setStatus('جارٍ تشغيل الرد الصوتي...');
-      await speakAnswer(answer,false);
+      addMsg(answer,'ai');
+      await speakAnswer(answer);
     }catch(e){addMsg('تعذر الاتصال بالوكيل: '+String(e.message||e),'ai');setStatus('');}
   }
   let speechRecognition=null;
@@ -176,8 +165,14 @@
       }
       const token=sessionToken();
       if(!token){addMsg('يرجى تسجيل الدخول أولًا.','ai');return;}
-      ensureAudioContext();
-      try{speechRecognition.start();}
+      ensureAudioContext().then(()=>{
+        try{speechRecognition.start();}
+        catch(e){setStatus('تعذر بدء الميكروفون. حاول مرة أخرى.');}
+      }).catch(()=>{
+        try{speechRecognition.start();}
+        catch(e){setStatus('تعذر بدء الميكروفون. حاول مرة أخرى.');}
+      });
+
       catch(e){setStatus('تعذر بدء الميكروفون. حاول مرة أخرى.');}
     });
   }
