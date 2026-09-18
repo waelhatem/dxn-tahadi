@@ -97,7 +97,7 @@
             const r=await fetch('/api/ai-agent-voice',{
               method:'POST',
               headers:{'Content-Type':'application/json'},
-              body:JSON.stringify({action:'transcribe',token,audio_base64:b64,filename:'voice.webm',mime:voiceMime})
+              body:JSON.stringify({action:'transcribe',token,audio_base64:b64,filename:voiceMime.startsWith('audio/mp4')?'voice.mp4':'voice.webm',mime:voiceMime})
             });
             const d=await r.json().catch(()=>({}));
             if(!r.ok)throw new Error(d.error||('HTTP '+r.status));
