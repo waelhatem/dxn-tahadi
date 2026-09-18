@@ -143,6 +143,73 @@ create table if not exists public.prospects (
 create index if not exists idx_prospects_created_at on public.prospects(created_at desc);
 create index if not exists idx_prospects_mobile on public.prospects(mobile);
 
+-- Prospect follow-up status and mark.
+alter table public.prospects
+  add column if not exists contact_status text not null default 'not_contacted'
+  check (contact_status in ('not_contacted','contacted_convinced','contacted_rejected'));
+alter table public.prospects
+  add column if not exists status_mark text not null default 'check'
+  check (status_mark in ('check','x'));
+
+create or replace function public.update_prospect_status(
+  p_token uuid,
+  p_prospect uuid,
+  p_status text,
+  p_mark text
+)
+returns public.prospects
+language plpgsql
+security definer
+set search_path=public
+as $
+declare r public.prospects;
+begin
+  if not exists (
+    select 1 from public.sessions s
+    join public.app_users u on u.id=s.user_id
+    where s.token=p_token and s.expires_at>now() and u.role='leader' and u.active=true
+  ) then raise exception 'غير مصرح'; end if;
+
+  if p_status not in ('not_contacted','contacted_convinced','contacted_rejected')
+     or p_mark not in ('check','x') then
+    raise exception 'حالة أو علامة غير صالحة';
+  end if;
+
+  update public.prospects
+     set contact_status=p_status,
+         status_mark=p_mark
+   where id=p_prospect
+   returning * into r;
+
+  if r.id is null then raise exception 'طلب التواصل غير موجود'; end if;
+  return r;
+end;
+$;
+
+create or replace function public.delete_prospect(
+  p_token uuid,
+  p_prospect uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path=public
+as $
+begin
+  if not exists (
+    select 1 from public.sessions s
+    join public.app_users u on u.id=s.user_id
+    where s.token=p_token and s.expires_at>now() and u.role='leader' and u.active=true
+  ) then raise exception 'غير مصرح'; end if;
+
+  delete from public.prospects where id=p_prospect;
+  if not found then raise exception 'طلب التواصل غير موجود'; end if;
+end;
+$;
+
+grant execute on function public.update_prospect_status(uuid,uuid,text,text) to anon, authenticated;
+grant execute on function public.delete_prospect(uuid,uuid) to anon, authenticated;
+
 create or replace function public.register_prospect(
   p_name text,
   p_mobile text,
