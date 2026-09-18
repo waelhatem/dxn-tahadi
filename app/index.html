@@ -1390,7 +1390,7 @@ function prospectStatusBox(r,key,label){
   const mark=String(r.status_mark||'');
   const active=current===key;
   const shown=active&&mark?(mark==='check'?'✓':'✕'):'';
-  return '<button type="button" onclick="setProspectStatus(\\''+r.id+'\\',\\''+key+'\\')" style="min-width:150px;padding:10px 12px;border:2px solid '+(active?'#16a34a':'#d9e2e8')+';border-radius:12px;background:#fff;font-weight:800;cursor:pointer"><span style="display:block;font-size:14px">'+label+'</span><span style="display:block;font-size:25px;line-height:1.1;margin-top:5px;color:'+(shown==='✓'?'#16a34a':shown==='✕'?'#dc2626':'#a0aab4')+'">'+(shown||'⬜')+'</span></button>';
+  return '<button type="button" onclick="setProspectStatus(\''+r.id+'\',\''+key+'\')" style="min-width:150px;padding:10px 12px;border:2px solid '+(active?'#16a34a':'#d9e2e8')+';border-radius:12px;background:#fff;font-weight:800;cursor:pointer"><span style="display:block;font-size:14px">'+label+'</span><span style="display:block;font-size:25px;line-height:1.1;margin-top:5px;color:'+(shown==='✓'?'#16a34a':shown==='✕'?'#dc2626':'#a0aab4')+'">'+(shown||'⬜')+'</span></button>';
 }
 function prospectRequestsPanel(){
   const list=Array.isArray(prospectRequests)?[...prospectRequests].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)):[];
@@ -1402,14 +1402,14 @@ function prospectRequestsPanel(){
     return '<div class="row" style="display:block;padding:18px 16px">'+
       '<div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap">'+
       '<div><b style="font-size:17px">'+esc(r.name||'')+'</b><div class="muted">🌍 بلد الإقامة: '+esc(r.country||'')+' · 📱 واتساب: '+esc(r.mobile||'')+'<br>👤 الشخص الذي شارك الفكرة: <b>'+esc(r.referrer_name||'')+'</b>'+sent+'</div></div>'+
-      '<button type="button" class="danger" onclick="deleteProspect(\\''+r.id+'\\')" style="white-space:nowrap">🗑️ حذف نهائي</button></div>'+
+      '<button type="button" class="danger" onclick="deleteProspect(\''+r.id+'\')" style="white-space:nowrap">🗑️ حذف نهائي</button></div>'+
       '<div style="margin-top:16px"><div class="muted" style="font-weight:800;margin-bottom:8px">حالة التواصل — العلامة الحالية: <span style="color:'+markColor+'">'+markText+'</span></div>'+
       '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
       prospectStatusBox(r,'contacted_convinced','تم التواصل والاقتناع')+
       prospectStatusBox(r,'not_contacted','لم يتم التواصل بعد')+
       prospectStatusBox(r,'contacted_rejected','تم التواصل ورفض الانضمام')+
       '</div>'+
-      '<div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="font-size:13px;font-weight:800">اختر العلامة ثم اضغط المربع:</span><button type="button" onclick="chooseProspectMark(\\'check\\')" style="padding:6px 14px;border:2px solid '+(prospectSelectedMark==='check'?'#16a34a':'#d9e2e8')+';border-radius:10px;background:#fff;color:#16a34a;font-size:20px;font-weight:900;cursor:pointer">✓</button><button type="button" onclick="chooseProspectMark(\\'x\\')" style="padding:6px 14px;border:2px solid '+(prospectSelectedMark==='x'?'#dc2626':'#d9e2e8')+';border-radius:10px;background:#fff;color:#dc2626;font-size:20px;font-weight:900;cursor:pointer">✕</button></div></div></div>';
+      '<div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="font-size:13px;font-weight:800">اختر العلامة ثم اضغط المربع:</span><button type="button" onclick="chooseProspectMark(\'check\')" style="padding:6px 14px;border:2px solid '+(prospectSelectedMark==='check'?'#16a34a':'#d9e2e8')+';border-radius:10px;background:#fff;color:#16a34a;font-size:20px;font-weight:900;cursor:pointer">✓</button><button type="button" onclick="chooseProspectMark(\'x\')" style="padding:6px 14px;border:2px solid '+(prospectSelectedMark==='x'?'#dc2626':'#d9e2e8')+';border-radius:10px;background:#fff;color:#dc2626;font-size:20px;font-weight:900;cursor:pointer">✕</button></div></div></div>';
   }).join('');
   return '<div class="card leaderbox"><div class="title">📩 طلبات التواصل الجديدة</div><p class="muted">هنا تظهر بيانات الأشخاص الذين تركوا معلوماتهم للتواصل والتعرف أكثر على الفكرة.</p><div class="admin-toolbar"><button onclick="backToLeaderDashboard()">↩️ العودة إلى مركز القيادة</button><button class="primary" onclick="openProspectRequests()">🔄 تحديث</button></div></div><div class="card"><div class="title">📋 الأشخاص الذين تركوا بياناتهم ('+list.length+')</div>'+(rows||'<div class="empty">لا توجد طلبات تواصل جديدة.</div>')+'</div>';
 }
