@@ -1424,6 +1424,14 @@ async function rejectDXNMembershipRequest(id){
     await refresh();
   }catch(e){toast(e.message||'تعذر رفض الطلب')}
 }
+async function completeDXNMembershipRequest(id){
+  if(!confirm('هل تم بالفعل إنشاء عضوية DXN لهذا الشخص خارج التطبيق؟')) return;
+  try{
+    await rpc('complete_dxn_membership_request',{p_token:token,p_request:id});
+    toast('✅ تم تسجيل إنشاء عضوية DXN، وأزيل الطلب من قائمة بانتظار الإنشاء.');
+    await refresh();
+  }catch(e){toast(e.message||'تعذر تسجيل إكمال عضوية DXN')}
+}
 async function deleteDXNMembershipRequest(id){
   if(!confirm('⚠️ حذف نهائي\n\nسيتم حذف هذا الطلب نهائيًا من قاعدة البيانات ومن جميع القوائم، ولا يمكن التراجع عن ذلك.\n\nهل أنت متأكد؟')) return;
   try{
@@ -1527,6 +1535,7 @@ function dxnMembershipRequestsPanel(){
   const rejected=membershipRequests.filter(r=>String(r.status||'')==='rejected').sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
   const showApproved=leaderSection==='dxn_approved';
   const showRejected=leaderSection==='dxn_rejected';
+  const completed=membershipRequests.filter(r=>String(r.status||'')==='completed').sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
   const list=showApproved?approved:(showRejected?rejected:pending);
   const title=showApproved?'🟢 المقبولون لإكمال عضوية DXN':showRejected?'🔴 الطلبات المرفوضة':'📋 طلبات تسجيل DXN الجديدة';
   const desc=showApproved?'هذه الطلبات وافق عليها القائد، وأصبحت جاهزة للمراجعة النهائية واستكمال إجراءات إنشاء عضوية DXN خارج التطبيق.':showRejected?'هذه الطلبات سبق رفضها. يمكن حذف أي طلب نهائيًا من هنا.':'هنا تظهر طلبات الزوار الجدد الذين لا يملكون عضوية DXN بعد. راجع البيانات ثم اتخذ قرار القبول أو الرفض.';
@@ -1557,7 +1566,7 @@ function dxnMembershipRequestsPanel(){
       </div>
       <div class="actions">
         ${!showApproved&&!showRejected ? `<button class="primary" onclick="approveDXNMembershipRequest('${r.id}')">✅ قبول</button><button class="danger" onclick="rejectDXNMembershipRequest('${r.id}')">❌ رفض</button>` : ''}
-        ${showApproved ? `<span class="badge">🟢 مقبول — بانتظار إنشاء عضوية DXN</span>` : ''}
+        ${showApproved ? `<button class="primary" onclick="completeDXNMembershipRequest('${r.id}')">✅ تم إنشاء عضوية DXN</button>` : ''}
         ${showRejected ? `<span class="badge">🔴 مرفوض</span>` : ''}
         <button class="danger" onclick="deleteDXNMembershipRequest('${r.id}')">🗑️ حذف نهائي</button>
       </div>
