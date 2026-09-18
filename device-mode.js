@@ -101,6 +101,20 @@
     }
   }
 
+  function syncHomepageView(mode) {
+    if (!isMainHomepage()) return;
+    const mobileView = document.getElementById('mobileView');
+    const desktopView = document.getElementById('desktopView');
+    const mobileButton = document.getElementById('mobile');
+    const desktopButton = document.getElementById('desktop');
+    if (!mobileView || !desktopView) return;
+    const isMobile = mode === 'mobile';
+    mobileView.classList.toggle('hidden', !isMobile);
+    desktopView.classList.toggle('hidden', isMobile);
+    if (mobileButton) mobileButton.classList.toggle('active', isMobile);
+    if (desktopButton) desktopButton.classList.toggle('active', !isMobile);
+  }
+
   function applyMode(mode) {
     const root = document.documentElement;
     const body = document.body;
@@ -114,6 +128,7 @@
     body.classList.toggle('manual-desktop', isDesktop);
     body.classList.toggle('manual-mobile', !isDesktop);
     syncGlobalDeviceSwitch(mode);
+    syncHomepageView(mode);
 
     try {
       document.querySelectorAll('.view-switch button,.device-switch button').forEach(function (button) {
@@ -204,6 +219,17 @@
     syncGlobalDeviceSwitch(document.documentElement.dataset.deviceMode || detectDeviceMode());
   }
 
+  function bindHomepageDeviceSelector() {
+    if (!isMainHomepage() || document.documentElement.dataset.homepageDeviceSelectorBound === '1') return;
+    document.documentElement.dataset.homepageDeviceSelectorBound = '1';
+    document.addEventListener('click', function (event) {
+      const target = event.target && event.target.closest ? event.target.closest('#mobile,#desktop') : null;
+      if (!target) return;
+      const mode = target.id === 'mobile' ? 'mobile' : 'desktop';
+      selectMode(mode);
+    }, true);
+  }
+
   function bindExistingDeviceSelectors() {
     if (document.documentElement.dataset.existingDeviceSelectorBound === '1') return;
     document.documentElement.dataset.existingDeviceSelectorBound = '1';
@@ -273,6 +299,7 @@
     applyDetectedDefault();
     deduplicateDeviceSelectors();
     ensureGlobalDeviceSelector();
+    bindHomepageDeviceSelector();
     bindExistingDeviceSelectors();
     bindPreviousUserEntry();
     addNavigationButtons();
