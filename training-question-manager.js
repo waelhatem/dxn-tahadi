@@ -7,6 +7,19 @@
   var LESSONS=[1,2,3,4,5,6,7,8];
 
   function isLeader(){
+    /* The visible account role is authoritative for UI rendering.
+       Do not trust a stale localStorage role when the member page is open. */
+    try{
+      var label=document.querySelector('.member-identity .role-label');
+      var visible=String(label&&label.textContent||'').replace(/\\s+/g,' ').trim().toLowerCase();
+      if(/قائد|leader/.test(visible))return true;
+      if(/عضو|member/.test(visible))return false;
+    }catch(e){}
+    try{
+      var r=String(window.role||window.currentRole||'').toLowerCase();
+      if(r==='leader')return true;
+      if(r==='member')return false;
+    }catch(e){}
     try{return String(localStorage.getItem('dxn_role')||'').toLowerCase()==='leader'}catch(e){return false}
   }
   function token(){try{return String(localStorage.getItem('dxn_session')||'')}catch(e){return ''}}
