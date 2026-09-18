@@ -176,12 +176,29 @@
   }
 
   let dailyBootstrapStarted=false;
+  let dailyHeartbeatTimer=null;
 
-  async function startDailyBootstrap(){
-    if(dailyBootstrapStarted)return;
-    dailyBootstrapStarted=true;
+  async function maybeRequestNotificationPermission(){
+    try{
+      if(!('Notification' in window))return;
+      if(Notification.permission==='default'){
+        await Notification.requestPermission();
+      }
+    }catch(_){}
+  }
+
+  function showAgentNotification(text){
+    try{
+      if(!('Notification' in window)||Notification.permission!=='granted'||!text)return false;
+      const n=new Notification('محمد — متابعة اليوم',{body:String(text).slice(0,180),icon:'/logo.png'});
+      n.onclick=()=>{window.focus();document.getElementById('dxnAgentPanel')?.classList.add('show');};
+      return true;
+    }catch(_){return false;}
+  }
+
+  async function startDailyBootstrap({notify=false}={}){
     const token=sessionToken();
-    if(!token)return;
+    if(!token)return null;
     try{
       setStatus('محمد يجهّز جلسة اليوم...');
       const r=await fetch('/api/ai-agent',{
@@ -192,13 +209,30 @@
       const d=await r.json().catch(()=>({}));
       if(!r.ok)throw new Error(d.error||('HTTP '+r.status));
       if(d.answer){
-        addMsg(d.answer,'ai');
+        const panel=document.getElementById('dxnAgentPanel');
+        if(panel?.classList.contains('show') || !notify){
+          addMsg(d.answer,'ai');
+        }else{
+          showAgentNotification(d.answer);
+        }
       }
       setStatus('');
+      return d;
     }catch(e){
       setStatus('');
       console.warn('Daily bootstrap failed:',e);
+      return null;
     }
+  }
+
+  function startDailyHeartbeat(){
+    if(dailyHeartbeatTimer)return;
+    const run=()=>startDailyBootstrap({notify:true}).catch(()=>null);
+    setTimeout(run,15000);
+    dailyHeartbeatTimer=setInterval(run,15*60*1000);
+    document.addEventListener('visibilitychange',()=>{
+      if(document.visibilityState==='visible')run();
+    });
   }
 
   function mount(){
@@ -213,7 +247,8 @@
       panel.classList.toggle('show');
       if(opening){
         document.getElementById('dxnAgentInput')?.focus();
-        startDailyBootstrap();
+        maybeRequestNotificationPermission().catch(()=>{});
+        startDailyBootstrap({notify:false});
       }
     });
     panel.querySelector('.dxn-agent-close').addEventListener('click',()=>panel.classList.remove('show'));
@@ -221,6 +256,7 @@
     document.getElementById('dxnAgentInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
     setupVoice();
     addMsg('مرحبًا، أنا محمد. يمكنك سؤالي عن تدريباتك وتقدمك وما يمكنك فعله الآن.','ai');
+    startDailyHeartbeat();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
 })();
