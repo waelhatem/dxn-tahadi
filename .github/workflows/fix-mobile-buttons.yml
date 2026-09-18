@@ -1,32 +1,21 @@
-name: Fix mobile homepage button hit areas
+name: Temporary full project archive
 on:
   push:
     paths:
       - '.github/workflows/fix-mobile-buttons.yml'
 permissions:
-  contents: write
+  contents: read
 jobs:
-  fix:
-    if: ${{ !contains(github.event.head_commit.message, '[skip mobile fix]') }}
+  archive:
+    if: ${{ !contains(github.event.head_commit.message, '[skip full project]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Patch index only
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          p=Path('index.html')
-          s=p.read_text(encoding='utf-8')
-          s=s.replace('.hotspot{position:absolute;border:0;background:transparent;cursor:pointer;padding:0;margin:0;outline:none;z-index:4}', '.hotspot{position:absolute;border:0;background:transparent;cursor:pointer;padding:0;margin:0;outline:none;z-index:10;pointer-events:auto;touch-action:manipulation}')
-          s=s.replace('.mobile-poster img{display:block;width:100%;height:auto}', '.mobile-poster img{display:block;width:100%;height:auto;pointer-events:none;user-select:none;-webkit-user-drag:none}')
-          s=s.replace('<button id="mobilePreviousUser" class="hotspot" aria-label="مستخدم سابق"></button>', '<button id="mobilePreviousUser" class="hotspot" aria-label="مستخدم سابق" type="button"></button>')
-          s=s.replace('<button id="mobileNewVisitor" class="hotspot" aria-label="زائر جديد"></button>', '<button id="mobileNewVisitor" class="hotspot" aria-label="زائر جديد" type="button"></button>')
-          p.write_text(s,encoding='utf-8')
-          PY
-      - name: Commit and remove temporary workflow
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add index.html .github/workflows/fix-mobile-buttons.yml
-          git commit -m 'Fix mobile homepage button hit areas [skip mobile fix]'
-          git push
+      - name: Create full project ZIP
+        run: zip -r dxn-tahadi-full-project.zip . -x '.git/*'
+      - name: Upload full project ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: dxn-tahadi-full-project
+          path: dxn-tahadi-full-project.zip
+          retention-days: 7
