@@ -61,7 +61,7 @@
     s.textContent=`
 html,body{min-height:100%;}
 body.${MODE}{background:#efe8dc url('/logo2.png?v=86.61') center center/cover fixed no-repeat!important;overflow-x:hidden}
-html[data-device-mode="mobile"] body.${MODE}{background-image:url('/mobile-login-background.png?v=86.66')!important;background-size:cover!important;background-position:center center!important}
+html[data-device-mode="mobile"] body.${MODE}{background-image:url('/app/mobile-login-background.png?v=86.67')!important;background-size:cover!important;background-position:center center!important}
 html[data-device-mode="desktop"] body.${MODE}{background-image:url('/logo2.png?v=86.61')!important;background-size:cover!important;background-position:center center!important}
 body.${MODE}::before{display:none!important}
 body.${MODE} #site-language-bar{display:none!important}
