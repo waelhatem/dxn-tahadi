@@ -109,24 +109,55 @@ async function transcribe(audio,filename,mime){
 }
 
 async function speak(text){
-  const r=await fetch('https://api.openai.com/v1/audio/speech',{
-    method:'POST',
-    headers:{Authorization:`Bearer ${OPENAI_API_KEY}`,'Content-Type':'application/json'},
-    body:JSON.stringify({
-      model:process.env.AI_AGENT_TTS_MODEL||'gpt-4o-mini-tts',
-      voice:process.env.AI_AGENT_TTS_VOICE||'onyx',
-      input:text,
-      response_format:'mp3',
-      instructions:'أنت محمد، مدرب عراقي ودود ومرح. تحدث بعراقية طبيعية معاصرة بصوت رجل دافئ، مريح، حيوي وخفيف، وكأنك تحچي ويا شخص تعرفه وتريد تساعده فعلًا. لا تجعل صوتك عميقًا بشكل مبالغ أو رسميًا أو مشدودًا. استخدم نبرة متفائلة وابتسامة مسموعة، مع تنويع طبيعي في طبقة الصوت والإيقاع، وارتفاع بسيط عند الحماس وانخفاض هادئ عند الشرح. اجعل الكلام سلسًا وبسرعة محادثة طبيعية، مع وقفات قصيرة بدل التقطيع أو النطق المتشنج. اجعل الضحكة أو خفة الظل خفيفة جدًا وعفوية عند المناسبات فقط، ولا تحول الحديث إلى مزاح دائم. لا تقرأ الجمل كأنها إعلان أو نشرة أخبار.
-اجعل تركيب الجمل وإيقاعها عراقيين طبيعيين، وليس مجرد إضافة كلمات عراقية إلى جمل فصحى. استخدم عند الحاجة: شلون، شنو، هسه، أكو، ماكو، تگدر، أگدر، أريد، نريد، خلينا، خلي، مو، إي، وين، ليش، شكد، بعد، بعدين، زين، تمام، خوش. لا تفرط في العامية ولا تكرر نفس المفردات. تجنب المصرية والخليجية والشامية مثل إزاي، دلوقتي، عايز، كده، شو، هيك. انطق الكلمات العراقية بوضوح وبإيقاع محادثة طبيعي، وكن واثقًا ومرتاحًا من دون نبرة إعلانية أو جدية زائدة.'
-    })
-  });
-  const buffer=Buffer.from(await r.arrayBuffer());
-  if(!r.ok){
-    let data=null;try{data=JSON.parse(buffer.toString('utf8'))}catch(_){}
-    throw new Error((data&&data.error&&data.error.message)||buffer.toString('utf8')||`OpenAI HTTP ${r.status}`);
+  const input=String(text||'').trim();
+  if(!input)throw new Error('النص المطلوب تحويله إلى صوت فارغ');
+  if(input.length>4096)throw new Error('رد محمد أطول من الحد المسموح للصوت؛ اختصر الرد وحاول مرة أخرى.');
+
+  const attempts=[
+    {
+      model:'gpt-4o-mini-tts-2025-12-15',
+      voice:'cedar',
+      instructions:'أنت محمد، مدرب عراقي ودود ومرح. صوت رجل دافئ ومريح وحيوي، بحضور طبيعي وابتسامة خفيفة مسموعة. تكلم باللهجة العراقية الطبيعية، بسرعة محادثة مريحة، مع تنويع طبيعي في النبرة والوقفات. لا تكن متشنجًا أو رسميًا أو كأنك تقرأ نشرة أو إعلانًا. لا تبالغ في المزاح.',
+    },
+    {
+      model:'gpt-4o-mini-tts',
+      voice:'onyx',
+      instructions:'تحدث كمدرب عراقي رجل، ودود ومريح وحيوي، بإيقاع محادثة طبيعي ولهجة عراقية واضحة.',
+    },
+    {
+      model:'gpt-4o-mini-tts',
+      voice:'cedar',
+      instructions:'تحدث كمدرب عراقي رجل، ودود ومريح وواضح، بإيقاع محادثة طبيعي ولهجة عراقية واضحة.',
+    }
+  ];
+
+  let lastError='تعذر توليد الصوت';
+  for(const attempt of attempts){
+    try{
+      const r=await fetch('https://api.openai.com/v1/audio/speech',{
+        method:'POST',
+        headers:{
+          Authorization:`Bearer ${OPENAI_API_KEY}`,
+          'Content-Type':'application/json'
+        },
+        body:JSON.stringify({
+          model:attempt.model,
+          voice:attempt.voice,
+          input,
+          response_format:'mp3',
+          instructions:attempt.instructions
+        })
+      });
+      const buffer=Buffer.from(await r.arrayBuffer());
+      if(r.ok && buffer.length>0)return buffer;
+      let data=null;
+      try{data=JSON.parse(buffer.toString('utf8'))}catch(_){}
+      lastError=(data&&data.error&&data.error.message)||buffer.toString('utf8')||`OpenAI HTTP ${r.status}`;
+    }catch(e){
+      lastError=String(e&&e.message||e);
+    }
   }
-  return buffer;
+  throw new Error(lastError);
 }
 
 module.exports=async function handler(req,res){
