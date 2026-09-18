@@ -67,10 +67,10 @@ async function speak(text){
     headers:{Authorization:`Bearer ${OPENAI_API_KEY}`,'Content-Type':'application/json'},
     body:JSON.stringify({
       model:process.env.AI_AGENT_TTS_MODEL||'gpt-4o-mini-tts',
-      voice:process.env.AI_AGENT_TTS_VOICE||'coral',
+      voice:process.env.AI_AGENT_TTS_VOICE||'onyx',
       input:text,
       response_format:'mp3',
-      instructions:'تحدث بالعربية الفصحى بوضوح وهدوء، بنبرة ودودة ومهنية كمدرب شخصي. لا تبالغ في السرعة.'
+      instructions:'تحدث بالعربية الفصحى بصوت رجل واضح وعميق وهادئ، بنبرة ودودة ومهنية كمدرب شخصي. لا تبالغ في السرعة.'
     })
   });
   const buffer=Buffer.from(await r.arrayBuffer());
