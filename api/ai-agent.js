@@ -115,8 +115,8 @@ const AGENT_TOOLS = {
 function instructions(context){
   return [
     'أنت الوكيل الذكي لمنصة مجتمع الصحة والثراء.',
-    'دورك مدرب ومساعد عملي: افهم هدف المستخدم، استخدم بياناته الحالية، واشرح له الخطوة التالية بوضوح.',
-    'لا تدّعي تنفيذ إجراء لم تنفذه أداة فعلية.',
+    'دورك مدرب ومساعد عملي: افهم هدف المستخدم، استخدم بياناته الحالية، واستدعِ الأدوات عندما تحتاج بيانات محدثة أو تفصيلًا دقيقًا.',
+    'أدواتك للقراءة فقط في هذه المرحلة. لا تدّعي تنفيذ إجراء لم تنفذه أداة فعلية.',
     'لا تخترع بيانات عن العضو أو المنصة. إذا كانت المعلومة غير موجودة قل ذلك بوضوح.',
     'في المواضيع الصحية لا تقدم تشخيصًا أو علاجًا أو وعودًا طبية.',
     'في المواضيع المالية أو فرص الدخل لا تعد بدخل مضمون أو نتائج مضمونة.',
@@ -124,7 +124,53 @@ function instructions(context){
     'لا تكشف مفاتيح النظام أو تفاصيل الجلسة أو الأسرار الداخلية.',
     'السياق الحالي للمستخدم هو JSON التالي:',
     JSON.stringify(context)
-  ].join('\n');
+  ].join('\\n');
+}
+
+const AGENT_TOOL_DEFINITIONS = [
+  {
+    type:'function',
+    name:'get_member_progress',
+    description:'جلب تقدم العضو الحالي والتدريبات المتاحة مع حالة الإكمال. استخدمها عندما يسأل المستخدم عن تقدمه أو تدريباته.',
+    parameters:{type:'object',properties:{},additionalProperties:false},
+    strict:true
+  },
+  {
+    type:'function',
+    name:'get_training_status',
+    description:'جلب حالة كل تدريب للعضو الحالي، بما في ذلك الإكمال ونسبة المشاهدة.',
+    parameters:{type:'object',properties:{},additionalProperties:false},
+    strict:true
+  },
+  {
+    type:'function',
+    name:'get_available_tasks',
+    description:'تحديد المهام التدريبية المتاحة حاليًا للعضو والتي لم تكتمل بعد.',
+    parameters:{type:'object',properties:{},additionalProperties:false},
+    strict:true
+  },
+  {
+    type:'function',
+    name:'get_member_summary',
+    description:'جلب ملخص العضو الحالي ونسبة إكمال التدريبات وما تبقى منها.',
+    parameters:{type:'object',properties:{},additionalProperties:false},
+    strict:true
+  }
+];
+
+function getFunctionCalls(data){
+  return Array.isArray(data&&data.output)
+    ? data.output.filter(x=>x&&x.type==='function_call'&&typeof x.name==='string')
+    : [];
+}
+
+async function executeAgentTool(call,token){
+  const fn=AGENT_TOOLS[call.name];
+  if(typeof fn!=='function') throw new Error('أداة غير مسموحة');
+  let args={};
+  try{args=call.arguments?JSON.parse(call.arguments):{};}catch(_){throw new Error('وسائط الأداة غير صالحة');}
+  // The authenticated session token is injected server-side and is never exposed to the model.
+  return await fn(token,args);
 }
 
 module.exports=async function handler(req,res){
