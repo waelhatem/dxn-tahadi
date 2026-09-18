@@ -82,6 +82,35 @@ function cleanHistory(history){
   }).filter(Boolean);
 }
 
+function isDailyPlanRequest(message){
+  const s=String(message||'').trim().toLowerCase();
+  return /شنو\s+(?:أسوي|اسوي|أشتغل|اشتغل|أعمل|اعمل)\s+(?:هسه|اليوم)|ماذا\s+(?:أفعل|افعل|أعمل|اعمل)\s+(?:الآن|اليوم)|شنو\s+الخطوة\s+(?:الجايه|الجاية|القادمة)|ماذا\s+أفعل\s+الآن/.test(s);
+}
+
+async function buildDailyAutoSession(token,currentSession){
+  if(currentSession?.active) return null;
+  try{
+    const plan=await AGENT_TOOLS.get_daily_coaching_plan(token);
+    const action=Array.isArray(plan?.actions)?plan.actions[0]:null;
+    if(!action) return null;
+    let session_type='coaching';
+    if(action.type==='practice') session_type='practice';
+    else if(action.type==='review') session_type='review';
+    const objective=[action.title,action.reason].filter(Boolean).join(' — ').slice(0,500) || 'تنفيذ الخطوة الأولى من الخطة اليومية';
+    const session={
+      active:true,
+      session_type,
+      objective,
+      phase:'discover',
+      turn_count:0,
+      started_at:new Date().toISOString()
+    };
+    return {session,plan};
+  }catch(_){
+    return null;
+  }
+}
+
 function detectSessionCommand(message){
   const s=String(message||'').trim().toLowerCase();
   if(/انهي|انهِ|أنهي|انتهت|خلصنا|وقف الجلسة|إنهاء الجلسة|انهاء الجلسة/.test(s))
@@ -496,6 +525,7 @@ function instructions(context){
     'في المتابعة: إذا كان العضو متقدمًا، انتقل من الشرح إلى التحدي والتطبيق. إذا كان جديدًا، استخدم شرحًا أبسط وأكثر تدرجًا.',
     'عند الحاجة إلى تحليل مستوى العضو أو نقاط قوته وضعفه في الاختبارات، استخدم أداة أداء الاختبارات بدل الاعتماد على الانطباع من المحادثة فقط.',
     'عندما يسأل العضو: شنو أسوي هسه؟ أو شنو أشتغل اليوم؟ أو ماذا أفعل الآن؟ استخدم أداة الخطة اليومية الشخصية، ثم حوّل نتيجتها إلى خطوة عملية واحدة واضحة قبل اقتراح الخطوة التالية.',
+    'إذا بدأت الجلسة تلقائيًا من الخطة اليومية، لا تكتفِ بإخبار العضو بالمهمة؛ ابدأ الجلسة فورًا من أول خطوة، ووجّه العضو بسؤال أو تمرين واحد فقط يناسب نوع المهمة.',
     'في المحاكاة: يمكنك لعب دور عميل أو شخص متردد أو عضو جديد، ثم تقييم رد العضو واقتراح تحسين واحد أو اثنين في كل مرة.',
     'في التشجيع: استخدم عبارات عراقية طبيعية مثل زين، ممتاز، خلينا نكمل، هسه نركز على الخطوة الجاية، لكن لا تكررها في كل رد.',
     'لا تتصرف كصديق شخصي يعتمد عليه المستخدم عاطفيًا، ولا تحاول خلق تبعية. كن مدربًا مساعدًا يحافظ على استقلال قرار المستخدم.',
@@ -587,6 +617,17 @@ module.exports=async function handler(req,res){
     const context=await loadContext(token);
     const sessionCommand=detectSessionCommand(message);
     let currentSession=await loadAgentSession(token);
+    let dailyAutoPlan=null;
+
+    if(!sessionCommand && isDailyPlanRequest(message) && (!currentSession || !currentSession.active)){
+      const autoStart=await buildDailyAutoSession(token,currentSession);
+      if(autoStart){
+        currentSession=autoStart.session;
+        dailyAutoPlan=autoStart.plan;
+        await saveAgentSession(token,currentSession).catch(()=>null);
+      }
+    }
+
     if(sessionCommand?.action==='end'){
       currentSession={...(currentSession||{}),active:false,session_type:currentSession?.session_type||'coaching',objective:currentSession?.objective||null,phase:'complete',turn_count:currentSession?.turn_count||0,started_at:currentSession?.started_at||null};
       await saveAgentSession(token,currentSession).catch(()=>null);
@@ -601,7 +642,12 @@ module.exports=async function handler(req,res){
     const fallbackHistory=cleanHistory(body.history);
     const history=(persistentMemory.length?persistentMemory:fallbackHistory).slice(-24);
     const baseInput=[...history,{role:'user',content:message}];
-    const enrichedContext={...context,coaching_profile:coachingProfile,coaching_session:currentSession};
+    const enrichedContext={
+      ...context,
+      coaching_profile:coachingProfile,
+      coaching_session:currentSession,
+      ...(dailyAutoPlan?{daily_auto_plan:dailyAutoPlan}: {})
+    };
     let input=baseInput;
     let ai=null;
     const maxToolRounds=3;
