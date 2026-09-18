@@ -60,6 +60,58 @@ async function loadContext(token){
   return {role,member:member?{id:member.id,member_no:member.member_no,name:member.name||member.full_name,stars:Number(member.stars||0)}:null,lessons,progress};
 }
 
+
+
+// Agent Tools (read-only). These are executed server-side with the authenticated session token.
+const AGENT_TOOLS = {
+  async get_member_progress(token){
+    const ctx = await loadContext(token);
+    return {
+      member: ctx.member,
+      progress: ctx.progress,
+      lessons: ctx.lessons.map(l=>({lesson_no:l.lesson_no,title:l.title,active:l.active}))
+    };
+  },
+  async get_training_status(token){
+    const ctx = await loadContext(token);
+    const byId = new Map(ctx.progress.map(p=>[String(p.lesson_id),p]));
+    return ctx.lessons.map(l=>{
+      const p=byId.get(String(l.id))||byId.get(String(l.lesson_id))||null;
+      return {
+        lesson_no:l.lesson_no,
+        title:l.title,
+        active:l.active,
+        completed:!!(p&&p.completed),
+        watch_percent:Number(p&&p.watch_percent||0)
+      };
+    });
+  },
+  async get_available_tasks(token){
+    const ctx = await loadContext(token);
+    const byId = new Map(ctx.progress.map(p=>[String(p.lesson_id),p]));
+    const tasks=[];
+    for(const l of ctx.lessons){
+      const p=byId.get(String(l.id))||byId.get(String(l.lesson_id))||null;
+      if(l.active && !(p&&p.completed)) tasks.push({type:'training',lesson_no:l.lesson_no,title:l.title,watch_percent:Number(p&&p.watch_percent||0)});
+    }
+    return tasks;
+  },
+  async get_member_summary(token){
+    const ctx = await loadContext(token);
+    const byId = new Map(ctx.progress.map(p=>[String(p.lesson_id),p]));
+    const total=ctx.lessons.length;
+    const completed=ctx.lessons.reduce((n,l)=>{
+      const p=byId.get(String(l.id))||byId.get(String(l.lesson_id));
+      return n+(p&&p.completed?1:0);
+    },0);
+    return {
+      role:ctx.role,
+      member:ctx.member,
+      training:{total,completed,remaining:Math.max(0,total-completed),completion_percent:total?Math.round(completed/total*100):0}
+    };
+  }
+};
+
 function instructions(context){
   return [
     'أنت الوكيل الذكي لمنصة مجتمع الصحة والثراء.',
