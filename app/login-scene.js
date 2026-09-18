@@ -1,7 +1,36 @@
-/* V86.64 — Dedicated mobile login background image. */
+/* V86.65 — Previous-user login scene with persistent mobile/desktop background selection. */
 (function(){
   'use strict';
   var MODE='dxn-login-scene-mode';
+  var DEVICE_KEY='dxn_selected_device_mode';
+  var LEGACY_KEY='dxn_view_mode';
+
+  function getSelectedMode(){
+    try{
+      var saved=localStorage.getItem(DEVICE_KEY)||localStorage.getItem(LEGACY_KEY);
+      if(saved==='mobile'||saved==='desktop'){
+        try{localStorage.setItem(DEVICE_KEY,saved);}catch(e){}
+        return saved;
+      }
+    }catch(e){}
+    return null;
+  }
+
+  function detectMode(){
+    try{
+      var ua=navigator.userAgent||'';
+      var mobileUA=/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(ua);
+      var coarse=window.matchMedia&&window.matchMedia('(pointer: coarse)').matches;
+      var noHover=window.matchMedia&&window.matchMedia('(hover: none)').matches;
+      var width=window.innerWidth||document.documentElement.clientWidth||9999;
+      var touch=Number(navigator.maxTouchPoints||0)>0;
+      return (mobileUA||(coarse&&noHover&&width<=1100)||(touch&&width<=1100))?'mobile':'desktop';
+    }catch(e){return 'desktop'}
+  }
+
+  function getMode(){
+    return getSelectedMode()||detectMode();
+  }
 
   function removeDeviceControls(){
     var selectors=['#dxn-global-device-switch','.device-switch','.view-switch','#viewSwitch','#deviceViewSwitch'];
@@ -12,22 +41,17 @@
     });
   }
 
-  function enforceAutomaticResponsiveMode(){
-    try{
-      var ua=navigator.userAgent||'';
-      var mobileUA=/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(ua);
-      var coarse=window.matchMedia&&window.matchMedia('(pointer: coarse)').matches;
-      var noHover=window.matchMedia&&window.matchMedia('(hover: none)').matches;
-      var width=window.innerWidth||document.documentElement.clientWidth||9999;
-      var touch=Number(navigator.maxTouchPoints||0)>0;
-      var mobile=mobileUA||(coarse&&noHover&&width<=1100)||(touch&&width<=1100);
-      document.documentElement.dataset.deviceMode=mobile?'mobile':'desktop';
-      if(document.body){
-        document.body.classList.toggle('mobile-mode',mobile);
-        document.body.classList.toggle('desktop-mode',!mobile);
-        document.body.classList.remove('manual-mobile','manual-desktop');
-      }
-    }catch(e){}
+  function applyDeviceMode(){
+    var mode=getMode();
+    var mobile=mode==='mobile';
+    document.documentElement.dataset.deviceMode=mode;
+    if(document.body){
+      document.body.classList.toggle('mobile-mode',mobile);
+      document.body.classList.toggle('desktop-mode',!mobile);
+      document.body.classList.toggle('manual-mobile',mobile);
+      document.body.classList.toggle('manual-desktop',!mobile);
+    }
+    return mode;
   }
 
   function addStyle(){
@@ -37,7 +61,8 @@
     s.textContent=`
 html,body{min-height:100%;}
 body.${MODE}{background:#efe8dc url('/logo2.png?v=86.61') center center/cover fixed no-repeat!important;overflow-x:hidden}
-html[data-device-mode="mobile"] body.${MODE}{background-image:url('/mobile-login-background.webp?v=86.64')!important;}
+html[data-device-mode="mobile"] body.${MODE}{background-image:url('/mobile-login-background.webp?v=86.65')!important;background-size:cover!important;background-position:center center!important}
+html[data-device-mode="desktop"] body.${MODE}{background-image:url('/logo2.png?v=86.61')!important;background-size:cover!important;background-position:center center!important}
 body.${MODE}::before{display:none!important}
 body.${MODE} #site-language-bar{display:none!important}
 body.${MODE} #app{padding:0!important;min-height:100vh!important;max-width:none!important;background:transparent!important;position:relative!important}
@@ -47,9 +72,7 @@ body.${MODE} .login>div:first-child .dxn-scene-logo{display:block!important;widt
 body.${MODE} .login>div:first-child>img:not(.dxn-scene-logo){display:none!important}
 body.${MODE} .login>div:first-child h1,body.${MODE} .login>div:first-child p{display:none!important}
 body.${MODE} .login>label{display:block!important;position:static!important;width:auto!important;height:auto!important;padding:0!important;margin:0 0 7px!important;overflow:visible!important;clip:auto!important;white-space:normal!important;border:0!important;background:transparent!important;color:#183d33!important;font-size:18px!important;font-weight:800!important;text-align:right!important}
-body.${MODE} .login #role,
-body.${MODE} .login #loginNo,
-body.${MODE} .login #pin{display:block!important;width:100%!important;height:52px!important;margin:0 0 20px!important;padding:9px 17px!important;background:rgba(255,255,255,.77)!important;border:1px solid rgba(255,255,255,.72)!important;border-radius:15px!important;box-shadow:0 8px 22px rgba(58,61,52,.06)!important;color:#173b31!important;font-size:17px!important;font-weight:700!important;text-align:right!important;backdrop-filter:blur(3px)!important;outline:none!important}
+body.${MODE} .login #role,body.${MODE} .login #loginNo,body.${MODE} .login #pin{display:block!important;width:100%!important;height:52px!important;margin:0 0 20px!important;padding:9px 17px!important;background:rgba(255,255,255,.77)!important;border:1px solid rgba(255,255,255,.72)!important;border-radius:15px!important;box-shadow:0 8px 22px rgba(58,61,52,.06)!important;color:#173b31!important;font-size:17px!important;font-weight:700!important;text-align:right!important;backdrop-filter:blur(3px)!important;outline:none!important}
 body.${MODE} .login #role{height:50px!important;cursor:pointer!important;appearance:auto!important}
 body.${MODE} .login #loginNo::placeholder,body.${MODE} .login #pin::placeholder{color:#71807b!important;font-weight:500!important}
 body.${MODE} .login #loginButton{position:relative!important;display:block!important;width:100%!important;height:56px!important;margin:0!important;padding:0!important;background:#247b68!important;border:0!important;border-radius:17px!important;box-shadow:0 8px 18px rgba(36,123,104,.18)!important;color:#fff!important;font-size:20px!important;font-weight:900!important;cursor:pointer!important}
@@ -77,6 +100,7 @@ body.${MODE} .dxn-login-footer-note{display:block!important;margin:18px 0 0!impo
 `;
     document.head.appendChild(s);
   }
+
   function addCosmeticNodes(){
     var form=document.querySelector('.login');
     if(!form)return;
@@ -102,46 +126,54 @@ body.${MODE} .dxn-login-footer-note{display:block!important;margin:18px 0 0!impo
       form.appendChild(foot);
     }
   }
+
   function active(){return !!document.querySelector('#loginButton')&&!!document.querySelector('.login')}
+
   function apply(){
     addStyle();
     removeDeviceControls();
-    enforceAutomaticResponsiveMode();
+    var mode=applyDeviceMode();
     var on=active();
     document.body.classList.toggle(MODE,on);
     if(on){
       addCosmeticNodes();
-      var b=document.getElementById('loginButton'); if(b){b.setAttribute('aria-label','دخول');b.title='دخول'}
-      var m=document.querySelector('.login button[onclick*="renderMemberVerify"]'); if(m){m.setAttribute('aria-label','عضو في بداية أمل — عمل حساب جديد');m.title='عضو في بداية أمل — عمل حساب جديد'}
-      var role=document.getElementById('role'); if(role)role.setAttribute('aria-label','نوع الدخول');
-      var no=document.getElementById('loginNo'); if(no)no.setAttribute('aria-label','رقم العضوية أو رمز القائد');
-      var pin=document.getElementById('pin'); if(pin)pin.setAttribute('aria-label','رمز الدخول PIN');
+      var b=document.getElementById('loginButton');if(b){b.setAttribute('aria-label','دخول');b.title='دخول'}
+      var m=document.querySelector('.login button[onclick*="renderMemberVerify"]');if(m){m.setAttribute('aria-label','عضو في بداية أمل — عمل حساب جديد');m.title='عضو في بداية أمل — عمل حساب جديد'}
+      var role=document.getElementById('role');if(role)role.setAttribute('aria-label','نوع الدخول');
+      var no=document.getElementById('loginNo');if(no)no.setAttribute('aria-label','رقم العضوية أو رمز القائد');
+      var pin=document.getElementById('pin');if(pin)pin.setAttribute('aria-label','رمز الدخول PIN');
     }
   }
+
   function install(){
     addStyle();
     removeDeviceControls();
+    applyDeviceMode();
     var n=0,t=setInterval(function(){
       if(typeof window.renderLogin==='function'&&!window.__DXN_LOGIN_SCENE_WRAPPED__){
         var original=window.renderLogin;
         window.renderLogin=function(){var r=original.apply(this,arguments);setTimeout(apply,0);return r};
-        window.__DXN_LOGIN_SCENE_WRAPPED__=true;clearInterval(t);
+        window.__DXN_LOGIN_SCENE_WRAPPED__=true;
+        clearInterval(t);
       }
       removeDeviceControls();
+      applyDeviceMode();
       if(++n>240)clearInterval(t);
     },50);
     apply();
     var app=document.getElementById('app');
     if(app&&!window.__DXN_LOGIN_SCENE_OBSERVED__){
       window.__DXN_LOGIN_SCENE_OBSERVED__=true;
-      new MutationObserver(function(){clearTimeout(window.__dxnLoginSceneTimer);window.__dxnLoginSceneTimer=setTimeout(apply,20)}).observe(app,{childList:true,subtree:true});
+      new MutationObserver(function(){
+        clearTimeout(window.__dxnLoginSceneTimer);
+        window.__dxnLoginSceneTimer=setTimeout(apply,20);
+      }).observe(app,{childList:true,subtree:true});
     }
     if(!window.__DXN_LOGIN_DEVICE_OBSERVED__){
       window.__DXN_LOGIN_DEVICE_OBSERVED__=true;
-      new MutationObserver(function(){removeDeviceControls();enforceAutomaticResponsiveMode();}).observe(document.body,{childList:true,subtree:true});
+      new MutationObserver(function(){removeDeviceControls();applyDeviceMode();}).observe(document.body,{childList:true,subtree:true});
     }
-    window.addEventListener('resize',enforceAutomaticResponsiveMode,{passive:true});
-    window.addEventListener('orientationchange',function(){setTimeout(enforceAutomaticResponsiveMode,100)},{passive:true});
   }
+
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
