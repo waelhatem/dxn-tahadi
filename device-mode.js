@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  // V86.68 — automatic responsive layout. Main homepage has no manual selector.
+  // V87 — global manual device mode. The visitor chooses mobile/desktop once and it persists across pages.
 
   function isMainHomepage() {
     const p = (window.location.pathname || '/').replace(/\/+$/, '') || '/';
@@ -90,8 +90,12 @@
 
   function getSavedMode() {
     try {
-      const saved = localStorage.getItem('dxn_view_mode');
-      return saved === 'mobile' || saved === 'desktop' ? saved : null;
+      const saved = localStorage.getItem('dxn_selected_device_mode') || localStorage.getItem('dxn_view_mode');
+      if (saved === 'mobile' || saved === 'desktop') {
+        try { localStorage.setItem('dxn_selected_device_mode', saved); } catch (e) {}
+        return saved;
+      }
+      return null;
     } catch (e) {
       return null;
     }
@@ -120,7 +124,7 @@
   }
 
   function selectMode(mode) {
-    try { localStorage.setItem('dxn_view_mode', mode); } catch (e) {}
+    try { localStorage.setItem('dxn_selected_device_mode', mode); } catch (e) {}
     applyMode(mode);
     try {
       if (typeof window.setViewMode === 'function' && !window.setViewMode.__dxnSharedDeviceSelector) {
@@ -197,6 +201,20 @@
     syncGlobalDeviceSwitch(document.documentElement.dataset.deviceMode || detectDeviceMode());
   }
 
+  function bindExistingDeviceSelectors() {
+    if (document.documentElement.dataset.existingDeviceSelectorBound === '1') return;
+    document.documentElement.dataset.existingDeviceSelectorBound = '1';
+    document.addEventListener('click', function (event) {
+      const target = event.target && event.target.closest
+        ? event.target.closest('.view-switch button,.device-switch button')
+        : null;
+      if (!target) return;
+      const label = (target.textContent || '').toLowerCase();
+      const mode = /موبايل|الهاتف|mobile/.test(label) ? 'mobile' : 'desktop';
+      selectMode(mode);
+    }, true);
+  }
+
   function bindPreviousUserEntry() {
     if (document.documentElement.dataset.previousUserEntryBound === '1') return;
     document.documentElement.dataset.previousUserEntryBound = '1';
@@ -252,15 +270,18 @@
     applyDetectedDefault();
     deduplicateDeviceSelectors();
     ensureGlobalDeviceSelector();
+    bindExistingDeviceSelectors();
     bindPreviousUserEntry();
     addNavigationButtons();
     watchDynamicInterface();
 
     window.addEventListener('storage', function (event) {
-      if (event.key === 'dxn_view_mode') applyDetectedDefault();
+      if (event.key === 'dxn_selected_device_mode' || event.key === 'dxn_view_mode') {
+        applyDetectedDefault();
+      }
     });
-    window.addEventListener('resize', refreshResponsiveDefault, { passive: true });
-    window.addEventListener('orientationchange', function () { setTimeout(refreshResponsiveDefault, 100); }, { passive: true });
+    // Deliberately do not switch device mode on resize/orientation.
+    // The visitor's explicit selection remains active until they change it.
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
