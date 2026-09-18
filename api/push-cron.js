@@ -57,35 +57,18 @@ module.exports=async function handler(req,res){
 
     configureWebPush();
 
-    const subscriptions=await supabaseRequest(
-      'GET',
-      '/rest/v1/ai_agent_push_subscriptions?active=eq.true&select=id,user_id,endpoint,p256dh,auth,last_push_at&limit=500'
-    );
-
-    if(!subscriptions.ok){
+    const candidates=await supabaseRpc('list_ai_agent_push_candidates',{p_min_age_hours:6});
+    if(!candidates.ok){
       return res.status(502).json({
-        error:(subscriptions.data&&subscriptions.data.message)||subscriptions.text||'تعذر قراءة مشتركي Push'
+        error:(candidates.data&&candidates.data.message)||candidates.text||'تعذر قراءة مشتركي Push'
       });
     }
 
-    const rows=Array.isArray(subscriptions.data)?subscriptions.data:[];
-    const cutoff=new Date(Date.now()-6*60*60*1000);
+    const rows=Array.isArray(candidates.data)?candidates.data:[];
     let sent=0,expired=0,failed=0,checked=0;
 
     for(const row of rows){
       checked++;
-      if(row.last_push_at){
-        const last=Date.parse(row.last_push_at);
-        if(Number.isFinite(last)&&last>Date.now()-24*60*60*1000)continue;
-      }
-
-      const sessionPath=
-        `/rest/v1/ai_agent_coaching_sessions?user_id=eq.${encodeURIComponent(row.user_id)}&active=eq.true&updated_at=lte.${encodeURIComponent(cutoff.toISOString())}&select=objective,session_type,updated_at&order=updated_at.asc&limit=1`;
-
-      const sessions=await supabaseRequest('GET',sessionPath);
-      if(!sessions.ok) {failed++;continue;}
-      const session=Array.isArray(sessions.data)?sessions.data[0]:null;
-      if(!session)continue;
 
       const subscription={
         endpoint:row.endpoint,
@@ -114,21 +97,13 @@ module.exports=async function handler(req,res){
           {TTL:86400,urgency:'normal'}
         );
 
-        await supabaseRequest(
-          'PATCH',
-          `/rest/v1/ai_agent_push_subscriptions?id=eq.${encodeURIComponent(row.id)}`,
-          {last_push_at:new Date().toISOString(),updated_at:new Date().toISOString()}
-        ).catch(()=>null);
+        await supabaseRpc('mark_ai_agent_push_sent',{p_id:row.id}).catch(()=>null);
 
         sent++;
       }catch(e){
         const status=Number(e&&e.statusCode||0);
         if(expiredStatus(status)){
-          await supabaseRequest(
-            'PATCH',
-            `/rest/v1/ai_agent_push_subscriptions?id=eq.${encodeURIComponent(row.id)}`,
-            {active:false,updated_at:new Date().toISOString()}
-          ).catch(()=>null);
+          await supabaseRpc('deactivate_ai_agent_push_subscription',{p_id:row.id}).catch(()=>null);
           expired++;
         }else{
           failed++;
