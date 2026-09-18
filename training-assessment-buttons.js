@@ -55,15 +55,21 @@
   }
   function findAssessment(no){
     var root=document.getElementById('dxn-training-assessment');if(!root)return null;
+    var exact=root.querySelector('details[data-dxn-assessment-lesson="'+Number(no)+'"]');
+    if(exact)return exact;
     var ds=Array.prototype.slice.call(root.querySelectorAll('details'));
     for(var i=0;i<ds.length;i++)if(new RegExp('التدريب\\s*'+Number(no)+'(?:\\D|:)').test(String(ds[i].textContent||'')))return ds[i];
     return ds[Number(no)-1]||null;
   }
-  function goToAssessment(no){
+  async function goToAssessment(no){
     var d=findAssessment(no);
-    if(!d){alert('لم يتم تحميل اختبار هذا التدريب بعد. أعد فتح صفحة التدريبات مرة أخرى.');return}
+    if(!d&&typeof window.__DXN_LOAD_TRAINING_ASSESSMENT==='function'){
+      await window.__DXN_LOAD_TRAINING_ASSESSMENT(true);
+      d=findAssessment(no);
+    }
+    if(!d){alert('لم يتم تحميل اختبار التدريب '+Number(no)+' بعد. أعد فتح صفحة التدريبات ثم حاول مرة أخرى.');return}
     d.open=true;d.scrollIntoView({behavior:'smooth',block:'start'});
-    setTimeout(function(){var q=d.querySelector('textarea');if(q)q.focus({preventScroll:true})},450);
+    setTimeout(function(){var q=d.querySelector('textarea[data-assessment-q]');if(q)try{q.focus({preventScroll:true})}catch(e){try{q.focus()}catch(_e){}}},450);
   }
   window.openTrainingAssessment=async function(no){
     var root=document.getElementById('dxn-training-assessment');
