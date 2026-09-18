@@ -64,56 +64,81 @@
       const answer=d.answer||'لم يصل رد من الوكيل.';addMsg(answer,'ai');setStatus('جارٍ تشغيل الرد الصوتي...');await speakAnswer(answer);setStatus('');
     }catch(e){addMsg('تعذر الاتصال بالوكيل: '+String(e.message||e),'ai');setStatus('');}
   }
-  let voiceRecorder=null,voiceChunks=[],voiceMime='',voiceBusy=false;
+  let speechRecognition=null;
+  let voiceBusy=false;
+  let speechFinalText='';
 
   function setupVoice(){
     const mic=document.getElementById('dxnAgentMic');if(!mic)return;
-    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
-      mic.title='المتصفح لا يدعم التسجيل الصوتي';mic.disabled=true;return;
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){
+      mic.title='التحدث الصوتي غير مدعوم في هذا المتصفح';
+      mic.addEventListener('click',()=>addMsg('للتحدث مع محمد بالصوت، افتح المنصة في Chrome أو Edge ثم اسمح باستخدام الميكروفون.','ai'));
+      return;
     }
-    mic.addEventListener('click',async()=>{
-      if(voiceBusy)return;
-      if(voiceRecorder&&voiceRecorder.state==='recording'){voiceRecorder.stop();return;}
+
+    speechRecognition=new SR();
+    speechRecognition.lang='ar-IQ';
+    speechRecognition.continuous=true;
+    speechRecognition.interimResults=true;
+    speechRecognition.maxAlternatives=1;
+
+    speechRecognition.onstart=()=>{
+      voiceBusy=true;
+      speechFinalText='';
+      mic.classList.add('recording');
+      mic.textContent='⏹️';
+      setStatus('محمد يسمعك الآن... اضغط مرة ثانية عندما تخلص');
+    };
+
+    speechRecognition.onresult=event=>{
+      let interim='';
+      for(let i=event.resultIndex;i<event.results.length;i++){
+        const text=String(event.results[i][0]?.transcript||'').trim();
+        if(!text)continue;
+        if(event.results[i].isFinal) speechFinalText+=' '+text;
+        else interim+=' '+text;
+      }
+      const preview=(speechFinalText+' '+interim).trim();
+      if(preview)setStatus('أسمعك: '+preview.slice(-120));
+    };
+
+    speechRecognition.onerror=event=>{
+      const messages={
+        'not-allowed':'اسمح للمتصفح باستخدام الميكروفون ثم حاول مرة أخرى.',
+        'service-not-allowed':'خدمة التعرف على الصوت غير متاحة في المتصفح الحالي.',
+        'no-speech':'لم أسمع كلامًا واضحًا. حاول مرة أخرى.',
+        'audio-capture':'تعذر الوصول إلى الميكروفون.',
+        'network':'تعذر الوصول إلى خدمة التعرف على الصوت.'
+      };
+      const msg=messages[event.error]||('تعذر التعرف على الصوت: '+event.error);
+      addMsg(msg,'ai');
+      setStatus('');
+      voiceBusy=false;
+      mic.classList.remove('recording');
+      mic.textContent='🎙️';
+    };
+
+    speechRecognition.onend=async()=>{
+      mic.classList.remove('recording');
+      mic.textContent='🎙️';
+      const text=speechFinalText.trim();
+      speechFinalText='';
+      voiceBusy=false;
+      if(!text){setStatus('');return;}
+      setStatus('جارٍ إرسال كلامك إلى محمد...');
+      await send(text);
+    };
+
+    mic.addEventListener('click',()=>{
+      if(voiceBusy){
+        try{speechRecognition.stop();}catch(_){}
+        return;
+      }
       const token=sessionToken();
       if(!token){addMsg('يرجى تسجيل الدخول أولًا.','ai');return;}
-      try{
-        const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-        voiceMime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':
-          (MediaRecorder.isTypeSupported('audio/webm')?'audio/webm':'audio/mp4');
-        voiceRecorder=new MediaRecorder(stream,{mimeType:voiceMime});
-        voiceChunks=[];
-        voiceRecorder.ondataavailable=e=>{if(e.data&&e.data.size)voiceChunks.push(e.data);};
-        voiceRecorder.onstop=async()=>{
-          stream.getTracks().forEach(t=>t.stop());
-          mic.classList.remove('recording');mic.textContent='🎙️';voiceBusy=true;
-          try{
-            const blob=new Blob(voiceChunks,{type:voiceMime});
-            setStatus('جارٍ تحويل صوتك إلى نص...');
-            const buffer=await blob.arrayBuffer();
-            const bytes=new Uint8Array(buffer);let binary='';
-            const step=0x8000;
-            for(let i=0;i<bytes.length;i+=step)binary+=String.fromCharCode(...bytes.subarray(i,i+step));
-            const b64=btoa(binary);
-            const r=await fetch('/api/ai-agent-voice',{
-              method:'POST',
-              headers:{'Content-Type':'application/json'},
-              body:JSON.stringify({action:'transcribe',token,audio_base64:b64,filename:voiceMime.startsWith('audio/mp4')?'voice.mp4':'voice.webm',mime:voiceMime})
-            });
-            const d=await r.json().catch(()=>({}));
-            if(!r.ok)throw new Error(d.error||('HTTP '+r.status));
-            const text=String(d.text||'').trim();
-            if(!text)throw new Error('لم يتم التعرف على كلام واضح.');
-            const input=document.getElementById('dxnAgentInput');if(input)input.value='';
-            await send(text);
-          }catch(e){
-            addMsg('تعذر معالجة التسجيل الصوتي: '+String(e.message||e),'ai');setStatus('');
-          }finally{voiceBusy=false;}
-        };
-        voiceRecorder.start();
-        mic.classList.add('recording');mic.textContent='⏹️';setStatus('جارٍ التسجيل... اضغط مرة أخرى للإيقاف');
-      }catch(e){
-        addMsg('تعذر الوصول إلى الميكروفون. اسمح للمتصفح باستخدام الميكروفون ثم حاول مرة أخرى.','ai');setStatus('');
-      }
+      try{speechRecognition.start();}
+      catch(e){setStatus('تعذر بدء الميكروفون. حاول مرة أخرى.');}
     });
   }
 
