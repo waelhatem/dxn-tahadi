@@ -618,7 +618,7 @@ function instructions(context){
     'عند الحاجة إلى تحليل مستوى العضو أو نقاط قوته وضعفه في الاختبارات، استخدم أداة أداء الاختبارات بدل الاعتماد على الانطباع من المحادثة فقط.',
     'عندما يسأل العضو: شنو أسوي هسه؟ أو شنو أشتغل اليوم؟ أو ماذا أفعل الآن؟ استخدم أداة الخطة اليومية الشخصية، ثم حوّل نتيجتها إلى خطوة عملية واحدة واضحة قبل اقتراح الخطوة التالية.',
     'إذا بدأت الجلسة تلقائيًا من الخطة اليومية، لا تكتفِ بإخبار العضو بالمهمة؛ ابدأ الجلسة فورًا من أول خطوة، ووجّه العضو بسؤال أو تمرين واحد فقط يناسب نوع المهمة.',
-    'إذا أكد العضو بوضوح أنه أنهى المهمة الحالية، استخدم أداة complete_daily_coaching_task لتسجيل إنجازها. لا تعتبر كلمة مثل تمام أو إي وحدها دليلًا على الإكمال.',
+    'لا تسجل إكمال المهمة إلا إذا عبّر العضو صراحةً عن إنجاز المهمة نفسها، مثل: أنجزت المهمة، أكملت التمرين، طبقت المطلوب، سويته، أو انتهيت من التمرين. كلمات مثل تمام، إي، زين، خلص، أو موافق وحدها لا تكفي.',
     'بعد تسجيل إكمال المهمة اليومية، انتقل مباشرة إلى المهمة التالية إذا كانت متاحة، وابدأها بسؤال أو تمرين واحد فقط بدل إعطاء قائمة طويلة.',
     'في المحاكاة: يمكنك لعب دور عميل أو شخص متردد أو عضو جديد، ثم تقييم رد العضو واقتراح تحسين واحد أو اثنين في كل مرة.',
     'في التشجيع: استخدم عبارات عراقية طبيعية مثل زين، ممتاز، خلينا نكمل، هسه نركز على الخطوة الجاية، لكن لا تكررها في كل رد.',
@@ -693,11 +693,25 @@ function getFunctionCalls(data){
     : [];
 }
 
-async function executeAgentTool(call,token){
+function hasExplicitTaskCompletionEvidence(message){
+  const s=String(message||'').trim().toLowerCase();
+  if(!s)return false;
+
+  // Explicit completion evidence only. Generic acknowledgements such as
+  // "تمام", "إي", "زين", "خلص" alone are intentionally not sufficient.
+  return /(?:أنجزت|انجزت|أكملت|اكملت|كملت|كمّلت|أنهيت|انهيت|انتهيت|خلصت(?:ها|ه)?|سويته|سويتها|سويت(?:ها|ه)?|طبقت(?:ه|ها)?|نفذت(?:ه|ها)?|عملت(?:ه|ها)?|جاوبت(?:ه|ها)?|حلّيت(?:ه|ها)?|حليت(?:ه|ها)?|جربت(?:ه|ها)?|طبقت التمرين|أنجزت المهمة|أكملت المهمة|أنهيت المهمة|أنهيت التمرين|أنجزت التمرين)/.test(s);
+}
+
+async function executeAgentTool(call,token,currentUserMessage){
   const fn=AGENT_TOOLS[call.name];
   if(typeof fn!=='function') throw new Error('أداة غير مسموحة');
   let args={};
   try{args=call.arguments?JSON.parse(call.arguments):{};}catch(_){throw new Error('وسائط الأداة غير صالحة');}
+
+  if(call.name==='complete_daily_coaching_task' && !hasExplicitTaskCompletionEvidence(currentUserMessage)){
+    throw new Error('لا يمكن تسجيل إكمال المهمة دون تأكيد واضح من العضو بأنه أنجز المهمة فعليًا.');
+  }
+
   // The authenticated session token is injected server-side and is never exposed to the model.
   return await fn(token,args);
 }
@@ -886,7 +900,7 @@ module.exports=async function handler(req,res){
       let dailyTaskCompleted=false;
       for(const call of calls){
         try{
-          const result=await executeAgentTool(call,token);
+          const result=await executeAgentTool(call,token,message);
           outputs.push({
             type:'function_call_output',
             call_id:call.call_id,
@@ -898,65 +912,3 @@ module.exports=async function handler(req,res){
         }catch(toolError){
           outputs.push({
             type:'function_call_output',
-            call_id:call.call_id,
-            output:JSON.stringify({error:String(toolError&&toolError.message||toolError)})
-          });
-        }
-      }
-
-      input=[...(Array.isArray(ai.data.output)?ai.data.output:[]),...outputs];
-
-      if(dailyTaskCompleted){
-        const advanced=await startNextDailySession(token,currentSession).catch(()=>null);
-        if(advanced){
-          currentSession=advanced.session;
-          dailyAutoPlan=advanced.plan;
-          enrichedContext={
-            ...context,
-            coaching_profile:coachingProfile,
-            coaching_session:currentSession,
-            ...(dailyAutoPlan?{daily_auto_plan:dailyAutoPlan}: {})
-          };
-        }
-      }
-    }
-
-    const answer=outputText(ai.data);
-    if(!answer)throw new Error('لم يرجع الوكيل ردًا');
-
-    // Persist the successful turn so محمد can continue naturally across future sessions.
-    await saveAgentMessage(token,'user',message).catch(()=>null);
-    await saveAgentMessage(token,'assistant',answer).catch(()=>null);
-
-    if(currentSession?.active){
-      const sessionUpdate=await extractSessionUpdate(message,answer,currentSession);
-      const nextSession={
-        ...currentSession,
-        ...(sessionUpdate||{}),
-        turn_count:Number(currentSession.turn_count||0)+1
-      };
-      await saveAgentSession(token,nextSession).catch(()=>null);
-      currentSession=nextSession;
-    }
-
-    const profileUpdate=await extractProfileUpdate(message,answer,coachingProfile);
-    if(profileUpdate){
-      const merged={
-        ...(coachingProfile||{}),
-        ...profileUpdate,
-        goal:profileUpdate.goal||coachingProfile?.goal||null,
-        focus_area:profileUpdate.focus_area||coachingProfile?.focus_area||null,
-        current_next_step:profileUpdate.current_next_step||coachingProfile?.current_next_step||null,
-        experience_level:profileUpdate.experience_level==='unknown'?(coachingProfile?.experience_level||'unknown'):profileUpdate.experience_level,
-        strengths:Array.from(new Set([...(coachingProfile?.strengths||[]),...(profileUpdate.strengths||[])])).slice(-8),
-        gaps:Array.from(new Set([...(coachingProfile?.gaps||[]),...(profileUpdate.gaps||[])])).slice(-8)
-      };
-      await saveAgentProfile(token,merged).catch(()=>null);
-    }
-
-    return res.status(200).json({ok:true,answer,model:OPENAI_MODEL,role:context.role});
-  }catch(e){
-    console.error('AI agent error:',e);
-    return res.status(500).json({error:String(e&&e.message||e)});
-  }
-};
