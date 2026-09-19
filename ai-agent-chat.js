@@ -48,6 +48,12 @@
     d.textContent=text;box.appendChild(d);box.scrollTop=box.scrollHeight;return d;
   }
 
+  function setStatus(text){
+    const box=document.getElementById('dxnAgentStatus');
+    if(box)box.textContent=String(text||'');
+  }
+
+
   async function speakAnswer(text){
     try{
       const token=sessionToken();if(!token||!text)return;
