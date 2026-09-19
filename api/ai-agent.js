@@ -861,8 +861,22 @@ module.exports=async function handler(req,res){
     const sessionCommand=detectSessionCommand(message);
     let currentSession=await loadAgentSession(token);
     let dailyAutoPlan=null;
+    let directDailyCompletion=false;
 
-    if(!sessionCommand && isDailyPlanRequest(message) && (!currentSession || !currentSession.active)){
+    // Completion of the daily task is a deterministic server-side action.
+    // Do not depend on the model deciding to call the completion tool.
+    // Only accept explicit completion when a daily coaching session is active.
+    if(!sessionCommand && currentSession?.active && hasExplicitTaskCompletionEvidence(message)){
+      const completion=await completeCurrentDailyTask(token);
+      if(completion?.completed){
+        directDailyCompletion=true;
+        const advanced=await startNextDailySession(token,currentSession);
+        currentSession=advanced?.session||null;
+        dailyAutoPlan=advanced?.plan||null;
+      }
+    }
+
+    if(!sessionCommand && !directDailyCompletion && isDailyPlanRequest(message) && (!currentSession || !currentSession.active)){
       const autoStart=await buildDailyAutoSession(token,currentSession);
       if(autoStart){
         currentSession=autoStart.session;
@@ -889,9 +903,13 @@ module.exports=async function handler(req,res){
       ...context,
       coaching_profile:coachingProfile,
       coaching_session:currentSession,
-      ...(dailyAutoPlan?{daily_auto_plan:dailyAutoPlan}: {})
+      ...(dailyAutoPlan?{daily_auto_plan:dailyAutoPlan}: {}),
+      ...(directDailyCompletion?{daily_completion:{completed:true}}: {})
     };
     let input=baseInput;
+    const availableAgentTools=directDailyCompletion
+      ? AGENT_TOOL_DEFINITIONS.filter(x=>x.name!=='complete_daily_coaching_task')
+      : AGENT_TOOL_DEFINITIONS;
     let ai=null;
     const maxToolRounds=3;
 
@@ -900,7 +918,7 @@ module.exports=async function handler(req,res){
         model:OPENAI_MODEL,
         instructions:instructions(enrichedContext),
         input,
-        tools:AGENT_TOOL_DEFINITIONS,
+        tools:availableAgentTools,
         tool_choice:'auto',
         max_output_tokens:900
       });
