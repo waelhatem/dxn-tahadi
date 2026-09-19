@@ -337,13 +337,11 @@
   }
 
   function startDailyHeartbeat(){
+    // لا تبدأ جلسة تدريبية جديدة بسبب الصمت أو بقاء الصفحة مفتوحة.
+    // الجلسة اليومية تبدأ بطلب/تفاعل واضح من العضو، أما المتابعة الخلفية
+    // فتبقى عبر Push/cron للجلسة النشطة ولا تغيّر حالة المحادثة تلقائيًا.
     if(dailyHeartbeatTimer)return;
-    const run=()=>startDailyBootstrap({notify:true}).catch(()=>null);
-    setTimeout(run,15000);
-    dailyHeartbeatTimer=setInterval(run,15*60*1000);
-    document.addEventListener('visibilitychange',()=>{
-      if(document.visibilityState==='visible')run();
-    });
+    dailyHeartbeatTimer=null;
   }
 
   function mount(){
