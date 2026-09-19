@@ -276,6 +276,28 @@ async function buildDailyAutoSession(token,currentSession){
   }
 }
 
+function detectTrainingConsent(message,conversationState){
+  const s=String(message||'').trim().toLowerCase();
+  if(!s) return false;
+
+  // Explicit training intent is enough by itself.
+  if(/(?:ننتقل|ننتقلوا|نروح|نبدأ|ابدأ|خلينا|يلا|جاهز|مستعد|موافق).{0,30}(?:التدريب|تدريب اليوم|جلسة التدريب|الجلسة)/.test(s)) return true;
+  if(/(?:التدريب|تدريب اليوم|جلسة التدريب).{0,30}(?:نبدأ|ابدأ|خلينا|يلا|ننتقل|موافق|جاهز)/.test(s)) return true;
+
+  // A short affirmative such as "إي" or "نعم" only counts when the
+  // conversation state shows that Muhammad was explicitly waiting for the
+  // member's answer about moving to training. Silence or a generic reply
+  // must never start a session on its own.
+  const affirmative=/^(?:إي|اي|نعم|أيوه|ايوه|تمام|زين|موافق|خلينا|يلا|اوكي|ok|حاضر|جاهز|جاهزة)(?:[.!؟?،\\s]*)$/i.test(s);
+  if(!affirmative) return false;
+  const pending=[
+    conversationState?.pending_question,
+    conversationState?.open_loop,
+    conversationState?.pending_member_action
+  ].filter(Boolean).join(' ').toLowerCase();
+  return /(?:تدريب|التدريب|جلسة تدريب|تدريب اليوم|ننتقل)/.test(pending);
+}
+
 function detectSessionCommand(message){
   const s=String(message||'').trim().toLowerCase();
   if(/انهي|انهِ|أنهي|انتهت|خلصنا|وقف الجلسة|إنهاء الجلسة|انهاء الجلسة/.test(s))
@@ -1086,6 +1108,10 @@ function instructions(context){
     'وجود coaching_session أو daily_auto_plan أو مهمة يومية في السياق لا يعني أن الرد يجب أن يكون عن التدريب. لا تجرّ السؤال الحالي إلى المهمة اليومية لمجرد وجود جلسة نشطة.',
     'إذا كان السؤال الحالي عن بيانات العضو أو فريقه أو أي موضوع آخر، ابقَ على موضوع السؤال. يمكن ذكر الجلسة أو الخطوة اليومية فقط بعد الإجابة وإذا كان ذلك مرتبطًا بشكل طبيعي بالطلب.',
     'لا تستخدم مرحلة الجلسة الحالية أو المهمة اليومية كبديل عن فهم الرسالة الحالية. القرار continue_daily_plan لا يُستخدم عندما تكون هناك نية مباشرة مثل ask_question أو request_help أو report_obstacle أو report_attempt.',
+    'لديك أيضًا conversation_state وهي حالة الحوار القصيرة الحالية: current_topic وopen_loop وpending_question وpending_member_action وstate_status. استخدمها لاستكمال نفس الموضوع وعدم إسقاط سؤال أو تجربة ما زالت مفتوحة.',
+    'إذا كان conversation_state.state_status = waiting_member، فالأولوية هي متابعة السؤال أو النتيجة التي ينتظرها محمد، ما لم يطرح العضو طلبًا جديدًا مباشرًا.',
+    'إذا كان هناك pending_question أو pending_member_action، لا تبدأ موضوعًا جديدًا لمجرد وجود خطة يومية. تابع الحلقة المفتوحة أولًا.',
+    'إذا كانت الحالة تشير إلى أن محمد سأل العضو إن كان يريد الانتقال إلى تدريب اليوم، فلا تعتبر الموافقة الضمنية أو الصمت كافيًا؛ الانتقال الفعلي يحدث فقط بعد موافقة واضحة.',
     'لديك طبقة حالة معرفية (cognitive_state) وطبقة ذاكرة (memory_state) في السياق. استخدمهما للحفاظ على استمرارية الحوار وتجنب إعادة الأسئلة التي تمت الإجابة عنها سابقًا.',
     'عند استخدام الذاكرة، ميّز بين ما قاله العضو فعلًا وما هو استنتاج. لا تقدم استنتاجًا على أنه حقيقة.',
     'إذا تعارضت معلومة قديمة مع معلومة أحدث قالها العضو، اعتمد الأحدث واعتبر القديمة غير سارية.',
@@ -1432,6 +1458,7 @@ module.exports=async function handler(req,res){
     requestStage='load_session';
     const sessionCommand=detectSessionCommand(message);
     let currentSession=await loadAgentSession(token);
+    let conversationState=await loadConversationState(token);
     let dailyAutoPlan=null;
     let directDailyCompletion=false;
     let teamIntelligence=null;
@@ -1455,6 +1482,26 @@ module.exports=async function handler(req,res){
       }
     }
 
+    // Clear member consent to move from conversation into today's training
+    // is a real transition, not merely a conversational acknowledgement.
+    if(!sessionCommand && !directDailyCompletion && (!currentSession || !currentSession.active) && detectTrainingConsent(message,conversationState)){
+      const autoStart=await buildDailyAutoSession(token,currentSession);
+      if(autoStart){
+        currentSession=autoStart.session;
+        dailyAutoPlan=autoStart.plan;
+        await saveAgentSession(token,currentSession).catch(()=>null);
+        conversationState={
+          ...(conversationState||{}),
+          pending_question:null,
+          pending_member_action:null,
+          open_loop:null,
+          state_status:'open',
+          last_member_message_at:new Date().toISOString()
+        };
+        await saveConversationState(token,conversationState).catch(()=>null);
+      }
+    }
+
     if(!sessionCommand && !directDailyCompletion && isDailyPlanRequest(message) && (!currentSession || !currentSession.active)){
       const autoStart=await buildDailyAutoSession(token,currentSession);
       if(autoStart){
@@ -1472,10 +1519,9 @@ module.exports=async function handler(req,res){
       await saveAgentSession(token,currentSession).catch(()=>null);
     }
     requestStage='load_memory_profile';
-    const [persistentMemory,coachingProfile,conversationState]=await Promise.all([
+    const [persistentMemory,coachingProfile]=await Promise.all([
       loadAgentMemory(token),
-      loadAgentProfile(token),
-      loadConversationState(token)
+      loadAgentProfile(token)
     ]);
     const fallbackHistory=cleanHistory(body.history);
     const history=(persistentMemory.length?persistentMemory:fallbackHistory).slice(-24);
