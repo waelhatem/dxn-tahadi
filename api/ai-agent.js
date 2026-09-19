@@ -170,18 +170,27 @@ async function completeCurrentDailyTask(token){
           hint:r.data.hint||null,
           error:r.data.error||null
         }
-      : null;
+      : {code:null,message:null,details:null,hint:null,error:null};
+
     console.error('complete_ai_agent_daily_task failed:',JSON.stringify({
       status:r.status,
       detail,
       text:r.text||null,
       task_key:taskKey
     }));
-    const e=new Error((r.data&&(r.data.message||r.data.error||r.data.hint))||r.text||'تعذر تسجيل إكمال المهمة اليومية');
-    e.code=r.data&&r.data.code||null;
-    e.details=r.data&&r.data.details||null;
-    e.hint=r.data&&r.data.hint||null;
-    throw e;
+
+    // Return the real Supabase diagnostic to the server flow so the UI/model
+    // cannot hide the root cause behind a generic "permission" message.
+    return {
+      completed:false,
+      diagnostic:true,
+      status:r.status||0,
+      code:detail.code,
+      message:detail.message||detail.error||r.text||'Supabase RPC failed',
+      details:detail.details,
+      hint:detail.hint,
+      task_key:taskKey
+    };
   }
   return {completed:true,task_key:taskKey};
 }
@@ -887,6 +896,7 @@ module.exports=async function handler(req,res){
     // Completion of the daily task is a deterministic server-side action.
     // Do not depend on the model deciding to call the completion tool.
     // Only accept explicit completion when a daily coaching session is active.
+    let dailyCompletionDiagnostic=null;
     if(!sessionCommand && currentSession?.active && hasExplicitTaskCompletionEvidence(message)){
       const completion=await completeCurrentDailyTask(token);
       if(completion?.completed){
@@ -894,6 +904,8 @@ module.exports=async function handler(req,res){
         const advanced=await startNextDailySession(token,currentSession);
         currentSession=advanced?.session||null;
         dailyAutoPlan=advanced?.plan||null;
+      }else if(completion?.diagnostic){
+        dailyCompletionDiagnostic=completion;
       }
     }
 
@@ -925,14 +937,27 @@ module.exports=async function handler(req,res){
       coaching_profile:coachingProfile,
       coaching_session:currentSession,
       ...(dailyAutoPlan?{daily_auto_plan:dailyAutoPlan}: {}),
-      ...(directDailyCompletion?{daily_completion:{completed:true}}: {})
+      ...(directDailyCompletion?{daily_completion:{completed:true}}: {}),
+      ...(dailyCompletionDiagnostic?{daily_completion_error:dailyCompletionDiagnostic}: {})
     };
     let input=baseInput;
-    const availableAgentTools=directDailyCompletion
+    const availableAgentTools=(directDailyCompletion||dailyCompletionDiagnostic)
       ? AGENT_TOOL_DEFINITIONS.filter(x=>x.name!=='complete_daily_coaching_task')
       : AGENT_TOOL_DEFINITIONS;
     let ai=null;
     const maxToolRounds=3;
+
+    if(dailyCompletionDiagnostic){
+      return res.status(200).json({
+        ok:true,
+        answer:'تعذر تسجيل إكمال المهمة اليومية.\n\n' +
+          'رمز Supabase: '+String(dailyCompletionDiagnostic.code||'غير متوفر')+'\n' +
+          'الرسالة: '+String(dailyCompletionDiagnostic.message||'غير متوفرة')+'\n' +
+          (dailyCompletionDiagnostic.details?'التفاصيل: '+String(dailyCompletionDiagnostic.details)+'\n':'') +
+          (dailyCompletionDiagnostic.hint?'التلميح: '+String(dailyCompletionDiagnostic.hint):''),
+        daily_completion:{completed:false,diagnostic:dailyCompletionDiagnostic}
+      });
+    }
 
     for(let round=0;round<=maxToolRounds;round++){
       ai=await openai({
