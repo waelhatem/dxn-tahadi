@@ -471,6 +471,29 @@ async function loadContext(token){
 
 // Agent Tools. Read and controlled state-changing actions are executed server-side with the authenticated session token.
 const AGENT_TOOLS = {
+
+  async get_dxn_team_intelligence(token,args={}){
+    const ctx=await loadContext(token);
+    if(!ctx.member?.member_no) throw new Error('لا يمكن تحديد رقم عضوية العضو الحالي');
+    const mode=['summary','member','downline','generation','line_summary'].includes(String(args.mode||'').toLowerCase())
+      ? String(args.mode).toLowerCase()
+      : 'summary';
+    const memberNo=String(args.member_no||'').trim()||null;
+    const generation=args.generation==null||args.generation===''?null:Number(args.generation);
+    const limit=Math.max(1,Math.min(Number(args.limit||50),200));
+    if(generation!==null && (!Number.isInteger(generation)||generation<0)) {
+      throw new Error('رقم الجيل غير صالح');
+    }
+    const r=await supabaseRpc('get_dxn_team_intelligence',{
+      p_root_member_no:ctx.member.member_no,
+      p_mode:mode,
+      p_member_no:memberNo,
+      p_generation:generation,
+      p_limit:limit
+    });
+    if(!r.ok) throw new Error((r.data&&(r.data.message||r.data.error||r.data.hint))||r.text||'تعذر قراءة بيانات فريق DXN');
+    return r.data;
+  },
   async get_member_progress(token){
     const ctx = await loadContext(token);
     return {
@@ -962,6 +985,10 @@ function instructions(context){
     'في التصحيح: إذا أخطأ العضو، اذكر الخطأ بوضوح ثم قل له كيف يصححه، مع مثال عراقي قصير عند الحاجة.',
     'في المتابعة: إذا كان العضو متقدمًا، انتقل من الشرح إلى التحدي والتطبيق. إذا كان جديدًا، استخدم شرحًا أبسط وأكثر تدرجًا.',
     'عند الحاجة إلى تحليل مستوى العضو أو نقاط قوته وضعفه في الاختبارات، استخدم أداة أداء الاختبارات بدل الاعتماد على الانطباع من المحادثة فقط.',
+    'لديك أداة Team Intelligence لقراءة سجل فريق DXN الحقيقي. استخدمها عندما يسأل العضو عن فريقه أو الـDownline أو الأجيال أو الخطوط المباشرة أو توزيع الرتب أو PV.',
+    'Sponsor هو مفتاح علاقة فقط؛ عند تحليل الفريق ركّز على الـDownline الذي يرجع إلى العضو الحالي. لا تعامل الراعي الشخصي للعضو كأنه الفريق المطلوب تحليله.',
+    'عند المقارنة بين الخطوط، اعرض أرقامًا وحقائق من الأداة فقط. لا تستنتج نشاطًا أو مبيعات أو إنتاجية تشغيلية إذا لم تكن موجودة في البيانات.',
+
     'عندما يسأل العضو: شنو أسوي هسه؟ أو شنو أشتغل اليوم؟ أو ماذا أفعل الآن؟ استخدم أداة الخطة اليومية الشخصية، ثم حوّل نتيجتها إلى خطوة عملية واحدة واضحة قبل اقتراح الخطوة التالية.',
     'إذا بدأت الجلسة تلقائيًا من الخطة اليومية، لا تكتفِ بإخبار العضو بالمهمة؛ ابدأ الجلسة فورًا من أول خطوة، ووجّه العضو بسؤال أو تمرين واحد فقط يناسب نوع المهمة.',
     'إذا أكد العضو بوضوح أنه أنهى المهمة الحالية، استخدم أداة complete_daily_coaching_task لتسجيل إنجازها. لا تعتبر كلمة مثل تمام أو إي وحدها دليلًا على الإكمال.',
@@ -998,6 +1025,23 @@ const AGENT_TOOL_DEFINITIONS = [
     name:'get_member_sponsor_link',
     description:'قراءة الراعي المباشر الذي سجله العضو برقم العضوية. استخدمها عند تحليل هيكل الفريق أو تحديد علاقة العضو بالراعي. لا تستنتج منها شجرة DXN كاملة ولا تتجاوز البيانات غير المؤكدة.',
     parameters:{type:'object',properties:{},additionalProperties:false},
+    strict:true
+  },
+  {
+    type:'function',
+    name:'get_dxn_team_intelligence',
+    description:'قراءة بيانات فريق DXN من سجل الفريق الحقيقي للعضو الحالي. تدعم ملخص الفريق، بيانات عضو تابع، الـDownline، أعضاء جيل محدد، وملخص الخطوط المباشرة. استخدمها عند تحليل هيكل الفريق أو المقارنة بين الخطوط أو معرفة توزيع الأعضاء والرتب وبيانات PV. لا تفترض نشاطًا أو مبيعات غير موجودة في البيانات.',
+    parameters:{
+      type:'object',
+      properties:{
+        mode:{type:'string',enum:['summary','member','downline','generation','line_summary']},
+        member_no:{type:['string','null']},
+        generation:{type:['integer','null'],minimum:0},
+        limit:{type:'integer',minimum:1,maximum:200}
+      },
+      required:['mode','member_no','generation','limit'],
+      additionalProperties:false
+    },
     strict:true
   },
   {
@@ -1398,37 +1442,3 @@ module.exports=async function handler(req,res){
 
     // Persist the successful turn so محمد can continue naturally across future sessions.
     await saveAgentMessage(token,'user',message).catch(()=>null);
-    await saveAgentMessage(token,'assistant',answer).catch(()=>null);
-
-    if(currentSession?.active){
-      const sessionUpdate=await extractSessionUpdate(message,answer,currentSession);
-      const nextSession={
-        ...currentSession,
-        ...(sessionUpdate||{}),
-        turn_count:Number(currentSession.turn_count||0)+1
-      };
-      await saveAgentSession(token,nextSession).catch(()=>null);
-      currentSession=nextSession;
-    }
-
-    const profileUpdate=await extractProfileUpdate(message,answer,coachingProfile);
-    if(profileUpdate){
-      const merged={
-        ...(coachingProfile||{}),
-        ...profileUpdate,
-        goal:profileUpdate.goal||coachingProfile?.goal||null,
-        focus_area:profileUpdate.focus_area||coachingProfile?.focus_area||null,
-        current_next_step:profileUpdate.current_next_step||coachingProfile?.current_next_step||null,
-        experience_level:profileUpdate.experience_level==='unknown'?(coachingProfile?.experience_level||'unknown'):profileUpdate.experience_level,
-        strengths:Array.from(new Set([...(coachingProfile?.strengths||[]),...(profileUpdate.strengths||[])])).slice(-8),
-        gaps:Array.from(new Set([...(coachingProfile?.gaps||[]),...(profileUpdate.gaps||[])])).slice(-8)
-      };
-      await saveAgentProfile(token,merged).catch(()=>null);
-    }
-
-    return res.status(200).json({ok:true,answer,model:OPENAI_MODEL,role:context.role});
-  }catch(e){
-    console.error('AI agent error:',e);
-    return res.status(500).json({error:String(e&&e.message||e)});
-  }
-};
