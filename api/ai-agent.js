@@ -434,6 +434,83 @@ async function extractProfileUpdate(message,answer,currentProfile){
   }catch(_){return null;}
 }
 
+async function loadConversationState(token){
+  try{
+    const r=await supabaseRpc('get_ai_agent_conversation_state',{p_token:token});
+    if(!r.ok||!Array.isArray(r.data)||!r.data[0]) return null;
+    const s=r.data[0];
+    return {
+      current_topic:s.current_topic||null,
+      open_loop:s.open_loop||null,
+      pending_question:s.pending_question||null,
+      pending_member_action:s.pending_member_action||null,
+      state_status:s.state_status||'open',
+      last_member_message_at:s.last_member_message_at||null,
+      updated_at:s.updated_at||null
+    };
+  }catch(_){return null;}
+}
+
+async function saveConversationState(token,state){
+  if(!state) return null;
+  try{
+    const r=await supabaseRpc('upsert_ai_agent_conversation_state',{
+      p_token:token,
+      p_current_topic:state.current_topic||null,
+      p_open_loop:state.open_loop||null,
+      p_pending_question:state.pending_question||null,
+      p_pending_member_action:state.pending_member_action||null,
+      p_state_status:state.state_status||'open',
+      p_last_member_message_at:state.last_member_message_at||new Date().toISOString()
+    });
+    return r.ok;
+  }catch(_){return false;}
+}
+
+async function extractConversationState(message,answer,currentState){
+  const prompt=[
+    'استخرج حالة الحوار القصيرة لمحمد من رسالة العضو الحالية وسياق الحالة السابق.',
+    'الهدف هو حفظ ما يزال مفتوحًا في الحوار، وليس تلخيص كل المحادثة.',
+    'اعتمد على كلام العضو كالمصدر الأساسي. لا تعتبر كلام محمد حقيقة عن العضو.',
+    'current_topic: الموضوع الذي يتحدث عنه العضو الآن بصياغة قصيرة.',
+    'open_loop: شيء طرحه العضو ولم يُغلق بعد أو نتيجة ما زال محمد ينتظرها. إذا لا يوجد استخدم null.',
+    'pending_question: سؤال طرحه محمد وما زال ينتظر إجابة العضو عليه. إذا لا يوجد استخدم null.',
+    'pending_member_action: تجربة أو خطوة طلبها محمد من العضو ولم يقدم نتيجتها بعد. إذا لا يوجد استخدم null.',
+    'state_status: open إذا الحوار مستمر، waiting_member إذا محمد ينتظر إجابة/نتيجة محددة من العضو، closed فقط إذا انتهى الموضوع بوضوح.',
+    'لا تعتبر الصمت أو مرور الوقت انتهاءً للموضوع.',
+    'لا تخترع أي شيء غير موجود.',
+    'أعد JSON فقط بالمفاتيح الخمسة: current_topic, open_loop, pending_question, pending_member_action, state_status.',
+    'الحالة السابقة:',
+    JSON.stringify(currentState||{}),
+    'رسالة العضو:',
+    String(message||'').slice(0,5000),
+    'رد محمد:',
+    String(answer||'').slice(0,5000)
+  ].join('\\n');
+  try{
+    const r=await openai({
+      model:OPENAI_MODEL,
+      instructions:'أنت محلل حالة حوار قصيرة. أعد JSON فقط ولا تضف معلومات غير موجودة.',
+      input:[{role:'user',content:prompt}],
+      max_output_tokens:320
+    });
+    if(!r.ok) return null;
+    const text=outputText(r.data);
+    const start=text.indexOf('{'),end=text.lastIndexOf('}');
+    if(start<0||end<=start)return null;
+    const p=JSON.parse(text.slice(start,end+1));
+    const statuses=['open','waiting_member','closed'];
+    return {
+      current_topic:p.current_topic?String(p.current_topic).slice(0,500):null,
+      open_loop:p.open_loop?String(p.open_loop).slice(0,1000):null,
+      pending_question:p.pending_question?String(p.pending_question).slice(0,700):null,
+      pending_member_action:p.pending_member_action?String(p.pending_member_action).slice(0,700):null,
+      state_status:statuses.includes(p.state_status)?p.state_status:'open',
+      last_member_message_at:new Date().toISOString()
+    };
+  }catch(_){return null;}
+}
+
 async function loadAgentMemory(token){
   try{
     const r=await supabaseRpc('get_ai_agent_memory',{p_token:token,p_limit:24});
@@ -1395,9 +1472,10 @@ module.exports=async function handler(req,res){
       await saveAgentSession(token,currentSession).catch(()=>null);
     }
     requestStage='load_memory_profile';
-    const [persistentMemory,coachingProfile]=await Promise.all([
+    const [persistentMemory,coachingProfile,conversationState]=await Promise.all([
       loadAgentMemory(token),
-      loadAgentProfile(token)
+      loadAgentProfile(token),
+      loadConversationState(token)
     ]);
     const fallbackHistory=cleanHistory(body.history);
     const history=(persistentMemory.length?persistentMemory:fallbackHistory).slice(-24);
@@ -1436,6 +1514,7 @@ module.exports=async function handler(req,res){
       ...context,
       coaching_profile:coachingProfile,
       coaching_session:currentSession,
+      conversation_state:conversationState,
       cognitive_state:cognitiveState,
       memory_state:memoryState,
       decision_state:decisionState,
@@ -1547,6 +1626,18 @@ module.exports=async function handler(req,res){
     await saveAgentMessage(token,'user',message).catch(()=>null);
     await saveAgentMessage(token,'assistant',answer).catch(()=>null);
 
+    // Keep the short-term dialogue state separate from durable memory.
+    // This records unresolved questions/actions so Muhammad can resume the
+    // member's actual topic instead of treating every return as a fresh start.
+    const updatedConversationState=await extractConversationState(
+      message,
+      answer,
+      conversationState
+    );
+    if(updatedConversationState){
+      await saveConversationState(token,updatedConversationState);
+    }
+
     return res.status(200).json({
       ok:true,
       answer,
@@ -1554,7 +1645,8 @@ module.exports=async function handler(req,res){
         member:context.member,
         role:context.role,
         daily_completion:directDailyCompletion?{completed:true}:null,
-        coaching_session:currentSession
+        coaching_session:currentSession,
+        conversation_state:updatedConversationState||conversationState||null
       }
     });
   }catch(error){
