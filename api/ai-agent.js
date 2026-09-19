@@ -728,6 +728,50 @@ function buildCognitiveState({message,context,currentSession,dailyAutoPlan,direc
     decision_rule:'افهم السياق أولًا، لا تفترض ما ينقصك، واسأل سؤالًا واحدًا فقط عندما تكون الإجابة ضرورية للقرار.'
   };
 }
+async function buildMemoryState(token,message,cognitiveState,currentSession){
+  try{
+    const rows=await loadAgentMemory(token);
+    const recent=Array.isArray(rows)?rows.slice(-12):[];
+    const currentText=String(message||'').trim().toLowerCase();
+
+    // Keep memory retrieval lightweight and deterministic: recent conversation
+    // is the source, while the cognitive state selects what is relevant.
+    const relevant=recent.filter(item=>{
+      const text=String(item?.content||'').toLowerCase();
+      if(!text)return false;
+      if(cognitiveState?.current_task && text.includes(String(cognitiveState.current_task).toLowerCase().slice(0,60))) return true;
+      if(cognitiveState?.user_intent==='report_obstacle' && /ما أگدر|ما اكدر|صعب|محتار|متردد|رفض|ما رد/.test(text)) return true;
+      if(cognitiveState?.user_intent==='report_attempt' && /جربت|سويت|طبقت|نفذت|عملت/.test(text)) return true;
+      return text.length>0;
+    });
+
+    const facts=[];
+    const seen=new Set();
+    for(const item of relevant.slice(-8)){
+      const content=String(item.content||'').trim().slice(0,700);
+      const key=content.toLowerCase();
+      if(!content||seen.has(key))continue;
+      seen.add(key);
+      facts.push({
+        role:item.role==='assistant'?'assistant':'user',
+        content
+      });
+    }
+
+    return {
+      version:'memory_state_v1',
+      recent_relevant_messages:facts,
+      memory_rule:'استخدم الذاكرة لدعم الاستمرارية فقط. لا تعتبر استنتاجًا غير مؤكد حقيقة ثابتة.'
+    };
+  }catch(_){
+    return {
+      version:'memory_state_v1',
+      recent_relevant_messages:[],
+      memory_rule:'لا توجد ذاكرة إضافية متاحة؛ اعتمد على السياق الحالي.'
+    };
+  }
+}
+
 
 function instructions(context){
   return [
@@ -745,6 +789,10 @@ function instructions(context){
     'عند شرح موضوع تدريبي أو تقني، استخدم عراقية خفيفة ومفهومة مع الحفاظ على المصطلحات التقنية الواضحة. إذا طلب المستخدم الفصحى أو نصًا رسميًا، انتقل إلى الفصحى.',
     'شخصيتك: واثق من دون غرور، ودود من دون مبالغة، صريح من دون قسوة، ومشجع من دون وعود أو تهويل. لا تمدح المستخدم بلا سبب؛ اربط التشجيع بسلوك أو تقدم فعلي.',
     'أسلوب المحادثة: ابدأ من سؤال المستخدم مباشرة. لا تعيد صياغة سؤاله بلا فائدة. أعطِ إجابة عملية، ثم خطوة تالية واضحة عندما تكون مناسبة.',
+    'لديك طبقة حالة معرفية (cognitive_state) وطبقة ذاكرة (memory_state) في السياق. استخدمهما للحفاظ على استمرارية الحوار وتجنب إعادة الأسئلة التي تمت الإجابة عنها سابقًا.',
+    'عند استخدام الذاكرة، ميّز بين ما قاله العضو فعلًا وما هو استنتاج. لا تقدم استنتاجًا على أنه حقيقة.',
+    'إذا تعارضت معلومة قديمة مع معلومة أحدث قالها العضو، اعتمد الأحدث واعتبر القديمة غير سارية.',
+    'لا تذكر للمستخدم بنية الذاكرة أو أسماء الحقول الداخلية. استخدمها طبيعيًا داخل الحوار.',
     'لديك طبقة حالة معرفية (cognitive_state) في السياق. استخدمها لفهم النية والهدف والمهمة والمرحلة والمعلومات الناقصة قبل الرد. لا تعرض JSON أو تفاصيل التفكير الداخلي للمستخدم.',
     'اتخذ القرار الحواري على مراحل: افهم الطلب، راجع ما تعرفه، حدّد ما ينقصك، ثم اختر أفضل خطوة تالية. لا تفترض معلومة غير موجودة.',
     'إذا كانت هناك معلومة أساسية ناقصة وتؤثر في القرار، اسأل سؤالًا واحدًا محددًا فقط. إذا كانت غير أساسية، لا توقف الحوار من أجلها.',
@@ -1043,12 +1091,19 @@ module.exports=async function handler(req,res){
       dailyAutoPlan,
       directDailyCompletion
     });
+    const memoryState=await buildMemoryState(
+      token,
+      message,
+      cognitiveState,
+      currentSession
+    );
 
     let enrichedContext={
       ...context,
       coaching_profile:coachingProfile,
       coaching_session:currentSession,
       cognitive_state:cognitiveState,
+      memory_state:memoryState,
       ...(dailyAutoPlan?{daily_auto_plan:dailyAutoPlan}: {}),
       ...(directDailyCompletion?{daily_completion:{completed:true}}: {}),
       ...(dailyCompletionDiagnostic?{daily_completion_error:dailyCompletionDiagnostic}: {})
