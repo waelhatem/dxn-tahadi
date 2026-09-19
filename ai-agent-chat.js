@@ -242,16 +242,6 @@
         userAgent:navigator.userAgent
       });
 
-      if(existingEnabled){
-        addMsg('سيتم الآن إرسال اختبار بعد 12 ثانية. أغلق تبويب المنصة مباشرة، ثم انتظر الإشعار.','ai');
-        await pushApi({
-          action:'test_delayed',
-          token,
-          subscription:json
-        });
-        return;
-      }
-
       await pushApi({
         action:'test',
         token,
