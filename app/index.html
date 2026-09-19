@@ -1523,7 +1523,174 @@ function printProspectLog(){
     'body{font-family:Arial,Tahoma,sans-serif;padding:28px;color:#173b32}h1{text-align:center;margin:0 0 8px;font-size:24px}p{text-align:center;color:#66756f;margin:0 0 22px}.print-table{width:100%;border-collapse:collapse;font-size:14px}.print-table th{background:#eef4f1;font-weight:900}.print-table th,.print-table td{border:1px solid #bfcfc8;padding:12px 14px;text-align:right;vertical-align:middle}.print-status{font-weight:900}.print-status-ok{color:#15803d}.print-status-no{color:#b91c1c}.print-status-wait{color:#b77900}@media print{body{padding:10px}button{display:none}}'+
     '</style></head><body><h1>📋 سجل طلبات التواصل</h1><p>مجتمع الصحة والثراء — جميع طلبات التواصل</p>'+
     clone.outerHTML.replace('class="prospect-log-table"','class="print-table"')+
-    '</body></html>');
+    '
+<style id="team-sponsor-link-v1">
+.team-sponsor-tab{position:relative}
+.team-sponsor-panel{position:fixed;inset:0;background:#0008;z-index:120;display:none;align-items:center;justify-content:center;padding:18px}
+.team-sponsor-panel.show{display:flex}
+.team-sponsor-card{width:min(560px,96vw);max-height:90vh;overflow:auto;background:#fff;border:1px solid #dce8e3;border-radius:24px;padding:20px;box-shadow:0 18px 55px #0004;direction:rtl}
+.team-sponsor-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+.team-sponsor-head h2{margin:0;font-size:22px;color:#123b30}
+.team-sponsor-close{min-width:44px;background:#eef3f2}
+.team-sponsor-note{color:#66756f;line-height:1.8;font-size:13px;margin:8px 0 16px}
+.team-sponsor-label{display:block;font-weight:900;color:#123b30;margin-bottom:6px}
+.team-sponsor-input{margin:0!important;color:#66756f!important;font-weight:600!important}
+.team-sponsor-status{margin-top:12px;padding:12px;border-radius:14px;background:#f7faf8;border:1px solid #dfe9e5;color:#123b30;line-height:1.7;font-size:13px}
+.team-sponsor-status.ok{background:#edf9f0;border-color:#bfe1ca}
+.team-sponsor-status.error{background:#fff4f2;border-color:#f0c3bd;color:#8b2119}
+.team-sponsor-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.team-sponsor-actions button{flex:1;min-width:140px}
+@media(max-width:560px){.team-sponsor-card{padding:16px}.team-sponsor-actions button{width:100%}}
+</style>
+<script>
+/* Team Genealogy Foundation V1
+   Member enters the direct sponsor membership number.
+   This layer stores only the declared relationship; it does not infer DXN genealogy. */
+(function(){
+  if(window.__DXN_TEAM_SPONSOR_LINK_V1__) return;
+  window.__DXN_TEAM_SPONSOR_LINK_V1__=true;
+
+  const RPC='/api/rpc';
+  const token=()=>String(localStorage.getItem('dxn_session')||'').trim();
+
+  async function rpc(fn,args){
+    const r=await fetch(RPC,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({fn,args:args||{}}),
+      cache:'no-store'
+    });
+    const tx=await r.text();
+    let d=null; try{d=tx?JSON.parse(tx):null}catch(_){d=null}
+    if(!r.ok){
+      const msg=(d&&(d.message||d.error||d.hint))||tx||('HTTP '+r.status);
+      throw new Error(msg);
+    }
+    return d;
+  }
+
+  function removeOld(){
+    const old=document.getElementById('teamSponsorPanel');
+    if(old) old.remove();
+  }
+
+  function ensurePanel(){
+    let panel=document.getElementById('teamSponsorPanel');
+    if(panel) return panel;
+
+    panel=document.createElement('div');
+    panel.id='teamSponsorPanel';
+    panel.className='team-sponsor-panel';
+    panel.innerHTML=
+      '<div class="team-sponsor-card" role="dialog" aria-modal="true" aria-labelledby="teamSponsorTitle">'+
+        '<div class="team-sponsor-head">'+
+          '<h2 id="teamSponsorTitle">🌳 هيكل فريقي</h2>'+
+          '<button type="button" class="team-sponsor-close" id="teamSponsorClose">✕</button>'+
+        '</div>'+
+        '<div class="team-sponsor-note">أدخل رقم عضوية الراعي المباشر كما هو مسجل في النظام. هذا الرقم سيكون نقطة البداية لبناء سلسلة الفريق لاحقًا، ولا يقوم النظام بتخمين العلاقات غير المؤكدة.</div>'+
+        '<label class="team-sponsor-label" for="teamSponsorInput">رقم عضوية الراعي المباشر</label>'+
+        '<input id="teamSponsorInput" class="team-sponsor-input" inputmode="numeric" autocomplete="off" placeholder="مثال: 123456">'+
+        '<div id="teamSponsorStatus" class="team-sponsor-status">جارٍ تحميل بيانات الراعي...</div>'+
+        '<div class="team-sponsor-actions">'+
+          '<button type="button" class="primary" id="teamSponsorSave">💾 حفظ الراعي</button>'+
+          '<button type="button" id="teamSponsorClose2">إغلاق</button>'+
+        '</div>'+
+      '</div>';
+    document.body.appendChild(panel);
+
+    const close=()=>panel.classList.remove('show');
+    panel.addEventListener('click',e=>{if(e.target===panel)close()});
+    panel.querySelector('#teamSponsorClose').onclick=close;
+    panel.querySelector('#teamSponsorClose2').onclick=close;
+
+    panel.querySelector('#teamSponsorSave').onclick=async()=>{
+      const input=panel.querySelector('#teamSponsorInput');
+      const status=panel.querySelector('#teamSponsorStatus');
+      const btn=panel.querySelector('#teamSponsorSave');
+      const sponsorNo=String(input.value||'').trim();
+      if(!sponsorNo){
+        status.className='team-sponsor-status error';
+        status.textContent='أدخل رقم عضوية الراعي أولًا.';
+        return;
+      }
+      if(!token()){
+        status.className='team-sponsor-status error';
+        status.textContent='جلسة الدخول غير موجودة. أعد تسجيل الدخول.';
+        return;
+      }
+      btn.disabled=true; btn.textContent='⏳ جارٍ الحفظ...';
+      try{
+        const d=await rpc('set_member_sponsor_link',{p_token:token(),p_sponsor_member_no:sponsorNo});
+        status.className='team-sponsor-status ok';
+        status.textContent='تم حفظ الراعي المباشر: '+String((d&&d.sponsor_member_no)||sponsorNo)+' ✓';
+      }catch(err){
+        status.className='team-sponsor-status error';
+        status.textContent='تعذر الحفظ: '+String(err&&err.message||err);
+      }finally{
+        btn.disabled=false; btn.textContent='💾 حفظ الراعي';
+      }
+    };
+    return panel;
+  }
+
+  async function loadLink(panel){
+    const status=panel.querySelector('#teamSponsorStatus');
+    const input=panel.querySelector('#teamSponsorInput');
+    if(!token()){
+      status.className='team-sponsor-status error';
+      status.textContent='جلسة الدخول غير موجودة. أعد تسجيل الدخول.';
+      return;
+    }
+    try{
+      const rows=await rpc('get_member_sponsor_link',{p_token:token()});
+      const row=Array.isArray(rows)?rows[0]:null;
+      if(row&&row.sponsor_member_no){
+        input.value=String(row.sponsor_member_no);
+        status.className='team-sponsor-status ok';
+        status.textContent='الراعي المحفوظ حاليًا: '+String(row.sponsor_member_no)+' ✓';
+      }else{
+        input.value='';
+        status.className='team-sponsor-status';
+        status.textContent='لم يتم تسجيل الراعي المباشر لهذا العضو بعد.';
+      }
+    }catch(err){
+      status.className='team-sponsor-status error';
+      status.textContent='تعذر قراءة بيانات الراعي: '+String(err&&err.message||err);
+    }
+  }
+
+  function open(){
+    const panel=ensurePanel();
+    panel.classList.add('show');
+    loadLink(panel);
+  }
+
+  function addTab(){
+    const tabs=document.querySelector('.tabs');
+    if(!tabs || tabs.querySelector('.team-sponsor-tab')) return;
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='tab team-sponsor-tab';
+    b.textContent='🌳 فريقي';
+    b.onclick=open;
+    tabs.appendChild(b);
+  }
+
+  function observe(){
+    addTab();
+    const root=document.getElementById('app')||document.body;
+    if(!root.__teamSponsorObserver){
+      root.__teamSponsorObserver=new MutationObserver(()=>setTimeout(addTab,0));
+      root.__teamSponsorObserver.observe(root,{childList:true,subtree:true});
+    }
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',observe);
+  else observe();
+})();
+</script>
+
+</body></html>');
   w.document.close();
   setTimeout(function(){w.print();},300);
 }
