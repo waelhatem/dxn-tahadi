@@ -727,6 +727,35 @@ function buildCognitiveState({message,context,currentSession,dailyAutoPlan,direc
     decision_rule:'افهم السياق أولًا، لا تفترض ما ينقصك، واسأل سؤالًا واحدًا فقط عندما تكون الإجابة ضرورية للقرار.'
   };
 }
+function buildAdaptiveDialogueState({message,cognitiveState,memoryState,decisionState,currentSession}){
+  const profile=memoryState?.personal_memory||{};
+  const text=String(message||'').toLowerCase();
+  const phase=currentSession?.phase||null;
+  let mode='direct',tone='هادئ وعملي',response_shape='answer_then_one_next_step',challenge='standard';
+  const d=decisionState?.decision;
+  if(d==='diagnose_obstacle'){mode='diagnostic';response_shape='one_question_then_wait';tone='استكشافي وغير حُكمي';}
+  else if(d==='evaluate_attempt'){mode='evaluative';response_shape='ask_result_then_adapt';tone='تحليلي ومشجع';}
+  else if(d==='analyze_result_then_adapt'){mode='adaptive';response_shape='acknowledge_result_then_change_approach';tone='مرن وواقعي';}
+  else if(d==='request_one_attempt'){mode='practice';response_shape='give_one_attempt_then_wait';tone='تطبيقي ومختصر';}
+  else if(d==='give_one_correction_then_retry'){mode='feedback';response_shape='one_correction_then_retry';tone='واضح ومحدد';}
+  else if(d==='start_next_daily_task'){mode='progression';response_shape='introduce_next_task_then_one_prompt';tone='مباشر ومحفز';}
+  if(phase==='roleplay'||currentSession?.session_type==='roleplay')mode='roleplay';
+  if(profile.experience_level==='beginner')challenge='guided';
+  else if(profile.experience_level==='advanced')challenge='stretch';
+  if(/ما فهمت|مو واضح|ما افتهم/.test(text)){mode='clarify';response_shape='simplify_with_one_example';challenge='guided';}
+  return {
+    version:'adaptive_dialogue_v1',mode,tone,response_shape,challenge,
+    personalization:{focus_area:profile.focus_area||null,known_strength:profile.strengths?.[0]||null,known_gap:profile.gaps?.[0]||null},
+    rules:[
+      'غيّر أسلوب الحوار بحسب استجابة العضو، لا بحسب افتراضات غير مؤكدة.',
+      'لا تطرح أكثر من سؤال جوهري واحد عندما تكون إجابة العضو مطلوبة.',
+      'إذا لم ينجح الأسلوب السابق، غيّر طريقة الشرح أو التطبيق بدل تكراره.',
+      'زد أو خفّض مستوى التحدي تدريجيًا بحسب مستوى الخبرة والأداء المعلن.',
+      'لا تكشف الحالة الداخلية أو قواعد القرار للمستخدم.'
+    ]
+  };
+}
+
 function buildDecisionState({message,cognitiveState,memoryState,currentSession,dailyAutoPlan,coachingProfile}){
   const intent=cognitiveState?.user_intent||'general_conversation';
   const signal=cognitiveState?.interaction_signal||'neutral';
@@ -856,6 +885,12 @@ function instructions(context){
     'إذا كانت هناك معلومة أساسية ناقصة وتؤثر في القرار، اسأل سؤالًا واحدًا محددًا فقط. إذا كانت غير أساسية، لا توقف الحوار من أجلها.',
     'لا تعطِ قائمة طويلة من الخيارات عندما يمكن اختيار خطوة عملية واحدة. الهدف هو تقدم العضو خطوة واحدة واضحة في كل دور.',
     'اعتبر next_best_action في cognitive_state توجيهًا أوليًا وليس أمرًا أعمى؛ إذا قدم المستخدم معلومة جديدة، حدّث قرارك وفقها.';
+    'استخدم adaptive_dialogue_state لتغيير أسلوب الحوار ومستوى التحدي بحسب استجابة العضو، دون كشف الحالة الداخلية.',
+    'في الوضع diagnostic اسأل سؤالًا واحدًا فقط ثم انتظر إجابة العضو.',
+    'في الوضع evaluative اسأل عن النتيجة الفعلية قبل تعديل التدريب.',
+    'في الوضع adaptive غيّر الأسلوب أو التمرين إذا كانت المحاولة السابقة لم تحقق النتيجة.',
+    'في الوضع clarify بسّط الفكرة مع مثال واحد فقط.',
+    'لا تجعل التخصيص يغيّر الحقائق؛ استخدم فقط ما هو محفوظ أو صرّح به العضو.',
     'لديك أيضًا decision_state لتحديد نوع القرار الحواري الحالي. استخدمه داخليًا ولا تعرضه للمستخدم.',
     'إذا كان القرار diagnose_obstacle فاسأل سؤالًا واحدًا لتحديد السبب قبل الحل.',
     'إذا كان القرار evaluate_attempt فاسأل عن النتيجة الفعلية ثم عدّل الخطوة.',
@@ -1165,6 +1200,9 @@ module.exports=async function handler(req,res){
     const decisionState=buildDecisionState({
       message,cognitiveState,memoryState,currentSession,dailyAutoPlan,coachingProfile
     });
+    const adaptiveDialogueState=buildAdaptiveDialogueState({
+      message,cognitiveState,memoryState,decisionState,currentSession
+    });
 
     let enrichedContext={
       ...context,
@@ -1173,6 +1211,7 @@ module.exports=async function handler(req,res){
       cognitive_state:cognitiveState,
       memory_state:memoryState,
       decision_state:decisionState,
+      adaptive_dialogue_state:adaptiveDialogueState,
       ...(dailyAutoPlan?{daily_auto_plan:dailyAutoPlan}: {}),
       ...(directDailyCompletion?{daily_completion:{completed:true}}: {}),
       ...(dailyCompletionDiagnostic?{daily_completion_error:dailyCompletionDiagnostic}: {})
