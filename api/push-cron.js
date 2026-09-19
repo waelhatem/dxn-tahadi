@@ -57,7 +57,9 @@ module.exports=async function handler(req,res){
 
     configureWebPush();
 
-    const candidates=await supabaseRpc('list_ai_agent_push_candidates',{p_min_age_hours:6});
+    // TEST MODE: allow the current active session to be picked up immediately.
+    // This does not change the normal 24h push cooldown.
+    const candidates=await supabaseRpc('list_ai_agent_push_candidates',{p_min_age_hours:0});
     if(!candidates.ok){
       return res.status(502).json({
         error:(candidates.data&&candidates.data.message)||candidates.text||'تعذر قراءة مشتركي Push'
