@@ -132,6 +132,50 @@ module.exports=async function handler(req,res){
       return res.status(200).json({ok:true});
     }
 
+    if(action==='test_followup'){
+      const sub=body.subscription;
+      if(!validSubscription(sub))return res.status(400).json({error:'بيانات الاشتراك غير صالحة'});
+      configureWebPush();
+
+      const verified=await verifyToken(token);
+
+      const path=
+        `/rest/v1/ai_agent_coaching_sessions?user_id=eq.${encodeURIComponent(verified.userId)}&active=eq.true&select=objective,session_type,updated_at&order=updated_at.asc&limit=1`;
+
+      const sessions=await supabaseRequest('GET',path);
+      if(!sessions.ok){
+        return res.status(400).json({error:(sessions.data&&sessions.data.message)||sessions.text||'تعذر قراءة جلسة محمد'});
+      }
+
+      const session=Array.isArray(sessions.data)?sessions.data[0]:null;
+      if(!session){
+        return res.status(400).json({error:'لا توجد جلسة محمد نشطة. ابدأ جلسة أولًا ثم أعد الاختبار.'});
+      }
+
+      const baseBody=session.session_type==='practice'
+        ?'محمد يتابعك: لديك ممارسة تدريبية لم تكتمل بعد.'
+        :session.session_type==='review'
+          ?'محمد يتابعك: لديك مراجعة تدريبية لم تكتمل بعد.'
+          :'محمد يتابعك: لديك جلسة تدريبية لم تكتمل بعد.';
+
+      const objective=String(session.objective||'').trim();
+
+      await webpush.sendNotification(sub,JSON.stringify({
+        title:'🤖 محمد — اختبار المتابعة',
+        body:objective?baseBody+' '+objective:baseBody,
+        icon:'/logo.png',
+        badge:'/favicon.png',
+        data:{url:'/app/index.html',source:'mohammed-followup-test'}
+      }),{TTL:300,urgency:'normal'});
+
+      return res.status(200).json({
+        ok:true,
+        message:'تم إرسال اختبار المتابعة بنجاح.',
+        session_type:session.session_type||'coaching',
+        objective:objective||null
+      });
+    }
+
     if(action==='test'){
       const sub=body.subscription;
       if(!validSubscription(sub))return res.status(400).json({error:'بيانات الاشتراك غير صالحة'});
