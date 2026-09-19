@@ -108,6 +108,8 @@ from public, anon, authenticated;
 
 grant execute on function public.get_ai_agent_conversation_state(uuid) to anon, authenticated;
 grant execute on function public.upsert_ai_agent_conversation_state(uuid,text,text,text,text,text,timestamptz)
-to anon, authenticated;
+to service_role;
+grant execute on function public.get_ai_agent_conversation_state(uuid)
+to service_role;
 
 notify pgrst, 'reload schema';
