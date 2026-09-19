@@ -1454,3 +1454,10 @@ module.exports=async function handler(req,res){
         coaching_session:currentSession
       }
     });
+  }catch(error){
+    console.error('[ai-agent]',error);
+    return res.status(500).json({
+      error:String(error?.message||error||'FUNCTION_INVOCATION_FAILED')
+    });
+  }
+};
