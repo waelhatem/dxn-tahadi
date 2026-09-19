@@ -148,17 +148,19 @@ module.exports=async function handler(req,res){
       }
 
       const session=Array.isArray(sessions.data)?sessions.data[0]:null;
-      if(!session){
-        return res.status(400).json({error:'لا توجد جلسة محمد نشطة. ابدأ جلسة أولًا ثم أعد الاختبار.'});
-      }
 
-      const baseBody=session.session_type==='practice'
+      // زر اختبار المتابعة يجب أن يختبر قناة Push حتى لو لم تكن هناك
+      // جلسة تدريب نشطة حاليًا. لا ننشئ جلسة وهمية ولا نغيّر حالة العضو.
+      const sessionType=session?.session_type||'coaching';
+      const baseBody=sessionType==='practice'
         ?'محمد يتابعك: لديك ممارسة تدريبية لم تكتمل بعد.'
-        :session.session_type==='review'
+        :sessionType==='review'
           ?'محمد يتابعك: لديك مراجعة تدريبية لم تكتمل بعد.'
-          :'محمد يتابعك: لديك جلسة تدريبية لم تكتمل بعد.';
+          :session
+            ?'محمد يتابعك: لديك جلسة تدريبية لم تكتمل بعد.'
+            :'محمد يتابعك: هذه رسالة اختبار للمتابعة الخلفية.';
 
-      const objective=String(session.objective||'').trim();
+      const objective=String(session?.objective||'').trim();
 
       await webpush.sendNotification(sub,JSON.stringify({
         title:'🤖 محمد — اختبار المتابعة',
@@ -170,8 +172,10 @@ module.exports=async function handler(req,res){
 
       return res.status(200).json({
         ok:true,
-        message:'تم إرسال اختبار المتابعة بنجاح.',
-        session_type:session.session_type||'coaching',
+        message:session
+          ?'تم إرسال اختبار المتابعة بنجاح.'
+          :'تم إرسال اختبار المتابعة بنجاح. لا توجد جلسة نشطة حاليًا، لذلك أُرسلت رسالة اختبار عامة دون إنشاء جلسة.',
+        session_type:sessionType,
         objective:objective||null
       });
     }
