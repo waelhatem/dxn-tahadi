@@ -116,6 +116,18 @@ async function saveDailyState(token,state){
     p_completed_task_keys:Array.isArray(state.completed_task_keys)?state.completed_task_keys.slice(-30):[],
     p_current_task_key:state.current_task_key||null
   });
+  if(!r.ok){
+    console.error('upsert_ai_agent_daily_coaching_state failed:',JSON.stringify({
+      status:r.status,
+      data:r.data||null,
+      text:r.text||null,
+      state:{
+        plan_date:state.plan_date||null,
+        current_task_key:state.current_task_key||null,
+        completed_count:Array.isArray(state.completed_task_keys)?state.completed_task_keys.length:0
+      }
+    }));
+  }
   return r.ok?true:false;
 }
 
@@ -138,13 +150,29 @@ async function prepareDailyActionState(token,plan){
   return {state,actions};
 }
 
-async function completeCurrentDailyTask(token){
+async function completeCurrentDailyTask(token,currentSession=null){
   let state=await loadDailyState(token);
   let taskKey=state.current_task_key;
 
-  // Recover the active task deterministically if the current task key was
-  // not persisted. This prevents a valid completion from being rejected
-  // merely because the daily-state row lost its active key.
+  // Prefer the active coaching session's objective as the source of truth.
+  // The daily-state row is a persistence layer, not the only place that
+  // should determine which task the member is completing.
+  if(!taskKey && currentSession?.objective){
+    const objective=String(currentSession.objective||'').trim();
+    const plan=await AGENT_TOOLS.get_daily_coaching_plan(token);
+    const actions=(Array.isArray(plan?.actions)?plan.actions:[]).map(action=>({
+      ...action,
+      task_key:makeDailyTaskKey(action)
+    }));
+    const normalizedObjective=objective.toLowerCase();
+    const matched=actions.find(action=>{
+      const title=String(action.title||'').trim().toLowerCase();
+      return title && (normalizedObjective.includes(title) || title.includes(normalizedObjective));
+    });
+    if(matched) taskKey=matched.task_key;
+  }
+
+  // Fallback: recover the first uncompleted daily action.
   if(!taskKey){
     const plan=await AGENT_TOOLS.get_daily_coaching_plan(token);
     const prepared=await prepareDailyActionState(token,plan);
@@ -898,7 +926,7 @@ module.exports=async function handler(req,res){
     // Only accept explicit completion when a daily coaching session is active.
     let dailyCompletionDiagnostic=null;
     if(!sessionCommand && currentSession?.active && hasExplicitTaskCompletionEvidence(message)){
-      const completion=await completeCurrentDailyTask(token);
+      const completion=await completeCurrentDailyTask(token,currentSession);
       if(completion?.completed){
         directDailyCompletion=true;
         const advanced=await startNextDailySession(token,currentSession);
