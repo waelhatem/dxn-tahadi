@@ -326,8 +326,7 @@ async function extractSessionUpdate(message,answer,currentSession){
     JSON.stringify(currentSession),
     'رسالة العضو:',
     String(message).slice(0,5000),
-    'رد محمد:',
-    String(answer).slice(0,5000)
+    'لا تستخدم رد محمد كمصدر لاستخراج حقيقة عن العضو. المصدر الوحيد للذاكرة هو كلام العضو نفسه.'
   ].join('\\n');
   try{
     const r=await openai({
@@ -383,7 +382,7 @@ async function saveAgentProfile(token,profile){
 
 function profileUpdateLikely(message){
   const s=String(message||'').toLowerCase();
-  return /هدفي|هدفي هو|اريد|أريد|أحتاج|احتاج|أطمح|اطمح|خبرتي|مبتدئ|متوسط|متقدم|أواجه|اواجه|ضعيف|قوي|أطور|اطور|تركيزي|مجالي|الخطوة الجاية|الخطوة القادمة|أريد أتعلم/.test(s);
+  return /هدفي|هدفي هو|اريد|أريد|أحتاج|احتاج|أطمح|اطمح|خبرتي|مبتدئ|متوسط|متقدم|أواجه|اواجه|مشكلتي|نقطة قوتي|نقطة ضعفي|ضعفي|قوتي|ضعيف|قوي|أطور|اطور|تركيزي|مجالي|أركز على|ارّكز على|الخطوة الجاية|الخطوة القادمة|أريد أتعلم|تعلمت|نجحت في|فشلت في/.test(s);
 }
 
 async function extractProfileUpdate(message,answer,currentProfile){
@@ -728,21 +727,29 @@ function buildCognitiveState({message,context,currentSession,dailyAutoPlan,direc
     decision_rule:'افهم السياق أولًا، لا تفترض ما ينقصك، واسأل سؤالًا واحدًا فقط عندما تكون الإجابة ضرورية للقرار.'
   };
 }
-async function buildMemoryState(token,message,cognitiveState,currentSession){
+async function buildMemoryState(token,message,cognitiveState,currentSession,coachingProfile=null){
   try{
     const rows=await loadAgentMemory(token);
     const recent=Array.isArray(rows)?rows.slice(-12):[];
-    const currentText=String(message||'').trim().toLowerCase();
 
-    // Keep memory retrieval lightweight and deterministic: recent conversation
-    // is the source, while the cognitive state selects what is relevant.
+    // Personal memory is the durable coaching profile. Conversation memory
+    // remains recent so old dialogue is not confused with stable member facts.
+    const personal_memory={
+      goal:coachingProfile?.goal||null,
+      experience_level:coachingProfile?.experience_level||'unknown',
+      focus_area:coachingProfile?.focus_area||null,
+      strengths:Array.isArray(coachingProfile?.strengths)?coachingProfile.strengths.slice(0,8):[],
+      gaps:Array.isArray(coachingProfile?.gaps)?coachingProfile.gaps.slice(0,8):[],
+      current_next_step:coachingProfile?.current_next_step||null
+    };
+
     const relevant=recent.filter(item=>{
       const text=String(item?.content||'').toLowerCase();
       if(!text)return false;
       if(cognitiveState?.current_task && text.includes(String(cognitiveState.current_task).toLowerCase().slice(0,60))) return true;
       if(cognitiveState?.user_intent==='report_obstacle' && /ما أگدر|ما اكدر|صعب|محتار|متردد|رفض|ما رد/.test(text)) return true;
       if(cognitiveState?.user_intent==='report_attempt' && /جربت|سويت|طبقت|نفذت|عملت/.test(text)) return true;
-      return text.length>0;
+      return true;
     });
 
     const facts=[];
@@ -752,26 +759,31 @@ async function buildMemoryState(token,message,cognitiveState,currentSession){
       const key=content.toLowerCase();
       if(!content||seen.has(key))continue;
       seen.add(key);
-      facts.push({
-        role:item.role==='assistant'?'assistant':'user',
-        content
-      });
+      facts.push({role:item.role==='assistant'?'assistant':'user',content});
     }
 
     return {
-      version:'memory_state_v1',
+      version:'personal_memory_v1',
+      personal_memory,
       recent_relevant_messages:facts,
-      memory_rule:'استخدم الذاكرة لدعم الاستمرارية فقط. لا تعتبر استنتاجًا غير مؤكد حقيقة ثابتة.'
+      memory_rule:'الذاكرة الشخصية تمثل معلومات تدريبية مستقرة صرّح بها العضو وحُفظت في ملفه. ذاكرة الحوار للترابط فقط. لا تحول الاستنتاج إلى حقيقة، واعتمد أحدث معلومة صريحة عند التعارض.'
     };
   }catch(_){
     return {
-      version:'memory_state_v1',
+      version:'personal_memory_v1',
+      personal_memory:{
+        goal:coachingProfile?.goal||null,
+        experience_level:coachingProfile?.experience_level||'unknown',
+        focus_area:coachingProfile?.focus_area||null,
+        strengths:Array.isArray(coachingProfile?.strengths)?coachingProfile.strengths.slice(0,8):[],
+        gaps:Array.isArray(coachingProfile?.gaps)?coachingProfile.gaps.slice(0,8):[],
+        current_next_step:coachingProfile?.current_next_step||null
+      },
       recent_relevant_messages:[],
-      memory_rule:'لا توجد ذاكرة إضافية متاحة؛ اعتمد على السياق الحالي.'
+      memory_rule:'لا توجد ذاكرة حوار إضافية؛ استخدم فقط المعلومات الشخصية المحفوظة والسياق الحالي.'
     };
   }
 }
-
 
 function instructions(context){
   return [
@@ -1095,7 +1107,8 @@ module.exports=async function handler(req,res){
       token,
       message,
       cognitiveState,
-      currentSession
+      currentSession,
+      coachingProfile
     );
 
     let enrichedContext={
