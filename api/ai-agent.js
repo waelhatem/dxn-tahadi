@@ -62,7 +62,10 @@ function openai(payload){
     const req=https.request('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:`Bearer ${OPENAI_API_KEY}`,'Content-Type':'application/json','Content-Length':Buffer.byteLength(body)},timeout:45000},res=>{
       let text='';res.setEncoding('utf8');res.on('data',c=>text+=c);res.on('end',()=>{let data=null;try{data=text?JSON.parse(text):null}catch(_){data=null}resolve({ok:res.statusCode>=200&&res.statusCode<300,status:res.statusCode||0,data,text})});
     });
-    req.on('timeout',()=>req.destroy(new Error('انتهت مهلة الاتصال بالذكاء الاصطناعي')));req.on('error',reject);req.write(body);req.end();
+    req.on('timeout',()=>req.destroy(new Error('انتهت مهلة الاتصال بالذكاء الاصطناعي')));
+    req.on('error',error=>resolve({ok:false,status:0,data:null,text:String(error?.message||error)}));
+    req.write(body);
+    req.end();
   });
 }
 
@@ -1472,8 +1475,10 @@ module.exports=async function handler(req,res){
     });
   }catch(error){
     console.error('[ai-agent]',error);
+    const msg=String(error?.message||error||'FUNCTION_INVOCATION_FAILED');
     return res.status(500).json({
-      error:String(error?.message||error||'FUNCTION_INVOCATION_FAILED')
+      error:msg,
+      stage:'ai-agent-request'
     });
   }
 };
