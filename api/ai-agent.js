@@ -139,14 +139,30 @@ async function prepareDailyActionState(token,plan){
 }
 
 async function completeCurrentDailyTask(token){
-  const state=await loadDailyState(token);
-  if(!state.current_task_key) return {completed:false,reason:'لا توجد مهمة يومية نشطة حاليًا.'};
+  let state=await loadDailyState(token);
+  let taskKey=state.current_task_key;
+
+  // Recover the active task deterministically if the current task key was
+  // not persisted. This prevents a valid completion from being rejected
+  // merely because the daily-state row lost its active key.
+  if(!taskKey){
+    const plan=await AGENT_TOOLS.get_daily_coaching_plan(token);
+    const prepared=await prepareDailyActionState(token,plan);
+    const action=prepared.actions[0];
+    if(!action){
+      return {completed:false,reason:'لا توجد مهمة يومية نشطة حاليًا.'};
+    }
+    taskKey=action.task_key;
+    state={...prepared.state,current_task_key:taskKey};
+    await saveDailyState(token,state).catch(()=>null);
+  }
+
   const r=await supabaseRpc('complete_ai_agent_daily_task',{
     p_token:token,
-    p_task_key:state.current_task_key
+    p_task_key:taskKey
   });
   if(!r.ok) throw new Error((r.data&&(r.data.message||r.data.error||r.data.hint))||r.text||'تعذر تسجيل إكمال المهمة اليومية');
-  return {completed:true,task_key:state.current_task_key};
+  return {completed:true,task_key:taskKey};
 }
 
 async function startNextDailySession(token,currentSession){
