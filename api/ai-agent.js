@@ -502,6 +502,18 @@ const AGENT_TOOLS = {
     if(!r.ok) throw new Error((r.data&&(r.data.message||r.data.error||r.data.hint))||r.text||'تعذر قراءة بيانات فريق DXN');
     return r.data;
   },
+  async search_dxn_team_members(token,args={}){
+    const query=String(args.query||'').trim();
+    if(!query) throw new Error('اكتب اسم العضو أو جزءًا من الاسم');
+    const limit=Math.max(1,Math.min(Number(args.limit||20),50));
+    const r=await supabaseRpc('search_dxn_team_members',{
+      p_token:token,
+      p_query:query,
+      p_limit:limit
+    });
+    if(!r.ok) throw new Error((r.data&&(r.data.message||r.data.error||r.data.hint))||r.text||'تعذر البحث عن العضو');
+    return r.data;
+  },
   async get_member_progress(token){
     const ctx = await loadContext(token);
     return {
@@ -994,6 +1006,7 @@ function instructions(context){
     'في المتابعة: إذا كان العضو متقدمًا، انتقل من الشرح إلى التحدي والتطبيق. إذا كان جديدًا، استخدم شرحًا أبسط وأكثر تدرجًا.',
     'عند الحاجة إلى تحليل مستوى العضو أو نقاط قوته وضعفه في الاختبارات، استخدم أداة أداء الاختبارات بدل الاعتماد على الانطباع من المحادثة فقط.',
     'لديك أداة Team Intelligence لقراءة سجل فريق DXN الحقيقي. استخدمها عندما يسأل العضو عن فريقه أو الـDownline أو الأجيال أو الخطوط المباشرة أو توزيع الرتب أو PV.',
+    'إذا سأل العضو عن معلومات عضو آخر ولا يعرف رقم العضوية، وكان لديه الاسم أو جزء منه، استخدم أداة search_dxn_team_members أولًا بالاسم أو الجزء الذي أعطاك إياه. لا تخمّن اسمًا بديلًا ولا رقم عضوية. إذا رجعت نتائج متعددة، اعرض الأسماء وأرقام العضوية واطلب تحديد الشخص الصحيح. إذا لم توجد نتائج، قل إنه لم يظهر في فريقه الحالي وابحث بعبارة أقصر عند الحاجة.',
     'Sponsor هو مفتاح علاقة فقط؛ عند تحليل الفريق ركّز على الـDownline الذي يرجع إلى العضو الحالي. لا تعامل الراعي الشخصي للعضو كأنه الفريق المطلوب تحليله.',
     'عند المقارنة بين الخطوط، اعرض أرقامًا وحقائق من الأداة فقط. لا تستنتج نشاطًا أو مبيعات أو إنتاجية تشغيلية إذا لم تكن موجودة في البيانات.',
     'إذا وُجد team_intelligence في السياق، فهو المصدر المرجعي للأرقام: انقل total_members وdirect_downline_count وgeneration_counts وrank_counts كما وردت حرفيًا دون تقريب أو إعادة حساب أو تغيير أي رقم. إذا كان رقم الأداة غير متاح، قل إنه غير متوفر ولا تخمّن.',
@@ -1051,6 +1064,21 @@ const AGENT_TOOL_DEFINITIONS = [
         limit:{type:'integer',minimum:1,maximum:200}
       },
       required:['mode','member_no','generation','limit'],
+      additionalProperties:false
+    },
+    strict:true
+  },
+  {
+    type:'function',
+    name:'search_dxn_team_members',
+    description:'البحث عن عضو داخل فريق DXN الخاص بالعضو الحالي باستخدام الاسم الكامل أو جزء من الاسم. استخدمها عندما يسأل المستخدم عن معلومات عضو ولا يعرف رقم العضوية. لا تخمّن الاسم أو رقم العضوية؛ ابحث أولًا ثم استخدم نتيجة البحث.',
+    parameters:{
+      type:'object',
+      properties:{
+        query:{type:'string',minLength:1},
+        limit:{type:'integer',minimum:1,maximum:50}
+      },
+      required:['query','limit'],
       additionalProperties:false
     },
     strict:true
