@@ -512,7 +512,31 @@ const AGENT_TOOLS = {
       p_limit:limit
     });
     if(!r.ok) throw new Error((r.data&&(r.data.message||r.data.error||r.data.hint))||r.text||'تعذر البحث عن العضو');
-    return r.data;
+
+    // If the name resolves to exactly one Downline member, immediately load
+    // that member's real Team Intelligence record. This prevents the model
+    // from accidentally answering with the authenticated user's own profile.
+    const result=r.data||{};
+    const members=Array.isArray(result.members)?result.members:[];
+    if(Number(result.count||0)===1 && members.length===1 && members[0]?.member_no){
+      const selectedMemberNo=String(members[0].member_no).trim();
+      try{
+        const memberIntelligence=await AGENT_TOOLS.get_dxn_team_intelligence(token,{
+          mode:'member',
+          member_no:selectedMemberNo,
+          generation:null,
+          limit:1
+        });
+        return {
+          ...result,
+          selected_member:members[0],
+          member_intelligence:memberIntelligence
+        };
+      }catch(_){
+        // Keep the successful name-search result even if the detail lookup fails.
+      }
+    }
+    return result;
   },
   async get_member_progress(token){
     const ctx = await loadContext(token);
