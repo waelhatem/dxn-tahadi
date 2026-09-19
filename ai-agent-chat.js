@@ -339,7 +339,7 @@
     const style=el('style',{},STYLE);document.head.appendChild(style);
     const btn=el('button',{id:'dxnAgentLauncher',type:'button',title:'محمد'},'🤖');
     const panel=el('section',{id:'dxnAgentPanel','aria-label':'محادثة محمد'});
-    panel.innerHTML='<div class="dxn-agent-head"><div><b>🤖 محمد</b><small>مدربك الذكي داخل المنصة</small></div><div class="dxn-agent-head-actions"><button id="dxnAgentPush" class="dxn-agent-push" type="button" title="تفعيل إشعارات محمد">🔔</button><button class="dxn-agent-close" type="button">إغلاق</button></div></div><div id="dxnAgentMessages"></div><div id="dxnAgentStatus" class="dxn-agent-status"></div><form class="dxn-agent-form"><button id="dxnAgentMic" class="dxn-agent-mic" type="button" title="تحدث مع الوكيل">🎙️</button><textarea id="dxnAgentInput" placeholder="اكتب سؤالك هنا... أو اضغط 🎙️ للتحدث" rows="1"></textarea><button id="dxnAgentSend" type="submit">إرسال</button></form>';
+    panel.innerHTML='<div class="dxn-agent-head"><div><b>🤖 محمد</b><small>مدربك الذكي داخل المنصة</small></div><div class="dxn-agent-head-actions"><button id="dxnAgentPush" class="dxn-agent-push" type="button" title="تفعيل إشعارات محمد">🔔</button><button id="dxnAgentFollowupTest" class="dxn-agent-push" type="button" title="اختبار متابعة محمد">🧪</button><button class="dxn-agent-close" type="button">إغلاق</button></div></div><div id="dxnAgentMessages"></div><div id="dxnAgentStatus" class="dxn-agent-status"></div><form class="dxn-agent-form"><button id="dxnAgentMic" class="dxn-agent-mic" type="button" title="تحدث مع الوكيل">🎙️</button><textarea id="dxnAgentInput" placeholder="اكتب سؤالك هنا... أو اضغط 🎙️ للتحدث" rows="1"></textarea><button id="dxnAgentSend" type="submit">إرسال</button></form>';
     document.body.append(btn,panel);
     btn.addEventListener('click',()=>{
       const opening=!panel.classList.contains('show');
@@ -351,11 +351,7 @@
     });
     panel.querySelector('.dxn-agent-close').addEventListener('click',()=>panel.classList.remove('show'));
     document.getElementById('dxnAgentPush').addEventListener('click',subscribePushNotifications);
-    const pushBtn=document.getElementById('dxnAgentPush');
-    pushBtn.addEventListener('contextmenu',e=>{
-      e.preventDefault();
-      testCurrentMemberFollowup().catch(()=>{});
-    });
+    document.getElementById('dxnAgentFollowupTest').addEventListener('click',testCurrentMemberFollowup);
     panel.querySelector('form').addEventListener('submit',e=>{e.preventDefault();send();});
     document.getElementById('dxnAgentInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
     setupVoice();
