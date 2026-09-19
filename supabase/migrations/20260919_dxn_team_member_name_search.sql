@@ -11,11 +11,8 @@ declare
   s text := lower(trim(coalesce(p_name, '')));
 begin
   -- Normalize Arabic letter variants and common punctuation/spaces.
-  s := translate(
-    s,
-    'أإآٱىةؤئءًٌٍَُِّْـ',
-    'اااايتوئء       '
-  );
+  s := translate(s, 'أإآٱىةؤ', 'اااايتو');
+  s := regexp_replace(s, '[ًٌٍَُِّْـ]', '', 'g');
   s := regexp_replace(s, '[^a-z0-9ء-ي]+', ' ', 'g');
   s := regexp_replace(s, '[[:space:]]+', ' ', 'g');
 
@@ -28,10 +25,11 @@ begin
 
   -- Basic Arabic transliteration. The result is intentionally phonetic,
   -- not a formal transliteration, so it can match common English spellings.
+  s := replace(s, 'ذ', 'dh');
   s := translate(
     s,
-    'ابتجحخدذرزسصضطظعفقكلمنهوي',
-    'abtjhkhddrzssddtzafqklmhwy'
+    'ابتجحدرزسصضطظعفقكلمنهوي',
+    'abtjhdrzssdtzafqklmnhwy'
   );
 
   -- Remove vowels to tolerate Ahlam/Ahlem, Mohamed/Mohammad, etc.
