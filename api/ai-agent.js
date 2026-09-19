@@ -670,6 +670,65 @@ const AGENT_TOOLS = {
   }
 };
 
+function buildCognitiveState({message,context,currentSession,dailyAutoPlan,directDailyCompletion}){
+  const s=String(message||'').trim().toLowerCase();
+
+  let user_intent='general_conversation';
+  if(hasExplicitTaskCompletionEvidence(message)) user_intent='report_task_completion';
+  else if(/شلون|كيف|ماذا|شنو|ليش|وين|متى|هل\s/.test(s)) user_intent='ask_question';
+  else if(/أريد|اريد|أحتاج|احتاج|ساعدني|خلينا|ابدأ|نبدأ/.test(s)) user_intent='request_help';
+  else if(/ما أگدر|ما اكدر|ما أقدر|صعب|محتار|متردد|ما أعرف|ما اعرف/.test(s)) user_intent='report_obstacle';
+  else if(/جربت|سويت|طبقت|نفذت|عملت/.test(s)) user_intent='report_attempt';
+
+  const interaction_signal=hasExplicitTaskCompletionEvidence(message)
+    ? 'explicit_completion'
+    : /ما أگدر|ما اكدر|ما أقدر|صعب|محتار|متردد|ما أعرف|ما اعرف/.test(s)
+      ? 'possible_obstacle'
+      : /رفض|رفضني|ما رد|ما ردوا|ما اقتنع/.test(s)
+        ? 'reported_result_or_objection'
+        : 'neutral';
+
+  const current_task=currentSession?.objective
+    || dailyAutoPlan?.actions?.[0]?.title
+    || null;
+
+  const current_goal=currentSession?.objective
+    || dailyAutoPlan?.actions?.[0]?.reason
+    || 'مساعدة العضو على التقدم بخطوة عملية واضحة';
+
+  const known_facts=[];
+  if(currentTask) known_facts.push('المهمة الحالية: '+String(currentTask).slice(0,300));
+  if(currentSession?.phase) known_facts.push('مرحلة الجلسة: '+String(currentSession.phase));
+  if(currentSession?.session_type) known_facts.push('نوع الجلسة: '+String(currentSession.session_type));
+  if(directDailyCompletion) known_facts.push('تم تسجيل إكمال المهمة السابقة في هذه الرسالة');
+
+  const unknown_facts=[];
+  if(user_intent==='report_obstacle') unknown_facts.push('سبب العائق المحدد يحتاج إلى توضيح');
+  if(user_intent==='report_attempt') unknown_facts.push('نتيجة المحاولة تحتاج إلى توضيح');
+  if(!current_task) unknown_facts.push('لا توجد مهمة حالية مؤكدة في السياق');
+
+  let next_best_action='أجب عن الطلب الحالي ثم اختر خطوة واحدة فقط مناسبة للتقدم.';
+  if(user_intent==='report_obstacle') next_best_action='شخّص العائق بسؤال واحد قبل إعطاء الحل.';
+  else if(user_intent==='report_attempt') next_best_action='اسأل عن النتيجة ثم عدّل الخطوة بناءً عليها.';
+  else if(user_intent==='report_task_completion') next_best_action='انتقل للمهمة التالية وابدأها بسؤال أو تطبيق واحد.';
+  else if(currentSession?.phase==='practice') next_best_action='اطلب محاولة عملية واحدة ثم قيّمها.';
+  else if(currentSession?.phase==='feedback') next_best_action='قدّم تصحيحًا واحدًا واضحًا ثم اطلب المحاولة المحسنة.';
+
+  return {
+    version:'cognitive_state_v1',
+    user_intent,
+    interaction_signal,
+    current_goal:String(current_goal||'').slice(0,500),
+    current_task:String(current_task||'').slice(0,500)||null,
+    session_phase:currentSession?.phase||null,
+    session_type:currentSession?.session_type||null,
+    known_facts:known_facts.slice(0,8),
+    unknown_facts:unknown_facts.slice(0,6),
+    next_best_action,
+    decision_rule:'افهم السياق أولًا، لا تفترض ما ينقصك، واسأل سؤالًا واحدًا فقط عندما تكون الإجابة ضرورية للقرار.'
+  };
+}
+
 function instructions(context){
   return [
     'أنت محمد، المدرب الذكي في منصة مجتمع الصحة والثراء. لا تقدم نفسك كبرنامج أو روبوت إلا إذا سُئلت مباشرة عن طبيعتك.',
@@ -686,6 +745,13 @@ function instructions(context){
     'عند شرح موضوع تدريبي أو تقني، استخدم عراقية خفيفة ومفهومة مع الحفاظ على المصطلحات التقنية الواضحة. إذا طلب المستخدم الفصحى أو نصًا رسميًا، انتقل إلى الفصحى.',
     'شخصيتك: واثق من دون غرور، ودود من دون مبالغة، صريح من دون قسوة، ومشجع من دون وعود أو تهويل. لا تمدح المستخدم بلا سبب؛ اربط التشجيع بسلوك أو تقدم فعلي.',
     'أسلوب المحادثة: ابدأ من سؤال المستخدم مباشرة. لا تعيد صياغة سؤاله بلا فائدة. أعطِ إجابة عملية، ثم خطوة تالية واضحة عندما تكون مناسبة.',
+    'لديك طبقة حالة معرفية (cognitive_state) في السياق. استخدمها لفهم النية والهدف والمهمة والمرحلة والمعلومات الناقصة قبل الرد. لا تعرض JSON أو تفاصيل التفكير الداخلي للمستخدم.',
+    'اتخذ القرار الحواري على مراحل: افهم الطلب، راجع ما تعرفه، حدّد ما ينقصك، ثم اختر أفضل خطوة تالية. لا تفترض معلومة غير موجودة.',
+    'إذا كانت هناك معلومة أساسية ناقصة وتؤثر في القرار، اسأل سؤالًا واحدًا محددًا فقط. إذا كانت غير أساسية، لا توقف الحوار من أجلها.',
+    'لا تعطِ قائمة طويلة من الخيارات عندما يمكن اختيار خطوة عملية واحدة. الهدف هو تقدم العضو خطوة واحدة واضحة في كل دور.',
+    'اعتبر next_best_action في cognitive_state توجيهًا أوليًا وليس أمرًا أعمى؛ إذا قدم المستخدم معلومة جديدة، حدّث قرارك وفقها.';
+
+
     'في التدريب: لا تسكب معلومات كثيرة دفعة واحدة. قسّم التعلم إلى خطوات صغيرة، واطلب من العضو التطبيق عندما يكون التطبيق مفيدًا.',
     'في التصحيح: إذا أخطأ العضو، اذكر الخطأ بوضوح ثم قل له كيف يصححه، مع مثال عراقي قصير عند الحاجة.',
     'في المتابعة: إذا كان العضو متقدمًا، انتقل من الشرح إلى التحدي والتطبيق. إذا كان جديدًا، استخدم شرحًا أبسط وأكثر تدرجًا.',
@@ -970,10 +1036,19 @@ module.exports=async function handler(req,res){
     const fallbackHistory=cleanHistory(body.history);
     const history=(persistentMemory.length?persistentMemory:fallbackHistory).slice(-24);
     const baseInput=[...history,{role:'user',content:message}];
+    const cognitiveState=buildCognitiveState({
+      message,
+      context,
+      currentSession,
+      dailyAutoPlan,
+      directDailyCompletion
+    });
+
     let enrichedContext={
       ...context,
       coaching_profile:coachingProfile,
       coaching_session:currentSession,
+      cognitive_state:cognitiveState,
       ...(dailyAutoPlan?{daily_auto_plan:dailyAutoPlan}: {}),
       ...(directDailyCompletion?{daily_completion:{completed:true}}: {}),
       ...(dailyCompletionDiagnostic?{daily_completion_error:dailyCompletionDiagnostic}: {})
