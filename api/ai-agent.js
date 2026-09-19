@@ -925,7 +925,7 @@ module.exports=async function handler(req,res){
     // Do not depend on the model deciding to call the completion tool.
     // Only accept explicit completion when a daily coaching session is active.
     let dailyCompletionDiagnostic=null;
-    if(!sessionCommand && currentSession?.active && hasExplicitTaskCompletionEvidence(message)){
+    if(!sessionCommand && hasExplicitTaskCompletionEvidence(message)){
       const completion=await completeCurrentDailyTask(token,currentSession);
       if(completion?.completed){
         directDailyCompletion=true;
