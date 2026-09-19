@@ -82,6 +82,11 @@ function cleanHistory(history){
   }).filter(Boolean);
 }
 
+function isTeamIntelligenceRequest(message){
+  const s=String(message||'').trim().toLowerCase();
+  return /ملخص\s+(?:فريقي|الفريق)|فريقي\s+في\s+dxn|فريق\s+dxn|الـ?downline|downline|الاجيال|الأجيال|الخطوط\s+(?:المباشرة|التحتية)|توزيع\s+(?:الرتب|الأعضاء)|pv\s+(?:الفريق|فريقي)/i.test(s);
+}
+
 function isDailyPlanRequest(message){
   const s=String(message||'').trim().toLowerCase();
   return /شنو\s+(?:أسوي|اسوي|أشتغل|اشتغل|أعمل|اعمل)\s+(?:هسه|اليوم)|ماذا\s+(?:أفعل|افعل|أعمل|اعمل)\s+(?:الآن|اليوم)|شنو\s+الخطوة\s+(?:الجايه|الجاية|القادمة)|ماذا\s+أفعل\s+الآن/.test(s);
@@ -1266,6 +1271,10 @@ module.exports=async function handler(req,res){
     let currentSession=await loadAgentSession(token);
     let dailyAutoPlan=null;
     let directDailyCompletion=false;
+    let teamIntelligence=null;
+    if(isTeamIntelligenceRequest(message)){
+      teamIntelligence=await AGENT_TOOLS.get_dxn_team_intelligence(token,{mode:'summary',member_no:null,generation:null,limit:50});
+    }
 
     // Completion of the daily task is a deterministic server-side action.
     // Do not depend on the model deciding to call the completion tool.
@@ -1345,7 +1354,8 @@ module.exports=async function handler(req,res){
       long_term_personal_model:longTermPersonalModel,
       ...(dailyAutoPlan?{daily_auto_plan:dailyAutoPlan}: {}),
       ...(directDailyCompletion?{daily_completion:{completed:true}}: {}),
-      ...(dailyCompletionDiagnostic?{daily_completion_error:dailyCompletionDiagnostic}: {})
+      ...(dailyCompletionDiagnostic?{daily_completion_error:dailyCompletionDiagnostic}: {}),
+      ...(teamIntelligence?{team_intelligence:teamIntelligence}: {})
     };
     let input=baseInput;
     const availableAgentTools=(directDailyCompletion||dailyCompletionDiagnostic)
