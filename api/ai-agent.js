@@ -161,7 +161,28 @@ async function completeCurrentDailyTask(token){
     p_token:token,
     p_task_key:taskKey
   });
-  if(!r.ok) throw new Error((r.data&&(r.data.message||r.data.error||r.data.hint))||r.text||'تعذر تسجيل إكمال المهمة اليومية');
+  if(!r.ok){
+    const detail=r.data&&typeof r.data==='object'
+      ? {
+          code:r.data.code||null,
+          message:r.data.message||null,
+          details:r.data.details||null,
+          hint:r.data.hint||null,
+          error:r.data.error||null
+        }
+      : null;
+    console.error('complete_ai_agent_daily_task failed:',JSON.stringify({
+      status:r.status,
+      detail,
+      text:r.text||null,
+      task_key:taskKey
+    }));
+    const e=new Error((r.data&&(r.data.message||r.data.error||r.data.hint))||r.text||'تعذر تسجيل إكمال المهمة اليومية');
+    e.code=r.data&&r.data.code||null;
+    e.details=r.data&&r.data.details||null;
+    e.hint=r.data&&r.data.hint||null;
+    throw e;
+  }
   return {completed:true,task_key:taskKey};
 }
 
