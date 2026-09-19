@@ -295,7 +295,8 @@ function detectTrainingConsent(message,conversationState){
     conversationState?.open_loop,
     conversationState?.pending_member_action
   ].filter(Boolean).join(' ').toLowerCase();
-  return /(?:تدريب|التدريب|جلسة تدريب|تدريب اليوم|ننتقل)/.test(pending);
+  const trainingPending=/(?:تدريب|التدريب|جلسة تدريب|تدريب اليوم|ننتقل)/.test(pending);
+  return trainingPending && (affirmative || affirmativeStart);
 }
 
 function detectSessionCommand(message){
