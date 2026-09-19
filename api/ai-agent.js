@@ -727,6 +727,34 @@ function buildCognitiveState({message,context,currentSession,dailyAutoPlan,direc
     decision_rule:'افهم السياق أولًا، لا تفترض ما ينقصك، واسأل سؤالًا واحدًا فقط عندما تكون الإجابة ضرورية للقرار.'
   };
 }
+function buildLongTermPersonalModel({memoryState,coachingProfile,reflectionState,currentSession}){
+  const p=memoryState?.personal_memory||coachingProfile||{};
+  const strengths=Array.isArray(p.strengths)?p.strengths.slice(0,8):[];
+  const gaps=Array.isArray(p.gaps)?p.gaps.slice(0,8):[];
+  const outcome=reflectionState?.outcome||'unknown';
+  return {
+    version:'long_term_personal_model_v1',
+    profile:{
+      goal:p.goal||null,
+      experience_level:p.experience_level||'unknown',
+      focus_area:p.focus_area||null,
+      strengths,
+      gaps,
+      current_next_step:p.current_next_step||null
+    },
+    learning_pattern:{
+      current_outcome:outcome,
+      current_session_type:currentSession?.session_type||null,
+      current_phase:currentSession?.phase||null,
+      adaptive_mode:reflectionState?.adjustment||'continue'
+    },
+    stable_facts:[],
+    inferred_patterns:[],
+    update_policy:'احفظ فقط الحقائق التدريبية الصريحة في ملف العضو. الأنماط المستنتجة تبقى مؤقتة ولا تصبح حقائق ثابتة إلا بعد تكرار أو تصريح واضح.',
+    safety_policy:'لا تبنِ أو تحفظ استنتاجات حساسة أو تشخيصات أو تنبؤات شخصية.'
+  };
+}
+
 function buildReflectionState({message,cognitiveState,memoryState,decisionState,adaptiveDialogueState,currentSession}){
   const s=String(message||'').toLowerCase();
   const recent=Array.isArray(memoryState?.recent_relevant_messages)?memoryState.recent_relevant_messages:[];
@@ -911,6 +939,9 @@ function instructions(context){
     'اعتبر next_best_action في cognitive_state توجيهًا أوليًا وليس أمرًا أعمى؛ إذا قدم المستخدم معلومة جديدة، حدّث قرارك وفقها.';
     'استخدم adaptive_dialogue_state لتغيير أسلوب الحوار ومستوى التحدي بحسب استجابة العضو، دون كشف الحالة الداخلية.',
     'استخدم reflection_state لتكييف الخطوة الحالية فقط. لا تعرضه للمستخدم ولا تحول استنتاجًا مؤقتًا إلى حقيقة ثابتة.',
+    'استخدم long_term_personal_model لتخصيص التدريب عبر الزمن، لكن لا تعرض النموذج الداخلي للمستخدم.',
+    'اعتمد في النموذج طويل المدى على الحقائق الصريحة المحفوظة فقط. الأنماط المستنتجة مؤقتة ولا تعاملها كحقائق.',
+    'استخدم outcome الحالي لتكييف الجلسة الحالية، ولا تحفظ نتيجة عابرة كصفة ثابتة للعضو.',
     'إذا كانت النتيجة positive زد التحدي تدريجيًا. إذا كانت negative غيّر الأسلوب أو التمرين. إذا كانت blocked شخّص السبب أولًا.',
     'لا تعتبر نجاحًا أو فشلًا إلا إذا كان مدعومًا بإشارة واضحة من العضو.',
     'التعلم المستمر يكون من النتائج المعلنة والمتكررة، وليس من التخمين.',
@@ -1234,6 +1265,9 @@ module.exports=async function handler(req,res){
     const reflectionState=buildReflectionState({
       message,cognitiveState,memoryState,decisionState,adaptiveDialogueState,currentSession
     });
+    const longTermPersonalModel=buildLongTermPersonalModel({
+      memoryState,coachingProfile,reflectionState,currentSession
+    });
 
     let enrichedContext={
       ...context,
@@ -1244,6 +1278,7 @@ module.exports=async function handler(req,res){
       decision_state:decisionState,
       adaptive_dialogue_state:adaptiveDialogueState,
       reflection_state:reflectionState,
+      long_term_personal_model:longTermPersonalModel,
       ...(dailyAutoPlan?{daily_auto_plan:dailyAutoPlan}: {}),
       ...(directDailyCompletion?{daily_completion:{completed:true}}: {}),
       ...(dailyCompletionDiagnostic?{daily_completion_error:dailyCompletionDiagnostic}: {})
