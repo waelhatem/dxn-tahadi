@@ -727,6 +727,30 @@ function buildCognitiveState({message,context,currentSession,dailyAutoPlan,direc
     decision_rule:'افهم السياق أولًا، لا تفترض ما ينقصك، واسأل سؤالًا واحدًا فقط عندما تكون الإجابة ضرورية للقرار.'
   };
 }
+function buildReflectionState({message,cognitiveState,memoryState,decisionState,adaptiveDialogueState,currentSession}){
+  const s=String(message||'').toLowerCase();
+  const recent=Array.isArray(memoryState?.recent_relevant_messages)?memoryState.recent_relevant_messages:[];
+  let outcome='unknown',signal='none',learning='لا توجد نتيجة مؤكدة بعد.',adjustment='continue';
+  if(/نجح|نجحت|فادني|فادتني|اشتغل|اشتغلت|ضبط|ضبطت|اقتنعت|وافق|وافقوا/.test(s)){
+    outcome='positive'; signal='reported_success'; learning='الأسلوب الحالي لديه إشارة نجاح صريحة من العضو.'; adjustment='increase_challenge_gradually';
+  }else if(/فشل|فشلت|ما نفع|ما نفعني|ما اشتغل|ما اشتغلت|رفض|رفضني|ما اقتنع|ما رد/.test(s)){
+    outcome='negative'; signal='reported_failure'; learning='الأسلوب الحالي لديه إشارة عدم نجاح أو اعتراض صريح.'; adjustment='change_approach';
+  }else if(cognitiveState?.interaction_signal==='possible_obstacle'){
+    outcome='blocked'; signal='obstacle'; learning='هناك عائق لم يُشخّص بعد.'; adjustment='diagnose_before_teaching';
+  }else if(cognitiveState?.user_intent==='report_attempt'){
+    signal='attempt_reported'; learning='تم الإبلاغ عن محاولة لكن نتيجتها غير مؤكدة.'; adjustment='ask_for_result';
+  }
+  if(currentSession?.phase==='feedback'&&adaptiveDialogueState?.mode==='feedback'){
+    adjustment='apply_one_correction_then_retry';
+  }
+  return {
+    version:'reflection_learning_v1',
+    outcome,signal,learning,adjustment,
+    evidence_count:recent.length,
+    rule:'لا تعتبر الاستنتاج تعلمًا ثابتًا إلا إذا دعمه تصريح واضح من العضو أو تكرار سلوك يمكن ملاحظته. استخدم النتيجة الحالية لتكييف الحوار، ولا تحوّلها إلى حقيقة شخصية محفوظة دون تصريح.'
+  };
+}
+
 function buildAdaptiveDialogueState({message,cognitiveState,memoryState,decisionState,currentSession}){
   const profile=memoryState?.personal_memory||{};
   const text=String(message||'').toLowerCase();
@@ -886,6 +910,10 @@ function instructions(context){
     'لا تعطِ قائمة طويلة من الخيارات عندما يمكن اختيار خطوة عملية واحدة. الهدف هو تقدم العضو خطوة واحدة واضحة في كل دور.',
     'اعتبر next_best_action في cognitive_state توجيهًا أوليًا وليس أمرًا أعمى؛ إذا قدم المستخدم معلومة جديدة، حدّث قرارك وفقها.';
     'استخدم adaptive_dialogue_state لتغيير أسلوب الحوار ومستوى التحدي بحسب استجابة العضو، دون كشف الحالة الداخلية.',
+    'استخدم reflection_state لتكييف الخطوة الحالية فقط. لا تعرضه للمستخدم ولا تحول استنتاجًا مؤقتًا إلى حقيقة ثابتة.',
+    'إذا كانت النتيجة positive زد التحدي تدريجيًا. إذا كانت negative غيّر الأسلوب أو التمرين. إذا كانت blocked شخّص السبب أولًا.',
+    'لا تعتبر نجاحًا أو فشلًا إلا إذا كان مدعومًا بإشارة واضحة من العضو.',
+    'التعلم المستمر يكون من النتائج المعلنة والمتكررة، وليس من التخمين.',
     'في الوضع diagnostic اسأل سؤالًا واحدًا فقط ثم انتظر إجابة العضو.',
     'في الوضع evaluative اسأل عن النتيجة الفعلية قبل تعديل التدريب.',
     'في الوضع adaptive غيّر الأسلوب أو التمرين إذا كانت المحاولة السابقة لم تحقق النتيجة.',
@@ -1203,6 +1231,9 @@ module.exports=async function handler(req,res){
     const adaptiveDialogueState=buildAdaptiveDialogueState({
       message,cognitiveState,memoryState,decisionState,currentSession
     });
+    const reflectionState=buildReflectionState({
+      message,cognitiveState,memoryState,decisionState,adaptiveDialogueState,currentSession
+    });
 
     let enrichedContext={
       ...context,
@@ -1212,6 +1243,7 @@ module.exports=async function handler(req,res){
       memory_state:memoryState,
       decision_state:decisionState,
       adaptive_dialogue_state:adaptiveDialogueState,
+      reflection_state:reflectionState,
       ...(dailyAutoPlan?{daily_auto_plan:dailyAutoPlan}: {}),
       ...(directDailyCompletion?{daily_completion:{completed:true}}: {}),
       ...(dailyCompletionDiagnostic?{daily_completion_error:dailyCompletionDiagnostic}: {})
