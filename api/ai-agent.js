@@ -485,7 +485,7 @@ const AGENT_TOOLS = {
       throw new Error('رقم الجيل غير صالح');
     }
     const r=await supabaseRpc('get_dxn_team_intelligence',{
-      p_root_member_no:ctx.member.member_no,
+      p_token:token,
       p_mode:mode,
       p_member_no:memberNo,
       p_generation:generation,
