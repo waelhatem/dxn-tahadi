@@ -1223,8 +1223,12 @@ async function generateDailyKickoff(context,coachingProfile,session,plan){
     'لا تعرض قائمة مهام كاملة ولا تشرح الخطة ولا تذكر أنك تعمل وفق خطة يومية.',
     'إذا كانت المهمة مراجعة أو ممارسة، افتح بموقف واقعي خفيف. وإذا كانت تدريبًا جديدًا، افتح بمدخل conversational بسيط يجعل العضو يشعر أن الحديث بدأ طبيعيًا.',
     'اجعل الرسالة الأولى قصيرة وحيوية وفيها روح شخص مرح ومتفاعل، مع الحفاظ على اللهجة العراقية الطبيعية ومن دون مبالغة أو حماس مصطنع.',
-    'السياق:',
-    JSON.stringify({
+    'قاعدة الانتقال من الحوار إلى التدريب:',
+    'توقف العضو عن الكتابة أو مرور الوقت لا يعني أن موضوعه انتهى ولا يعني موافقته على التدريب.',
+    'إذا لم توجد جلسة تدريب نشطة وكان للعضو موضوع حواري أو سؤال جاري، لا تبدأ التدريب تلقائيًا ولا تغيّر الموضوع لمجرد وجود خطة يومية.',
+    'بعد أن يتضح من الحوار أن موضوع العضو انتهى فعلًا، وإذا كانت هناك مهمة يومية غير مكتملة، استأذن العضو أولًا قبل الانتقال إليها بصيغة طبيعية مثل: إذا خلصنا من هالموضوع، تحب ننتقل لتدريب اليوم؟',
+    'لا تبدأ جلسة تدريب جديدة إلا بعد موافقة واضحة من العضو أو طلب مباشر منه بدء التدريب/الخطوة اليومية.',
+    marker
       member:context.member,
       session,
       action,
@@ -1308,10 +1312,9 @@ module.exports=async function handler(req,res){
       let reminder=false;
 
       if(!session?.active){
-        const startedResult=await startNextDailySession(token,currentSession);
-        session=startedResult.session;
-        plan=startedResult.plan;
-        started=!!session?.active;
+        // Silence, page reloads, or returning to the page are NOT consent to start training.
+        // Muhammad must wait for an explicit member request/approval before starting a new session.
+        plan=await AGENT_TOOLS.get_daily_coaching_plan(token);
       }else{
         plan=await AGENT_TOOLS.get_daily_coaching_plan(token);
         const updatedAt=session.updated_at?new Date(session.updated_at).getTime():Date.now();
