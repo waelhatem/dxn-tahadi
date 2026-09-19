@@ -1442,3 +1442,15 @@ module.exports=async function handler(req,res){
 
     // Persist the successful turn so محمد can continue naturally across future sessions.
     await saveAgentMessage(token,'user',message).catch(()=>null);
+    await saveAgentMessage(token,'assistant',answer).catch(()=>null);
+
+    return res.status(200).json({
+      ok:true,
+      answer,
+      context:{
+        member:context.member,
+        role:context.role,
+        daily_completion:directDailyCompletion?{completed:true}:null,
+        coaching_session:currentSession
+      }
+    });
