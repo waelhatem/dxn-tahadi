@@ -981,7 +981,25 @@ function instructions(context){
   ].join('\\n');
 }
 
+async function getMemberSponsorLink(token){
+  try{
+    const r=await supabaseRpc('get_member_sponsor_link',{p_token:token});
+    if(!r.ok) return {configured:false,verified:false,sponsor_member_no:null,error:r.data?.message||r.data?.error||r.text||null};
+    const row=Array.isArray(r.data)?r.data[0]:null;
+    return {configured:!!row?.sponsor_member_no,verified:!!row?.sponsor_member_no,sponsor_member_no:row?.sponsor_member_no||null,updated_at:row?.updated_at||null};
+  }catch(e){
+    return {configured:false,verified:false,sponsor_member_no:null,error:String(e?.message||e)};
+  }
+}
+
 const AGENT_TOOL_DEFINITIONS = [
+  {
+    type:'function',
+    name:'get_member_sponsor_link',
+    description:'قراءة الراعي المباشر الذي سجله العضو برقم العضوية. استخدمها عند تحليل هيكل الفريق أو تحديد علاقة العضو بالراعي. لا تستنتج منها شجرة DXN كاملة ولا تتجاوز البيانات غير المؤكدة.',
+    parameters:{type:'object',properties:{},additionalProperties:false},
+    strict:true
+  },
   {
     type:'function',
     name:'get_member_progress',
@@ -1057,6 +1075,8 @@ function hasExplicitTaskCompletionEvidence(message){
 
 
 async function executeAgentTool(call,token,currentUserMessage){
+  if(call.name==='get_member_sponsor_link') return await getMemberSponsorLink(token);
+
   const fn=AGENT_TOOLS[call.name];
   if(typeof fn!=='function') throw new Error('أداة غير مسموحة');
   let args={};
