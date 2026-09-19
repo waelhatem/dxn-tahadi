@@ -361,7 +361,7 @@
     panel.querySelector('form').addEventListener('submit',e=>{e.preventDefault();send();});
     document.getElementById('dxnAgentInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
     setupVoice();
-    addMsg('مرحبًا، أنا محمد. يمكنك سؤالي عن تدريباتك وتقدمك وما يمكنك فعله الآن.','ai');
+    addMsg('هلا والله 😄 أنا محمد، شلونك؟ خلّينا نحچي براحتنا، وإذا عندك سؤال أو شي تريد تشتغل عليه اليوم، آني وياك.','ai');
     startDailyHeartbeat();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
