@@ -94,8 +94,14 @@
     }));
     try{
       const r=await fetch('/api/ai-agent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,message,history})});
-      const d=await r.json().catch(()=>({}));
-      if(!r.ok)throw new Error(d.error||('HTTP '+r.status));
+      const raw=await r.text();
+      let d={};
+      try{d=raw?JSON.parse(raw):{};}catch(_){d={raw};}
+      if(!r.ok){
+        const detail=d.error||d.raw||('HTTP '+r.status);
+        const stage=d.stage?(' ['+d.stage+']'):'';
+        throw new Error(String(detail)+stage);
+      }
       const answer=d.answer||'لم يصل رد من الوكيل.';
       addMsg(answer,'ai');
       if(fromVoice) await speakAnswer(answer);
