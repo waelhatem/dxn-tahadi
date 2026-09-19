@@ -915,4 +915,65 @@ module.exports=async function handler(req,res){
           }
         }catch(toolError){
           outputs.push({
-            type:'function_call_output',
+            type:'function_call_output',            call_id:call.call_id,
+            output:JSON.stringify({error:String(toolError&&toolError.message||toolError)})
+          });
+        }
+      }
+
+      input=[...(Array.isArray(ai.data.output)?ai.data.output:[]),...outputs];
+
+      if(dailyTaskCompleted){
+        const advanced=await startNextDailySession(token,currentSession).catch(()=>null);
+        if(advanced){
+          currentSession=advanced.session;
+          dailyAutoPlan=advanced.plan;
+          enrichedContext={
+            ...context,
+            coaching_profile:coachingProfile,
+            coaching_session:currentSession,
+            ...(dailyAutoPlan?{daily_auto_plan:dailyAutoPlan}: {})
+          };
+        }
+      }
+    }
+
+    const answer=outputText(ai.data);
+    if(!answer)throw new Error('لم يرجع الوكيل ردًا');
+
+    // Persist the successful turn so محمد can continue naturally across future sessions.
+    await saveAgentMessage(token,'user',message).catch(()=>null);
+    await saveAgentMessage(token,'assistant',answer).catch(()=>null);
+
+    if(currentSession?.active){
+      const sessionUpdate=await extractSessionUpdate(message,answer,currentSession);
+      const nextSession={
+        ...currentSession,
+        ...(sessionUpdate||{}),
+        turn_count:Number(currentSession.turn_count||0)+1
+      };
+      await saveAgentSession(token,nextSession).catch(()=>null);
+      currentSession=nextSession;
+    }
+
+    const profileUpdate=await extractProfileUpdate(message,answer,coachingProfile);
+    if(profileUpdate){
+      const merged={
+        ...(coachingProfile||{}),
+        ...profileUpdate,
+        goal:profileUpdate.goal||coachingProfile?.goal||null,
+        focus_area:profileUpdate.focus_area||coachingProfile?.focus_area||null,
+        current_next_step:profileUpdate.current_next_step||coachingProfile?.current_next_step||null,
+        experience_level:profileUpdate.experience_level==='unknown'?(coachingProfile?.experience_level||'unknown'):profileUpdate.experience_level,
+        strengths:Array.from(new Set([...(coachingProfile?.strengths||[]),...(profileUpdate.strengths||[])])).slice(-8),
+        gaps:Array.from(new Set([...(coachingProfile?.gaps||[]),...(profileUpdate.gaps||[])])).slice(-8)
+      };
+      await saveAgentProfile(token,merged).catch(()=>null);
+    }
+
+    return res.status(200).json({ok:true,answer,model:OPENAI_MODEL,role:context.role});
+  }catch(e){
+    console.error('AI agent error:',e);
+    return res.status(500).json({error:String(e&&e.message||e)});
+  }
+};
