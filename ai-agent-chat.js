@@ -199,6 +199,31 @@
     return d;
   }
 
+  async function testCurrentMemberFollowup(){
+    const token=sessionToken();
+    const btn=document.getElementById('dxnAgentPush');
+    if(!token||!btn)return;
+    try{
+      const reg=await navigator.serviceWorker.ready;
+      const sub=await reg.pushManager.getSubscription();
+      if(!sub){
+        addMsg('فعّل إشعارات محمد أولًا ثم اختبر المتابعة.','ai');
+        return;
+      }
+      setStatus('محمد يختبر المتابعة الخلفية...');
+      const r=await pushApi({
+        action:'test_followup',
+        token,
+        subscription:sub.toJSON()
+      });
+      addMsg(r.message||'تم إرسال اختبار المتابعة.','ai');
+    }catch(e){
+      addMsg('تعذر اختبار المتابعة: '+String(e.message||e),'ai');
+    }finally{
+      setStatus('');
+    }
+  }
+
   async function subscribePushNotifications(){
     const token=sessionToken();
     if(!token){
@@ -326,6 +351,11 @@
     });
     panel.querySelector('.dxn-agent-close').addEventListener('click',()=>panel.classList.remove('show'));
     document.getElementById('dxnAgentPush').addEventListener('click',subscribePushNotifications);
+    const pushBtn=document.getElementById('dxnAgentPush');
+    pushBtn.addEventListener('contextmenu',e=>{
+      e.preventDefault();
+      testCurrentMemberFollowup().catch(()=>{});
+    });
     panel.querySelector('form').addEventListener('submit',e=>{e.preventDefault();send();});
     document.getElementById('dxnAgentInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
     setupVoice();
