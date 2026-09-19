@@ -102,10 +102,14 @@ begin
         where m.member_no = target_no
       ),
       'immediate_downline',coalesce((
-        select jsonb_agg(to_jsonb(d) order by d.generation nulls last, d.member_name nulls last)
-        from public.dxn_team_members d
-        where d.sponsor_member_no = target_no
-        limit max_rows
+        select jsonb_agg(to_jsonb(x) order by x.generation nulls last, x.member_name nulls last)
+        from (
+          select d.*
+          from public.dxn_team_members d
+          where d.sponsor_member_no = target_no
+          order by d.generation nulls last, d.member_name nulls last
+          limit max_rows
+        ) x
       ),'[]'::jsonb)
     ) into result;
 
