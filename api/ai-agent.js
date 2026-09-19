@@ -709,7 +709,11 @@ async function executeAgentTool(call,token,currentUserMessage){
   try{args=call.arguments?JSON.parse(call.arguments):{};}catch(_){throw new Error('وسائط الأداة غير صالحة');}
 
   if(call.name==='complete_daily_coaching_task' && !hasExplicitTaskCompletionEvidence(currentUserMessage)){
-    throw new Error('لا يمكن تسجيل إكمال المهمة دون تأكيد واضح من العضو بأنه أنجز المهمة فعليًا.');
+    return {
+      completed:false,
+      blocked:true,
+      reason:'لا يمكن تسجيل إكمال المهمة دون تأكيد واضح من العضو بأنه أنجز المهمة فعليًا.'
+    };
   }
 
   // The authenticated session token is injected server-side and is never exposed to the model.
