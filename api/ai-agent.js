@@ -719,7 +719,7 @@ function buildCognitiveState({message,context,currentSession,dailyAutoPlan,direc
     || 'مساعدة العضو على التقدم بخطوة عملية واضحة';
 
   const known_facts=[];
-  if(currentTask) known_facts.push('المهمة الحالية: '+String(currentTask).slice(0,300));
+  if(current_task) known_facts.push('المهمة الحالية: '+String(current_task).slice(0,300));
   if(currentSession?.phase) known_facts.push('مرحلة الجلسة: '+String(currentSession.phase));
   if(currentSession?.session_type) known_facts.push('نوع الجلسة: '+String(currentSession.session_type));
   if(directDailyCompletion) known_facts.push('تم تسجيل إكمال المهمة السابقة في هذه الرسالة');
