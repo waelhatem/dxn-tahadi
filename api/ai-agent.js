@@ -727,6 +727,52 @@ function buildCognitiveState({message,context,currentSession,dailyAutoPlan,direc
     decision_rule:'افهم السياق أولًا، لا تفترض ما ينقصك، واسأل سؤالًا واحدًا فقط عندما تكون الإجابة ضرورية للقرار.'
   };
 }
+function buildDecisionState({message,cognitiveState,memoryState,currentSession,dailyAutoPlan,coachingProfile}){
+  const intent=cognitiveState?.user_intent||'general_conversation';
+  const signal=cognitiveState?.interaction_signal||'neutral';
+  const phase=currentSession?.phase||null;
+  const profile=memoryState?.personal_memory||coachingProfile||{};
+  const actions=Array.isArray(dailyAutoPlan?.actions)?dailyAutoPlan.actions:[];
+  const hasGoal=!!profile.goal;
+  const hasGap=Array.isArray(profile.gaps)&&profile.gaps.length>0;
+  const hasNextStep=!!profile.current_next_step;
+  let decision='answer_current_request',reason='الطلب الحالي هو نقطة القرار الأساسية.',confidence='medium';
+  if(signal==='explicit_completion'){
+    decision=actions.length?'start_next_daily_task':'review_progress';
+    reason=actions.length?'المهمة الحالية اكتملت؛ توجد خطوة يومية تالية.':'المهمة اكتملت ولا توجد مهمة يومية أخرى واضحة.';
+    confidence='high';
+  }else if(intent==='report_obstacle'){
+    decision='diagnose_obstacle'; reason='وجود عائق يستدعي فهم السبب قبل تغيير الخطة.'; confidence='high';
+  }else if(intent==='report_attempt'){
+    decision='evaluate_attempt'; reason='نتيجة المحاولة مطلوبة قبل اختيار الخطوة التالية.'; confidence='high';
+  }else if(signal==='reported_result_or_objection'){
+    decision='analyze_result_then_adapt'; reason='ظهرت نتيجة أو اعتراض؛ يجب تعديل الخطوة بدل تكرارها آليًا.'; confidence='high';
+  }else if(phase==='practice'){
+    decision='request_one_attempt'; reason='الجلسة في مرحلة تطبيق.'; confidence='high';
+  }else if(phase==='feedback'){
+    decision='give_one_correction_then_retry'; reason='الجلسة في مرحلة تغذية راجعة.'; confidence='high';
+  }else if(actions.length){
+    decision='continue_daily_plan'; reason='توجد مهمة يومية مرتبطة بتقدم العضو.';
+  }else if(hasNextStep){
+    decision='continue_member_next_step'; reason='يوجد next step محفوظ في ملف العضو.';
+  }else if(hasGap){
+    decision='target_known_gap'; reason='يوجد مجال ضعف محفوظ يمكن تحويله إلى تطبيق.';
+  }else if(hasGoal){
+    decision='advance_toward_goal'; reason='يوجد هدف محفوظ يمكن ربط الرد به.';
+  }
+  return {
+    version:'decision_state_v1',decision,reason,confidence,
+    based_on:{intent,signal,session_phase:phase,has_daily_action:actions.length>0,has_goal:hasGoal,has_known_gap:hasGap,has_saved_next_step:hasNextStep},
+    guardrails:[
+      'لا تغيّر الهدف أو الخطة بناءً على استنتاج غير مؤكد.',
+      'إذا كان القرار يعتمد على معلومة ناقصة اسأل سؤالًا واحدًا فقط.',
+      'لا تكرر محاولة ثبت فشلها دون تعديل واضح.',
+      'بعد نتيجة إيجابية زد التحدي تدريجيًا بدل إعادة نفس الشرح.',
+      'بعد عائق متكرر ابحث عن السبب قبل إضافة مهمة جديدة.'
+    ]
+  };
+}
+
 async function buildMemoryState(token,message,cognitiveState,currentSession,coachingProfile=null){
   try{
     const rows=await loadAgentMemory(token);
@@ -810,6 +856,12 @@ function instructions(context){
     'إذا كانت هناك معلومة أساسية ناقصة وتؤثر في القرار، اسأل سؤالًا واحدًا محددًا فقط. إذا كانت غير أساسية، لا توقف الحوار من أجلها.',
     'لا تعطِ قائمة طويلة من الخيارات عندما يمكن اختيار خطوة عملية واحدة. الهدف هو تقدم العضو خطوة واحدة واضحة في كل دور.',
     'اعتبر next_best_action في cognitive_state توجيهًا أوليًا وليس أمرًا أعمى؛ إذا قدم المستخدم معلومة جديدة، حدّث قرارك وفقها.';
+    'لديك أيضًا decision_state لتحديد نوع القرار الحواري الحالي. استخدمه داخليًا ولا تعرضه للمستخدم.',
+    'إذا كان القرار diagnose_obstacle فاسأل سؤالًا واحدًا لتحديد السبب قبل الحل.',
+    'إذا كان القرار evaluate_attempt فاسأل عن النتيجة الفعلية ثم عدّل الخطوة.',
+    'إذا كان القرار analyze_result_then_adapt فلا تكرر الأسلوب نفسه دون تعديل.',
+    'إذا كان القرار give_one_correction_then_retry فقدم تصحيحًا واحدًا ثم اطلب إعادة المحاولة.',
+    'إذا كان القرار start_next_daily_task فابدأ بالمهمة التالية مباشرة.',
 
 
     'في التدريب: لا تسكب معلومات كثيرة دفعة واحدة. قسّم التعلم إلى خطوات صغيرة، واطلب من العضو التطبيق عندما يكون التطبيق مفيدًا.',
@@ -1110,6 +1162,9 @@ module.exports=async function handler(req,res){
       currentSession,
       coachingProfile
     );
+    const decisionState=buildDecisionState({
+      message,cognitiveState,memoryState,currentSession,dailyAutoPlan,coachingProfile
+    });
 
     let enrichedContext={
       ...context,
@@ -1117,6 +1172,7 @@ module.exports=async function handler(req,res){
       coaching_session:currentSession,
       cognitive_state:cognitiveState,
       memory_state:memoryState,
+      decision_state:decisionState,
       ...(dailyAutoPlan?{daily_auto_plan:dailyAutoPlan}: {}),
       ...(directDailyCompletion?{daily_completion:{completed:true}}: {}),
       ...(dailyCompletionDiagnostic?{daily_completion_error:dailyCompletionDiagnostic}: {})
