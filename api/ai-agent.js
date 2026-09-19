@@ -1217,15 +1217,19 @@ module.exports=async function handler(req,res){
   res.setHeader('Access-Control-Allow-Headers','Content-Type, Authorization');
   if(req.method==='OPTIONS')return res.status(200).end();
   if(req.method!=='POST')return res.status(405).json({error:'Method not allowed'});
+  let requestStage='init';
   try{
+    requestStage='env';
     if(!OPENAI_API_KEY)throw new Error('OPENAI_API_KEY غير مضبوط في Vercel');
+    requestStage='parse_request';
     const body=typeof req.body==='string'?JSON.parse(req.body||'{}'):(req.body||{});
     const token=String(body.token||'').trim();
     const action=String(body.action||'').trim();
 
     if(action==='daily_bootstrap'){
       if(!token)return res.status(400).json({error:'جلسة الدخول مطلوبة'});
-      const context=await loadContext(token);
+      requestStage='load_context';
+    const context=await loadContext(token);
       if(context.role!=='member')return res.status(200).json({ok:true,started:false,answer:null});
       const [coachingProfile,currentSession]=await Promise.all([
         loadAgentProfile(token),
@@ -1276,6 +1280,7 @@ module.exports=async function handler(req,res){
     if(!message)return res.status(400).json({error:'الرسالة مطلوبة'});
     if(message.length>6000)return res.status(400).json({error:'الرسالة طويلة جدًا'});
     const context=await loadContext(token);
+    requestStage='load_session';
     const sessionCommand=detectSessionCommand(message);
     let currentSession=await loadAgentSession(token);
     let dailyAutoPlan=null;
@@ -1317,6 +1322,7 @@ module.exports=async function handler(req,res){
       currentSession={active:true,session_type:sessionCommand.session_type||'coaching',objective:sessionCommand.objective||null,phase:'discover',turn_count:0,started_at:new Date().toISOString()};
       await saveAgentSession(token,currentSession).catch(()=>null);
     }
+    requestStage='load_memory_profile';
     const [persistentMemory,coachingProfile]=await Promise.all([
       loadAgentMemory(token),
       loadAgentProfile(token)
@@ -1324,6 +1330,7 @@ module.exports=async function handler(req,res){
     const fallbackHistory=cleanHistory(body.history);
     const history=(persistentMemory.length?persistentMemory:fallbackHistory).slice(-24);
     const baseInput=[...history,{role:'user',content:message}];
+    requestStage='build_state';
     const cognitiveState=buildCognitiveState({
       message,
       context,
@@ -1331,6 +1338,7 @@ module.exports=async function handler(req,res){
       dailyAutoPlan,
       directDailyCompletion
     });
+    requestStage='build_memory';
     const memoryState=await buildMemoryState(
       token,
       message,
@@ -1338,6 +1346,7 @@ module.exports=async function handler(req,res){
       currentSession,
       coachingProfile
     );
+    requestStage='build_decision';
     const decisionState=buildDecisionState({
       message,cognitiveState,memoryState,currentSession,dailyAutoPlan,coachingProfile
     });
@@ -1370,6 +1379,7 @@ module.exports=async function handler(req,res){
     const availableAgentTools=(directDailyCompletion||dailyCompletionDiagnostic)
       ? AGENT_TOOL_DEFINITIONS.filter(x=>x.name!=='complete_daily_coaching_task')
       : AGENT_TOOL_DEFINITIONS;
+    requestStage='openai';
     let ai=null;
     const maxToolRounds=3;
 
@@ -1386,6 +1396,7 @@ module.exports=async function handler(req,res){
     }
 
     for(let round=0;round<=maxToolRounds;round++){
+      requestStage='openai_round_'+round;
       ai=await openai({
         model:OPENAI_MODEL,
         instructions:instructions(enrichedContext),
@@ -1456,6 +1467,7 @@ module.exports=async function handler(req,res){
       }
     }
 
+    requestStage='finalize_response';
     const answer=outputText(ai.data);
     if(!answer)throw new Error('لم يرجع الوكيل ردًا');
 
@@ -1478,7 +1490,7 @@ module.exports=async function handler(req,res){
     const msg=String(error?.message||error||'FUNCTION_INVOCATION_FAILED');
     return res.status(500).json({
       error:msg,
-      stage:'ai-agent-request'
+      stage:requestStage
     });
   }
 };
