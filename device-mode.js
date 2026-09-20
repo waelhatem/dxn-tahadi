@@ -178,6 +178,7 @@
       const next = document.querySelector('.btns #next');
       const disabled = !next || next.disabled;
       arrow.classList.toggle('is-disabled', disabled);
+      arrow.disabled = disabled;
       arrow.setAttribute('aria-disabled', String(disabled));
     }
 
