@@ -160,8 +160,7 @@
         arrow.setAttribute('aria-label','الانتقال إلى السؤال التالي');
         arrow.innerHTML = `
           <svg viewBox="0 0 140 70" aria-hidden="true">
-            <path d="M130 35H38M42 9L14 35l28 26" fill="none" stroke="#00e879" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M130 35H38M42 9L14 35l28 26" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M130 22H54V7L10 35l44 28V48h76V22Z" fill="#20c44a" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
           </svg>
         `;
         document.body.appendChild(arrow);
