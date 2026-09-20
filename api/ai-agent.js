@@ -782,6 +782,20 @@ async function extractCausalMemoryEvent(message,answer,currentCausalMemory){
   }catch(_){return null;}
 }
 
+async function loadPermanentAgentMemory(token){
+  try{
+    const r=await supabaseRpc('get_ai_agent_permanent_memory',{p_token:token,p_limit:160});
+    if(!r.ok||!Array.isArray(r.data)) return [];
+    return r.data.map(x=>({
+      event_type:String(x.event_type||''),
+      entity_type:String(x.entity_type||''),
+      entity_id:x.entity_id||null,
+      payload:x.payload||{},
+      created_at:x.created_at||null
+    }));
+  }catch(_){return [];}
+}
+
 async function loadAgentKnowledge(token){
   try{
     const r=await supabaseRpc('get_ai_agent_knowledge',{p_token:token,p_limit:60});
@@ -1474,6 +1488,8 @@ function instructions(context){
     'لديك طبقة حالة معرفية (cognitive_state) وطبقة ذاكرة (memory_state) في السياق. استخدمهما للحفاظ على استمرارية الحوار وتجنب إعادة الأسئلة التي تمت الإجابة عنها سابقًا.',
 
     'لديك ذاكرة معرفة ثابتة اسمها knowledge_memory. هذه المعرفة المشتركة تخص المنصة وهوية المدرب وقواعدها المعتمدة، وليست محادثة مؤقتة. عندما تتحدث عن حقائق المنصة أو قواعد التسجيل أو التدريب، استخدم knowledge_memory كمرجع إضافي ثابت، ولا تدّعِ أنك نسيت معلوماتها كلما بدأت جلسة جديدة.',
+    'لديك أيضًا permanent_memory، وهي سجل طويل الأمد غير محدود زمنيًا يحفظ لقطات سابقة من المحادثة وإجابات واختبارات وتعلم العضو. استخدمه لاستعادة الاستمرارية عندما تكون المعلومة ذات صلة، وميّز دائمًا بين السجل الفعلي وبين الاستنتاج.',
+    'التخزين الدائم لا يعني عرض كل التاريخ للمستخدم. استخدم ما يلزم فقط للإجابة الحالية، ولا تكشف أسماء الجداول أو الحقول الداخلية.',
     'لديك أيضًا contextual_coaching_state: فهم خفيف للسياق الحالي، مثل نوع الموقف، طبيعة العلاقة مع الشخص، هدف العضو، والأدلة السابقة المرتبطة بالموقف. استخدمه لتحديد مدى ملاءمة الدرس السابق للموقف الحالي.',
     'لا تطبق learning_pattern لمجرد أنه موجود. قارِن سياقه بالسياق الحالي أولًا. إذا كان الشخص أو الموقف مختلفًا، اعتبر الدرس فرضية تحتاج تكييفًا أو اختبارًا جديدًا.',
     'إذا كان السياق ناقصًا ومعلومة واحدة فقط ستغيّر القرار فعلاً، اسأل عن تلك المعلومة فقط. لا تحوّل كل طلب إلى استجواب.',
@@ -1900,15 +1916,17 @@ module.exports=async function handler(req,res){
       await saveAgentSession(token,currentSession).catch(()=>null);
     }
     requestStage='load_memory_profile';
-    const [persistentMemory,coachingProfile,causalMemory,learningPatterns,knowledgeMemory]=await Promise.all([
+    const [persistentMemory,coachingProfile,causalMemory,learningPatterns,knowledgeMemory,permanentMemory]=await Promise.all([
       loadAgentMemory(token),
       loadAgentProfile(token),
       loadCausalMemory(token),
       loadLearningPatterns(token),
-      loadAgentKnowledge(token)
+      loadAgentKnowledge(token),
+      loadPermanentAgentMemory(token)
     ]);
     const fallbackHistory=cleanHistory(body.history);
-    const history=(persistentMemory.length?persistentMemory:fallbackHistory).slice(-24);
+    const historySource=(persistentMemory.length?persistentMemory:fallbackHistory);
+    const history=historySource.slice(-80);
     const baseInput=[...history,{role:'user',content:message}];
     requestStage='build_state';
     const cognitiveState=buildCognitiveState({
@@ -1959,6 +1977,7 @@ module.exports=async function handler(req,res){
       causal_memory:causalMemory,
       learning_patterns:learningPatterns,
       knowledge_memory:knowledgeMemory,
+      permanent_memory:permanentMemory,
       contextual_coaching_state:contextualCoachingState,
       cognitive_state:cognitiveState,
       memory_state:memoryState,
