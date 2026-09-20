@@ -1746,7 +1746,20 @@ function dxnSyncDate(v){
     const p=raw.split('-').map(Number); return String(p[0]).padStart(4,'0')+'-'+String(p[1]).padStart(2,'0')+'-'+String(p[2]).padStart(2,'0');
   }
   const m=raw.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
-  if(m) return m[3]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[1]).padStart(2,'0');
+  if(m){
+    const a=Number(m[1]), b=Number(m[2]), y=Number(m[3]);
+    // تقرير DXN الظاهر يستخدم تنسيق M/D/YYYY (مثل 4/14/2020).
+    // ندعم أيضًا D/M/YYYY عندما يكون اليوم أكبر من 12.
+    let month=a, day=b;
+    if(a>12 && b<=12){ month=b; day=a; }
+    if(month>=1 && month<=12 && day>=1 && day<=31){
+      const d=new Date(Date.UTC(y,month-1,day));
+      if(d.getUTCFullYear()===y && d.getUTCMonth()===month-1 && d.getUTCDate()===day){
+        return y+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+      }
+    }
+    return null;
+  }
   if(/^\d{5}$/.test(raw)){
     const serial=Number(raw), base=new Date(Date.UTC(1899,11,30));
     const d=new Date(base.getTime()+serial*86400000);
