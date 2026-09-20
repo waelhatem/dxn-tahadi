@@ -121,18 +121,20 @@
       }
       body.dxn-quiz-page .btns .btn{
         position:relative!important;
-        width:58px!important;
-        height:58px!important;
-        min-width:58px!important;
-        min-height:58px!important;
-        max-width:58px!important;
-        max-height:58px!important;
+        width:44px!important;
+        height:44px!important;
+        min-width:44px!important;
+        min-height:44px!important;
+        max-width:44px!important;
+        max-height:44px!important;
+        flex:0 0 44px!important;
         padding:0!important;
         margin:0!important;
         border:0!important;
         border-radius:50%!important;
-        background:rgba(255,255,255,.97)!important;
+        background:transparent!important;
         color:transparent!important;
+        border:1px solid rgba(255,255,255,.55)!important;
         font-size:0!important;
         line-height:0!important;
         display:grid!important;
@@ -187,25 +189,26 @@
         body.dxn-quiz-page .btns{
           left:20px!important;
           bottom:18px!important;
-          gap:10px!important;
+          gap:8px!important;
         }
         body.dxn-quiz-page .btns .btn{
-          width:52px!important;
-          height:52px!important;
-          min-width:52px!important;
-          min-height:52px!important;
-          max-width:52px!important;
-          max-height:52px!important;
+          width:40px!important;
+          height:40px!important;
+          min-width:40px!important;
+          min-height:40px!important;
+          max-width:40px!important;
+          max-height:40px!important;
+          flex:0 0 40px!important;
         }
         body.dxn-quiz-page .btns #back::after{
-          border-top-width:9px!important;
-          border-bottom-width:9px!important;
-          border-right-width:13px!important;
+          border-top-width:8px!important;
+          border-bottom-width:8px!important;
+          border-right-width:11px!important;
         }
         body.dxn-quiz-page .btns #next::after{
-          border-top-width:9px!important;
-          border-bottom-width:9px!important;
-          border-left-width:13px!important;
+          border-top-width:8px!important;
+          border-bottom-width:8px!important;
+          border-left-width:11px!important;
         }
       }
     `;
