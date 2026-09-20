@@ -782,6 +782,94 @@ async function extractCausalMemoryEvent(message,answer,currentCausalMemory){
   }catch(_){return null;}
 }
 
+async function loadLearnedFacts(token){
+  try{
+    const r=await supabaseRpc('get_ai_agent_learned_facts',{p_token:token,p_limit:120});
+    if(!r.ok||!Array.isArray(r.data)) return [];
+    return r.data.map(x=>({
+      id:x.id||null,
+      scope:x.scope||'member',
+      fact:String(x.fact||'').trim().slice(0,4000),
+      source:x.source||'conversation',
+      source_entity_type:x.source_entity_type||null,
+      source_entity_id:x.source_entity_id||null,
+      supersedes_id:x.supersedes_id||null,
+      created_at:x.created_at||null
+    })).filter(x=>x.fact);
+  }catch(_){return [];}
+}
+
+function durableLearningLikely(message,role){
+  const s=String(message||'').trim().toLowerCase();
+  if(!s) return false;
+  if(/(?:تذكر|لاتنسى|لا تنسى|احفظ|ثبت|خليها بذاكرتك|خليها ثابتة|اعتبرها قاعدة|من اليوم|المعلومة الصحيحة|تصحيح|صحح|تعلمت|تعلمنا|أريدك تعرف|اريدك تعرف|أريدك تتذكر|اريدك تتذكر|احتفظ بها|خزنها|سجلها)/.test(s)) return true;
+  if(role==='member' && /(?:جربت|طبقت|نفذت|نجحت|فشلت|النتيجة|السبب|التعديل القادم|تعلمت)/.test(s)) return true;
+  return false;
+}
+
+async function extractDurableLearnedFacts(message,answer,role,currentFacts,permanentMemory){
+  if(!durableLearningLikely(message,role)) return [];
+  const current=(Array.isArray(currentFacts)?currentFacts:[]).slice(0,60);
+  const prompt=[
+    'استخرج فقط المعلومات التي تستحق أن يتذكرها المدرب وائل حاتم على المدى الطويل.',
+    'احفظ معلومة جديدة فقط إذا كانت صريحة ومفيدة لاحقًا في التدريب أو إدارة المنصة أو فهم تجربة العضو.',
+    'لا تحفظ المجاملات أو التحية أو التفاصيل العابرة أو النصوص التي لا قيمة لها لاحقًا.',
+    'لا تحوّل رأيًا عابرًا إلى حقيقة ثابتة. عند وجود تصحيح أو تحديث، أنشئ سجلًا جديدًا ولا تعدّل السجل القديم.',
+    'إذا لم توجد معلومة دائمة، أعد {"facts":[]}.',
+    'scope: global لمعلومة قواعد المنصة/المشروع التي ينبغي أن يعرفها المدرب مع الجميع، leader لمعلومة تخص القائد، member لمعلومة تخص هذا العضو فقط.',
+    'المعلومة العامة لا تُحفظ كـglobal إلا إذا كانت الرسالة واضحة بأنها قاعدة أو معرفة تخص المنصة/المدرب، أو كان المرسل قائدًا ويطلب تثبيتها.',
+    'أعد JSON فقط بهذا الشكل: {"facts":[{"scope":"global|leader|member","fact":"...","supersedes_id":null}]}',
+    'المعلومات الحالية القريبة:',
+    JSON.stringify(current),
+    'السجل الدائم المرتبط بالسياق:',
+    JSON.stringify((Array.isArray(permanentMemory)?permanentMemory.slice(0,30):[])),
+    'رسالة العضو/القائد:',
+    String(message||'').slice(0,6000),
+    'رد المدرب:',
+    String(answer||'').slice(0,5000)
+  ].join('\n');
+
+  try{
+    const r=await openai({
+      model:OPENAI_MODEL,
+      instructions:'أنت أمين ذاكرة للمدرب. لا تخترع معلومات. احفظ فقط ما يستحق الاستمرار.',
+      input:[{role:'user',content:prompt}],
+      max_output_tokens:500
+    });
+    if(!r.ok) return [];
+    const text=outputText(r.data);
+    const start=text.indexOf('{'),end=text.lastIndexOf('}');
+    if(start<0||end<=start) return [];
+    const parsed=JSON.parse(text.slice(start,end+1));
+    if(!Array.isArray(parsed.facts)) return [];
+    return parsed.facts.map(f=>({
+      scope:['global','leader','member'].includes(f.scope)?f.scope:'member',
+      fact:String(f.fact||'').trim().slice(0,4000),
+      supersedes_id:f.supersedes_id||null
+    })).filter(f=>f.fact).slice(0,8);
+  }catch(_){return [];}
+}
+
+async function saveLearnedFacts(token,facts,message){
+  if(!Array.isArray(facts)||!facts.length) return [];
+  const saved=[];
+  for(const fact of facts){
+    try{
+      const r=await supabaseRpc('append_ai_agent_learned_fact',{
+        p_token:token,
+        p_scope:fact.scope||'member',
+        p_fact:fact.fact,
+        p_source:'conversation_learning',
+        p_source_entity_type:'ai_agent_message',
+        p_source_entity_id:null,
+        p_supersedes_id:fact.supersedes_id||null
+      });
+      if(r.ok) saved.push(r.data);
+    }catch(_){}
+  }
+  return saved;
+}
+
 async function loadPermanentAgentMemory(token){
   try{
     const r=await supabaseRpc('get_ai_agent_permanent_memory',{p_token:token,p_limit:160});
@@ -1940,13 +2028,14 @@ module.exports=async function handler(req,res){
       await saveAgentSession(token,currentSession).catch(()=>null);
     }
     requestStage='load_memory_profile';
-    const [persistentMemory,coachingProfile,causalMemory,learningPatterns,knowledgeMemory,permanentMemory]=await Promise.all([
+    const [persistentMemory,coachingProfile,causalMemory,learningPatterns,knowledgeMemory,permanentMemory,learnedFacts]=await Promise.all([
       loadAgentMemory(token),
       loadAgentProfile(token),
       loadCausalMemory(token),
       loadLearningPatterns(token),
       loadAgentKnowledge(token),
-      loadPermanentAgentMemory(token)
+      loadPermanentAgentMemory(token),
+      loadLearnedFacts(token)
     ]);
     const fallbackHistory=cleanHistory(body.history);
     const historySource=(persistentMemory.length?persistentMemory:fallbackHistory);
@@ -2002,6 +2091,7 @@ module.exports=async function handler(req,res){
       learning_patterns:learningPatterns,
       knowledge_memory:knowledgeMemory,
       permanent_memory:permanentMemory,
+      learned_facts:learnedFacts,
       contextual_coaching_state:contextualCoachingState,
       cognitive_state:cognitiveState,
       memory_state:memoryState,
@@ -2114,6 +2204,17 @@ module.exports=async function handler(req,res){
     // Persist the successful turn so المدرب وائل حاتم can continue naturally across future sessions.
     await saveAgentMessage(token,'user',message).catch(()=>null);
     await saveAgentMessage(token,'assistant',answer).catch(()=>null);
+
+    // Save only genuinely durable new knowledge. Old memory is never edited;
+    // corrections are appended as a new fact with an optional supersedes link.
+    const durableFacts=await extractDurableLearnedFacts(
+      message,
+      answer,
+      context.role,
+      learnedFacts,
+      permanentMemory
+    );
+    if(durableFacts.length) await saveLearnedFacts(token,durableFacts,message).catch(()=>null);
 
     // Keep the short-term dialogue state separate from durable memory.
     // This records unresolved questions/actions so Muhammad can resume the
