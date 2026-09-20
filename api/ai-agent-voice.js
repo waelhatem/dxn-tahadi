@@ -54,7 +54,7 @@ function openaiTranscriptionMultipart(audio,filename,mime,model){
     addField('model',model);
     addField('language','ar');
     addField('response_format','json');
-    addField('prompt','اللهجة العراقية: شلون، هسه، تگدر، عندك، خلينا، مو، إذا تريد، وين، ليش. أسماء ومصطلحات المنصة: DXN، مجتمع الصحة والثراء، محمد، الوكيل الذكي، التدريب، العضو، القائد. حافظ على الكلمات العراقية كما نطقها المتحدث ولا تستبدلها بلهجة أخرى.');
+    addField('prompt','اللهجة العراقية: شلون، هسه، تگدر، عندك، خلينا، مو، إذا تريد، وين، ليش. أسماء ومصطلحات المنصة: DXN، مجتمع الصحة والثراء، المدرب وائل حاتم، الوكيل الذكي، التدريب، العضو، القائد. حافظ على الكلمات العراقية كما نطقها المتحدث ولا تستبدلها بلهجة أخرى.');
     parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: ${mime}\r\n\r\n`));
     parts.push(Buffer.isBuffer(audio)?audio:Buffer.from(audio));
     parts.push(Buffer.from(`\r\n--${boundary}--\r\n`));
@@ -111,7 +111,7 @@ async function transcribe(audio,filename,mime){
 async function speak(text){
   const input=String(text||'').trim();
   if(!input)throw new Error('النص المطلوب تحويله إلى صوت فارغ');
-  if(input.length>4096)throw new Error('رد محمد أطول من الحد المسموح للصوت.');
+  if(input.length>4096)throw new Error('رد المدرب وائل حاتم أطول من الحد المسموح للصوت.');
 
   const attempts=[
     {model:'gpt-4o-mini-tts',voice:'onyx'},
@@ -132,7 +132,7 @@ async function speak(text){
           voice:attempt.voice,
           input,
           response_format:'mp3',
-          instructions:'أنت محمد، مدرب عراقي ودود ومرح. صوت رجل دافئ ومريح وحيوي. تكلم باللهجة العراقية الطبيعية، بإيقاع محادثة مريح ونبرة متفائلة وخفيفة، مع تنويع طبيعي في النبرة والوقفات. لا تكن متشنجًا أو رسميًا أو كأنك تقرأ نشرة. لا تبالغ في المزاح.'
+          instructions:'أنت المدرب وائل حاتم، مدرب عراقي ودود ومرح. صوت رجل دافئ ومريح وحيوي. تكلم باللهجة العراقية الطبيعية، بإيقاع محادثة مريح ونبرة متفائلة وخفيفة، مع تنويع طبيعي في النبرة والوقفات. لا تكن متشنجًا أو رسميًا أو كأنك تقرأ نشرة. لا تبالغ في المزاح.'
         })
       });
       const buffer=Buffer.from(await r.arrayBuffer());
