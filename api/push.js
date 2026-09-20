@@ -144,7 +144,7 @@ module.exports=async function handler(req,res){
 
       const sessions=await supabaseRequest('GET',path);
       if(!sessions.ok){
-        return res.status(400).json({error:(sessions.data&&sessions.data.message)||sessions.text||'تعذر قراءة جلسة محمد'});
+        return res.status(400).json({error:(sessions.data&&sessions.data.message)||sessions.text||'تعذر قراءة جلسة المدرب وائل حاتم'});
       }
 
       const session=Array.isArray(sessions.data)?sessions.data[0]:null;
@@ -153,17 +153,17 @@ module.exports=async function handler(req,res){
       // جلسة تدريب نشطة حاليًا. لا ننشئ جلسة وهمية ولا نغيّر حالة العضو.
       const sessionType=session?.session_type||'coaching';
       const baseBody=sessionType==='practice'
-        ?'محمد يتابعك: لديك ممارسة تدريبية لم تكتمل بعد.'
+        ?'المدرب وائل حاتم يتابعك: لديك ممارسة تدريبية لم تكتمل بعد.'
         :sessionType==='review'
-          ?'محمد يتابعك: لديك مراجعة تدريبية لم تكتمل بعد.'
+          ?'المدرب وائل حاتم يتابعك: لديك مراجعة تدريبية لم تكتمل بعد.'
           :session
-            ?'محمد يتابعك: لديك جلسة تدريبية لم تكتمل بعد.'
-            :'محمد يتابعك: هذه رسالة اختبار للمتابعة الخلفية.';
+            ?'المدرب وائل حاتم يتابعك: لديك جلسة تدريبية لم تكتمل بعد.'
+            :'المدرب وائل حاتم يتابعك: هذه رسالة اختبار للمتابعة الخلفية.';
 
       const objective=String(session?.objective||'').trim();
 
       await webpush.sendNotification(sub,JSON.stringify({
-        title:'🤖 محمد — اختبار المتابعة',
+        title:'🤖 المدرب وائل حاتم — اختبار المتابعة',
         body:objective?baseBody+' '+objective:baseBody,
         icon:'/logo.png',
         badge:'/favicon.png',
@@ -187,7 +187,7 @@ module.exports=async function handler(req,res){
       await verifyToken(token);
 
       await webpush.sendNotification(sub,JSON.stringify({
-        title:'محمد — الإشعارات تعمل ✅',
+        title:'المدرب وائل حاتم — الإشعارات تعمل ✅',
         body:'تم تفعيل الإشعارات الدائمة بنجاح.',
         icon:'/logo.png',
         badge:'/favicon.png',
