@@ -14,6 +14,26 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 .hidden{display:none!important}
 .hotspot{position:absolute;border:0;background:transparent;cursor:pointer;padding:0;margin:0;outline:none}
 .hotspot:focus-visible{box-shadow:0 0 0 4px rgba(15,81,63,.45);border-radius:999px}
+.visible-cta{position:absolute;z-index:30;display:flex;align-items:center;justify-content:center;gap:10px;border:0;cursor:pointer;text-align:center;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif;direction:rtl;box-sizing:border-box;line-height:1.05;transition:filter .18s ease,transform .18s ease}
+.visible-cta .cta-main{display:block;font-weight:950;font-size:clamp(17px,1.55vw,28px)}
+.visible-cta .cta-sub{display:block;margin-top:5px;font-weight:750;font-size:clamp(10px,.82vw,15px)}
+.visible-cta.new{background:linear-gradient(135deg,#0f513f,#176b55);color:#fff;border:2px solid rgba(255,255,255,.95);border-radius:24px;box-shadow:0 10px 24px rgba(0,0,0,.22)}
+.visible-cta.previous{background:rgba(255,255,255,.98);color:#0f513f;border:2px solid #0f513f;border-radius:24px;box-shadow:0 10px 24px rgba(0,0,0,.14)}
+.visible-cta:hover{filter:brightness(1.06);transform:translateY(-1px)}
+.visible-cta:active{transform:translateY(1px) scale(.99)}
+.visible-cta .icon{width:27px;height:27px;flex:0 0 auto}
+.desktop-cta,.mobile-cta{position:absolute;inset:0;z-index:25;pointer-events:none}
+.desktop-cta .visible-cta,.mobile-cta .visible-cta{pointer-events:auto}
+.desktop-cta .new{left:72.5%;top:51.8%;width:16%;height:9.5%}
+.desktop-cta .previous{left:55.7%;top:51.8%;width:16%;height:9.5%}
+.mobile-cta .new{right:7%;bottom:13%;width:43%;height:9%}
+.mobile-cta .previous{left:7.5%;bottom:13%;width:43%;height:9%}
+@media(max-width:700px){
+  .visible-cta .cta-main{font-size:16px}
+  .visible-cta .cta-sub{font-size:9px}
+  .visible-cta{border-radius:18px!important}
+  .visible-cta .icon{width:22px;height:22px}
+}
 
 /* واجهة الحاسوب: صورة سطح المكتب المعتمدة مستقلة عن صورة الموبايل */
 .desktop-view{position:relative;width:100%;height:100%;display:block;overflow:hidden;background:#dfeae5}
@@ -69,6 +89,15 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 <button id="desktopPreviousUser" class="hotspot" type="button" aria-label="مستخدم سابق"></button>
 <button id="desktopDeviceMobile" class="hotspot" type="button" aria-label="الموبايل"></button>
 <button id="desktopDeviceComputer" class="hotspot" type="button" aria-label="الحاسوب"></button>
+<div class="desktop-cta">
+  <button id="desktopNewVisitorVisible" class="visible-cta new" type="button" aria-label="زائر جديد">
+    <span><span class="cta-main">زائر جديد</span><span class="cta-sub">اكتشف الفرص المناسبة لك</span></span>
+  </button>
+  <button id="desktopPreviousUserVisible" class="visible-cta previous" type="button" aria-label="مستخدم سابق">
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm-7 15a7 7 0 0 1 14 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <span><span class="cta-main">مستخدم سابق</span><span class="cta-sub">تسجيل الدخول إلى حسابك</span></span>
+  </button>
+</div>
 </div>
 </section>
 <section id="mobileView" class="view mobile-view hidden">
@@ -76,6 +105,14 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 <img src="11.png" alt="مجتمع الصحة والثراء">
 <button id="mobilePreviousUser" class="hotspot" type="button" aria-label="مستخدم سابق"></button>
 <button id="mobileNewVisitor" class="hotspot" type="button" aria-label="زائر جديد"></button>
+<div class="mobile-cta">
+  <button id="mobileNewVisitorVisible" class="visible-cta new" type="button" aria-label="زائر جديد">
+    <span><span class="cta-main">زائر جديد</span><span class="cta-sub">اكتشف الفرص المناسبة لك</span></span>
+  </button>
+  <button id="mobilePreviousUserVisible" class="visible-cta previous" type="button" aria-label="مستخدم سابق">
+    <span><span class="cta-main">مستخدم سابق</span><span class="cta-sub">تسجيل الدخول إلى حسابك</span></span>
+  </button>
+</div>
 </div>
 </section>
 </main>
@@ -85,10 +122,14 @@ const desktopView=document.getElementById('desktopView');
 function goNew(mode){try{localStorage.setItem('dxn_selected_device_mode',mode);}catch(e){} location.href='/02-pretest-intro.html'}
 function goPrevious(){location.href='/app/index.html'}
 document.getElementById('desktopNewVisitor').addEventListener('click',function(){goNew('desktop')});
+document.getElementById('desktopNewVisitorVisible').addEventListener('click',function(){goNew('desktop')});
+document.getElementById('desktopPreviousUserVisible').addEventListener('click',goPrevious);
 document.getElementById('desktopPreviousUser').addEventListener('click',goPrevious);
 document.getElementById('desktopDeviceMobile').addEventListener('click',()=>{mobileView.classList.remove('hidden');desktopView.classList.add('hidden')});
 document.getElementById('desktopDeviceComputer').addEventListener('click',()=>{desktopView.classList.remove('hidden');mobileView.classList.add('hidden')});
 document.getElementById('mobileNewVisitor').addEventListener('click',function(){goNew('mobile')});
+document.getElementById('mobileNewVisitorVisible').addEventListener('click',function(){goNew('mobile')});
+document.getElementById('mobilePreviousUserVisible').addEventListener('click',goPrevious);
 document.getElementById('mobilePreviousUser').addEventListener('click',goPrevious);
 if(window.matchMedia('(max-width:700px)').matches){
   mobileView.classList.remove('hidden');
