@@ -1848,6 +1848,19 @@ module.exports=async function handler(req,res){
     if(!message)return res.status(400).json({error:'الرسالة مطلوبة'});
     if(message.length>6000)return res.status(400).json({error:'الرسالة طويلة جدًا'});
     const context=await loadContext(token);
+    // Save a durable snapshot of the member/training state on every coaching request.
+    // This preserves watch progress and other training context across time.
+    await supabaseRpc('save_ai_agent_context_snapshot',{
+      p_token:token,
+      p_snapshot:{
+        member:context.member,
+        role:context.role,
+        training:{
+          lessons:context.lessons,
+          progress:context.progress
+        }
+      }
+    }).catch(()=>null);
     requestStage='load_session';
     const sessionCommand=detectSessionCommand(message);
     let currentSession=await loadAgentSession(token);
