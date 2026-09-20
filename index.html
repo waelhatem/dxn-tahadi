@@ -16,11 +16,10 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 .hotspot:focus-visible{box-shadow:0 0 0 4px rgba(15,81,63,.45);border-radius:999px}
 
 /* واجهة الحاسوب: صورة سطح المكتب المعتمدة مستقلة عن صورة الموبايل */
-.desktop-view{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#dfeae5}
-.desktop-backdrop{position:absolute;inset:0;z-index:0;overflow:hidden;background:#dfeae5}
-.desktop-backdrop::before{content:"";position:absolute;inset:-18px;background:url("/desktop-home.png?v=20260918") center/cover no-repeat;filter:blur(2px);transform:scale(1.03)}
-.desktop-poster{position:relative;width:auto;height:100%;max-width:none;aspect-ratio:1927 / 1024;line-height:0;z-index:2;overflow:visible}
-.desktop-poster img{width:100%;height:100%;display:block;object-fit:contain}
+.desktop-view{position:relative;width:100%;height:100%;display:block;overflow:hidden;background:#dfeae5}
+.desktop-backdrop{display:none}
+.desktop-poster{position:absolute;inset:0;width:100%;height:100%;line-height:0;z-index:2;overflow:hidden}
+.desktop-poster img{width:100%;height:100%;display:block;object-fit:cover;object-position:center top}
 #desktopPreviousUser{left:60.8%;top:54.7%;width:15%;height:9%}
 #desktopNewVisitor{left:45.7%;top:54.7%;width:15%;height:9%}
 #desktopEmbeddedComputer,#desktopEmbeddedMobile{top:1.0%;height:5.6%;width:8.0%}
