@@ -74,46 +74,79 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
   flex-direction:row;
   align-items:center;
   justify-content:center;
-  gap:clamp(8px,0.8vw,14px);
+  gap:clamp(12px,1vw,18px);
   margin-top:clamp(18px,2.0vh,26px);
   pointer-events:auto;
   direction:rtl;
 }
 .desktop-action{
   position:static;
-  width:clamp(145px,11.5vw,185px);
-  height:clamp(42px,5vh,54px);
+  width:clamp(190px,16vw,255px);
+  height:clamp(68px,8vh,86px);
   border-radius:999px;
+  padding:0 22px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
   font-family:inherit;
-  font-size:clamp(16px,1.15vw,19px);
-  font-weight:700;
-  line-height:1;
   cursor:pointer;
   outline:none;
-  transition:transform .15s ease,box-shadow .15s ease,background .15s ease;
+  transition:transform .15s ease,box-shadow .15s ease;
+}
+.desktop-action-content{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  min-width:0;
+  line-height:1.1;
+  text-align:right;
+}
+.desktop-action-title{
+  display:block;
+  font-size:clamp(17px,1.35vw,22px);
+  font-weight:900;
+  white-space:nowrap;
+}
+.desktop-action-sub{
+  display:block;
+  margin-top:6px;
+  font-size:clamp(11px,.9vw,14px);
+  font-weight:600;
+  white-space:nowrap;
+  opacity:.92;
+}
+.desktop-action-icon{
+  width:34px;
+  height:34px;
+  flex:0 0 34px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.desktop-action-icon svg{
+  width:100%;
+  height:100%;
+  display:block;
 }
 #desktopNewVisitor{
-  background:#fff;
-  color:#0f513f;
-  border:2px solid #0f513f;
-  box-shadow:0 5px 14px rgba(15,81,63,.16);
-}
-#desktopPreviousUser{
   background:#0f513f;
   color:#fff;
   border:2px solid #fff;
-  box-shadow:0 5px 14px rgba(15,81,63,.25);
+  box-shadow:0 7px 18px rgba(15,81,63,.28);
 }
-#desktopNewVisitor:hover{
+#desktopPreviousUser{
+  background:#fff;
+  color:#0f513f;
+  border:2px solid #0f513f;
+  box-shadow:0 7px 18px rgba(15,81,63,.16);
+}
+#desktopNewVisitor:hover,#desktopPreviousUser:hover{
   transform:translateY(-1px);
-  background:#f6fbf8;
-  box-shadow:0 7px 17px rgba(15,81,63,.23);
 }
-#desktopPreviousUser:hover{
-  transform:translateY(-1px);
-  background:#17634e;
-  box-shadow:0 7px 17px rgba(15,81,63,.3);
-}
+#desktopNewVisitor:hover{box-shadow:0 9px 21px rgba(15,81,63,.34)}
+#desktopPreviousUser:hover{box-shadow:0 9px 21px rgba(15,81,63,.22)}
 .desktop-action:focus-visible{
   box-shadow:0 0 0 4px rgba(255,255,255,.9),0 0 0 7px rgba(15,81,63,.5);
 }
@@ -148,8 +181,30 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
     <span class="desktop-tagline-sub">اصنع مستقبل عائلتك بنفسك</span>
   </div>
   <div class="desktop-actions" aria-label="خيارات الدخول">
-    <button id="desktopNewVisitor" class="desktop-action" type="button">🚀 زائر جديد</button>
-    <button id="desktopPreviousUser" class="desktop-action" type="button">🔑 مستخدم سابق</button>
+    <button id="desktopNewVisitor" class="desktop-action" type="button">
+      <span class="desktop-action-content">
+        <span class="desktop-action-title">زائر جديد</span>
+        <span class="desktop-action-sub">اكتشف الفرص المناسبة لك</span>
+      </span>
+      <span class="desktop-action-icon" aria-hidden="true">
+        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M31.5 7.5c-8.8 2.3-14.9 8.7-16.1 17.5 5.9-.8 10.4-3.5 13.4-8.1 1.4-2.2 2.2-5.2 2.7-9.4Z" fill="currentColor"/>
+          <path d="M16.1 26.5c4.4 1.1 8.3 3.6 11.1 7.5 2.3 3.2 3.7 6.1 4.6 9.5M17.3 27.2c5.7 2.2 10.7 6.2 14.3 12.2" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+        </svg>
+      </span>
+    </button>
+    <button id="desktopPreviousUser" class="desktop-action" type="button">
+      <span class="desktop-action-content">
+        <span class="desktop-action-title">مستخدم سابق</span>
+        <span class="desktop-action-sub">تسجيل الدخول إلى حسابك</span>
+      </span>
+      <span class="desktop-action-icon" aria-hidden="true">
+        <svg viewBox="0 0 48 48" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="24" cy="15" r="8"/>
+          <path d="M9 42c1.3-8.6 6.8-13 15-13s13.7 4.4 15 13H9Z"/>
+        </svg>
+      </span>
+    </button>
   </div>
 </div>
 <button id="desktopEmbeddedMobile" class="hotspot" type="button" aria-label="الموبايل"></button>
