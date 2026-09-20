@@ -162,8 +162,13 @@
     });
   }
 
+  function isDeviceSelectorExcludedPage() {
+    const p = (window.location.pathname || '/').replace(/\/+$/, '') || '/';
+    return p === '/02-pretest-intro.html';
+  }
+
   function shouldCreateSharedSelector() {
-    if (isMainHomepage()) return false;
+    if (isMainHomepage() || isDeviceSelectorExcludedPage()) return false;
     return !hasOwnDeviceSelector() && !document.getElementById('dxn-global-device-switch');
   }
 
