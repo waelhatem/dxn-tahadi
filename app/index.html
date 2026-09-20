@@ -2528,7 +2528,15 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     });
 
     return '<div class="team-generations-board">'+keys.map(key=>{
-      const members=groups[key];
+      const members=groups[key].slice().sort((a,b)=>{
+        const ap=Number(a.cumulative_points ?? a.total_group_pv ?? 0);
+        const bp=Number(b.cumulative_points ?? b.total_group_pv ?? 0);
+        if(bp!==ap) return bp-ap;
+        const at=Number(a.personal_pv ?? 0);
+        const bt=Number(b.personal_pv ?? 0);
+        if(bt!==at) return bt-at;
+        return String(a.member_name||'').localeCompare(String(b.member_name||''));
+      });
       const title=key==='غير محدد'?'غير محدد':'الجيل '+escapeHtml(key);
       return '<section class="team-generation-column">'+
         '<div class="team-generation-head">'+
