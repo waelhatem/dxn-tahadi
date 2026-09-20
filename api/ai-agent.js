@@ -786,13 +786,24 @@ async function loadPermanentAgentMemory(token){
   try{
     const r=await supabaseRpc('get_ai_agent_permanent_memory',{p_token:token,p_limit:160});
     if(!r.ok||!Array.isArray(r.data)) return [];
-    return r.data.map(x=>({
-      event_type:String(x.event_type||''),
-      entity_type:String(x.entity_type||''),
-      entity_id:x.entity_id||null,
-      payload:x.payload||{},
-      created_at:x.created_at||null
-    }));
+    let totalChars=0;
+    const out=[];
+    for(const x of r.data){
+      const payloadRaw=JSON.stringify(x.payload||{});
+      const payloadText=payloadRaw.length>1800?payloadRaw.slice(0,1800)+'…':payloadRaw;
+      const item={
+        event_type:String(x.event_type||''),
+        entity_type:String(x.entity_type||''),
+        entity_id:x.entity_id||null,
+        payload:payloadText,
+        created_at:x.created_at||null
+      };
+      const itemChars=payloadText.length+120;
+      if(totalChars+itemChars>36000) break;
+      out.push(item);
+      totalChars+=itemChars;
+    }
+    return out;
   }catch(_){return [];}
 }
 
