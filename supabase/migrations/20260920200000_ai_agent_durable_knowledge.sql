@@ -130,12 +130,12 @@ $function$;
 
 revoke all on function public.get_ai_agent_knowledge(uuid,integer)
   from public, anon, authenticated;
-revoke all on function public.save_ai_agent_knowledge(uuid,text,text,text,integer,boolean)
+revoke all on function public.save_ai_agent_knowledge(uuid,text,text,text,text,integer,boolean)
   from public, anon, authenticated;
 
 grant execute on function public.get_ai_agent_knowledge(uuid,integer)
   to anon, authenticated;
-grant execute on function public.save_ai_agent_knowledge(uuid,text,text,text,integer,boolean)
+grant execute on function public.save_ai_agent_knowledge(uuid,text,text,text,text,integer,boolean)
   to anon, authenticated;
 
 -- Core knowledge that should survive new sessions and deployments.
