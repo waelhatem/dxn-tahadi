@@ -68,17 +68,20 @@ const mobileView=document.getElementById('mobileView');
 const desktopView=document.getElementById('desktopView');
 function goNew(){location.href='/02-pretest-intro.html'}
 function goPrevious(){location.href='/app/index.html'}
+function setDeviceView(mode){
+  const mobile=mode==='mobile';
+  mobileView.classList.toggle('hidden',!mobile);
+  desktopView.classList.toggle('hidden',mobile);
+}
 document.getElementById('desktopNewVisitor').addEventListener('click',goNew);
 document.getElementById('desktopPreviousUser').addEventListener('click',goPrevious);
 document.getElementById('mobileNewVisitor').addEventListener('click',goNew);
 document.getElementById('mobilePreviousUser').addEventListener('click',goPrevious);
-function syncDeviceView(){
-  const mobile=window.matchMedia('(max-width:700px)').matches;
-  mobileView.classList.toggle('hidden',!mobile);
-  desktopView.classList.toggle('hidden',mobile);
-}
-syncDeviceView();
-window.matchMedia('(max-width:700px)').addEventListener('change',syncDeviceView);
+document.getElementById('desktopEmbeddedMobile').addEventListener('click',()=>setDeviceView('mobile'));
+document.getElementById('desktopEmbeddedComputer').addEventListener('click',()=>setDeviceView('desktop'));
+document.getElementById('mobileEmbeddedMobile').addEventListener('click',()=>setDeviceView('mobile'));
+document.getElementById('mobileEmbeddedComputer').addEventListener('click',()=>setDeviceView('desktop'));
+setDeviceView(window.matchMedia('(max-width:700px)').matches?'mobile':'desktop');
 </script>
 <script src="/pwa-install.js?v=1" defer></script>
 </body>
