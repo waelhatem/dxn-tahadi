@@ -75,7 +75,7 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
   align-items:center;
   justify-content:center;
   gap:clamp(8px,0.8vw,14px);
-  margin-top:clamp(10px,1.1vh,15px);
+  margin-top:clamp(18px,2.0vh,26px);
   pointer-events:auto;
   direction:rtl;
 }
@@ -83,23 +83,36 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
   position:static;
   width:clamp(145px,11.5vw,185px);
   height:clamp(42px,5vh,54px);
-  border:1px solid rgba(15,81,63,.55);
   border-radius:999px;
-  background:linear-gradient(180deg,#17634e 0%,#0f513f 100%);
-  color:#fff;
   font-family:inherit;
   font-size:clamp(16px,1.15vw,19px);
   font-weight:700;
   line-height:1;
-  box-shadow:0 5px 14px rgba(15,81,63,.22),inset 0 1px 0 rgba(255,255,255,.22);
   cursor:pointer;
   outline:none;
   transition:transform .15s ease,box-shadow .15s ease,background .15s ease;
 }
-.desktop-action:hover{
+#desktopNewVisitor{
+  background:#fff;
+  color:#0f513f;
+  border:2px solid #0f513f;
+  box-shadow:0 5px 14px rgba(15,81,63,.16);
+}
+#desktopPreviousUser{
+  background:#0f513f;
+  color:#fff;
+  border:2px solid #fff;
+  box-shadow:0 5px 14px rgba(15,81,63,.25);
+}
+#desktopNewVisitor:hover{
   transform:translateY(-1px);
-  box-shadow:0 7px 17px rgba(15,81,63,.28),inset 0 1px 0 rgba(255,255,255,.25);
-  background:linear-gradient(180deg,#1b6e57 0%,#115b47 100%);
+  background:#f6fbf8;
+  box-shadow:0 7px 17px rgba(15,81,63,.23);
+}
+#desktopPreviousUser:hover{
+  transform:translateY(-1px);
+  background:#17634e;
+  box-shadow:0 7px 17px rgba(15,81,63,.3);
 }
 .desktop-action:focus-visible{
   box-shadow:0 0 0 4px rgba(255,255,255,.9),0 0 0 7px rgba(15,81,63,.5);
@@ -135,8 +148,8 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
     <span class="desktop-tagline-sub">اصنع مستقبل عائلتك بنفسك</span>
   </div>
   <div class="desktop-actions" aria-label="خيارات الدخول">
-    <button id="desktopNewVisitor" class="desktop-action" type="button">زائر جديد</button>
-    <button id="desktopPreviousUser" class="desktop-action" type="button">مستخدم سابق</button>
+    <button id="desktopNewVisitor" class="desktop-action" type="button">🚀 زائر جديد</button>
+    <button id="desktopPreviousUser" class="desktop-action" type="button">🔑 مستخدم سابق</button>
   </div>
 </div>
 <button id="desktopEmbeddedMobile" class="hotspot" type="button" aria-label="الموبايل"></button>
