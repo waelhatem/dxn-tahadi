@@ -16,7 +16,9 @@
   #dxnAgentMessages{flex:1;overflow:auto;padding:14px;background:#f5f9f7}
   .dxn-agent-msg{max-width:88%;padding:10px 12px;border-radius:15px;margin:7px 0;white-space:pre-wrap;line-height:1.7;font-size:14px}
   .dxn-agent-user{margin-right:auto;background:#0f513f;color:#fff;border-bottom-left-radius:5px}
-  .dxn-agent-ai{margin-left:auto;background:#fff;color:#18352c;border:1px solid #dce8e3;border-bottom-right-radius:5px}
+  .dxn-agent-ai{margin-left:auto;background:#fff;color:#18352c;border:1px solid #dce8e3;border-bottom-right-radius:5px;position:relative;padding-bottom:42px}
+  .dxn-agent-copy{position:absolute;right:9px;bottom:8px;min-height:30px!important;height:30px;padding:4px 9px!important;border:1px solid #cfe0d9!important;border-radius:9px!important;background:#f5f9f7!important;color:#0f513f!important;font-size:12px!important;font-weight:800!important;cursor:pointer}
+  .dxn-agent-copy:hover{background:#e8f3ee!important}
   .dxn-agent-status{font-size:12px;color:#66756f;padding:5px 12px;min-height:24px}
   .dxn-agent-form{display:flex;gap:8px;padding:10px;border-top:1px solid #e2e8e5;background:#fff;align-items:flex-end}
   .dxn-agent-mic{width:48px;min-width:48px;height:46px;background:#fff;color:#0f513f;border:2px solid #0f513f;border-radius:12px;font-size:21px;cursor:pointer}
@@ -45,7 +47,27 @@
   function addMsg(text,who){
     const box=document.getElementById('dxnAgentMessages');if(!box)return null;
     const d=el('div',{class:'dxn-agent-msg '+(who==='user'?'dxn-agent-user':'dxn-agent-ai')});
-    d.textContent=text;box.appendChild(d);box.scrollTop=box.scrollHeight;return d;
+    d.textContent=text;
+    if(who!=='user'){
+      const copy=el('button',{type:'button',class:'dxn-agent-copy',title:'نسخ الرد'},'📋 نسخ');
+      copy.addEventListener('click',async()=>{
+        try{
+          await navigator.clipboard.writeText(String(text||''));
+          copy.textContent='✅ تم النسخ';
+          setTimeout(()=>{copy.textContent='📋 نسخ';},1400);
+        }catch(_){
+          const ta=document.createElement('textarea');
+          ta.value=String(text||'');ta.style.position='fixed';ta.style.opacity='0';
+          document.body.appendChild(ta);ta.select();
+          try{document.execCommand('copy');copy.textContent='✅ تم النسخ';}
+          catch(__){copy.textContent='❌ تعذر النسخ';}
+          ta.remove();
+          setTimeout(()=>{copy.textContent='📋 نسخ';},1400);
+        }
+      });
+      d.appendChild(copy);
+    }
+    box.appendChild(d);box.scrollTop=box.scrollHeight;return d;
   }
 
   function setStatus(text){
