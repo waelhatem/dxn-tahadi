@@ -214,11 +214,11 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 <script>
 const mobileView=document.getElementById('mobileView');
 const desktopView=document.getElementById('desktopView');
-function goNew(){location.href='/02-pretest-intro.html'}
+function goNew(mode){try{localStorage.setItem('dxn_selected_device_mode',mode);}catch(e){} location.href='/02-pretest-intro.html'}
 function goPrevious(){location.href='/app/index.html'}
-document.getElementById('desktopNewVisitor').addEventListener('click',goNew);
+document.getElementById('desktopNewVisitor').addEventListener('click',function(){goNew('desktop')});
 document.getElementById('desktopPreviousUser').addEventListener('click',goPrevious);
-document.getElementById('mobileNewVisitor').addEventListener('click',goNew);
+document.getElementById('mobileNewVisitor').addEventListener('click',function(){goNew('mobile')});
 document.getElementById('mobilePreviousUser').addEventListener('click',goPrevious);
 if(window.matchMedia('(max-width:700px)').matches){
   mobileView.classList.remove('hidden');
