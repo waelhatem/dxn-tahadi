@@ -91,93 +91,38 @@
   function installQuizCircularNav() {
     const p = (window.location.pathname || '/').replace(/\\/+$/, '') || '/';
     if (p !== '/03-pretest.html') return;
-    if (document.getElementById('dxn-quiz-circular-nav-style')) return;
 
     document.body.classList.add('dxn-quiz-page');
 
-    const style = document.createElement('style');
-    style.id = 'dxn-quiz-circular-nav-style';
-    style.textContent = `
-      body.dxn-quiz-page #global-page-navigation,
-      body.dxn-quiz-page .btns{display:none!important}
-
-      body.dxn-quiz-page #dxn-quiz-next-arrow{
-        position:fixed!important;
-        left:50%!important;
-        bottom:8px!important;
-        z-index:99999!important;
-        width:150px!important;
-        height:58px!important;
-        transform:translateX(-50%)!important;
-        display:flex!important;
-        align-items:center!important;
-        justify-content:center!important;
-        cursor:pointer!important;
-        pointer-events:auto!important;
-        background:#0f513f!important;
-        color:#fff!important;
-        border:0!important;
-        border-radius:999px!important;
-        padding:0 24px!important;
-        margin:0!important;
-        box-shadow:0 8px 22px rgba(0,0,0,.22),0 0 16px rgba(0,255,120,.35)!important;
-        font:900 20px/1 "Tajawal","Segoe UI",Tahoma,Arial,sans-serif!important;
-        transition:transform .2s ease,filter .2s ease,box-shadow .2s ease!important;
-      }
-      body.dxn-quiz-page #dxn-quiz-next-arrow:hover{
-        filter:brightness(1.12)!important;
-        transform:translateX(-50%) translateY(-2px)!important;
-        box-shadow:0 10px 26px rgba(0,0,0,.24),0 0 20px rgba(0,255,120,.45)!important;
-      }
-      body.dxn-quiz-page #dxn-quiz-next-arrow.is-disabled{
-        opacity:.25!important;
-        animation:none!important;
-      }
-
-      @media(max-width:700px){
-        body.dxn-quiz-page #dxn-quiz-next-arrow{
-          bottom:12px!important;
-          width:132px!important;
-          height:52px!important;
-          font-size:18px!important;
+    if (!document.getElementById('dxn-quiz-circular-nav-style')) {
+      const style = document.createElement('style');
+      style.id = 'dxn-quiz-circular-nav-style';
+      style.textContent = `
+        body.dxn-quiz-page #global-page-navigation,
+        body.dxn-quiz-page .btns,
+        body.dxn-quiz-page #dxn-quiz-next-arrow,
+        body.dxn-quiz-page #next,
+        body.dxn-quiz-page #back {
+          display:none!important;
         }
-      }
-    `;
-    document.head.appendChild(style);
-
-    function createArrow(){
-      document.querySelectorAll('body.dxn-quiz-page .btns').forEach(function(el){ el.remove(); });
-      let arrow = document.getElementById('dxn-quiz-next-arrow');
-      if (!arrow) {
-        arrow = document.createElement('button');
-        arrow.type = 'button';
-        arrow.id = 'dxn-quiz-next-arrow';
-        arrow.setAttribute('aria-label','الانتقال إلى السؤال التالي');
-        arrow.textContent = 'التالي';
-        document.body.appendChild(arrow);
-
-        arrow.addEventListener('click', function(){
-          const next = document.querySelector('.btns #next');
-          if (next && !next.disabled) next.click();
-        });
-      }
-
-      const next = document.querySelector('.btns #next');
-      const disabled = !next || next.disabled;
-      arrow.classList.toggle('is-disabled', disabled);
-      arrow.disabled = disabled;
-      arrow.setAttribute('aria-disabled', String(disabled));
+      `;
+      document.head.appendChild(style);
     }
 
-    createArrow();
-    setInterval(createArrow, 250);
+    function cleanupQuizNavigation(){
+      document.querySelectorAll('#dxn-quiz-next-arrow,#global-page-navigation').forEach(function(el){
+        el.remove();
+      });
+      document.querySelectorAll('body.dxn-quiz-page .btns').forEach(function(el){
+        el.style.display='none';
+      });
+    }
 
+    cleanupQuizNavigation();
     if(window.MutationObserver){
-      new MutationObserver(createArrow).observe(document.body,{
+      new MutationObserver(cleanupQuizNavigation).observe(document.body,{
         childList:true,
-        subtree:true,
-        attributes:true,
-        attributeFilter:['disabled','class']
+        subtree:true
       });
     }
   }
