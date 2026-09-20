@@ -1754,6 +1754,28 @@ function dxnSyncDate(v){
   }
   return null;
 }
+function dxnSyncInferField(row,memberIdx,idx,key){
+  if(idx[key]>=0) return String(row[idx[key]]??'').trim();
+  if(key==='member_name') return String(row[memberIdx+1]??'').trim();
+  if(key==='generation') return String(row[memberIdx-1]??'').trim();
+  if(key==='sponsor_member_no'){
+    for(let i=row.length-1;i>=0;i--){
+      const v=dxnSyncDigits(row[i]).replace(/\s/g,'');
+      if(/^\d{9}$/.test(v) && v!==dxnSyncDigits(row[memberIdx]).replace(/\s/g,'')) return v;
+    }
+  }
+  if(key==='join_date'){
+    for(let i=0;i<row.length;i++) if(dxnSyncDate(row[i])) return String(row[i]??'').trim();
+  }
+  if(key==='rank'){
+    const known=/^(SR|MEM|SA|QSA|QSR|STAR|RUBY|SAPPHIRE|DIAMOND)$/i;
+    for(let i=memberIdx+1;i<row.length;i++){
+      const v=String(row[i]??'').trim();
+      if(known.test(v)) return v;
+    }
+  }
+  return '';
+}
 function dxnSyncBuildRows(){
   const text=document.getElementById('dxnSyncInput')?.value||'';
   const grid=dxnSyncParseGrid(text);
@@ -1762,21 +1784,55 @@ function dxnSyncBuildRows(){
   dxnSyncHeaders=headers;
   const idx={};
   Object.keys(DXN_SYNC_ALIASES).forEach(k=>idx[k]=dxnSyncHeaderIndex(headers,DXN_SYNC_ALIASES[k]));
-  if(idx.member_no<0) return {rows:[],invalid:[{row:1,message:'لم يتم العثور على عمود رقم العضوية. أضف صف العناوين كما هو ظاهر في تقرير Excel.'}],duplicates:0};
+
+  const firstRowMemberIdx=(()=>{
+    const row=grid[0]||[];
+    for(let i=0;i<row.length;i++){
+      const v=dxnSyncDigits(row[i]).replace(/\s/g,'');
+      if(/^\d{9}$/.test(v)) return i;
+    }
+    return -1;
+  })();
+  const headerless=idx.member_no<0 && firstRowMemberIdx>=0;
+  const startRow=headerless?0:1;
+
+  if(idx.member_no<0 && !headerless){
+    return {rows:[],invalid:[{row:1,message:'لم يتم العثور على رقم العضوية. يمكن لصق تقرير DXN بالعناوين أو بدون عناوين.'}],duplicates:0};
+  }
 
   const invalid=[]; const map=new Map(); let duplicates=0;
-  for(let r=1;r<grid.length;r++){
+  for(let r=startRow;r<grid.length;r++){
     const row=grid[r]||[];
     if(row.every(x=>String(x??'').trim()==='')) continue;
-    const no=dxnSyncDigits(row[idx.member_no]??'').replace(/\s/g,'');
+
+    const memberIdx=idx.member_no>=0?idx.member_no:(()=>{
+      for(let i=0;i<row.length;i++){
+        const v=dxnSyncDigits(row[i]).replace(/\s/g,'');
+        if(/^\d{9}$/.test(v)) return i;
+      }
+      return -1;
+    })();
+
+    const no=memberIdx>=0?dxnSyncDigits(row[memberIdx]??'').replace(/\s/g,''):'';
     if(!/^\d{9}$/.test(no)){
       invalid.push({row:r+1,member_no:no,message:'رقم العضوية غير صالح؛ يجب أن يكون 9 أرقام.'});
       continue;
     }
-    const get=k=>idx[k]>=0?String(row[idx[k]]??'').trim():'';
-    const num=k=>dxnSyncNumber(get(k));
-    const pv=num('personal_pv'), pg=num('personal_group_pv'), tg=num('total_group_pv');
-    const ag=num('accumulated_group_pv'), ap=num('accumulated_promotion_pv'), dg=num('diamond_group_pv');
+
+    const get=k=>String(dxnSyncInferField(row,memberIdx,idx,k)??'').trim();
+    const numAt=(key,fallbackOffset)=>{
+      const v=dxnSyncNumber(get(key));
+      if(v.value!==null||v.masked||idx[key]>=0||fallbackOffset==null) return v;
+      return dxnSyncNumber(row[memberIdx+fallbackOffset]);
+    };
+
+    const pv=numAt('personal_pv',2);
+    const pg=numAt('personal_group_pv',3);
+    const tg=numAt('total_group_pv',4);
+    const ag=numAt('accumulated_group_pv',5);
+    const ap=numAt('accumulated_promotion_pv',6);
+    const dg=numAt('diamond_group_pv',7);
+
     const item={
       member_no:no,
       member_name:get('member_name')||null,
@@ -1800,7 +1856,7 @@ function dxnSyncBuildRows(){
     if(map.has(no)) duplicates++;
     map.set(no,item);
   }
-  return {rows:Array.from(map.values()),invalid,duplicates,headers};
+  return {rows:Array.from(map.values()),invalid,duplicates,headers,headerless};
 }
 function dxnSyncStatus(msg,type){
   const el=document.getElementById('dxnSyncStatus');
