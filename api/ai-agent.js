@@ -782,6 +782,20 @@ async function extractCausalMemoryEvent(message,answer,currentCausalMemory){
   }catch(_){return null;}
 }
 
+async function loadAgentKnowledge(token){
+  try{
+    const r=await supabaseRpc('get_ai_agent_knowledge',{p_token:token,p_limit:60});
+    if(!r.ok||!Array.isArray(r.data)) return [];
+    return r.data.map(x=>({
+      scope:x.scope||'global',
+      category:x.category||'platform',
+      title:x.title||null,
+      content:String(x.content||'').trim().slice(0,4000),
+      priority:Number(x.priority||0)
+    })).filter(x=>x.content);
+  }catch(_){return [];}
+}
+
 async function loadAgentMemory(token){
   try{
     const r=await supabaseRpc('get_ai_agent_memory',{p_token:token,p_limit:24});
@@ -1458,6 +1472,8 @@ function instructions(context){
     'إذا كان هناك pending_question أو pending_member_action، لا تبدأ موضوعًا جديدًا لمجرد وجود خطة يومية. تابع الحلقة المفتوحة أولًا.',
     'إذا كانت الحالة تشير إلى أن المدرب وائل حاتم سأل العضو إن كان يريد الانتقال إلى تدريب اليوم، فلا تعتبر الموافقة الضمنية أو الصمت كافيًا؛ الانتقال الفعلي يحدث فقط بعد موافقة واضحة.',
     'لديك طبقة حالة معرفية (cognitive_state) وطبقة ذاكرة (memory_state) في السياق. استخدمهما للحفاظ على استمرارية الحوار وتجنب إعادة الأسئلة التي تمت الإجابة عنها سابقًا.',
+
+    'لديك ذاكرة معرفة ثابتة اسمها knowledge_memory. هذه المعرفة المشتركة تخص المنصة وهوية المدرب وقواعدها المعتمدة، وليست محادثة مؤقتة. عندما تتحدث عن حقائق المنصة أو قواعد التسجيل أو التدريب، استخدم knowledge_memory كمرجع إضافي ثابت، ولا تدّعِ أنك نسيت معلوماتها كلما بدأت جلسة جديدة.',
     'لديك أيضًا contextual_coaching_state: فهم خفيف للسياق الحالي، مثل نوع الموقف، طبيعة العلاقة مع الشخص، هدف العضو، والأدلة السابقة المرتبطة بالموقف. استخدمه لتحديد مدى ملاءمة الدرس السابق للموقف الحالي.',
     'لا تطبق learning_pattern لمجرد أنه موجود. قارِن سياقه بالسياق الحالي أولًا. إذا كان الشخص أو الموقف مختلفًا، اعتبر الدرس فرضية تحتاج تكييفًا أو اختبارًا جديدًا.',
     'إذا كان السياق ناقصًا ومعلومة واحدة فقط ستغيّر القرار فعلاً، اسأل عن تلك المعلومة فقط. لا تحوّل كل طلب إلى استجواب.',
@@ -1884,11 +1900,12 @@ module.exports=async function handler(req,res){
       await saveAgentSession(token,currentSession).catch(()=>null);
     }
     requestStage='load_memory_profile';
-    const [persistentMemory,coachingProfile,causalMemory,learningPatterns]=await Promise.all([
+    const [persistentMemory,coachingProfile,causalMemory,learningPatterns,knowledgeMemory]=await Promise.all([
       loadAgentMemory(token),
       loadAgentProfile(token),
       loadCausalMemory(token),
-      loadLearningPatterns(token)
+      loadLearningPatterns(token),
+      loadAgentKnowledge(token)
     ]);
     const fallbackHistory=cleanHistory(body.history);
     const history=(persistentMemory.length?persistentMemory:fallbackHistory).slice(-24);
@@ -1941,6 +1958,7 @@ module.exports=async function handler(req,res){
       interaction_confidence:conversationState?.interaction_confidence==null?null:conversationState.interaction_confidence,
       causal_memory:causalMemory,
       learning_patterns:learningPatterns,
+      knowledge_memory:knowledgeMemory,
       contextual_coaching_state:contextualCoachingState,
       cognitive_state:cognitiveState,
       memory_state:memoryState,
