@@ -98,93 +98,96 @@
     const style = document.createElement('style');
     style.id = 'dxn-quiz-circular-nav-style';
     style.textContent = `
-      body.dxn-quiz-page #global-page-navigation{display:none!important}
+      body.dxn-quiz-page #global-page-navigation,
       body.dxn-quiz-page .btns{display:none!important}
+
       body.dxn-quiz-page #dxn-quiz-next-arrow{
         position:fixed!important;
         left:50%!important;
-        bottom:22px!important;
-        z-index:10002!important;
-        width:58px!important;
-        height:42px!important;
+        bottom:18px!important;
+        z-index:99999!important;
+        width:72px!important;
+        height:46px!important;
         transform:translateX(-50%)!important;
         display:flex!important;
         align-items:center!important;
         justify-content:center!important;
         cursor:pointer!important;
-        user-select:none!important;
         pointer-events:auto!important;
+        background:transparent!important;
+        border:0!important;
+        padding:0!important;
+        margin:0!important;
         filter:drop-shadow(0 0 4px rgba(0,255,120,.95))
-               drop-shadow(0 0 12px rgba(0,255,120,.75))
-               drop-shadow(0 0 22px rgba(0,255,120,.45))!important;
-        animation:dxnQuizArrowMove 1.35s ease-in-out infinite!important;
+               drop-shadow(0 0 12px rgba(0,255,120,.85))
+               drop-shadow(0 0 24px rgba(0,255,120,.55))!important;
+        animation:dxnQuizArrowMove 1.15s ease-in-out infinite!important;
       }
       body.dxn-quiz-page #dxn-quiz-next-arrow svg{
-        width:54px!important;
-        height:38px!important;
+        width:68px!important;
+        height:42px!important;
         display:block!important;
-        overflow:visible!important;
       }
       body.dxn-quiz-page #dxn-quiz-next-arrow.is-disabled{
         opacity:.25!important;
-        cursor:not-allowed!important;
         animation:none!important;
       }
       @keyframes dxnQuizArrowMove{
-        0%,100%{transform:translateX(calc(-50% + 0px))}
-        50%{transform:translateX(calc(-50% - 18px))}
+        0%,100%{transform:translateX(-50%)}
+        50%{transform:translateX(calc(-50% - 20px))}
       }
       @media(max-width:700px){
         body.dxn-quiz-page #dxn-quiz-next-arrow{
-          bottom:16px!important;
-          width:50px!important;
-          height:36px!important;
+          bottom:12px!important;
+          width:60px!important;
+          height:40px!important;
         }
         body.dxn-quiz-page #dxn-quiz-next-arrow svg{
-          width:48px!important;
-          height:34px!important;
+          width:56px!important;
+          height:36px!important;
         }
       }
     `;
     document.head.appendChild(style);
 
-    const arrow = document.createElement('div');
-    arrow.id = 'dxn-quiz-next-arrow';
-    arrow.setAttribute('role','button');
-    arrow.setAttribute('tabindex','0');
-    arrow.setAttribute('aria-label','الانتقال إلى السؤال التالي');
-    arrow.innerHTML = `
-      <svg viewBox="0 0 120 70" aria-hidden="true">
-        <path d="M112 35H34" fill="none" stroke="#00d878" stroke-width="12" stroke-linecap="round"/>
-        <path d="M39 9L12 35l27 26" fill="none" stroke="#00d878" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M112 35H34" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
-        <path d="M39 9L12 35l27 26" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    `;
-    document.body.appendChild(arrow);
+    function createArrow(){
+      document.querySelectorAll('body.dxn-quiz-page .btns').forEach(function(el){ el.remove(); });
+      let arrow = document.getElementById('dxn-quiz-next-arrow');
+      if (!arrow) {
+        arrow = document.createElement('button');
+        arrow.type = 'button';
+        arrow.id = 'dxn-quiz-next-arrow';
+        arrow.setAttribute('aria-label','الانتقال إلى السؤال التالي');
+        arrow.innerHTML = `
+          <svg viewBox="0 0 140 70" aria-hidden="true">
+            <path d="M130 35H38M42 9L14 35l28 26" fill="none" stroke="#00e879" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M130 35H38M42 9L14 35l28 26" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        `;
+        document.body.appendChild(arrow);
 
-    function triggerNext(){
-      const next = document.querySelector('.btns #next');
-      if (!next || next.disabled) return;
-      next.click();
-    }
-    arrow.addEventListener('click', triggerNext);
-    arrow.addEventListener('keydown', function(e){
-      if(e.key === 'Enter' || e.key === ' '){
-        e.preventDefault();
-        triggerNext();
+        arrow.addEventListener('click', function(){
+          const next = document.querySelector('.btns #next');
+          if (next && !next.disabled) next.click();
+        });
       }
-    });
 
-    function syncArrow(){
       const next = document.querySelector('.btns #next');
       const disabled = !next || next.disabled;
       arrow.classList.toggle('is-disabled', disabled);
       arrow.setAttribute('aria-disabled', String(disabled));
     }
-    syncArrow();
+
+    createArrow();
+    setInterval(createArrow, 250);
+
     if(window.MutationObserver){
-      new MutationObserver(syncArrow).observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['disabled','class']});
+      new MutationObserver(createArrow).observe(document.body,{
+        childList:true,
+        subtree:true,
+        attributes:true,
+        attributeFilter:['disabled','class']
+      });
     }
   }
 
