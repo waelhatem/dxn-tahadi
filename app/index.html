@@ -1656,6 +1656,254 @@ function leaderDailyPlan(){
   </div>`;
 }
 
+
+const DXN_SYNC_ALIASES={
+  member_no:['member_no','member number','membernumber','رقم العضوية','رقم العضو','رقم عضوية dxn','رقم عضوية','العضوية'],
+  member_name:['member_name','member name','name','الاسم','اسم العضو','اسم العضوية','الاسم الكامل'],
+  sponsor_member_no:['sponsor_member_no','sponsor number','sponsor member no','رقم الراعي','رقم المسجل','رقم المشرف','الراعي رقم'],
+  sponsor_name:['sponsor_name','sponsor name','اسم الراعي','اسم المسجل','اسم المشرف','الراعي'],
+  generation:['generation','gen','الجيل'],
+  rank:['rank','الرتبة','المرتبة','المستوى'],
+  dxn_status:['dxn_status','dxn status','status','حالة dxn','حالة العضوية','الحالة'],
+  downline_status:['downline_status','downline status','حالة الفريق','حالة الخط','حالة الداونلاين'],
+  join_date:['join_date','join date','date joined','تاريخ الانضمام','تاريخ الاشتراك','تاريخ العضوية'],
+  personal_pv:['personal_pv','personal pv','pv','pv الشخصي','الـpv','النقاط الشخصية','النقاط الشخصيه'],
+  personal_group_pv:['personal_group_pv','personal group pv','pgpv','pv المجموعة الشخصية','pv المجموعة الشخصيه','pv شخصي جماعي'],
+  total_group_pv:['total_group_pv','total group pv','group pv','إجمالي pv المجموعة','اجمالي pv المجموعة','مجموع pv المجموعة','إجمالي المجموعة','مجموع المجموعة'],
+  accumulated_group_pv:['accumulated_group_pv','accumulated group pv','group accumulated pv','accumulated pv','التراكمي','النقاط التراكمية','التراكمي للمجموعة','تراكمي المجموعة'],
+  accumulated_promotion_pv:['accumulated_promotion_pv','accumulated promotion pv','promotion pv','promotion','تراكمي الترقية','التراكمي للترقية','تراكمي الترفيع'],
+  diamond_group_pv:['diamond_group_pv','diamond group pv','diamond pv','diamond','pv الماس','المجموعة الماسية','الماس']
+};
+let dxnSyncRows=[];
+let dxnSyncInvalid=[];
+let dxnSyncDuplicates=0;
+let dxnSyncHeaders=[];
+
+function dxnSyncNorm(v){
+  return String(v??'')
+    .toLowerCase()
+    .replace(/[\u064B-\u065F\u0670]/g,'')
+    .replace(/ـ/g,'')
+    .replace(/[_\-\/\\()[\]{}:.,]/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+function dxnSyncDigits(v){
+  return String(v??'').replace(/[٠-٩]/g,ch=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(ch))).trim();
+}
+function dxnSyncHeaderIndex(headers,aliases){
+  const set=new Set(aliases.map(dxnSyncNorm));
+  for(let i=0;i<headers.length;i++) if(set.has(dxnSyncNorm(headers[i]))) return i;
+  return -1;
+}
+function dxnSyncParseGrid(text){
+  const first=String(text||'').replace(/^\uFEFF/,'').split(/\r?\n/).find(x=>x.trim()!=='')||'';
+  const tab=(first.match(/\t/g)||[]).length;
+  const comma=(first.match(/,/g)||[]).length;
+  const semi=(first.match(/;/g)||[]).length;
+  const sep=tab>0?'\t':(comma>=semi&&comma>0?',':(semi>0?';',''));
+  if(!sep) return String(text||'').split(/\r?\n/).filter(x=>x.trim()!=='').map(x=>[x.trim()]);
+  const rows=[]; let row=[], cell='', quoted=false;
+  const src=String(text||'').replace(/\r/g,'');
+  for(let i=0;i<src.length;i++){
+    const ch=src[i];
+    if(ch==='"'){
+      if(quoted&&src[i+1]==='"'){cell+='"';i++}
+      else quoted=!quoted;
+    }else if(ch===sep&&!quoted){
+      row.push(cell);cell='';
+    }else if(ch==='\n'&&!quoted){
+      row.push(cell);rows.push(row);row=[];cell='';
+    }else{
+      cell+=ch;
+    }
+  }
+  row.push(cell); if(row.some(x=>String(x).trim()!=='')) rows.push(row);
+  return rows;
+}
+function dxnSyncNumber(v){
+  const raw=String(v??'').trim();
+  if(!raw) return {value:null,masked:false};
+  const latin=dxnSyncDigits(raw);
+  if(latin==='***'||latin==='--'||latin==='—'||latin==='-') return {value:null,masked:true};
+  let s=latin.replace(/\s/g,'');
+  if(s.includes(',')&&s.includes('.')){
+    if(s.lastIndexOf(',')>s.lastIndexOf('.')) s=s.replace(/\./g,'').replace(',','.');
+    else s=s.replace(/,/g,'');
+  }else if(s.includes(',')&&s.split(',').length===2&&s.split(',')[1].length<=2){
+    s=s.replace(',','.');
+  }else{
+    s=s.replace(/,/g,'');
+  }
+  s=s.replace(/[^0-9.+-]/g,'');
+  const n=Number(s);
+  return Number.isFinite(n)?{value:n,masked:false}:{value:null,masked:false};
+}
+function dxnSyncDate(v){
+  const raw=dxnSyncDigits(v);
+  if(!raw) return null;
+  if(/^\d{4}-\d{1,2}-\d{1,2}$/.test(raw)){
+    const p=raw.split('-').map(Number); return String(p[0]).padStart(4,'0')+'-'+String(p[1]).padStart(2,'0')+'-'+String(p[2]).padStart(2,'0');
+  }
+  const m=raw.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+  if(m) return m[3]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[1]).padStart(2,'0');
+  if(/^\d{5}$/.test(raw)){
+    const serial=Number(raw), base=new Date(Date.UTC(1899,11,30));
+    const d=new Date(base.getTime()+serial*86400000);
+    return d.toISOString().slice(0,10);
+  }
+  return null;
+}
+function dxnSyncBuildRows(){
+  const text=document.getElementById('dxnSyncInput')?.value||'';
+  const grid=dxnSyncParseGrid(text);
+  if(!grid.length) return {rows:[],invalid:[{row:0,message:'لم يتم العثور على بيانات.'}],duplicates:0};
+  const headers=grid[0].map(x=>String(x??'').trim());
+  dxnSyncHeaders=headers;
+  const idx={};
+  Object.keys(DXN_SYNC_ALIASES).forEach(k=>idx[k]=dxnSyncHeaderIndex(headers,DXN_SYNC_ALIASES[k]));
+  if(idx.member_no<0) return {rows:[],invalid:[{row:1,message:'لم يتم العثور على عمود رقم العضوية. أضف صف العناوين كما هو ظاهر في تقرير Excel.'}],duplicates:0};
+
+  const invalid=[]; const map=new Map(); let duplicates=0;
+  for(let r=1;r<grid.length;r++){
+    const row=grid[r]||[];
+    if(row.every(x=>String(x??'').trim()==='')) continue;
+    const no=dxnSyncDigits(row[idx.member_no]??'').replace(/\s/g,'');
+    if(!/^\d{9}$/.test(no)){
+      invalid.push({row:r+1,member_no:no,message:'رقم العضوية غير صالح؛ يجب أن يكون 9 أرقام.'});
+      continue;
+    }
+    const get=k=>idx[k]>=0?String(row[idx[k]]??'').trim():'';
+    const num=k=>dxnSyncNumber(get(k));
+    const pv=num('personal_pv'), pg=num('personal_group_pv'), tg=num('total_group_pv');
+    const ag=num('accumulated_group_pv'), ap=num('accumulated_promotion_pv'), dg=num('diamond_group_pv');
+    const item={
+      member_no:no,
+      member_name:get('member_name')||null,
+      sponsor_member_no:dxnSyncDigits(get('sponsor_member_no')).replace(/\s/g,'')||null,
+      sponsor_name:get('sponsor_name')||null,
+      generation:(()=>{const n=dxnSyncNumber(get('generation')).value;return n==null?null:Math.trunc(n)})(),
+      rank:get('rank')||null,
+      dxn_status:get('dxn_status')||null,
+      downline_status:get('downline_status')||null,
+      join_date:dxnSyncDate(get('join_date')),
+      personal_pv:pv.value,
+      personal_group_pv:pg.value,
+      total_group_pv:tg.value,
+      accumulated_group_pv:ag.value,
+      accumulated_promotion_pv:ap.value,
+      diamond_group_pv:dg.value,
+      accumulated_group_pv_masked:ag.masked,
+      accumulated_promotion_pv_masked:ap.masked,
+      diamond_group_pv_masked:dg.masked
+    };
+    if(map.has(no)) duplicates++;
+    map.set(no,item);
+  }
+  return {rows:Array.from(map.values()),invalid,duplicates,headers};
+}
+function dxnSyncStatus(msg,type){
+  const el=document.getElementById('dxnSyncStatus');
+  if(!el) return;
+  el.className='card '+(type==='error'?'':'') ;
+  el.style.marginTop='12px';
+  el.style.padding='12px';
+  el.style.borderRadius='14px';
+  el.style.background=type==='error'?'#fff1ef':type==='ok'?'#edf8f1':'#f5f8f7';
+  el.style.color=type==='error'?'#9f2118':type==='ok'?'#17663f':'#31544a';
+  el.textContent=msg;
+}
+function dxnSyncRenderPreview(meta){
+  const stats=document.getElementById('dxnSyncStats'), preview=document.getElementById('dxnSyncPreview'), errors=document.getElementById('dxnSyncErrors');
+  if(!stats||!preview||!errors)return;
+  stats.innerHTML=
+    '<div class="admin-stat"><div class="emoji">📄</div><div class="label">صفوف البيانات</div><b>'+meta.rows.length+'</b></div>'+
+    '<div class="admin-stat"><div class="emoji">✅</div><div class="label">صفوف صالحة</div><b>'+meta.rows.length+'</b></div>'+
+    '<div class="admin-stat"><div class="emoji">⚠️</div><div class="label">صفوف غير صالحة</div><b>'+meta.invalid.length+'</b></div>'+
+    '<div class="admin-stat"><div class="emoji">♻️</div><div class="label">مكررة داخل الملف</div><b>'+meta.duplicates+'</b></div>';
+  preview.innerHTML=meta.rows.length
+    ? '<div class="admin-table" style="overflow:auto"><table style="width:100%;border-collapse:collapse;min-width:760px"><thead><tr><th>رقم العضوية</th><th>الاسم</th><th>الراعي</th><th>الجيل</th><th>PV</th><th>التراكمي</th></tr></thead><tbody>'+
+      meta.rows.slice(0,20).map(m=>'<tr><td>'+esc(m.member_no)+'</td><td>'+esc(m.member_name||'—')+'</td><td>'+esc(m.sponsor_member_no||'—')+'</td><td>'+esc(m.generation??'—')+'</td><td>'+esc(m.personal_pv??'—')+'</td><td>'+esc(m.accumulated_group_pv??m.total_group_pv??'—')+'</td></tr>').join('')+
+      '</tbody></table></div>'+
+      (meta.rows.length>20?'<div class="muted small" style="margin-top:8px">يتم عرض أول 20 عضوًا فقط في المعاينة.</div>':'')
+    : '<div class="empty">لا توجد صفوف صالحة للعرض.</div>';
+  errors.innerHTML=meta.invalid.length
+    ? '<div class="card" style="border-color:#f0c3bd;background:#fff7f5"><b>⚠️ الصفوف التي لن تُزامن</b><div style="margin-top:8px;display:grid;gap:6px">'+meta.invalid.slice(0,30).map(x=>'<div class="muted">صف '+esc(x.row)+' — '+esc(x.message)+(x.member_no?' — '+esc(x.member_no):'')+'</div>').join('')+'</div></div>'
+    : '<div class="muted">لا توجد أخطاء في أرقام العضويات.</div>';
+  const btn=document.getElementById('dxnSyncButton');
+  if(btn) btn.disabled=!meta.rows.length;
+}
+function dxnSyncPreview(){
+  const meta=dxnSyncBuildRows();
+  dxnSyncRows=meta.rows; dxnSyncInvalid=meta.invalid; dxnSyncDuplicates=meta.duplicates;
+  dxnSyncRenderPreview(meta);
+  dxnSyncStatus(
+    meta.rows.length
+      ? '✅ تم تحليل الجدول. أصبح '+meta.rows.length+' عضوًا جاهزًا للمزامنة'+(meta.invalid.length?'، مع '+meta.invalid.length+' صفوف مستبعدة بسبب أخطاء.':'.')
+      : '⚠️ لا توجد عضويات صالحة للمزامنة.',
+    meta.rows.length?'ok':'error'
+  );
+}
+async function syncDxnTeamMembers(){
+  if(role!=='leader') return toast('هذه العملية للقائد فقط.');
+  dxnSyncPreview();
+  if(!dxnSyncRows.length) return toast('لا توجد بيانات صالحة للمزامنة.');
+  if(!confirm('سيتم مزامنة '+dxnSyncRows.length+' عضوية إلى سجل DXN. هل تريد المتابعة؟')) return;
+  const status=document.getElementById('dxnSyncStatus');
+  const button=document.getElementById('dxnSyncButton');
+  if(button) button.disabled=true;
+  let inserted=0,updated=0,invalid=0,total=0,errors=[];
+  const batchSize=500;
+  try{
+    for(let i=0;i<dxnSyncRows.length;i+=batchSize){
+      const batch=dxnSyncRows.slice(i,i+batchSize);
+      if(status){status.textContent='⏳ جارٍ مزامنة الدفعة '+(Math.floor(i/batchSize)+1)+' من '+Math.ceil(dxnSyncRows.length/batchSize)+'...';}
+      const r=await rpc('leader_sync_dxn_team_members',{p_token:token,p_rows:batch});
+      inserted+=Number(r?.inserted||0);
+      updated+=Number(r?.updated||0);
+      invalid+=Number(r?.invalid||0);
+      total+=Number(r?.total_rows||batch.length);
+      if(Array.isArray(r?.invalid_rows)) errors=errors.concat(r.invalid_rows);
+    }
+    if(status){
+      status.style.background='#edf8f1';status.style.color='#17663f';
+      status.textContent='✅ تمت المزامنة بنجاح: '+inserted+' أعضاء جدد، '+updated+' أعضاء تم تحديثهم، '+invalid+' صفوف مستبعدة.';
+    }
+    toast('✅ تمت مزامنة سجل DXN بنجاح.');
+    dxnSyncRenderPreview({rows:dxnSyncRows,invalid:errors,duplicates:dxnSyncDuplicates});
+  }catch(e){
+    if(status){status.style.background='#fff1ef';status.style.color='#9f2118';status.textContent='❌ تعذر إكمال المزامنة: '+(e.message||e);}
+    toast(e.message||'تعذر مزامنة سجل DXN.');
+  }finally{
+    if(button) button.disabled=false;
+  }
+}
+function openDxnSync(){
+  leaderSection='dxn_sync';
+  render();
+}
+function dxnSyncPanel(){
+  return '<div class="card leaderbox">'+
+    '<div class="title">📥 مزامنة سجل DXN</div>'+
+    '<p class="muted" style="line-height:1.9">الصق تقرير DXN الذي نسخته من Excel في الحقل أدناه. يجب أن يحتوي الصف الأول على عناوين الأعمدة، والنظام يتعرف تلقائيًا على أسماء الأعمدة العربية أو الإنجليزية المعروفة.</p>'+
+    '<div class="card" style="margin-top:10px;background:#f7fbf9;border-color:#d8e9e2">'+
+      '<b>طريقة العمل</b>'+
+      '<div class="muted" style="line-height:2;margin-top:6px">1) افتح تقرير DXN في Excel<br>2) انسخ الجدول كاملًا مع صف العناوين<br>3) الصق هنا<br>4) اضغط «معاينة البيانات» ثم «مزامنة الآن»</div>'+
+    '</div>'+
+    '<label style="display:block;font-weight:900;margin-top:14px">📋 بيانات Excel</label>'+
+    '<textarea id="dxnSyncInput" style="min-height:260px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;direction:ltr;text-align:left;white-space:pre;overflow:auto" placeholder="ألصق هنا الجدول المنسوخ من Excel..."></textarea>'+
+    '<div class="admin-toolbar">'+
+      '<button onclick="backToLeaderDashboard()">↩️ العودة</button>'+
+      '<button onclick="dxnSyncPreview()">🔎 معاينة البيانات</button>'+
+      '<button id="dxnSyncButton" class="primary" onclick="syncDxnTeamMembers()" disabled>🔄 مزامنة الآن</button>'+
+    '</div>'+
+    '<div id="dxnSyncStatus" class="muted" style="margin-top:10px;padding:10px;border-radius:12px;background:#f5f8f7">بانتظار لصق بيانات Excel.</div>'+
+  '</div>'+
+  '<div id="dxnSyncStats" class="admin-grid" style="margin-top:12px"></div>'+
+  '<div id="dxnSyncPreview" class="card"><div class="empty">ستظهر المعاينة هنا بعد تحليل الجدول.</div></div>'+
+  '<div id="dxnSyncErrors" style="margin-top:10px"></div>';
+}
+
 async function addTeamRegistryMember(){
   if(role!=='leader')return;
   const memberNo=prompt('رقم عضوية DXN (9 أرقام):',''); if(memberNo===null)return;
@@ -1692,6 +1940,7 @@ function teamRegistryPanel(){
 
 function leader(){
  if(leaderSection==='team_registry') return teamRegistryPanel();
+ if(leaderSection==='dxn_sync') return dxnSyncPanel();
  const members=data.members||[], teams=data.teams||[], challenges=data.challenges||[], subs=data.my_submissions||[], answers=data.my_answers||[], pendingRegs=data.pending_registrations||[], monthly=data.monthly||[];
  const showProspectRequests=leaderSection==='prospects';
  if(leaderSection==='prospect_log') return prospectRequestsLogPanel();
@@ -1749,7 +1998,7 @@ function leader(){
  </div>`+siteVisitStatsPanel()+leaderDailyPlan()+`<div class="card leaderbox">
    <div class="title">👑 مركز القيادة — تحليل وإدارة الموقع</div>
    <p class="muted">من هنا تتابع حالة الموقع، الأعضاء والفرق، التحديات، التارجت، الطلبات، وحركة الإنجازات. أدوات الإدارة تبقى للقائد فقط.</p>
-   <div class="admin-toolbar"><button class="primary" onclick="refresh()">🔄 تحديث البيانات</button><button onclick="createMemberForm()">➕ عضو</button><button onclick="createTeamForm()">🏆 فريق</button><button onclick="openChallengeEditor()">🎯 تحدٍ</button>${prospectRequestsButton()}<button onclick="openProspectLog()">📋 سجل الطلبات (${prospectRequests.length})</button>${dxnMembershipRequestsButton()}<button onclick="openTeamRegistry()">👥 سجل أعضاء الفريق</button><button onclick="openTrainingManager()">📚 إدارة التدريبات</button><button onclick="changePin()">🔐 PIN القائد</button></div>
+   <div class="admin-toolbar"><button class="primary" onclick="refresh()">🔄 تحديث البيانات</button><button onclick="createMemberForm()">➕ عضو</button><button onclick="createTeamForm()">🏆 فريق</button><button onclick="openChallengeEditor()">🎯 تحدٍ</button>${prospectRequestsButton()}<button onclick="openProspectLog()">📋 سجل الطلبات (${prospectRequests.length})</button>${dxnMembershipRequestsButton()}<button onclick="openTeamRegistry()">👥 سجل أعضاء الفريق</button><button class="primary" onclick="openDxnSync()">📥 مزامنة سجل DXN</button><button onclick="openTrainingManager()">📚 إدارة التدريبات</button><button onclick="changePin()">🔐 PIN القائد</button></div>
  </div>
  ${showProspectRequests?prospectRequestsPanel():""}
  <div class="admin-grid">
