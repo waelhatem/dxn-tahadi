@@ -14,7 +14,11 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 .hidden{display:none!important}
 .hotspot{position:absolute;border:0;background:transparent;cursor:pointer;padding:0;margin:0;outline:none}
 .hotspot:focus-visible{box-shadow:0 0 0 4px rgba(15,81,63,.45);border-radius:999px}
-.visible-cta{position:absolute;z-index:30;display:flex;align-items:center;justify-content:center;gap:10px;border:0;cursor:pointer;text-align:center;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif;direction:rtl;box-sizing:border-box;line-height:1.05;transition:filter .18s ease,transform .18s ease}
+.home-brand-logo{position:absolute;z-index:28;display:block;object-fit:contain;pointer-events:none;filter:drop-shadow(0 8px 18px rgba(0,0,0,.16))}
+.desktop-brand-logo{right:18.5%;top:8%;width:24%;height:auto}
+.mobile-brand-logo{right:15%;top:6%;width:70%;height:auto}
+@media(max-width:700px){.desktop-brand-logo{display:none}.mobile-brand-logo{display:block}}
+@media(min-width:701px){.mobile-brand-logo{display:none}}.visible-cta{position:absolute;z-index:30;display:flex;align-items:center;justify-content:center;gap:10px;border:0;cursor:pointer;text-align:center;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif;direction:rtl;box-sizing:border-box;line-height:1.05;transition:filter .18s ease,transform .18s ease}
 .visible-cta .cta-main{display:block;font-weight:950;font-size:clamp(17px,1.55vw,28px)}
 .visible-cta .cta-sub{display:block;margin-top:5px;font-weight:750;font-size:clamp(10px,.82vw,15px)}
 .visible-cta.new{background:linear-gradient(135deg,#0f513f,#176b55);color:#fff;border:2px solid rgba(255,255,255,.95);border-radius:24px;box-shadow:0 10px 24px rgba(0,0,0,.22)}
@@ -89,6 +93,7 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 <button id="desktopPreviousUser" class="hotspot" type="button" aria-label="مستخدم سابق"></button>
 <button id="desktopDeviceMobile" class="hotspot" type="button" aria-label="الموبايل"></button>
 <button id="desktopDeviceComputer" class="hotspot" type="button" aria-label="الحاسوب"></button>
+<img id="desktopHomeLogo" class="home-brand-logo desktop-brand-logo" src="/logo.png" alt="مجتمع الصحة والثراء">
 <div class="desktop-cta">
   <button id="desktopNewVisitorVisible" class="visible-cta new" type="button" aria-label="زائر جديد">
     <span><span class="cta-main">زائر جديد</span><span class="cta-sub">اكتشف الفرص المناسبة لك</span></span>
@@ -102,6 +107,7 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 </section>
 <section id="mobileView" class="view mobile-view hidden">
 <div class="mobile-poster">
+<img id="mobileHomeLogo" class="home-brand-logo mobile-brand-logo" src="/logo.png" alt="مجتمع الصحة والثراء">
 <img src="11.png" alt="مجتمع الصحة والثراء">
 <button id="mobilePreviousUser" class="hotspot" type="button" aria-label="مستخدم سابق"></button>
 <button id="mobileNewVisitor" class="hotspot" type="button" aria-label="زائر جديد"></button>
