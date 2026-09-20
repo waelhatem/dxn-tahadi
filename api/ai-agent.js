@@ -1857,10 +1857,9 @@ module.exports=async function handler(req,res){
     let marketingPlan=null;
     if(isTeamIntelligenceRequest(message)){
       teamIntelligence=await AGENT_TOOLS.get_dxn_team_intelligence(token,{mode:'summary',member_no:null,generation:null,limit:50});
+    }
     if(isMarketingPlanRequest(message)){
       marketingPlan=DXN_MARKETING_PLAN_SOURCE;
-    }
-
     }
 
     // Completion of the daily task is a deterministic server-side action.
