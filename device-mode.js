@@ -99,6 +99,7 @@
     style.id = 'dxn-quiz-circular-nav-style';
     style.textContent = `
       body.dxn-quiz-page #global-page-navigation{display:none!important}
+      body.dxn-quiz-page .btns{display:none!important}
       body.dxn-quiz-page .btns{
         position:fixed!important;
         left:20px!important;
