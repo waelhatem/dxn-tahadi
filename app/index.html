@@ -1701,7 +1701,7 @@ function dxnSyncParseGrid(text){
   const tab=(first.match(/\t/g)||[]).length;
   const comma=(first.match(/,/g)||[]).length;
   const semi=(first.match(/;/g)||[]).length;
-  const sep=tab>0?'\t':(comma>=semi&&comma>0?',':(semi>0?';',''));
+  const sep=tab>0?'\t':(comma>=semi&&comma>0?',':(semi>0?';':''));
   if(!sep) return String(text||'').split(/\r?\n/).filter(x=>x.trim()!=='').map(x=>[x.trim()]);
   const rows=[]; let row=[], cell='', quoted=false;
   const src=String(text||'').replace(/\r/g,'');
