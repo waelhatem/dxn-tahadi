@@ -108,6 +108,7 @@ SET search_path = public
 AS $function$
 DECLARE
   uid uuid;
+  existing_id uuid;
   new_id uuid;
   st text := lower(trim(coalesce(p_status,'testing')));
   conf numeric := p_confidence;
@@ -130,6 +131,34 @@ BEGIN
   IF nullif(trim(coalesce(p_pattern,'')),'') IS NULL
      AND nullif(trim(coalesce(p_working_lesson,'')),'') IS NULL THEN
     RETURN NULL;
+  END IF;
+
+  -- إذا كان لدينا درس قيد الاختبار لنفس الموضوع، نحدّثه بدل إنشاء نسخة مكررة.
+  SELECT l.id
+  INTO existing_id
+  FROM public.ai_agent_learning_patterns l
+  WHERE l.user_id = uid
+    AND l.topic = nullif(left(trim(coalesce(p_topic,'')),500),'')
+    AND l.status IN ('testing','supported')
+  ORDER BY l.updated_at DESC
+  LIMIT 1;
+
+  IF existing_id IS NOT NULL THEN
+    UPDATE public.ai_agent_learning_patterns
+    SET
+      pattern = nullif(left(trim(coalesce(p_pattern,'')),1200),''),
+      evidence_summary = nullif(left(trim(coalesce(p_evidence_summary,'')),1600),''),
+      working_lesson = nullif(left(trim(coalesce(p_working_lesson,'')),1200),''),
+      next_test = nullif(left(trim(coalesce(p_next_test,'')),1000),''),
+      evidence_count = greatest(l.evidence_count, cnt),
+      confidence = conf,
+      status = st,
+      source_event_ids = coalesce(p_source_event_ids, source_event_ids),
+      updated_at = now()
+    WHERE id = existing_id
+    RETURNING id INTO new_id;
+
+    RETURN new_id;
   END IF;
 
   INSERT INTO public.ai_agent_learning_patterns(
