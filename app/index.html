@@ -2540,6 +2540,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
           const no=String(m.member_no||'');
           const rank=String(m.rank||'MEM');
           const pv=m.personal_pv==null?'—':String(m.personal_pv);
+          const cumulative=m.cumulative_points==null?(m.total_group_pv==null?'—':String(m.total_group_pv)):String(m.cumulative_points);
           const status=String(m.dxn_status||m.downline_status||'');
           return '<div class="team-member-row">'+
             '<div class="team-member-index">'+(index+1)+'</div>'+
@@ -2548,6 +2549,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
               '<div class="team-member-meta">'+
                 '<span>⭐ '+escapeHtml(rank)+'</span>'+
                 '<span>PV: '+escapeHtml(pv)+'</span>'+
+                '<span>تراكمي: '+escapeHtml(cumulative)+'</span>'+
                 (status?'<span>'+escapeHtml(status)+'</span>':'')+
               '</div>'+
             '</div>'+
