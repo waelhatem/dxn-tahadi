@@ -551,4 +551,20 @@ where not exists (
   where e.entity_type='training_answer' and e.entity_id=ta.id::text and e.event_type='created'
 );
 
+insert into public.ai_agent_permanent_memory_events(user_id,member_id,event_type,entity_type,entity_id,payload,created_at)
+select c.user_id,null,'created','causal_memory',c.id::text,to_jsonb(c),c.created_at
+from public.ai_agent_causal_memory c
+where not exists (
+  select 1 from public.ai_agent_permanent_memory_events e
+  where e.entity_type='causal_memory' and e.entity_id=c.id::text and e.event_type='created'
+);
+
+insert into public.ai_agent_permanent_memory_events(user_id,member_id,event_type,entity_type,entity_id,payload,created_at)
+select l.user_id,null,'created','learning_pattern',l.id::text,to_jsonb(l),l.created_at
+from public.ai_agent_learning_patterns l
+where not exists (
+  select 1 from public.ai_agent_permanent_memory_events e
+  where e.entity_type='learning_pattern' and e.entity_id=l.id::text and e.event_type='created'
+);
+
 notify pgrst, 'reload schema';
