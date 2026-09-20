@@ -8,6 +8,11 @@
     return p === '/' || p === '/index.html' || p === '/landing.html';
   }
 
+  function isDeviceSelectorExcludedPage() {
+    const p = (window.location.pathname || '/').replace(/\/+$/, '') || '/';
+    return p === '/02-pretest-intro.html';
+  }
+
   function detectDeviceMode() {
     const ua = navigator.userAgent || navigator.vendor || window.opera || '';
     const mobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(ua);
@@ -163,7 +168,7 @@
   }
 
   function shouldCreateSharedSelector() {
-    if (isMainHomepage()) return false;
+    if (isMainHomepage() || isDeviceSelectorExcludedPage()) return false;
     return !hasOwnDeviceSelector() && !document.getElementById('dxn-global-device-switch');
   }
 
