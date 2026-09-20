@@ -99,7 +99,7 @@ const DXN_MARKETING_PLAN = {
 
 function isDxnMarketingPlanRequest(message) {
   const s = String(message || '').trim().toLowerCase();
-  return /خطة\\s*(?:dxn|التسويق|المالية|التسويقية)|مصادر\\s*الدخل|فلسفة\\s*التسويق|pv|sv|ppv|psv|pgpv|pgsv|dgpv|dgsv|وكيل\\s*نجم|نجم\\s*(?:ياقوتي|ماسي)|علاوة|عمولة|الحوافز|ربح\\s*(?:التجزئة|المجموعة)|الشراء\\s*(?:شهري|الشخصي)|المشتريات\\s*الشخصية|المبيعات\\s*الشخصية/i.test(s);
+  return /خطة\s*(?:dxn|التسويق|المالية|التسويقية)|مصادر\s*الدخل|فلسفة\s*التسويق|pv|sv|ppv|psv|pgpv|pgsv|dgpv|dgsv|وكيل\s*نجم|نجم\s*(?:ياقوتي|ماسي)|علاوة|عمولة|الحوافز|ربح\s*(?:التجزئة|المجموعة)|الشراء\s*(?:شهري|الشخصي)|المشتريات\s*الشخصية|المبيعات\s*الشخصية/i.test(s);
 }
 
 module.exports = { DXN_MARKETING_PLAN, isDxnMarketingPlanRequest };
