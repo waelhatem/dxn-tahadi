@@ -12,7 +12,7 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 .page{height:100svh;width:100vw;overflow:hidden;position:relative;background:#eef5f1}
 .view{width:100%;height:100%}
 .hidden{display:none!important}
-.hotspot{position:absolute;border:0;background:transparent;cursor:pointer;padding:0;margin:0;outline:none;z-index:10}
+.hotspot{position:absolute;border:0;background:transparent;cursor:pointer;padding:0;margin:0;outline:none}
 .hotspot:focus-visible{box-shadow:0 0 0 4px rgba(15,81,63,.45);border-radius:999px}
 
 /* واجهة الحاسوب: صورة سطح المكتب المعتمدة مستقلة عن صورة الموبايل */
@@ -150,9 +150,6 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 .desktop-action:focus-visible{
   box-shadow:0 0 0 4px rgba(255,255,255,.9),0 0 0 7px rgba(15,81,63,.5);
 }
-#desktopEmbeddedComputer,#desktopEmbeddedMobile{top:1.0%;height:5.6%;width:8.0%}
-#desktopEmbeddedComputer{left:40.7%}
-#desktopEmbeddedMobile{left:50.0%}
 
 /* واجهة الموبايل: الصورة الأصلية كما هي */
 .mobile-view{display:flex;align-items:center;justify-content:center}
@@ -160,9 +157,6 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 .mobile-poster img{width:100%;height:100%;object-fit:contain;display:block}
 #mobilePreviousUser{left:7.5%;bottom:13%;width:43%;height:9%}
 #mobileNewVisitor{right:7%;bottom:13%;width:43%;height:9%}
-#mobileEmbeddedComputer,#mobileEmbeddedMobile{top:1.0%;height:6.4%;width:20.5%}
-#mobileEmbeddedComputer{left:29.5%}
-#mobileEmbeddedMobile{left:50.0%}
 
 @media(max-width:700px){}
 </style>
@@ -207,8 +201,6 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
     </button>
   </div>
 </div>
-<button id="desktopEmbeddedMobile" class="hotspot" type="button" aria-label="الموبايل"></button>
-<button id="desktopEmbeddedComputer" class="hotspot" type="button" aria-label="الحاسوب"></button>
 </div>
 </section>
 <section id="mobileView" class="view mobile-view hidden">
@@ -216,8 +208,6 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 <img src="11.png" alt="مجتمع الصحة والثراء">
 <button id="mobilePreviousUser" class="hotspot" type="button" aria-label="مستخدم سابق"></button>
 <button id="mobileNewVisitor" class="hotspot" type="button" aria-label="زائر جديد"></button>
-<button id="mobileEmbeddedMobile" class="hotspot" type="button" aria-label="الموبايل"></button>
-<button id="mobileEmbeddedComputer" class="hotspot" type="button" aria-label="الحاسوب"></button>
 </div>
 </section>
 </main>
@@ -226,20 +216,17 @@ const mobileView=document.getElementById('mobileView');
 const desktopView=document.getElementById('desktopView');
 function goNew(){location.href='/02-pretest-intro.html'}
 function goPrevious(){location.href='/app/index.html'}
-function setDeviceView(mode){
-  const mobile=mode==='mobile';
-  mobileView.classList.toggle('hidden',!mobile);
-  desktopView.classList.toggle('hidden',mobile);
-}
 document.getElementById('desktopNewVisitor').addEventListener('click',goNew);
 document.getElementById('desktopPreviousUser').addEventListener('click',goPrevious);
 document.getElementById('mobileNewVisitor').addEventListener('click',goNew);
 document.getElementById('mobilePreviousUser').addEventListener('click',goPrevious);
-document.getElementById('desktopEmbeddedMobile').addEventListener('click',()=>setDeviceView('mobile'));
-document.getElementById('desktopEmbeddedComputer').addEventListener('click',()=>setDeviceView('desktop'));
-document.getElementById('mobileEmbeddedMobile').addEventListener('click',()=>setDeviceView('mobile'));
-document.getElementById('mobileEmbeddedComputer').addEventListener('click',()=>setDeviceView('desktop'));
-setDeviceView(window.matchMedia('(max-width:700px)').matches?'mobile':'desktop');
+if(window.matchMedia('(max-width:700px)').matches){
+  mobileView.classList.remove('hidden');
+  desktopView.classList.add('hidden');
+}else{
+  mobileView.classList.add('hidden');
+  desktopView.classList.remove('hidden');
+}
 </script>
 <script src="/pwa-install.js?v=1" defer></script>
 </body>
