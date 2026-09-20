@@ -89,7 +89,7 @@
   }
 
   function installQuizCircularNav() {
-    const p = (window.location.pathname || '/').replace(/\/+$/, '') || '/';
+    const p = (window.location.pathname || '/').replace(/\\/+$/, '') || '/';
     if (p !== '/03-pretest.html') return;
     if (document.getElementById('dxn-quiz-circular-nav-style')) return;
 
@@ -99,158 +99,93 @@
     style.id = 'dxn-quiz-circular-nav-style';
     style.textContent = `
       body.dxn-quiz-page #global-page-navigation{display:none!important}
-      body.dxn-quiz-page .btns{
+      body.dxn-quiz-page .btns{display:none!important}
+      body.dxn-quiz-page #dxn-quiz-next-arrow{
         position:fixed!important;
         left:50%!important;
-        bottom:18px!important;
+        bottom:22px!important;
+        z-index:10002!important;
+        width:58px!important;
+        height:42px!important;
         transform:translateX(-50%)!important;
-        z-index:10001!important;
         display:flex!important;
         align-items:center!important;
         justify-content:center!important;
-        width:auto!important;
-        height:auto!important;
-        margin:0!important;
-        padding:0!important;
-        background:transparent!important;
-        border:0!important;
-        box-shadow:none!important;
-      }
-      body.dxn-quiz-page .btns #back{display:none!important}
-      body.dxn-quiz-page .btns #next{
-        display:grid!important;
-        position:relative!important;
-        width:44px!important;
-        height:44px!important;
-        min-width:44px!important;
-        min-height:44px!important;
-        max-width:44px!important;
-        max-height:44px!important;
-        padding:0!important;
-        margin:0!important;
-        border:1px solid rgba(255,255,255,.55)!important;
-        border-radius:50%!important;
-        background:transparent!important;
-        color:transparent!important;
-        font-size:0!important;
-        line-height:0!important;
-        place-items:center!important;
-        overflow:hidden!important;
-      }
-      body.dxn-quiz-page .btns{
-        position:fixed!important;
-        left:20px!important;
-        bottom:18px!important;
-        z-index:10001!important;
-        display:flex!important;
-        flex-direction:row!important;
-        align-items:center!important;
-        gap:12px!important;
-        width:auto!important;
-        height:auto!important;
-        min-width:0!important;
-        min-height:0!important;
-        margin:0!important;
-        padding:0!important;
-        background:transparent!important;
-        border:0!important;
-        border-radius:0!important;
-        box-shadow:none!important;
-      }
-      body.dxn-quiz-page .btns .btn{
-        position:relative!important;
-        width:44px!important;
-        height:44px!important;
-        min-width:44px!important;
-        min-height:44px!important;
-        max-width:44px!important;
-        max-height:44px!important;
-        flex:0 0 44px!important;
-        padding:0!important;
-        margin:0!important;
-        border:0!important;
-        border-radius:50%!important;
-        background:transparent!important;
-        color:transparent!important;
-        border:1px solid rgba(255,255,255,.55)!important;
-        font-size:0!important;
-        line-height:0!important;
-        display:grid!important;
-        place-items:center!important;
         cursor:pointer!important;
-        box-shadow:0 7px 20px rgba(0,0,0,.18)!important;
-        opacity:1!important;
-        transform:none!important;
-        overflow:hidden!important;
-        text-indent:-9999px!important;
-        transition:transform .15s ease,box-shadow .15s ease!important;
+        user-select:none!important;
+        pointer-events:auto!important;
+        filter:drop-shadow(0 0 4px rgba(0,255,120,.95))
+               drop-shadow(0 0 12px rgba(0,255,120,.75))
+               drop-shadow(0 0 22px rgba(0,255,120,.45))!important;
+        animation:dxnQuizArrowMove 1.35s ease-in-out infinite!important;
+      }
+      body.dxn-quiz-page #dxn-quiz-next-arrow svg{
+        width:54px!important;
+        height:38px!important;
+        display:block!important;
+        overflow:visible!important;
+      }
+      body.dxn-quiz-page #dxn-quiz-next-arrow.is-disabled{
+        opacity:.25!important;
+        cursor:not-allowed!important;
         animation:none!important;
       }
-      body.dxn-quiz-page .btns .btn::before{
-        display:none!important;
-        content:none!important;
-      }
-      body.dxn-quiz-page .btns #back::after,
-      body.dxn-quiz-page .btns #next::after{
-        content:""!important;
-        display:block!important;
-        width:0!important;
-        height:0!important;
-        position:absolute!important;
-        top:50%!important;
-        left:50%!important;
-        transform:translate(-50%,-50%)!important;
-        text-indent:0!important;
-      }
-      body.dxn-quiz-page .btns #back::after{
-        border-top:10px solid transparent!important;
-        border-bottom:10px solid transparent!important;
-        border-right:15px solid #0f513f!important;
-      }
-      body.dxn-quiz-page .btns #next::after{
-        border-top:10px solid transparent!important;
-        border-bottom:10px solid transparent!important;
-        border-left:15px solid #0f513f!important;
-      }
-      body.dxn-quiz-page .btns .btn:hover:not(:disabled){
-        transform:scale(1.06)!important;
-        box-shadow:0 9px 24px rgba(0,0,0,.22)!important;
-      }
-      body.dxn-quiz-page .btns .btn:active:not(:disabled){
-        transform:scale(.96)!important;
-      }
-      body.dxn-quiz-page .btns .btn:disabled{
-        opacity:.28!important;
-        cursor:not-allowed!important;
+      @keyframes dxnQuizArrowMove{
+        0%,100%{transform:translateX(calc(-50% + 0px))}
+        50%{transform:translateX(calc(-50% - 18px))}
       }
       @media(max-width:700px){
-        body.dxn-quiz-page .btns{
-          left:20px!important;
-          bottom:18px!important;
-          gap:8px!important;
+        body.dxn-quiz-page #dxn-quiz-next-arrow{
+          bottom:16px!important;
+          width:50px!important;
+          height:36px!important;
         }
-        body.dxn-quiz-page .btns .btn{
-          width:40px!important;
-          height:40px!important;
-          min-width:40px!important;
-          min-height:40px!important;
-          max-width:40px!important;
-          max-height:40px!important;
-          flex:0 0 40px!important;
-        }
-        body.dxn-quiz-page .btns #back::after{
-          border-top-width:8px!important;
-          border-bottom-width:8px!important;
-          border-right-width:11px!important;
-        }
-        body.dxn-quiz-page .btns #next::after{
-          border-top-width:8px!important;
-          border-bottom-width:8px!important;
-          border-left-width:11px!important;
+        body.dxn-quiz-page #dxn-quiz-next-arrow svg{
+          width:48px!important;
+          height:34px!important;
         }
       }
     `;
     document.head.appendChild(style);
+
+    const arrow = document.createElement('div');
+    arrow.id = 'dxn-quiz-next-arrow';
+    arrow.setAttribute('role','button');
+    arrow.setAttribute('tabindex','0');
+    arrow.setAttribute('aria-label','الانتقال إلى السؤال التالي');
+    arrow.innerHTML = `
+      <svg viewBox="0 0 120 70" aria-hidden="true">
+        <path d="M112 35H34" fill="none" stroke="#00d878" stroke-width="12" stroke-linecap="round"/>
+        <path d="M39 9L12 35l27 26" fill="none" stroke="#00d878" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M112 35H34" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+        <path d="M39 9L12 35l27 26" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `;
+    document.body.appendChild(arrow);
+
+    function triggerNext(){
+      const next = document.querySelector('.btns #next');
+      if (!next || next.disabled) return;
+      next.click();
+    }
+    arrow.addEventListener('click', triggerNext);
+    arrow.addEventListener('keydown', function(e){
+      if(e.key === 'Enter' || e.key === ' '){
+        e.preventDefault();
+        triggerNext();
+      }
+    });
+
+    function syncArrow(){
+      const next = document.querySelector('.btns #next');
+      const disabled = !next || next.disabled;
+      arrow.classList.toggle('is-disabled', disabled);
+      arrow.setAttribute('aria-disabled', String(disabled));
+    }
+    syncArrow();
+    if(window.MutationObserver){
+      new MutationObserver(syncArrow).observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['disabled','class']});
+    }
   }
 
   function getSavedMode() {
