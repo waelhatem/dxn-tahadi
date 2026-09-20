@@ -579,6 +579,112 @@ function causalMemoryLikely(message,cognitiveState,causalMemory){
     || ['positive','frustrated','hesitant'].includes(signal);
 }
 
+async function loadLearningPatterns(token){
+  try{
+    const r=await supabaseRpc('get_ai_agent_learning_patterns',{p_token:token,p_limit:8});
+    if(!r.ok||!Array.isArray(r.data)) return [];
+    return r.data.map(x=>({
+      id:x.id||null,
+      topic:x.topic||null,
+      pattern:x.pattern||null,
+      evidence_summary:x.evidence_summary||null,
+      working_lesson:x.working_lesson||null,
+      next_test:x.next_test||null,
+      evidence_count:Number(x.evidence_count||0),
+      confidence:x.confidence==null?null:Number(x.confidence),
+      status:x.status||'testing',
+      source_event_ids:Array.isArray(x.source_event_ids)?x.source_event_ids:[],
+      created_at:x.created_at||null,
+      updated_at:x.updated_at||null
+    }));
+  }catch(_){return [];}
+}
+
+async function saveLearningPattern(token,pattern){
+  if(!pattern) return null;
+  try{
+    const r=await supabaseRpc('save_ai_agent_learning_pattern',{
+      p_token:token,
+      p_topic:pattern.topic||null,
+      p_pattern:pattern.pattern||null,
+      p_evidence_summary:pattern.evidence_summary||null,
+      p_working_lesson:pattern.working_lesson||null,
+      p_next_test:pattern.next_test||null,
+      p_evidence_count:Number(pattern.evidence_count||0),
+      p_confidence:pattern.confidence==null?null:Number(pattern.confidence),
+      p_status:pattern.status||'testing',
+      p_source_event_ids:Array.isArray(pattern.source_event_ids)?pattern.source_event_ids:[]
+    });
+    return r.ok ? r.data : null;
+  }catch(_){return null;}
+}
+
+function learningLoopLikely(causalMemory,learningPatterns){
+  return Array.isArray(causalMemory) && causalMemory.length>=2;
+}
+
+async function extractLearningPattern(currentCausalMemory,currentLearningPatterns){
+  const events=Array.isArray(currentCausalMemory)?currentCausalMemory.slice(0,12):[];
+  if(events.length<2) return null;
+
+  const prompt=[
+    'حلل آخر تجارب العضو لبناء درس عملي مؤقت واحد فقط إذا وجدت نمطًا مدعومًا بتجربتين أو أكثر.',
+    'لا تبحث عن تشابه لغوي فقط؛ ابحث عن علاقة بين التغيير في الأسلوب والنتيجة المعلنة من العضو.',
+    'إذا لم توجد أدلة كافية أو كانت التجارب متعارضة، أعد {"save":false}.',
+    'هذا ليس استنتاجًا عن شخصية العضو. الدرس يخص طريقة/تجربة محددة فقط.',
+    'pattern: صياغة قصيرة للنمط الذي ظهر عبر أكثر من تجربة.',
+    'evidence_summary: لخص الأدلة الفعلية دون اختراع أرقام أو نتائج.',
+    'working_lesson: درس مؤقت قابل للاختبار، وليس حقيقة نهائية.',
+    'next_test: تجربة واحدة محددة يمكن أن تؤكد أو تضعف الدرس.',
+    'evidence_count: عدد التجارب ذات الصلة فعلًا.',
+    'confidence: بين 0 و1. لا ترفع الثقة لمجرد تشابه التجارب.',
+    'status: testing إذا ما زال يحتاج اختبارًا، supported فقط إذا كانت هناك أدلة متكررة ومتسقة، rejected إذا ناقضته التجارب الأخيرة، superseded إذا استُبدل بدرس أحدث.',
+    'source_event_ids: أعد فقط معرفات التجارب التي دعمت التحليل.',
+    'إذا كان هناك درس سابق قريب من نفس الموضوع، حدّثه بدل اختراع درس متضارب.',
+    'لا تعتبر hypothesis في causal_memory حقيقة؛ هي مجرد سبب محتمل.',
+    'أعد JSON فقط بالمفاتيح: save, topic, pattern, evidence_summary, working_lesson, next_test, evidence_count, confidence, status, source_event_ids.',
+    'الخبرات الأخيرة:',
+    JSON.stringify(events),
+    'الدروس السابقة:',
+    JSON.stringify(Array.isArray(currentLearningPatterns)?currentLearningPatterns.slice(0,8):[])
+  ].join('\\n');
+
+  try{
+    const r=await openai({
+      model:OPENAI_MODEL,
+      instructions:'أنت محلل حلقة تعلم. أعد JSON فقط، ولا تحول فرضية إلى حقيقة.',
+      input:[{role:'user',content:prompt}],
+      max_output_tokens:520
+    });
+    if(!r.ok) return null;
+    const text=outputText(r.data);
+    const start=text.indexOf('{'),end=text.lastIndexOf('}');
+    if(start<0||end<=start)return null;
+    const p=JSON.parse(text.slice(start,end+1));
+    if(p.save!==true) return null;
+
+    const statuses=['testing','supported','rejected','superseded'];
+    const ids=Array.isArray(p.source_event_ids)
+      ? p.source_event_ids.map(x=>String(x||'')).filter(x=>events.some(e=>String(e.id||'')===x)).slice(0,12)
+      : [];
+
+    if(ids.length<2) return null;
+
+    const conf=Number(p.confidence);
+    return {
+      topic:p.topic?String(p.topic).trim().slice(0,500):null,
+      pattern:p.pattern?String(p.pattern).trim().slice(0,1200):null,
+      evidence_summary:p.evidence_summary?String(p.evidence_summary).trim().slice(0,1600):null,
+      working_lesson:p.working_lesson?String(p.working_lesson).trim().slice(0,1200):null,
+      next_test:p.next_test?String(p.next_test).trim().slice(0,1000):null,
+      evidence_count:Math.max(2,Math.min(12,Number(p.evidence_count)||ids.length)),
+      confidence:Number.isFinite(conf)?Math.max(0,Math.min(1,conf)):0.35,
+      status:statuses.includes(p.status)?p.status:'testing',
+      source_event_ids:ids
+    };
+  }catch(_){return null;}
+}
+
 async function loadCausalMemory(token){
   try{
     const r=await supabaseRpc('get_ai_agent_causal_memory',{p_token:token,p_limit:12});
@@ -1269,6 +1375,10 @@ function instructions(context){
     'استخدم outcome الحالي لتكييف الجلسة الحالية، ولا تحفظ نتيجة عابرة كصفة ثابتة للعضو.',
 
     'لديك أيضًا causal_memory وهي ذاكرة خبرات سبب/نتيجة: المحاولة والنتيجة والملاحظة والسبب المحتمل والتعديل القادم. استخدمها عندما تكون مرتبطة بالموضوع الحالي، حتى لا تعيد نفس الأسلوب بعد تجربة فاشلة.',
+    'لديك أيضًا learning_patterns وهي دروس مؤقتة مستخرجة من أكثر من تجربة. استخدمها كفرضيات قابلة للاختبار، لا كحقائق ثابتة.',
+    'إذا كان learning_pattern = testing، استخدمه لتوجيه تجربة واحدة جديدة بدل إعلان أن السبب ثبت.',
+    'إذا دعمت تجارب متعددة نفس التعديل، يمكنك القول إن التجارب حتى الآن تشير إلى فائدة هذا التعديل، مع إبقاء الباب مفتوحًا لاختبار جديد.',
+    'إذا ناقضت تجربة جديدة درسًا سابقًا، لا تتمسك بالدرس؛ حدّثه وغيّر التجربة القادمة.',
     'في causal_memory ميّز دائمًا بين observation/نتيجة صرّح بها العضو وبين hypothesis/سبب محتمل. لا تقدم hypothesis على أنها حقيقة.',
     'إذا وجدت تجربة سابقة بنتيجة سلبية، لا تكرر نفس الأسلوب بلا تغيير واضح. وإذا وجدت تجربة ناجحة، حافظ على العنصر الذي دعمه العضو وجرّب تطويره تدريجيًا.',
     'لا تستنتج من causal_memory أن العضو ضعيف أو قوي بشكل ثابت. هي سجل لتجارب محددة فقط.',
@@ -1668,7 +1778,8 @@ module.exports=async function handler(req,res){
     const [persistentMemory,coachingProfile,causalMemory]=await Promise.all([
       loadAgentMemory(token),
       loadAgentProfile(token),
-      loadCausalMemory(token)
+      loadCausalMemory(token),
+      loadLearningPatterns(token)
     ]);
     const fallbackHistory=cleanHistory(body.history);
     const history=(persistentMemory.length?persistentMemory:fallbackHistory).slice(-24);
@@ -1711,6 +1822,7 @@ module.exports=async function handler(req,res){
       interaction_signal:conversationState?.interaction_signal||null,
       interaction_confidence:conversationState?.interaction_confidence==null?null:conversationState.interaction_confidence,
       causal_memory:causalMemory,
+      learning_patterns:learningPatterns,
       cognitive_state:cognitiveState,
       memory_state:memoryState,
       decision_state:decisionState,
@@ -1838,7 +1950,23 @@ module.exports=async function handler(req,res){
     // attempt/result/obstacle relationship, never a guessed personality trait.
     if(causalMemoryLikely(message,cognitiveState,causalMemory)){
       const causalEvent=await extractCausalMemoryEvent(message,answer,causalMemory);
-      if(causalEvent) await saveCausalMemory(token,causalEvent);
+      if(causalEvent){
+        const causalId=await saveCausalMemory(token,causalEvent);
+        const latestCausalMemory=[
+          {id:causalId, ...causalEvent},
+          ...causalMemory
+        ].slice(0,12);
+
+        // Only synthesize a learning pattern when there are at least two
+        // concrete experiences; one experience is not enough to "learn" a rule.
+        if(learningLoopLikely(latestCausalMemory,learningPatterns)){
+          const learningPattern=await extractLearningPattern(
+            latestCausalMemory,
+            learningPatterns
+          );
+          if(learningPattern) await saveLearningPattern(token,learningPattern);
+        }
+      }
     }
 
     return res.status(200).json({
