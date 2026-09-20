@@ -2475,8 +2475,8 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 
     const groups={};
     list.forEach(m=>{
-      const raw=m.generation;
-      const key=(raw===null||raw===undefined||String(raw).trim()==='')?'غير محدد':String(raw);
+      const depth=Number(m.depth_from_target||1);
+      const key=Number.isFinite(depth)&&depth>0?String(depth):'غير محدد';
       if(!groups[key]) groups[key]=[];
       groups[key].push(m);
     });
@@ -2553,8 +2553,8 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 
     try{
       const [summary,downline]=await Promise.all([
-        rpc('get_dxn_team_intelligence',{p_token:t,p_mode:'summary',p_member_no:rootNo,p_limit:200}),
-        rpc('get_dxn_team_intelligence',{p_token:t,p_mode:'downline',p_member_no:rootNo,p_limit:200})
+        rpc('get_dxn_team_intelligence',{p_token:t,p_mode:'summary',p_member_no:rootNo,p_limit:5000}),
+        rpc('get_dxn_team_intelligence',{p_token:t,p_mode:'downline',p_member_no:rootNo,p_limit:5000})
       ]);
       summaryBox.innerHTML=renderSummary(summary,rootNo);
       listBox.innerHTML=renderMembers(downline);
