@@ -371,7 +371,7 @@ async function verifyTeamMember(){
       toast(r?.message||'هذه العضوية غير مسجلة ضمن فريق المجتمع.');
       return;
     }
-    status.textContent='✅ تم التحقق من وجود العضوية ضمن سجل أعضاء الفريق.';
+    status.textContent='✅ تم التحقق من وجود العضوية ضمن سجل DXN المتزامن.';
     /* Eligibility comes only from public.members.
        account_exists only tells us whether this member already has a site account. */
     if(r.account_exists){
