@@ -16,7 +16,7 @@
   #dxnAgentMessages{flex:1;overflow:auto;padding:14px;background:#f5f9f7}
   .dxn-agent-msg{max-width:88%;padding:10px 12px;border-radius:15px;margin:7px 0;white-space:pre-wrap;line-height:1.7;font-size:14px}
   .dxn-agent-user{margin-right:auto;background:#0f513f;color:#fff;border-bottom-left-radius:5px}
-  .dxn-agent-ai{margin-left:auto;background:#fff;color:#18352c;border:1px solid #dce8e3;border-bottom-right-radius:5px;position:relative;padding-bottom:42px}
+  .dxn-agent-ai{margin-left:auto;background:#fff;color:#18352c;border:1px solid #dce8e3;border-bottom-right-radius:5px;position:relative;padding-bottom:42px;font-weight:700}
   .dxn-agent-copy{position:absolute;right:9px;bottom:8px;min-height:30px!important;height:30px;padding:4px 9px!important;border:1px solid #cfe0d9!important;border-radius:9px!important;background:#f5f9f7!important;color:#0f513f!important;font-size:12px!important;font-weight:800!important;cursor:pointer}
   .dxn-agent-copy:hover{background:#e8f3ee!important}
   .dxn-agent-status{font-size:12px;color:#66756f;padding:5px 12px;min-height:24px}
