@@ -88,6 +88,130 @@
     document.head.appendChild(style);
   }
 
+  function installQuizCircularNav() {
+    const p = (window.location.pathname || '/').replace(/\/+$/, '') || '/';
+    if (p !== '/03-pretest.html') return;
+    if (document.getElementById('dxn-quiz-circular-nav-style')) return;
+
+    document.body.classList.add('dxn-quiz-page');
+
+    const style = document.createElement('style');
+    style.id = 'dxn-quiz-circular-nav-style';
+    style.textContent = `
+      body.dxn-quiz-page #global-page-navigation{display:none!important}
+      body.dxn-quiz-page .btns{
+        position:fixed!important;
+        left:20px!important;
+        bottom:18px!important;
+        z-index:10001!important;
+        display:flex!important;
+        flex-direction:row!important;
+        align-items:center!important;
+        gap:12px!important;
+        width:auto!important;
+        height:auto!important;
+        min-width:0!important;
+        min-height:0!important;
+        margin:0!important;
+        padding:0!important;
+        background:transparent!important;
+        border:0!important;
+        border-radius:0!important;
+        box-shadow:none!important;
+      }
+      body.dxn-quiz-page .btns .btn{
+        position:relative!important;
+        width:58px!important;
+        height:58px!important;
+        min-width:58px!important;
+        min-height:58px!important;
+        max-width:58px!important;
+        max-height:58px!important;
+        padding:0!important;
+        margin:0!important;
+        border:0!important;
+        border-radius:50%!important;
+        background:rgba(255,255,255,.97)!important;
+        color:transparent!important;
+        font-size:0!important;
+        line-height:0!important;
+        display:grid!important;
+        place-items:center!important;
+        cursor:pointer!important;
+        box-shadow:0 7px 20px rgba(0,0,0,.18)!important;
+        opacity:1!important;
+        transform:none!important;
+        overflow:hidden!important;
+        text-indent:-9999px!important;
+        transition:transform .15s ease,box-shadow .15s ease!important;
+        animation:none!important;
+      }
+      body.dxn-quiz-page .btns .btn::before{
+        display:none!important;
+        content:none!important;
+      }
+      body.dxn-quiz-page .btns #back::after,
+      body.dxn-quiz-page .btns #next::after{
+        content:""!important;
+        display:block!important;
+        width:0!important;
+        height:0!important;
+        position:absolute!important;
+        top:50%!important;
+        left:50%!important;
+        transform:translate(-50%,-50%)!important;
+        text-indent:0!important;
+      }
+      body.dxn-quiz-page .btns #back::after{
+        border-top:10px solid transparent!important;
+        border-bottom:10px solid transparent!important;
+        border-right:15px solid #0f513f!important;
+      }
+      body.dxn-quiz-page .btns #next::after{
+        border-top:10px solid transparent!important;
+        border-bottom:10px solid transparent!important;
+        border-left:15px solid #0f513f!important;
+      }
+      body.dxn-quiz-page .btns .btn:hover:not(:disabled){
+        transform:scale(1.06)!important;
+        box-shadow:0 9px 24px rgba(0,0,0,.22)!important;
+      }
+      body.dxn-quiz-page .btns .btn:active:not(:disabled){
+        transform:scale(.96)!important;
+      }
+      body.dxn-quiz-page .btns .btn:disabled{
+        opacity:.28!important;
+        cursor:not-allowed!important;
+      }
+      @media(max-width:700px){
+        body.dxn-quiz-page .btns{
+          left:20px!important;
+          bottom:18px!important;
+          gap:10px!important;
+        }
+        body.dxn-quiz-page .btns .btn{
+          width:52px!important;
+          height:52px!important;
+          min-width:52px!important;
+          min-height:52px!important;
+          max-width:52px!important;
+          max-height:52px!important;
+        }
+        body.dxn-quiz-page .btns #back::after{
+          border-top-width:9px!important;
+          border-bottom-width:9px!important;
+          border-right-width:13px!important;
+        }
+        body.dxn-quiz-page .btns #next::after{
+          border-top-width:9px!important;
+          border-bottom-width:9px!important;
+          border-left-width:13px!important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   function getSavedMode() {
     try {
       const saved = localStorage.getItem('dxn_selected_device_mode') || localStorage.getItem('dxn_view_mode');
@@ -123,8 +247,6 @@
     root.dataset.deviceMode = mode;
     body.classList.toggle('desktop-mode', isDesktop);
     body.classList.toggle('mobile-mode', !isDesktop);
-    // Keep the page-specific classes so visual pages such as the pre-test intro
-    // can switch their actual image/layout in sync with the global saved mode.
     body.classList.toggle('manual-desktop', isDesktop);
     body.classList.toggle('manual-mobile', !isDesktop);
     syncGlobalDeviceSwitch(mode);
@@ -301,6 +423,7 @@
 
   function init() {
     installDeviceCss();
+    installQuizCircularNav();
     applyDetectedDefault();
     deduplicateDeviceSelectors();
     ensureGlobalDeviceSelector();
@@ -315,8 +438,6 @@
         applyDetectedDefault();
       }
     });
-    // Deliberately do not switch device mode on resize/orientation.
-    // The visitor's explicit selection remains active until they change it.
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
