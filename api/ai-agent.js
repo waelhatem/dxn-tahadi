@@ -1982,7 +1982,7 @@ module.exports=async function handler(req,res){
       ...(dailyAutoPlan?{daily_auto_plan:dailyAutoPlan}: {}),
       ...(directDailyCompletion?{daily_completion:{completed:true}}: {}),
       ...(dailyCompletionDiagnostic?{daily_completion_error:dailyCompletionDiagnostic}: {}),
-      ...(teamIntelligence?{team_intelligence:teamIntelligence}: {})
+      ...(teamIntelligence?{team_intelligence:teamIntelligence}: {}),
       ...(marketingPlan?{marketing_plan:marketingPlan}: {})
     };
     let input=baseInput;
