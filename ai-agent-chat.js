@@ -80,7 +80,7 @@
     try{
       const token=sessionToken();if(!token||!text)return;
       const ctx=await ensureAudioContext();
-      setStatus('جارٍ تشغيل صوت محمد...');
+      setStatus('جارٍ تشغيل صوت المدرب وائل حاتم...');
       const r=await fetch('/api/ai-agent-voice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'speak',token,text})});
       if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.error||('HTTP '+r.status));}
       const data=await r.arrayBuffer();
@@ -101,7 +101,7 @@
       audio.onended=()=>{URL.revokeObjectURL(url);setStatus('');};
       await audio.play();
     }catch(e){
-      setStatus('تعذر تشغيل صوت محمد تلقائيًا: '+String(e.message||e));
+      setStatus('تعذر تشغيل صوت المدرب وائل حاتم تلقائيًا: '+String(e.message||e));
     }
   }
   async function send(messageOverride, fromVoice=false){
@@ -138,7 +138,7 @@
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SR){
       mic.title='التحدث الصوتي غير مدعوم في هذا المتصفح';
-      mic.addEventListener('click',()=>addMsg('للتحدث مع محمد بالصوت، افتح المنصة في Chrome أو Edge ثم اسمح باستخدام الميكروفون.','ai'));
+      mic.addEventListener('click',()=>addMsg('للتحدث مع المدرب وائل حاتم بالصوت، افتح المنصة في Chrome أو Edge ثم اسمح باستخدام الميكروفون.','ai'));
       return;
     }
 
@@ -153,7 +153,7 @@
       speechFinalText='';
       mic.classList.add('recording');
       mic.textContent='⏹️';
-      setStatus('محمد يسمعك الآن... اضغط مرة ثانية عندما تخلص');
+      setStatus('المدرب وائل حاتم يسمعك الآن... اضغط مرة ثانية عندما تخلص');
     };
 
     speechRecognition.onresult=event=>{
@@ -191,7 +191,7 @@
       speechFinalText='';
       voiceBusy=false;
       if(!text){setStatus('');return;}
-      setStatus('جارٍ إرسال كلامك إلى محمد...');
+      setStatus('جارٍ إرسال كلامك إلى المدرب وائل حاتم...');
       await send(text,true);
     };
 
@@ -241,10 +241,10 @@
       const reg=await navigator.serviceWorker.ready;
       const sub=await reg.pushManager.getSubscription();
       if(!sub){
-        addMsg('فعّل إشعارات محمد أولًا ثم اختبر المتابعة.','ai');
+        addMsg('فعّل إشعارات المدرب وائل حاتم أولًا ثم اختبر المتابعة.','ai');
         return;
       }
-      setStatus('محمد يختبر المتابعة الخلفية...');
+      setStatus('المدرب وائل حاتم يختبر المتابعة الخلفية...');
       const r=await pushApi({
         action:'test_followup',
         token,
@@ -261,7 +261,7 @@
   async function subscribePushNotifications(){
     const token=sessionToken();
     if(!token){
-      addMsg('يرجى تسجيل الدخول أولًا حتى نفعّل إشعارات محمد.','ai');
+      addMsg('يرجى تسجيل الدخول أولًا حتى نفعّل إشعارات المدرب وائل حاتم.','ai');
       return;
     }
 
@@ -279,7 +279,7 @@
       const permission=Notification.permission==='granted'
         ? 'granted'
         : await Notification.requestPermission();
-      if(permission!=='granted')throw new Error('لم يتم السماح بإشعارات محمد.');
+      if(permission!=='granted')throw new Error('لم يتم السماح بإشعارات المدرب وائل حاتم.');
 
       const registration=await navigator.serviceWorker.ready;
       let subscription=await registration.pushManager.getSubscription();
@@ -310,11 +310,11 @@
       if(btn){
         btn.classList.add('enabled');
         btn.textContent='🔔 مفعّلة';
-        btn.title='إشعارات محمد مفعّلة — اضغط مرة أخرى لاختبار الخلفية';
+        btn.title='إشعارات المدرب وائل حاتم مفعّلة — اضغط مرة أخرى لاختبار الخلفية';
       }
-      addMsg('تم تفعيل إشعارات محمد الدائمة. أرسلت لك إشعار اختبار للتأكد من أن الجهاز يستقبله.','ai');
+      addMsg('تم تفعيل إشعارات المدرب وائل حاتم الدائمة. أرسلت لك إشعار اختبار للتأكد من أن الجهاز يستقبله.','ai');
     }catch(e){
-      addMsg('تعذر تفعيل إشعارات محمد: '+String(e.message||e),'ai');
+      addMsg('تعذر تفعيل إشعارات المدرب وائل حاتم: '+String(e.message||e),'ai');
     }
   }
 
@@ -323,7 +323,7 @@
   function showAgentNotification(text){
     try{
       if(!('Notification' in window)||Notification.permission!=='granted'||!text)return false;
-      const n=new Notification('محمد — متابعة اليوم',{body:String(text).slice(0,180),icon:'/logo.png'});
+      const n=new Notification('المدرب وائل حاتم — متابعة اليوم',{body:String(text).slice(0,180),icon:'/logo.png'});
       n.onclick=()=>{window.focus();document.getElementById('dxnAgentPanel')?.classList.add('show');};
       return true;
     }catch(_){return false;}
@@ -333,7 +333,7 @@
     const token=sessionToken();
     if(!token)return null;
     try{
-      setStatus('محمد يجهّز جلسة اليوم...');
+      setStatus('المدرب وائل حاتم يجهّز جلسة اليوم...');
       const r=await fetch('/api/ai-agent',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
@@ -369,9 +369,9 @@
   function mount(){
     if(document.getElementById('dxnAgentLauncher'))return;
     const style=el('style',{},STYLE);document.head.appendChild(style);
-    const btn=el('button',{id:'dxnAgentLauncher',type:'button',title:'محمد'},'🤖');
-    const panel=el('section',{id:'dxnAgentPanel','aria-label':'محادثة محمد'});
-    panel.innerHTML='<div class="dxn-agent-head"><div><b>🤖 محمد</b><small>مدربك الذكي داخل المنصة</small></div><div class="dxn-agent-head-actions"><button id="dxnAgentPush" class="dxn-agent-push" type="button" title="تفعيل إشعارات محمد">🔔</button><button id="dxnAgentFollowupTest" class="dxn-agent-push" type="button" title="اختبار متابعة محمد">🧪</button><button class="dxn-agent-close" type="button">إغلاق</button></div></div><div id="dxnAgentMessages"></div><div id="dxnAgentStatus" class="dxn-agent-status"></div><form class="dxn-agent-form"><button id="dxnAgentMic" class="dxn-agent-mic" type="button" title="تحدث مع الوكيل">🎙️</button><textarea id="dxnAgentInput" placeholder="اكتب سؤالك هنا... أو اضغط 🎙️ للتحدث" rows="1"></textarea><button id="dxnAgentSend" type="submit">إرسال</button></form>';
+    const btn=el('button',{id:'dxnAgentLauncher',type:'button',title:'المدرب وائل حاتم'},'🤖');
+    const panel=el('section',{id:'dxnAgentPanel','aria-label':'محادثة المدرب وائل حاتم'});
+    panel.innerHTML='<div class="dxn-agent-head"><div><b>🤖 المدرب وائل حاتم</b><small>مدربك الذكي داخل المنصة</small></div><div class="dxn-agent-head-actions"><button id="dxnAgentPush" class="dxn-agent-push" type="button" title="تفعيل إشعارات المدرب وائل حاتم">🔔</button><button id="dxnAgentFollowupTest" class="dxn-agent-push" type="button" title="اختبار متابعة المدرب وائل حاتم">🧪</button><button class="dxn-agent-close" type="button">إغلاق</button></div></div><div id="dxnAgentMessages"></div><div id="dxnAgentStatus" class="dxn-agent-status"></div><form class="dxn-agent-form"><button id="dxnAgentMic" class="dxn-agent-mic" type="button" title="تحدث مع الوكيل">🎙️</button><textarea id="dxnAgentInput" placeholder="اكتب سؤالك هنا... أو اضغط 🎙️ للتحدث" rows="1"></textarea><button id="dxnAgentSend" type="submit">إرسال</button></form>';
     document.body.append(btn,panel);
     btn.addEventListener('click',()=>{
       const opening=!panel.classList.contains('show');
@@ -387,7 +387,7 @@
     panel.querySelector('form').addEventListener('submit',e=>{e.preventDefault();send();});
     document.getElementById('dxnAgentInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
     setupVoice();
-    addMsg('هلا والله 😄 أنا محمد، شلونك؟ خلّينا نحچي براحتنا، وإذا عندك سؤال أو شي تريد تشتغل عليه اليوم، آني وياك.','ai');
+    addMsg('هلا والله 😄 أنا المدرب وائل حاتم، شلونك؟ خلّينا نحچي براحتنا، وإذا عندك سؤال أو شي تريد تشتغل عليه اليوم، آني وياك.','ai');
     startDailyHeartbeat();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
