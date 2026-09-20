@@ -870,6 +870,120 @@ async function saveLearnedFacts(token,facts,message){
   return saved;
 }
 
+async function loadMemberTrainingMemory(token){
+  try{
+    const r=await supabaseRpc('get_ai_agent_member_training_memory',{p_token:token,p_limit:80});
+    if(!r.ok||!Array.isArray(r.data)) return [];
+    return r.data.map(x=>({
+      id:x.id||null,
+      training_session_id:x.training_session_id||null,
+      session_type:x.session_type||'coaching',
+      topic:x.topic||null,
+      objective:x.objective||null,
+      phase:x.phase||null,
+      member_statement:String(x.member_statement||'').trim().slice(0,1800),
+      coach_action:String(x.coach_action||'').trim().slice(0,1800),
+      outcome:String(x.outcome||'').trim().slice(0,900),
+      lesson:String(x.lesson||'').trim().slice(0,1400),
+      next_step:String(x.next_step||'').trim().slice(0,900),
+      member_facts:Array.isArray(x.member_facts)?x.member_facts.slice(0,8):[],
+      created_at:x.created_at||null
+    })).filter(x=>x.topic||x.lesson||x.outcome||x.next_step||x.member_facts.length);
+  }catch(_){return [];}
+}
+
+async function extractPersonalTrainingMemory(message,answer,context,currentSession,recentTraining,learnedFacts){
+  const prompt=[
+    'أنت أمين سجل التدريب الشخصي للمدرب وائل حاتم.',
+    'كل محادثة مع العضو جزء من مسار تدريبه الشخصي، لكن لا تحفظ المجاملات أو التحيات أو التفاصيل العابرة.',
+    'استخرج فقط ما يفيد لاحقًا في تدريب هذا العضو وفهم تقدمه.',
+    'المصدر الأساسي لحقائق العضو هو كلام العضو نفسه، وليس تخمينات المدرب.',
+    'يمكن استخدام رد المدرب لوصف الإجراء التدريبي الذي تم، لكن لا تحوّل كلام المدرب إلى حقيقة عن العضو.',
+    'احفظ النتيجة إذا كانت هناك محاولة، نتيجة، تصحيح، درس، هدف، عقبة، تقدم، أو خطوة تالية واضحة.',
+    'إذا ذكر العضو معلومة ثابتة عن نفسه أو هدفه أو مستواه أو طريقة تعلمه أو تجربته، أضفها إلى member_facts.',
+    'لا تحفظ معلومات صحية أو سياسية أو أسرارًا أو بيانات شديدة الحساسية.',
+    'عند وجود تصحيح لمعلومة سابقة، أضف المعلومة الجديدة ولا تطلب حذف القديمة.',
+    'أعد JSON فقط بهذا الشكل:',
+    '{"training":{"topic":null,"objective":null,"phase":null,"member_statement":null,"coach_action":null,"outcome":null,"lesson":null,"next_step":null},"member_facts":[{"fact":"...","supersedes_id":null}]}',
+    'phase يجب أن تكون discover أو explain أو practice أو feedback أو next_step أو complete أو null.',
+    'إذا لم يوجد شيء يستحق الحفظ أعد training بكل قيمه null وmember_facts=[]',
+    'العضو:',
+    JSON.stringify(context.member||{}),
+    'الجلسة الحالية:',
+    JSON.stringify(currentSession||{}),
+    'آخر سجل تدريبي:',
+    JSON.stringify((Array.isArray(recentTraining)?recentTraining.slice(0,12):[])),
+    'الحقائق الحالية القريبة:',
+    JSON.stringify((Array.isArray(learnedFacts)?learnedFacts.slice(0,30):[])),
+    'رسالة العضو:',
+    String(message||'').slice(0,6000),
+    'رد المدرب:',
+    String(answer||'').slice(0,6000)
+  ].join('\\n');
+
+  try{
+    const r=await openai({
+      model:OPENAI_MODEL,
+      instructions:'استخرج سجل تدريب شخصي دقيق. لا تخترع معلومات. JSON فقط.',
+      input:[{role:'user',content:prompt}],
+      max_output_tokens:700
+    });
+    if(!r.ok) return null;
+    const text=outputText(r.data);
+    const start=text.indexOf('{'),end=text.lastIndexOf('}');
+    if(start<0||end<=start) return null;
+    const p=JSON.parse(text.slice(start,end+1));
+    const t=p.training&&typeof p.training==='object'?p.training:{};
+    const phases=['discover','explain','practice','feedback','next_step','complete'];
+    const facts=Array.isArray(p.member_facts)?p.member_facts.map(f=>({
+      fact:String(f?.fact||'').trim().slice(0,4000),
+      supersedes_id:f?.supersedes_id||null
+    })).filter(f=>f.fact).slice(0,8):[];
+    return {
+      training:{
+        topic:String(t.topic||'').trim().slice(0,500)||null,
+        objective:String(t.objective||'').trim().slice(0,500)||null,
+        phase:phases.includes(t.phase)?t.phase:null,
+        member_statement:String(t.member_statement||'').trim().slice(0,3000)||null,
+        coach_action:String(t.coach_action||'').trim().slice(0,3000)||null,
+        outcome:String(t.outcome||'').trim().slice(0,1200)||null,
+        lesson:String(t.lesson||'').trim().slice(0,2000)||null,
+        next_step:String(t.next_step||'').trim().slice(0,1200)||null
+      },
+      member_facts:facts
+    };
+  }catch(_){return null;}
+}
+
+async function savePersonalTrainingMemory(token,memory,currentSession){
+  if(!memory) return null;
+  const t=memory.training||{};
+  const hasTraining=Object.values(t).some(v=>v);
+  const facts=Array.isArray(memory.member_facts)?memory.member_facts.filter(x=>x&&x.fact):[];
+  if(!hasTraining&&!facts.length) return null;
+  const r=await supabaseRpc('append_ai_agent_member_training_memory',{
+    p_token:token,
+    p_memory:{
+      training_session_id:currentSession?.started_at||null,
+      session_type:currentSession?.session_type||'coaching',
+      ...t,
+      member_facts:facts,
+      source_message_id:null
+    }
+  });
+  return r.ok ? r.data : null;
+}
+
+async function savePersonalTrainingFacts(token,memory){
+  const facts=Array.isArray(memory?.member_facts)?memory.member_facts:[];
+  if(!facts.length) return [];
+  return await saveLearnedFacts(token,facts.map(f=>({
+    scope:'member',
+    fact:f.fact,
+    supersedes_id:f.supersedes_id||null
+  })));
+}
+
 async function loadPermanentAgentMemory(token){
   try{
     const r=await supabaseRpc('get_ai_agent_permanent_memory',{p_token:token,p_limit:160});
@@ -1588,6 +1702,10 @@ function instructions(context){
 
     'لديك ذاكرة معرفة ثابتة اسمها knowledge_memory. هذه المعرفة المشتركة تخص المنصة وهوية المدرب وقواعدها المعتمدة، وليست محادثة مؤقتة. عندما تتحدث عن حقائق المنصة أو قواعد التسجيل أو التدريب، استخدم knowledge_memory كمرجع إضافي ثابت، ولا تدّعِ أنك نسيت معلوماتها كلما بدأت جلسة جديدة.',
     'لديك أيضًا permanent_memory، وهي سجل طويل الأمد غير محدود زمنيًا يحفظ لقطات سابقة من المحادثة وإجابات واختبارات وتعلم العضو. استخدمه لاستعادة الاستمرارية عندما تكون المعلومة ذات صلة، وميّز دائمًا بين السجل الفعلي وبين الاستنتاج.',
+    'عندما يكون personal_training_mode = true فأنت في مسار تدريب شخصي مستمر لهذا العضو. تعامل مع المحادثة الحالية كجزء من رحلة تدريبية تراكمية حتى لو كان السؤال مباشرًا: أجب عن السؤال أولًا، ثم اربطه بالتدريب فقط إذا كان ذلك طبيعيًا.',
+    'لديك member_training_memory، وهو سجل تدريبي دائم خاص بهذا العضو فقط. استخدمه لمعرفة ما تدرب عليه، وما جربه، وما نجح أو لم ينجح، وما هو الدرس والخطوة التالية. لا تخلط بين ذاكرة عضو وعضو آخر.',
+    'لا تبدأ تدريب العضو من الصفر عند عودته. إذا وجدت سجلًا تدريبيًا سابقًا مرتبطًا بالموضوع، ابنِ عليه واسأل عن النتيجة أو التطبيق التالي بدل إعادة الدرس كاملًا.',
+
     'التخزين الدائم لا يعني عرض كل التاريخ للمستخدم. استخدم ما يلزم فقط للإجابة الحالية، ولا تكشف أسماء الجداول أو الحقول الداخلية.',
     'لديك أيضًا contextual_coaching_state: فهم خفيف للسياق الحالي، مثل نوع الموقف، طبيعة العلاقة مع الشخص، هدف العضو، والأدلة السابقة المرتبطة بالموقف. استخدمه لتحديد مدى ملاءمة الدرس السابق للموقف الحالي.',
     'لا تطبق learning_pattern لمجرد أنه موجود. قارِن سياقه بالسياق الحالي أولًا. إذا كان الشخص أو الموقف مختلفًا، اعتبر الدرس فرضية تحتاج تكييفًا أو اختبارًا جديدًا.',
@@ -2028,14 +2146,15 @@ module.exports=async function handler(req,res){
       await saveAgentSession(token,currentSession).catch(()=>null);
     }
     requestStage='load_memory_profile';
-    const [persistentMemory,coachingProfile,causalMemory,learningPatterns,knowledgeMemory,permanentMemory,learnedFacts]=await Promise.all([
+    const [persistentMemory,coachingProfile,causalMemory,learningPatterns,knowledgeMemory,permanentMemory,learnedFacts,memberTrainingMemory]=await Promise.all([
       loadAgentMemory(token),
       loadAgentProfile(token),
       loadCausalMemory(token),
       loadLearningPatterns(token),
       loadAgentKnowledge(token),
       loadPermanentAgentMemory(token),
-      loadLearnedFacts(token)
+      loadLearnedFacts(token),
+      loadMemberTrainingMemory(token)
     ]);
     const fallbackHistory=cleanHistory(body.history);
     const historySource=(persistentMemory.length?persistentMemory:fallbackHistory);
@@ -2092,6 +2211,8 @@ module.exports=async function handler(req,res){
       knowledge_memory:knowledgeMemory,
       permanent_memory:permanentMemory,
       learned_facts:learnedFacts,
+      member_training_memory:memberTrainingMemory,
+      personal_training_mode:context.role==='member',
       contextual_coaching_state:contextualCoachingState,
       cognitive_state:cognitiveState,
       memory_state:memoryState,
@@ -2204,6 +2325,23 @@ module.exports=async function handler(req,res){
     // Persist the successful turn so المدرب وائل حاتم can continue naturally across future sessions.
     await saveAgentMessage(token,'user',message).catch(()=>null);
     await saveAgentMessage(token,'assistant',answer).catch(()=>null);
+
+    // Every member conversation is also evaluated as a personal training turn.
+    // The structured journal is append-only and scoped to this member.
+    if(context.role==='member'){
+      const personalTraining=await extractPersonalTrainingMemory(
+        message,
+        answer,
+        context,
+        currentSession,
+        memberTrainingMemory,
+        learnedFacts
+      );
+      if(personalTraining){
+        await savePersonalTrainingMemory(token,personalTraining,currentSession).catch(()=>null);
+        await savePersonalTrainingFacts(token,personalTraining).catch(()=>null);
+      }
+    }
 
     // Save only genuinely durable new knowledge. Old memory is never edited;
     // corrections are appended as a new fact with an optional supersedes link.
