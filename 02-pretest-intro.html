@@ -63,8 +63,49 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#eef5f1;fon
   .mobile-bg{display:none!important}
 }</style>
 <link rel="manifest" href="/manifest.json">
+<style id="intro-device-buttons">
+@media (min-width:0px){
+  .intro-device-switch{
+    position:fixed;
+    top:8px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:10000;
+    display:flex;
+    gap:6px;
+    direction:rtl;
+    pointer-events:auto;
+  }
+  .intro-device-switch button{
+    width:105px;
+    height:38px;
+    border:0;
+    border-radius:999px;
+    padding:0;
+    margin:0;
+    background:rgba(255,255,255,0.06);
+    color:transparent;
+    cursor:pointer;
+    box-shadow:none;
+    outline:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .intro-device-switch button:focus-visible{
+    outline:2px solid rgba(15,81,63,.35);
+    outline-offset:2px;
+  }
+  @media (max-width:700px){
+    .intro-device-switch{top:6px;gap:4px}
+    .intro-device-switch button{width:92px;height:34px}
+  }
+}
+</style>
 </head>
 <body>
+<div class="intro-device-switch" role="group" aria-label="تبديل واجهة العرض">
+  <button id="introMobileMode" type="button" aria-label="الموبايل"></button>
+  <button id="introDesktopMode" type="button" aria-label="الحاسوب"></button>
+</div>
 <main class="page"><section class="scene"><img class="scene-bg desktop-bg" src="desktop-scene.webp" alt="مجتمع الصحة والثراء — واجهة الحاسوب"><img class="scene-bg mobile-bg" src="mobile-scene.webp" alt="مجتمع الصحة والثراء — واجهة الموبايل"><div class="readability"></div><div class="text-col"><div class="brand"><img class="logo" src="logo.png" alt="شعار مجتمع الصحة والثراء"><h1>مجتمع الصحة والثراء</h1><p>حياة أفضل .. فرص أوسع .. لمستقبل أجمل</p></div><div class="headline"><h2 id="headline"></h2></div><div class="typewriter" id="typewriter"></div><div class="actions"><button class="start" id="start" type="button">ابدأ الاختبار <span>→</span></button><div class="note">ستنتقل بعدها مباشرة إلى الأسئلة العشرة.</div></div></div></section></main>
 <script>
 const segments=[
@@ -138,6 +179,28 @@ start.addEventListener("click",()=>location.href="/03-pretest.html");run();
   if(window.MutationObserver){
     new MutationObserver(cleanup).observe(document.body,{childList:true,subtree:true});
   }
+})();
+</script>
+<script>
+(function(){
+  function setIntroMode(mode){
+    try { localStorage.setItem('dxn_selected_device_mode', mode); } catch(e){}
+    document.documentElement.dataset.deviceMode = mode;
+    document.body.classList.toggle('desktop-mode', mode === 'desktop');
+    document.body.classList.toggle('mobile-mode', mode === 'mobile');
+    document.body.classList.toggle('manual-desktop', mode === 'desktop');
+    document.body.classList.toggle('manual-mobile', mode === 'mobile');
+  }
+  function currentMode(){
+    try{
+      const saved = localStorage.getItem('dxn_selected_device_mode') || localStorage.getItem('dxn_view_mode');
+      if(saved === 'mobile' || saved === 'desktop') return saved;
+    }catch(e){}
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(navigator.userAgent) ? 'mobile' : 'desktop';
+  }
+  document.getElementById('introMobileMode').addEventListener('click',function(){setIntroMode('mobile');});
+  document.getElementById('introDesktopMode').addEventListener('click',function(){setIntroMode('desktop');});
+  setIntroMode(currentMode());
 })();
 </script>
 <script src="/device-mode.js?v=86.66" defer></script>
