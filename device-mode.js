@@ -106,45 +106,40 @@
         left:50%!important;
         bottom:8px!important;
         z-index:99999!important;
-        width:140px!important;
-        height:70px!important;
+        width:150px!important;
+        height:58px!important;
         transform:translateX(-50%)!important;
         display:flex!important;
         align-items:center!important;
         justify-content:center!important;
         cursor:pointer!important;
         pointer-events:auto!important;
-        background:transparent!important;
+        background:#0f513f!important;
+        color:#fff!important;
         border:0!important;
-        padding:0!important;
+        border-radius:999px!important;
+        padding:0 24px!important;
         margin:0!important;
-        filter:drop-shadow(0 0 4px rgba(0,255,120,.95))
-               drop-shadow(0 0 12px rgba(0,255,120,.85))
-               drop-shadow(0 0 24px rgba(0,255,120,.55))!important;
-        animation:dxnQuizArrowMove 1.15s ease-in-out infinite!important;
+        box-shadow:0 8px 22px rgba(0,0,0,.22),0 0 16px rgba(0,255,120,.35)!important;
+        font:900 20px/1 "Tajawal","Segoe UI",Tahoma,Arial,sans-serif!important;
+        transition:transform .2s ease,filter .2s ease,box-shadow .2s ease!important;
       }
-      body.dxn-quiz-page #dxn-quiz-next-arrow svg{
-        width:140px!important;
-        height:70px!important;
-        display:block!important;
+      body.dxn-quiz-page #dxn-quiz-next-arrow:hover{
+        filter:brightness(1.12)!important;
+        transform:translateX(-50%) translateY(-2px)!important;
+        box-shadow:0 10px 26px rgba(0,0,0,.24),0 0 20px rgba(0,255,120,.45)!important;
       }
       body.dxn-quiz-page #dxn-quiz-next-arrow.is-disabled{
         opacity:.25!important;
         animation:none!important;
       }
-      @keyframes dxnQuizArrowMove{
-        0%,100%{transform:translateX(-50%)}
-        50%{transform:translateX(calc(-50% - 20px))}
-      }
+
       @media(max-width:700px){
         body.dxn-quiz-page #dxn-quiz-next-arrow{
           bottom:12px!important;
-          width:120px!important;
-          height:60px!important;
-        }
-        body.dxn-quiz-page #dxn-quiz-next-arrow svg{
-          width:120px!important;
-          height:60px!important;
+          width:132px!important;
+          height:52px!important;
+          font-size:18px!important;
         }
       }
     `;
@@ -158,15 +153,7 @@
         arrow.type = 'button';
         arrow.id = 'dxn-quiz-next-arrow';
         arrow.setAttribute('aria-label','الانتقال إلى السؤال التالي');
-        arrow.innerHTML = `
-          <svg viewBox="0 0 140 70" aria-hidden="true">
-            <path d="M132 18H55V4L7 35l48 31V52h77V18Z"
-              fill="#00d878"
-              stroke="#00d878"
-              stroke-width="2"
-              stroke-linejoin="round"/>
-          </svg>
-        `;
+        arrow.textContent = 'التالي';
         document.body.appendChild(arrow);
 
         arrow.addEventListener('click', function(){
