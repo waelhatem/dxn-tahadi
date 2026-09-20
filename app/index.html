@@ -2430,7 +2430,13 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       '<div class="team-member-card" role="dialog" aria-modal="true" aria-labelledby="teamMemberTitle">'+
         '<div class="team-member-head">'+
           '<div><h2 id="teamMemberTitle">🌳 فريقي</h2><div class="team-member-subtitle">أدخل رقم العضوية التي تريد عرض فريقها</div></div>'+
-          '<button type="button" class="team-member-close" id="teamMemberClose" aria-label="إغلاق">✕</button>'+
+          '<div class="team-member-head-actions">'+
+            '<button type="button" class="team-member-zoom-out" id="teamMemberZoomOut" aria-label="تصغير">−</button>'+
+            '<span class="team-member-zoom-label" id="teamMemberZoomLabel">100%</span>'+
+            '<button type="button" class="team-member-zoom-in" id="teamMemberZoomIn" aria-label="تكبير">+</button>'+
+            '<button type="button" class="team-member-fullscreen" id="teamMemberFullscreen" aria-label="ملء الشاشة">⛶</button>'+
+            '<button type="button" class="team-member-close" id="teamMemberClose" aria-label="إغلاق">✕</button>'+
+          '</div>'+
         '</div>'+
         '<div class="team-member-lookup">'+
           '<label for="teamMemberNumber">رقم العضوية</label>'+
@@ -2450,6 +2456,40 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     panel.addEventListener('click',e=>{if(e.target===panel)close()});
     panel.querySelector('#teamMemberClose').onclick=close;
     panel.querySelector('#teamMemberSearch').onclick=()=>loadTeam(panel);
+
+    let zoom=1;
+    const applyZoom=()=>{
+      zoom=Math.max(.75,Math.min(1.5,Math.round(zoom*100)/100));
+      panel.style.setProperty('--team-zoom',String(zoom));
+      panel.querySelector('#teamMemberZoomLabel').textContent=Math.round(zoom*100)+'%';
+    };
+    panel.querySelector('#teamMemberZoomIn').onclick=()=>{zoom+=.1;applyZoom()};
+    panel.querySelector('#teamMemberZoomOut').onclick=()=>{zoom-=.1;applyZoom()};
+
+    const fullscreenBtn=panel.querySelector('#teamMemberFullscreen');
+    const setFullscreenState=()=>{
+      const active=panel.classList.contains('team-member-fullscreen');
+      fullscreenBtn.textContent=active?'⤢':'⛶';
+      fullscreenBtn.title=active?'الخروج من ملء الشاشة':'ملء الشاشة';
+    };
+    fullscreenBtn.onclick=async()=>{
+      panel.classList.toggle('team-member-fullscreen');
+      setFullscreenState();
+      try{
+        if(panel.classList.contains('team-member-fullscreen') && panel.requestFullscreen){
+          await panel.requestFullscreen();
+        }else if(document.fullscreenElement && document.exitFullscreen){
+          await document.exitFullscreen();
+        }
+      }catch(_){}
+    };
+    document.addEventListener('fullscreenchange',()=>{
+      if(!document.fullscreenElement && panel.classList.contains('team-member-fullscreen')){
+        panel.classList.remove('team-member-fullscreen');
+        setFullscreenState();
+      }
+    });
+    applyZoom();
     panel.querySelector('#teamMemberNumber').addEventListener('keydown',e=>{
       if(e.key==='Enter'){e.preventDefault();loadTeam(panel)}
     });
@@ -2615,8 +2655,8 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       '.team-member-root{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0 16px}.team-member-root>div{background:#f6faf8;border:1px solid #dfece6;border-radius:16px;padding:13px}.team-member-root span{display:block;color:#71817a;font-size:12px;margin-bottom:5px}.team-member-root b{font-size:18px}'+
       '.team-member-list{display:block;overflow-x:auto;overflow-y:hidden;padding-bottom:12px}.team-generations-board{display:flex;flex-direction:row-reverse;align-items:flex-start;gap:10px;min-width:max-content}.team-generation-column{width:250px;flex:0 0 250px;border:1px solid #dfece6;border-radius:18px;background:#fbfdfc;overflow:hidden}.team-generation-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 12px;background:#eef7f2;border-bottom:1px solid #dfece6}.team-generation-title{font-weight:900;color:#0b5d49;font-size:16px}.team-generation-count{font-size:11px;color:#5f716a;background:#fff;border:1px solid #d9e7e1;border-radius:999px;padding:5px 8px}.team-generation-list{display:grid;gap:8px;padding:9px}.team-member-row{display:flex;gap:7px;align-items:flex-start;border:1px solid #e4ece8;border-radius:14px;padding:10px;background:#fff;min-height:82px}.team-member-index{width:25px;height:25px;border-radius:50%;background:#0b6b57;color:#fff;display:grid;place-items:center;font-weight:900;font-size:11px;flex:none}.team-member-main{flex:1;min-width:0}.team-member-name{display:block}.team-member-name b{display:block;font-size:13px;line-height:1.25}.team-member-name span{display:block;color:#5f716a;font-size:11px;margin-top:3px;direction:ltr;text-align:right}.team-member-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;color:#64766f;font-size:10px}.team-member-meta span{background:#f5f8f7;border-radius:999px;padding:3px 6px}.team-member-sponsor{display:none}.team-member-empty{text-align:center;padding:35px 15px;color:#6b7d76;background:#f7faf8;border-radius:16px}'+
       '@media(max-width:650px){.team-member-card{padding:14px}.team-generations-board{gap:8px}.team-generation-column{width:220px;flex-basis:220px}.team-generation-head{padding:11px 9px}.team-member-row{min-height:76px}.team-member-name b{font-size:12px}}'+
-      +
-      '@media(max-width:650px){.team-member-card{padding:16px;border-radius:20px}.team-member-root{grid-template-columns:repeat(2,1fr)}.team-member-input-row{flex-direction:column}.team-member-search{width:100%}.team-member-row{margin-right:0!important}.team-member-head h2{font-size:22px}}';
+      '.team-member-head-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.team-member-head-actions button{min-width:40px;height:40px;padding:7px 10px;border:1px solid #d7e4df;background:#f4f8f6;color:#17473a;border-radius:11px;font-weight:900}.team-member-zoom-label{min-width:48px;text-align:center;font-size:11px;color:#5e7169;font-weight:900}.team-member-fullscreen{font-size:18px}.team-member-panel.fullscreen{padding:0;background:#031c16}.team-member-panel.fullscreen .team-member-card{width:100vw;max-width:none;height:100vh;max-height:none;border-radius:0;padding:20px}.team-member-panel.fullscreen .team-member-list{height:calc(100vh - 215px);max-height:none}.team-member-panel.fullscreen .team-generation-column{height:100%;max-height:none}.team-member-panel.fullscreen .team-generation-list{max-height:none}.team-member-card{transform:scale(var(--team-zoom,1));transform-origin:top center}.team-member-panel.fullscreen .team-member-card{transform:scale(1)}'+
+      '@media(max-width:650px){.team-member-card{padding:16px;border-radius:20px}.team-member-root{grid-template-columns:repeat(2,1fr)}.team-member-input-row{flex-direction:column}.team-member-search{width:100%}.team-member-row{margin-right:0!important}.team-member-head h2{font-size:22px}.team-member-head-actions{gap:4px}.team-member-head-actions button{min-width:36px;padding:6px 8px}.team-member-zoom-label{min-width:42px}}';
     document.head.appendChild(style);
   }
 
