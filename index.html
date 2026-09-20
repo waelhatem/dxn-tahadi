@@ -9,10 +9,10 @@
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;background:#eef5f1}
 body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
-.device-bar{height:57px;display:flex;justify-content:center;align-items:center;gap:8px;padding:8px 12px;background:rgba(238,245,241,.96);backdrop-filter:blur(8px);border-bottom:1px solid rgba(15,81,63,.12);position:relative;z-index:30}
+.device-bar{display:none}
 .device-btn{border:1px solid rgba(15,81,63,.22);background:#fff;color:#17372d;border-radius:999px;padding:9px 18px;font:800 14px/1 "Tajawal","Segoe UI",Tahoma,Arial,sans-serif;cursor:pointer;transition:.2s;min-width:130px}
 .device-btn.active{background:#0f513f;color:#fff;border-color:#0f513f;box-shadow:0 6px 14px rgba(15,81,63,.16)}
-.page{height:calc(100svh - 57px);width:100vw;overflow:hidden;position:relative;background:#eef5f1}
+.page{height:100svh;width:100vw;overflow:hidden;position:relative;background:#eef5f1}
 .view{width:100%;height:100%}
 .hidden{display:none!important}
 .hotspot{position:absolute;border:0;background:transparent;cursor:pointer;padding:0;margin:0;outline:none;z-index:10}
@@ -26,6 +26,9 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 .desktop-poster img{width:100%;height:100%;display:block;object-fit:contain}
 #desktopPreviousUser{left:66.4%;bottom:37.4%;width:17.6%;height:9.7%}
 #desktopNewVisitor{left:48.1%;bottom:37.4%;width:17.6%;height:9.7%}
+#desktopEmbeddedComputer,#desktopEmbeddedMobile{top:1.2%;height:5.2%;width:7.2%}
+#desktopEmbeddedComputer{left:40.2%}
+#desktopEmbeddedMobile{left:48.2%}
 
 /* واجهة الموبايل: الصورة الأصلية كما هي */
 .mobile-view{display:flex;align-items:center;justify-content:center}
@@ -33,11 +36,11 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 .mobile-poster img{width:100%;height:100%;object-fit:contain;display:block}
 #mobilePreviousUser{left:7.5%;bottom:13%;width:43%;height:9%}
 #mobileNewVisitor{right:7%;bottom:13%;width:43%;height:9%}
+#mobileEmbeddedComputer,#mobileEmbeddedMobile{top:1.2%;height:6%;width:20%}
+#mobileEmbeddedComputer{left:30%}
+#mobileEmbeddedMobile{left:50%}
 
-@media(max-width:700px){
-.device-bar{height:57px}
-.device-btn{min-width:120px;padding:8px 14px}
-}
+@media(max-width:700px){}
 </style>
 <link rel="manifest" href="/manifest.json">
 </head>
@@ -53,6 +56,8 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 <img src="/desktop-home.png?v=20260918" alt="مجتمع الصحة والثراء">
 <button id="desktopPreviousUser" class="hotspot" type="button" aria-label="مستخدم سابق"></button>
 <button id="desktopNewVisitor" class="hotspot" type="button" aria-label="زائر جديد"></button>
+<button id="desktopEmbeddedMobile" class="hotspot" type="button" aria-label="الموبايل"></button>
+<button id="desktopEmbeddedComputer" class="hotspot" type="button" aria-label="الحاسوب"></button>
 </div>
 </section>
 <section id="mobileView" class="view mobile-view hidden">
@@ -60,6 +65,8 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 <img src="11.png" alt="مجتمع الصحة والثراء">
 <button id="mobilePreviousUser" class="hotspot" type="button" aria-label="مستخدم سابق"></button>
 <button id="mobileNewVisitor" class="hotspot" type="button" aria-label="زائر جديد"></button>
+<button id="mobileEmbeddedMobile" class="hotspot" type="button" aria-label="الموبايل"></button>
+<button id="mobileEmbeddedComputer" class="hotspot" type="button" aria-label="الحاسوب"></button>
 </div>
 </section>
 </main>
@@ -81,6 +88,10 @@ function goNew(){location.href='/02-pretest-intro.html'}
 function goPrevious(){location.href='/app/index.html'}
 mobileBtn.addEventListener('click',()=>setPreview('mobile'));
 desktopBtn.addEventListener('click',()=>setPreview('desktop'));
+document.getElementById('desktopEmbeddedMobile').addEventListener('click',()=>setPreview('mobile'));
+document.getElementById('desktopEmbeddedComputer').addEventListener('click',()=>setPreview('desktop'));
+document.getElementById('mobileEmbeddedMobile').addEventListener('click',()=>setPreview('mobile'));
+document.getElementById('mobileEmbeddedComputer').addEventListener('click',()=>setPreview('desktop'));
 document.getElementById('desktopNewVisitor').addEventListener('click',goNew);
 document.getElementById('desktopPreviousUser').addEventListener('click',goPrevious);
 document.getElementById('mobileNewVisitor').addEventListener('click',goNew);
