@@ -171,9 +171,21 @@ begin
             accumulated_group_pv = coalesce(v_accumulated_group_pv, accumulated_group_pv),
             accumulated_promotion_pv = coalesce(v_accumulated_promotion_pv, accumulated_promotion_pv),
             diamond_group_pv = coalesce(v_diamond_group_pv, diamond_group_pv),
-            accumulated_group_pv_masked = case when v_accumulated_group_pv_masked then true else accumulated_group_pv_masked end,
-            accumulated_promotion_pv_masked = case when v_accumulated_promotion_pv_masked then true else accumulated_promotion_pv_masked end,
-            diamond_group_pv_masked = case when v_diamond_group_pv_masked then true else diamond_group_pv_masked end,
+            accumulated_group_pv_masked = case
+              when v_accumulated_group_pv_masked then true
+              when v_accumulated_group_pv is not null then false
+              else accumulated_group_pv_masked
+            end,
+            accumulated_promotion_pv_masked = case
+              when v_accumulated_promotion_pv_masked then true
+              when v_accumulated_promotion_pv is not null then false
+              else accumulated_promotion_pv_masked
+            end,
+            diamond_group_pv_masked = case
+              when v_diamond_group_pv_masked then true
+              when v_diamond_group_pv is not null then false
+              else diamond_group_pv_masked
+            end,
             source = 'excel_sync',
             source_updated_at = now(),
             updated_at = now()
