@@ -27,6 +27,8 @@ create index if not exists ai_agent_perm_entity_idx
 
 alter table public.ai_agent_permanent_memory_events enable row level security;
 
+revoke all on table public.ai_agent_permanent_memory_events from public, anon, authenticated;
+
 -- Internal append helper. It is called only by SECURITY DEFINER trigger functions.
 create or replace function public.ai_agent_append_permanent_event(
   p_user_id uuid,
@@ -302,6 +304,58 @@ execute function public.trg_archive_ai_agent_learning_pattern();
 
 
 -- ============================================================
+-- Capture the current member/training state as a permanent snapshot.
+-- This gives the AI a durable history of training progress/watch state
+-- in addition to the immutable test/conversation events.
+-- ============================================================
+
+create or replace function public.save_ai_agent_context_snapshot(
+  p_token uuid,
+  p_snapshot jsonb
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $function$
+declare
+  uid uuid;
+  mid uuid;
+  event_id uuid;
+begin
+  select s.user_id, u.member_id
+    into uid, mid
+  from public.sessions s
+  join public.app_users u on u.id=s.user_id
+  where s.token=p_token
+    and s.expires_at>now()
+    and u.active=true
+  limit 1;
+
+  if uid is null then
+    raise exception 'انتهت الجلسة';
+  end if;
+
+  event_id := public.ai_agent_append_permanent_event(
+    uid,
+    mid,
+    'snapshot',
+    'member_training_context',
+    null,
+    coalesce(p_snapshot,'{}'::jsonb)
+  );
+
+  return event_id;
+end;
+$function$;
+
+revoke all on function public.save_ai_agent_context_snapshot(uuid,jsonb)
+  from public,anon,authenticated;
+
+grant execute on function public.save_ai_agent_context_snapshot(uuid,jsonb)
+  to anon,authenticated;
+
+-- ============================================================
 -- Read permanent memory for the authenticated member/account.
 -- Stored history is not deleted by this function; p_limit only
 -- controls how much is returned to the AI context for one request.
@@ -467,5 +521,34 @@ begin
   );
 end;
 $function$;
+
+notify pgrst, 'reload schema';
+
+-- The internal append helper is not a browser RPC.
+revoke all on function public.ai_agent_append_permanent_event(uuid,uuid,text,text,text,jsonb)
+  from public,anon,authenticated;
+
+-- Backfill the currently retained history once. Older records already removed
+-- by previous retention logic cannot be reconstructed from the database.
+insert into public.ai_agent_permanent_memory_events(user_id,member_id,event_type,entity_type,entity_id,payload,created_at)
+select m.user_id,null,'created','ai_agent_message',m.id::text,to_jsonb(m),m.created_at
+from public.ai_agent_messages m
+where not exists (
+  select 1 from public.ai_agent_permanent_memory_events e
+  where e.entity_type='ai_agent_message' and e.entity_id=m.id::text and e.event_type='created'
+);
+
+insert into public.ai_agent_permanent_memory_events(user_id,member_id,event_type,entity_type,entity_id,payload,created_at)
+select au.id,ta.member_id,'created','training_answer',ta.id::text,to_jsonb(ta),ta.created_at
+from public.training_answers ta
+left join lateral (
+  select u.id from public.app_users u
+  where u.member_id=ta.member_id and u.active=true
+  order by u.created_at asc limit 1
+) au on true
+where not exists (
+  select 1 from public.ai_agent_permanent_memory_events e
+  where e.entity_type='training_answer' and e.entity_id=ta.id::text and e.event_type='created'
+);
 
 notify pgrst, 'reload schema';
