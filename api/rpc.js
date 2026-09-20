@@ -194,7 +194,7 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    const privilegedTeamRpc = fn === 'get_dxn_team_intelligence';
+    const privilegedTeamRpc = fn === 'get_dxn_team_intelligence' || fn === 'leader_sync_dxn_team_members';
     const response=await supabaseRpcRequest(fn,args,privilegedTeamRpc ? SUPABASE_SECRET_KEY : SUPABASE_KEY,10000);
     return res.status(response.status||500).json(response.data||{error:response.text||'Supabase request failed'});
 
