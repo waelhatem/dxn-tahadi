@@ -272,4 +272,157 @@ grant execute on function public.save_ai_agent_knowledge(
   uuid,text,text,text,text,integer,boolean
 ) to service_role;
 
+
+
+-- ============================================================
+-- DXN member registry: preserve every version and forbid deletion.
+-- Current registry may still be updated by the approved DXN sync flow;
+-- every prior version is archived in permanent memory first.
+-- ============================================================
+
+create or replace function public.trg_archive_dxn_team_member()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $function$
+begin
+  if tg_op='DELETE' then
+    raise exception using
+      errcode='42501',
+      message='سجل عضويات DXN لا يسمح بحذف العضوية. حدّث البيانات فقط من خلال المزامنة.';
+  elsif tg_op='INSERT' then
+    perform public.ai_agent_append_permanent_event(
+      null,null,'created','dxn_team_member',new.member_no,to_jsonb(new)
+    );
+    return new;
+  else
+    perform public.ai_agent_append_permanent_event(
+      null,null,'updated_before','dxn_team_member',old.member_no,to_jsonb(old)
+    );
+    perform public.ai_agent_append_permanent_event(
+      null,null,'updated_after','dxn_team_member',new.member_no,to_jsonb(new)
+    );
+    return new;
+  end if;
+end;
+$function$;
+
+drop trigger if exists trg_archive_dxn_team_member
+  on public.dxn_team_members;
+
+create trigger trg_archive_dxn_team_member
+before insert or update or delete
+on public.dxn_team_members
+for each row
+execute function public.trg_archive_dxn_team_member();
+
+-- Make the active AI message log append-only as well.
+create or replace function public.prevent_ai_agent_message_mutation()
+returns trigger
+language plpgsql
+as $function$
+begin
+  raise exception using
+    errcode='42501',
+    message='سجل محادثات المدرب محفوظ ولا يسمح بتعديل الرسائل أو حذفها.';
+end;
+$function$;
+
+drop trigger if exists trg_ai_agent_message_immutable
+  on public.ai_agent_messages;
+
+create trigger trg_ai_agent_message_immutable
+before update or delete
+on public.ai_agent_messages
+for each row
+execute function public.prevent_ai_agent_message_mutation();
+
+-- Learning patterns are historical findings. A newer pattern is a new row,
+-- not an overwrite of an older learned pattern.
+create or replace function public.prevent_ai_learning_pattern_mutation()
+returns trigger
+language plpgsql
+as $function$
+begin
+  raise exception using
+    errcode='42501',
+    message='سجل التعلم محفوظ. أضف نمطًا تعليميًا أحدث بدل تعديل السجل القديم.';
+end;
+$function$;
+
+drop trigger if exists trg_ai_learning_pattern_immutable
+  on public.ai_agent_learning_patterns;
+
+create trigger trg_ai_learning_pattern_immutable
+before update or delete
+on public.ai_agent_learning_patterns
+for each row
+execute function public.prevent_ai_learning_pattern_mutation();
+
+create or replace function public.save_ai_agent_learning_pattern(
+  p_token uuid,
+  p_topic text default null,
+  p_pattern text default null,
+  p_evidence_summary text default null,
+  p_working_lesson text default null,
+  p_next_test text default null,
+  p_evidence_count integer default 0,
+  p_confidence numeric default null,
+  p_status text default 'testing',
+  p_source_event_ids uuid[] default '{}'
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $function$
+declare
+  uid uuid;
+  new_id uuid;
+  st text := lower(trim(coalesce(p_status,'testing')));
+  conf numeric := p_confidence;
+  cnt integer := greatest(0,coalesce(p_evidence_count,0));
+begin
+  uid := public.current_user_id(p_token);
+  if uid is null then
+    raise exception 'انتهت الجلسة';
+  end if;
+
+  if st not in ('testing','supported','rejected','superseded') then
+    st := 'testing';
+  end if;
+
+  if conf is not null then
+    conf := greatest(0,least(1,conf));
+  end if;
+
+  if nullif(trim(coalesce(p_pattern,'')),'') is null
+     and nullif(trim(coalesce(p_working_lesson,'')),'') is null then
+    return null;
+  end if;
+
+  insert into public.ai_agent_learning_patterns(
+    user_id,topic,pattern,evidence_summary,working_lesson,next_test,
+    evidence_count,confidence,status,source_event_ids,updated_at
+  )
+  values(
+    uid,
+    nullif(left(trim(coalesce(p_topic,'')),500),''),
+    nullif(left(trim(coalesce(p_pattern,'')),1200),''),
+    nullif(left(trim(coalesce(p_evidence_summary,'')),1600),''),
+    nullif(left(trim(coalesce(p_working_lesson,'')),1200),''),
+    nullif(left(trim(coalesce(p_next_test,'')),1000),''),
+    cnt,
+    conf,
+    st,
+    coalesce(p_source_event_ids,'{}'),
+    now()
+  )
+  returning id into new_id;
+
+  return new_id;
+end;
+$function$;
+
 notify pgrst, 'reload schema';
