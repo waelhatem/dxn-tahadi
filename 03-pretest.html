@@ -352,6 +352,17 @@ body.dxn-device-tablet .option .txt{font-size:13px}
 
 
 <style id="quiz-circular-nav">
+.btns{
+  position:fixed!important;
+  left:18px!important;
+  bottom:18px!important;
+  z-index:10000!important;
+  display:flex!important;
+  gap:12px!important;
+  direction:ltr!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+}
 .btns .btn{
   width:58px!important;
   height:58px!important;
@@ -378,11 +389,15 @@ body.dxn-device-tablet .option .txt{font-size:13px}
 .btns .btn:hover:not(:disabled){
   transform:scale(1.06)!important;
   box-shadow:0 9px 24px rgba(0,0,0,.22)!important;
-  filter:none!important;
 }
 .btns .btn:active:not(:disabled){transform:scale(.96)!important}
 .btns .btn:disabled{opacity:.28!important;cursor:not-allowed}
 @media(max-width:700px){
+  .btns{
+    left:12px!important;
+    bottom:12px!important;
+    gap:8px!important;
+  }
   .btns .btn{
     width:52px!important;
     height:52px!important;
