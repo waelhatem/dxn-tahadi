@@ -468,6 +468,8 @@ async function loadConversationState(token){
       pending_question:s.pending_question||null,
       pending_member_action:s.pending_member_action||null,
       state_status:s.state_status||'open',
+      interaction_signal:s.interaction_signal||null,
+      interaction_confidence:s.interaction_confidence==null?null:Number(s.interaction_confidence),
       last_member_message_at:s.last_member_message_at||null,
       updated_at:s.updated_at||null
     };
@@ -484,8 +486,24 @@ async function saveConversationState(token,state){
       p_pending_question:state.pending_question||null,
       p_pending_member_action:state.pending_member_action||null,
       p_state_status:state.state_status||'open',
-      p_last_member_message_at:state.last_member_message_at||new Date().toISOString()
+      p_last_member_message_at:state.last_member_message_at||new Date().toISOString(),
+      p_interaction_signal:state.interaction_signal||null,
+      p_interaction_confidence:state.interaction_confidence==null?null:Number(state.interaction_confidence)
     });
+    // During deployment, tolerate the old RPC signature until the migration
+    // has been executed in Supabase.
+    if(!r.ok){
+      const legacy=await supabaseRpc('upsert_ai_agent_conversation_state',{
+        p_token:token,
+        p_current_topic:state.current_topic||null,
+        p_open_loop:state.open_loop||null,
+        p_pending_question:state.pending_question||null,
+        p_pending_member_action:state.pending_member_action||null,
+        p_state_status:state.state_status||'open',
+        p_last_member_message_at:state.last_member_message_at||new Date().toISOString()
+      });
+      return legacy.ok;
+    }
     return r.ok;
   }catch(_){return false;}
 }
@@ -500,9 +518,14 @@ async function extractConversationState(message,answer,currentState){
     'pending_question: سؤال طرحه محمد وما زال ينتظر إجابة العضو عليه. إذا لا يوجد استخدم null.',
     'pending_member_action: تجربة أو خطوة طلبها محمد من العضو ولم يقدم نتيجتها بعد. إذا لا يوجد استخدم null.',
     'state_status: open إذا الحوار مستمر، waiting_member إذا محمد ينتظر إجابة/نتيجة محددة من العضو، closed فقط إذا انتهى الموضوع بوضوح.',
+    'interaction_signal: إشارة خفيفة للحالة الحالية في هذه الرسالة فقط، وليست تشخيصًا نفسيًا ولا صفة ثابتة للعضو. القيم المسموحة: neutral, positive, hesitant, confused, frustrated, rushed.',
+    'اختر interaction_signal فقط إذا كانت هناك قرائن واضحة في كلام العضو نفسه. لا تستنتجها من الصمت أو طول الرسالة وحده.',
+    'neutral عندما لا توجد إشارة واضحة. positive عندما يظهر ارتياح أو حماس واضح. hesitant عند التردد أو عدم الحسم. confused عند طلب التوضيح أو ظهور عدم فهم واضح. frustrated عند التعبير الصريح عن الانزعاج من المشكلة أو المحاولة. rushed عندما يذكر العضو الاستعجال أو ضيق الوقت صراحة.',
+    'interaction_confidence رقم بين 0 و1 يعكس قوة الدليل من رسالة العضو الحالية فقط. إذا لم توجد إشارة واضحة استخدم neutral مع ثقة منخفضة أو متوسطة.',
+    'هذه الإشارة لا تعني تشخيص القلق أو الاكتئاب أو أي حالة صحية/نفسية، ولا يجوز لمحمد ذكر تشخيصات بناءً عليها.',
     'لا تعتبر الصمت أو مرور الوقت انتهاءً للموضوع.',
     'لا تخترع أي شيء غير موجود.',
-    'أعد JSON فقط بالمفاتيح الخمسة: current_topic, open_loop, pending_question, pending_member_action, state_status.',
+    'أعد JSON فقط بالمفاتيح السبعة: current_topic, open_loop, pending_question, pending_member_action, state_status, interaction_signal, interaction_confidence.',
     'الحالة السابقة:',
     JSON.stringify(currentState||{}),
     'رسالة العضو:',
@@ -529,6 +552,10 @@ async function extractConversationState(message,answer,currentState){
       pending_question:p.pending_question?String(p.pending_question).slice(0,700):null,
       pending_member_action:p.pending_member_action?String(p.pending_member_action).slice(0,700):null,
       state_status:statuses.includes(p.state_status)?p.state_status:'open',
+      interaction_signal:['neutral','positive','hesitant','confused','frustrated','rushed'].includes(p.interaction_signal)?p.interaction_signal:'neutral',
+      interaction_confidence:Number.isFinite(Number(p.interaction_confidence))
+        ? Math.max(0,Math.min(1,Number(p.interaction_confidence)))
+        : 0.35,
       last_member_message_at:new Date().toISOString()
     };
   }catch(_){return null;}
@@ -1110,6 +1137,8 @@ function instructions(context){
     'إذا كان السؤال الحالي عن بيانات العضو أو فريقه أو أي موضوع آخر، ابقَ على موضوع السؤال. يمكن ذكر الجلسة أو الخطوة اليومية فقط بعد الإجابة وإذا كان ذلك مرتبطًا بشكل طبيعي بالطلب.',
     'لا تستخدم مرحلة الجلسة الحالية أو المهمة اليومية كبديل عن فهم الرسالة الحالية. القرار continue_daily_plan لا يُستخدم عندما تكون هناك نية مباشرة مثل ask_question أو request_help أو report_obstacle أو report_attempt.',
     'لديك أيضًا conversation_state وهي حالة الحوار القصيرة الحالية: current_topic وopen_loop وpending_question وpending_member_action وstate_status. استخدمها لاستكمال نفس الموضوع وعدم إسقاط سؤال أو تجربة ما زالت مفتوحة.',
+    'تحتوي conversation_state أيضًا على interaction_signal وinteraction_confidence، وهما إشارات خفيفة للحالة الحالية وليستا تشخيصًا ولا صفات ثابتة. استخدمهما فقط لتعديل الأسلوب: confused → بسّط واشرح بمثال واحد، hesitant → خفف الضغط واسأل سؤالًا واضحًا، frustrated → اعترف بالمشكلة وغيّر الأسلوب بدل تكرار المحاولة نفسها، rushed → اختصر واذهب للنقطة العملية، positive → حافظ على الإيقاع واسمح بتحدٍ صغير إذا كان مناسبًا، neutral → الأسلوب المعتاد.',
+    'لا تقل للعضو: أنت محبط/مرتبك/قلق... اعتمادًا على هذه الإشارة. طبّق التكييف في أسلوبك دون تسمية الحالة، ولا تستخدمها لاتخاذ استنتاجات صحية أو نفسية.',
     'إذا كان conversation_state.state_status = waiting_member، فالأولوية هي متابعة السؤال أو النتيجة التي ينتظرها محمد، ما لم يطرح العضو طلبًا جديدًا مباشرًا.',
     'إذا كان هناك pending_question أو pending_member_action، لا تبدأ موضوعًا جديدًا لمجرد وجود خطة يومية. تابع الحلقة المفتوحة أولًا.',
     'إذا كانت الحالة تشير إلى أن محمد سأل العضو إن كان يريد الانتقال إلى تدريب اليوم، فلا تعتبر الموافقة الضمنية أو الصمت كافيًا؛ الانتقال الفعلي يحدث فقط بعد موافقة واضحة.',
@@ -1562,6 +1591,8 @@ module.exports=async function handler(req,res){
       coaching_profile:coachingProfile,
       coaching_session:currentSession,
       conversation_state:conversationState,
+      interaction_signal:conversationState?.interaction_signal||null,
+      interaction_confidence:conversationState?.interaction_confidence==null?null:conversationState.interaction_confidence,
       cognitive_state:cognitiveState,
       memory_state:memoryState,
       decision_state:decisionState,
