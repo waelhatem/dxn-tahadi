@@ -333,6 +333,21 @@ body.dxn-device-tablet .option .txt{font-size:13px}
     );
   }
 }
+
+/* Approved navigation arrows — same visual language as the motivational intro */
+.btns{display:flex;align-items:center;justify-content:center;gap:18px}
+.btns .btn{position:relative;width:150px!important;height:82px!important;min-width:150px!important;min-height:82px!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:transparent!important;font-size:0!important;overflow:visible;display:grid;place-items:center}
+.btns .btn::before{content:"";display:block;width:150px;height:82px;background-repeat:no-repeat;background-position:center;background-size:150px 82px;filter:drop-shadow(0 0 3px rgba(0,255,110,.95)) drop-shadow(0 0 10px rgba(0,255,110,.85)) drop-shadow(0 0 22px rgba(0,255,110,.65));transition:transform .55s ease,filter .35s ease}
+.btns #back::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200'%3E%3Cpath d='M305 60H155V22L18 100l137 78v-38h150V60Z' fill='none' stroke='%2300d878' stroke-width='24' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M305 60H155V22L18 100l137 78v-38h150V60Z' fill='none' stroke='%23fff' stroke-width='9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+.btns #next::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200'%3E%3Cg transform='translate(320 0) scale(-1 1)'%3E%3Cpath d='M305 60H155V22L18 100l137 78v-38h150V60Z' fill='none' stroke='%2300d878' stroke-width='24' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M305 60H155V22L18 100l137 78v-38h150V60Z' fill='none' stroke='%23fff' stroke-width='9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/g%3E%3C/svg%3E")}
+.btns .btn:not(:disabled){animation:dxnQuizArrow 1.15s ease-in-out infinite}
+.btns #back:not(:disabled)::before{animation:dxnQuizArrowLeft 1.15s ease-in-out infinite}
+.btns #next:not(:disabled)::before{animation:dxnQuizArrowRight 1.15s ease-in-out infinite}
+.btns .btn:hover::before{filter:brightness(1.25) drop-shadow(0 0 3px rgba(0,255,110,.95)) drop-shadow(0 0 10px rgba(0,255,110,.85)) drop-shadow(0 0 22px rgba(0,255,110,.65))}
+.btns .btn:disabled{opacity:.28;cursor:not-allowed}
+@keyframes dxnQuizArrowLeft{0%,100%{transform:translateX(0)}50%{transform:translateX(-12px)}}
+@keyframes dxnQuizArrowRight{0%,100%{transform:translateX(0)}50%{transform:translateX(12px)}}
+@media(max-width:700px){.btns{gap:8px}.btns .btn{width:68px!important;height:52px!important;min-width:68px!important;min-height:52px!important}.btns .btn::before{width:68px;height:52px;background-size:68px 52px}}
 </style>
 
 </head>
