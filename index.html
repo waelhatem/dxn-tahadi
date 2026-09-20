@@ -28,6 +28,7 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
   width:42%;
   height:38%;
   display:flex;
+  flex-direction:column;
   align-items:center;
   justify-content:center;
   pointer-events:none;
@@ -42,10 +43,31 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 .desktop-brand img{
   width:min(520px,100%);
   height:auto;
-  max-height:100%;
+  max-height:78%;
   object-fit:contain;
   display:block;
   filter:drop-shadow(0 4px 10px rgba(0,70,45,.10));
+}
+.desktop-tagline{
+  margin-top:clamp(6px,0.8vh,10px);
+  text-align:center;
+  direction:rtl;
+  line-height:1.2;
+  color:#0f513f;
+  text-shadow:0 1px 2px rgba(255,255,255,.75);
+  white-space:nowrap;
+}
+.desktop-tagline-main{
+  display:block;
+  font-size:clamp(22px,2.1vw,32px);
+  font-weight:800;
+  letter-spacing:0;
+}
+.desktop-tagline-sub{
+  display:block;
+  margin-top:clamp(3px,0.35vh,5px);
+  font-size:clamp(14px,1.15vw,19px);
+  font-weight:600;
 }
 #desktopPreviousUser{left:60.8%;top:54.7%;width:15%;height:9%}
 #desktopNewVisitor{left:45.7%;top:54.7%;width:15%;height:9%}
@@ -75,6 +97,10 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 <img src="/desktop-home.png?v=20260918" alt="خلفية مجتمع الصحة والثراء">
 <div class="desktop-brand" aria-label="مجتمع الصحة والثراء">
   <img src="/logo-full.png?v=20260920" alt="مجتمع الصحة والثراء">
+  <div class="desktop-tagline" aria-label="ابدأ بخطوة. اصنع مستقبل عائلتك بنفسك.">
+    <span class="desktop-tagline-main">ابدأ بخطوة</span>
+    <span class="desktop-tagline-sub">اصنع مستقبل عائلتك بنفسك</span>
+  </div>
 </div>
 <button id="desktopPreviousUser" class="hotspot" type="button" aria-label="مستخدم سابق"></button>
 <button id="desktopNewVisitor" class="hotspot" type="button" aria-label="زائر جديد"></button>
