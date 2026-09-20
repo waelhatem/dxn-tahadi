@@ -161,9 +161,9 @@
         arrow.innerHTML = `
           <svg viewBox="0 0 140 70" aria-hidden="true">
             <path d="M132 18H55V4L7 35l48 31V52h77V18Z"
-              fill="#20c44a"
-              stroke="#ff1f2d"
-              stroke-width="4"
+              fill="#00d878"
+              stroke="#00d878"
+              stroke-width="2"
               stroke-linejoin="round"/>
           </svg>
         `;
