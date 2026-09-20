@@ -562,12 +562,19 @@ async function extractConversationState(message,answer,currentState){
 }
 
 
-function causalMemoryLikely(message,cognitiveState){
+function causalMemoryLikely(message,cognitiveState,causalMemory){
   const s=String(message||'').toLowerCase();
   const intent=String(cognitiveState?.intent||'').toLowerCase();
   const signal=String(cognitiveState?.signal||'').toLowerCase();
 
   if(/جربت|حاولت|سويت|سويتها|طبقت|طبقتها|نفذت|نفذتها|سويت تجربة|جربنا|حاولنا|اشتغلت|ما اشتغلت|نجحت|نجح|فشلت|فشل|ما ضبط|ما نفع|نفع|استجاب|ما استجاب|رد علي|ما رد|رفض|وافق|اعترض|النتيجة|طلع|صار|صارلي|بسبب|لأن|لان|علشان|حتى بعد|المشكلة/.test(s)) return true;
+
+  // Follow-up explanations can complete the causal chain even when the
+  // member does not repeat words such as "جربت" or "النتيجة".
+  const hasExistingCausalMemory=Array.isArray(causalMemory)&&causalMemory.length>0;
+  const explanatoryFollowup=/(?:السبب|لأن|لان|كانت|كان|من البداية|مباشرة|عرضت|قدمت|قلت لهم|رسالة|افتتاحية|أسلوبي|طريقتي|يمكن لأن|أعتقد أن|أظن أن|اتوقع أن|أتوقع أن)/.test(s);
+  if(hasExistingCausalMemory && explanatoryFollowup) return true;
+
   return ['report_attempt','report_obstacle'].includes(intent)
     || ['positive','frustrated','hesitant'].includes(signal);
 }
@@ -1829,7 +1836,7 @@ module.exports=async function handler(req,res){
 
     // Causal memory is a separate learning layer: save only a concrete
     // attempt/result/obstacle relationship, never a guessed personality trait.
-    if(causalMemoryLikely(message,cognitiveState)){
+    if(causalMemoryLikely(message,cognitiveState,causalMemory)){
       const causalEvent=await extractCausalMemoryEvent(message,answer,causalMemory);
       if(causalEvent) await saveCausalMemory(token,causalEvent);
     }
