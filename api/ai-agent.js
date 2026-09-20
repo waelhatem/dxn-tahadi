@@ -1193,6 +1193,100 @@ function buildReflectionState({message,cognitiveState,memoryState,decisionState,
   };
 }
 
+function buildContextualCoachingState({
+  message,
+  cognitiveState,
+  memoryState,
+  conversationState,
+  causalMemory,
+  learningPatterns,
+  currentSession
+}){
+  const text=String(message||'').trim().toLowerCase();
+  const profile=memoryState?.personal_memory||{};
+  const recentEvents=Array.isArray(causalMemory)?causalMemory.slice(0,6):[];
+  const patterns=Array.isArray(learningPatterns)?learningPatterns.filter(x=>x&&x.status!=='rejected'&&x.status!=='superseded').slice(0,6):[];
+
+  let person_context='unknown';
+  if(/شخص جديد|جديد تمامًا|ما اعرفه|ما أعرفه|ما اعرفه من قبل|أول مرة|اول مرة|ما بينا معرفة|ما بينا سابق/.test(text)){
+    person_context='new_person';
+  }else if(/أعرفه|اعرفه|نعرف بعض|بيننا معرفة|صديقي|زميلي|قريبي|سبق وحچينا|سبق وحكينا|سبق وتكلمنا|تكلمنا قبل|حچينا قبل/.test(text)){
+    person_context='known_person';
+  }else if(/سبق|قبل|مرة ثانية|مرة ثانيه|رجع|تابعت وياه|تابعت معه|رد علي|ما رد|رفض|وافق|اعترض|مهتم/.test(text)){
+    person_context='previous_interaction';
+  }
+
+  let situation='general';
+  if(/فتح حوار|أفتح حوار|افتح حوار|أبدي حوار|ابدأ حوار|أكلمه|اكلمه|أتواصل|اتواصل|رسالة أولى|رساله اولى/.test(text)) situation='opening_conversation';
+  else if(/متابعة|أتابعه|اتابعه|أتابع|اتابع|بعد ما رد|بعد الرد|رجع رد|متابعة شخص/.test(text)) situation='follow_up';
+  else if(/اعتراض|اعترض|رافض|رفض|مو مقتنع|ما مقتنع|سأل عن السعر|السعر|غالي/.test(text)) situation='objection_handling';
+  else if(/شرح المشروع|أشرح المشروع|اشرح المشروع|أعرض المشروع|اعرض المشروع|أقدم المشروع|اقدم المشروع/.test(text)) situation='presentation';
+  else if(/دعوة|أدعوه|ادعوه|دعيت|أدعوه للمشروع|ادعوه للمشروع/.test(text)) situation='invitation';
+
+  let goal_context='unknown';
+  if(/أريد أفتح|اريد افتح|أريد أبدأ|اريد ابدي|أريد أتواصل|اريد اتواصل/.test(text)) goal_context='start_contact';
+  else if(/أريد أعرف اهتمامه|اريد اعرف اهتمامه|أريد أعرف احتياجه|اريد اعرف احتياجه|أريد أفهمه|اريد افهمه/.test(text)) goal_context='discover_need';
+  else if(/أريد أقدم|اريد اقدم|أريد أشرح|اريد اشرح|أريد أعرض|اريد اعرض/.test(text)) goal_context='present_offer';
+  else if(/أريد أتابع|اريد اتابع|شلون أتابع|شلون اتابع/.test(text)) goal_context='follow_up';
+
+  const relevantPattern=patterns.find(p=>{
+    const blob=[p.topic,p.pattern,p.working_lesson,p.next_test].filter(Boolean).join(' ').toLowerCase();
+    return !blob || ['opening_conversation','follow_up','objection_handling','presentation','invitation'].some(k=>k===situation);
+  })||null;
+
+  const relevantEvents=recentEvents.filter(e=>{
+    const blob=[e.topic,e.attempt,e.result,e.observation,e.adjustment].filter(Boolean).join(' ').toLowerCase();
+    if(!blob)return false;
+    if(situation==='opening_conversation')return /حوار|رسالة|بداية|افتتاح|مشروع|تواصل/.test(blob);
+    if(situation==='follow_up')return /متابع|رد|رسالة|تواصل/.test(blob);
+    if(situation==='objection_handling')return /اعتراض|رفض|سعر|مقتنع/.test(blob);
+    return true;
+  }).slice(0,4);
+
+  let strategy='context_first';
+  if(relevantPattern){
+    strategy='use_learning_pattern_as_hypothesis';
+  }else if(relevantEvents.length){
+    strategy='use_relevant_past_evidence';
+  }else if(person_context==='new_person'){
+    strategy='start_with_low_pressure_context';
+  }else if(person_context==='known_person'||person_context==='previous_interaction'){
+    strategy='build_on_existing_relationship';
+  }
+
+  const missing=[];
+  if(person_context==='unknown')missing.push('relationship_with_person');
+  if(goal_context==='unknown')missing.push('immediate_goal');
+  if(situation==='general')missing.push('situation_type');
+
+  return {
+    version:'contextual_coaching_v1',
+    situation,
+    person_context,
+    goal_context,
+    relationship_context:person_context,
+    relevant_past_evidence:relevantEvents,
+    relevant_learning_pattern:relevantPattern,
+    strategy,
+    missing_context:missing,
+    uncertainty:missing.length? 'medium':'low',
+    profile_context:{
+      goal:profile.goal||null,
+      focus_area:profile.focus_area||null,
+      experience_level:profile.experience_level||null,
+      known_gap:Array.isArray(profile.gaps)?profile.gaps[0]||null:null
+    },
+    rules:[
+      'لا تطبق درسًا سابقًا كقاعدة عامة؛ استخدمه فقط إذا كان سياقه مشابهًا.',
+      'إذا اختلف الشخص أو الموقف، أعد تقييم ملاءمة الدرس قبل استخدامه.',
+      'إذا كانت معلومة أساسية ناقصة وتؤثر فعلاً في القرار، اسأل سؤالًا واحدًا فقط.',
+      'إذا كانت المعلومة غير أساسية، لا توقف التقدم من أجلها.',
+      'فرّق بين دليل سابق، فرضية، ونصيحة عامة.',
+      'لا تعرض هذه الحالة الداخلية أو أسماء الحقول للعضو.'
+    ]
+  };
+}
+
 function buildAdaptiveDialogueState({message,cognitiveState,memoryState,decisionState,currentSession}){
   const profile=memoryState?.personal_memory||{};
   const text=String(message||'').toLowerCase();
@@ -1363,6 +1457,9 @@ function instructions(context){
     'إذا كان هناك pending_question أو pending_member_action، لا تبدأ موضوعًا جديدًا لمجرد وجود خطة يومية. تابع الحلقة المفتوحة أولًا.',
     'إذا كانت الحالة تشير إلى أن محمد سأل العضو إن كان يريد الانتقال إلى تدريب اليوم، فلا تعتبر الموافقة الضمنية أو الصمت كافيًا؛ الانتقال الفعلي يحدث فقط بعد موافقة واضحة.',
     'لديك طبقة حالة معرفية (cognitive_state) وطبقة ذاكرة (memory_state) في السياق. استخدمهما للحفاظ على استمرارية الحوار وتجنب إعادة الأسئلة التي تمت الإجابة عنها سابقًا.',
+    'لديك أيضًا contextual_coaching_state: فهم خفيف للسياق الحالي، مثل نوع الموقف، طبيعة العلاقة مع الشخص، هدف العضو، والأدلة السابقة المرتبطة بالموقف. استخدمه لتحديد مدى ملاءمة الدرس السابق للموقف الحالي.',
+    'لا تطبق learning_pattern لمجرد أنه موجود. قارِن سياقه بالسياق الحالي أولًا. إذا كان الشخص أو الموقف مختلفًا، اعتبر الدرس فرضية تحتاج تكييفًا أو اختبارًا جديدًا.',
+    'إذا كان السياق ناقصًا ومعلومة واحدة فقط ستغيّر القرار فعلاً، اسأل عن تلك المعلومة فقط. لا تحوّل كل طلب إلى استجواب.',
     'عند استخدام الذاكرة، ميّز بين ما قاله العضو فعلًا وما هو استنتاج. لا تقدم استنتاجًا على أنه حقيقة.',
     'إذا تعارضت معلومة قديمة مع معلومة أحدث قالها العضو، اعتمد الأحدث واعتبر القديمة غير سارية.',
     'لا تذكر للمستخدم بنية الذاكرة أو أسماء الحقول الداخلية. استخدمها طبيعيًا داخل الحوار.',
@@ -1816,6 +1913,15 @@ module.exports=async function handler(req,res){
     const longTermPersonalModel=buildLongTermPersonalModel({
       memoryState,coachingProfile,reflectionState,currentSession
     });
+    const contextualCoachingState=buildContextualCoachingState({
+      message,
+      cognitiveState,
+      memoryState,
+      conversationState,
+      causalMemory,
+      learningPatterns,
+      currentSession
+    });
 
     let enrichedContext={
       ...context,
@@ -1826,6 +1932,7 @@ module.exports=async function handler(req,res){
       interaction_confidence:conversationState?.interaction_confidence==null?null:conversationState.interaction_confidence,
       causal_memory:causalMemory,
       learning_patterns:learningPatterns,
+      contextual_coaching_state:contextualCoachingState,
       cognitive_state:cognitiveState,
       memory_state:memoryState,
       decision_state:decisionState,
