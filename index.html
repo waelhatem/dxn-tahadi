@@ -9,66 +9,50 @@
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;background:#eef5f1}
 body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
-.page{height:100svh;width:100vw;overflow:hidden;position:relative;background:#eef5f1}
+.device-bar{height:57px;display:flex;justify-content:center;align-items:center;gap:8px;padding:8px 12px;background:rgba(238,245,241,.96);backdrop-filter:blur(8px);border-bottom:1px solid rgba(15,81,63,.12);position:relative;z-index:30}
+.device-btn{border:1px solid rgba(15,81,63,.22);background:#fff;color:#17372d;border-radius:999px;padding:9px 18px;font:800 14px/1 "Tajawal","Segoe UI",Tahoma,Arial,sans-serif;cursor:pointer;transition:.2s;min-width:130px}
+.device-btn.active{background:#0f513f;color:#fff;border-color:#0f513f;box-shadow:0 6px 14px rgba(15,81,63,.16)}
+.page{height:calc(100svh - 57px);width:100vw;overflow:hidden;position:relative;background:#eef5f1}
 .view{width:100%;height:100%}
 .hidden{display:none!important}
-.hotspot{position:absolute;border:0;background:transparent;cursor:pointer;padding:0;margin:0;outline:none}
+.hotspot{position:absolute;border:0;background:transparent;cursor:pointer;padding:0;margin:0;outline:none;z-index:10}
 .hotspot:focus-visible{box-shadow:0 0 0 4px rgba(15,81,63,.45);border-radius:999px}
 
 /* واجهة الحاسوب: صورة سطح المكتب المعتمدة مستقلة عن صورة الموبايل */
-.desktop-view{position:relative;width:100%;height:100%;display:block;overflow:hidden;background:#dfeae5}
-.desktop-backdrop{display:none}
-.desktop-poster{position:absolute;inset:0;width:100%;height:100%;line-height:0;z-index:2;overflow:hidden}
-.desktop-poster img{width:100%;height:100%;display:block;object-fit:cover;object-position:center top}
-/* أزرار شفافة فوق الأزرار المدمجة داخل صورة الحاسوب */
-#desktopPreviousUser,
-#desktopNewVisitor,
-#desktopDeviceMobile,
-#desktopDeviceComputer{
-  position:absolute;
-  border:0;
-  background:transparent;
-  color:transparent;
-  box-shadow:none;
-  padding:0;
-  margin:0;
-  cursor:pointer;
-  outline:none;
-  z-index:20;
-}
-#desktopNewVisitor{left:45.7%;top:59.4%;width:15%;height:8.5%}
-#desktopPreviousUser{left:60.7%;top:59.4%;width:15%;height:8.5%}
-#desktopDeviceComputer{left:41.7%;top:1%;width:7.8%;height:4%}
-#desktopDeviceMobile{left:50.1%;top:1%;width:7.8%;height:4%}
-#desktopNewVisitor:focus-visible,
-#desktopPreviousUser:focus-visible,
-#desktopDeviceMobile:focus-visible,
-#desktopDeviceComputer:focus-visible{
-  box-shadow:0 0 0 4px rgba(15,81,63,.45);
-  border-radius:999px;
-}
+.desktop-view{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#dfeae5}
+.desktop-backdrop{position:absolute;inset:0;z-index:0;overflow:hidden;background:#dfeae5}
+.desktop-backdrop::before{content:"";position:absolute;inset:-18px;background:url("/desktop-home.png?v=20260918") center/cover no-repeat;filter:blur(2px);transform:scale(1.03)}
+.desktop-poster{position:relative;width:auto;height:100%;max-width:none;aspect-ratio:1927 / 1024;line-height:0;z-index:2;overflow:visible}
+.desktop-poster img{width:100%;height:100%;display:block;object-fit:contain}
+#desktopPreviousUser{left:66.4%;bottom:37.4%;width:17.6%;height:9.7%}
+#desktopNewVisitor{left:48.1%;bottom:37.4%;width:17.6%;height:9.7%}
 
 /* واجهة الموبايل: الصورة الأصلية كما هي */
 .mobile-view{display:flex;align-items:center;justify-content:center}
 .mobile-poster{position:relative;height:100%;max-height:100%;aspect-ratio:2 / 3;line-height:0}
 .mobile-poster img{width:100%;height:100%;object-fit:contain;display:block}
-#mobilePreviousUser{left:7.5%;bottom:13%;width:42.5%;height:9%}
-#mobileNewVisitor{right:7%;bottom:13%;width:42.5%;height:9%}
+#mobilePreviousUser{left:7.5%;bottom:13%;width:43%;height:9%}
+#mobileNewVisitor{right:7%;bottom:13%;width:43%;height:9%}
 
-@media(max-width:700px){}
+@media(max-width:700px){
+.device-bar{height:57px}
+.device-btn{min-width:120px;padding:8px 14px}
+}
 </style>
 <link rel="manifest" href="/manifest.json">
 </head>
 <body>
+<nav class="device-bar" aria-label="معاينة الجهاز">
+<button id="mobilePreview" class="device-btn" type="button" aria-pressed="false">📱 الموبايل</button>
+<button id="desktopPreview" class="device-btn active" type="button" aria-pressed="true">🖥️ الحاسوب</button>
+</nav>
 <main class="page">
 <section id="desktopView" class="view desktop-view">
 <div class="desktop-backdrop" aria-hidden="true"></div>
 <div class="desktop-poster">
-<img src="/desktop-home.png?v=20260918" alt="خلفية مجتمع الصحة والثراء">
-<button id="desktopNewVisitor" class="hotspot" type="button" aria-label="زائر جديد"></button>
+<img src="/desktop-home.png?v=20260918" alt="مجتمع الصحة والثراء">
 <button id="desktopPreviousUser" class="hotspot" type="button" aria-label="مستخدم سابق"></button>
-<button id="desktopDeviceMobile" class="hotspot" type="button" aria-label="الموبايل"></button>
-<button id="desktopDeviceComputer" class="hotspot" type="button" aria-label="الحاسوب"></button>
+<button id="desktopNewVisitor" class="hotspot" type="button" aria-label="زائر جديد"></button>
 </div>
 </section>
 <section id="mobileView" class="view mobile-view hidden">
@@ -80,23 +64,28 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 </section>
 </main>
 <script>
+const mobileBtn=document.getElementById('mobilePreview');
+const desktopBtn=document.getElementById('desktopPreview');
 const mobileView=document.getElementById('mobileView');
 const desktopView=document.getElementById('desktopView');
-function goNew(mode){try{localStorage.setItem('dxn_selected_device_mode',mode);}catch(e){} location.href='/02-pretest-intro.html'}
-function goPrevious(){location.href='/app/index.html'}
-document.getElementById('desktopNewVisitor').addEventListener('click',function(){goNew('desktop')});
-document.getElementById('desktopPreviousUser').addEventListener('click',goPrevious);
-document.getElementById('desktopDeviceMobile').addEventListener('click',()=>{mobileView.classList.remove('hidden');desktopView.classList.add('hidden')});
-document.getElementById('desktopDeviceComputer').addEventListener('click',()=>{desktopView.classList.remove('hidden');mobileView.classList.add('hidden')});
-document.getElementById('mobileNewVisitor').addEventListener('click',function(){goNew('mobile')});
-document.getElementById('mobilePreviousUser').addEventListener('click',goPrevious);
-if(window.matchMedia('(max-width:700px)').matches){
-  mobileView.classList.remove('hidden');
-  desktopView.classList.add('hidden');
-}else{
-  mobileView.classList.add('hidden');
-  desktopView.classList.remove('hidden');
+function setPreview(mode){
+const mobile=mode==='mobile';
+mobileView.classList.toggle('hidden',!mobile);
+desktopView.classList.toggle('hidden',mobile);
+mobileBtn.classList.toggle('active',mobile);
+desktopBtn.classList.toggle('active',!mobile);
+mobileBtn.setAttribute('aria-pressed',String(mobile));
+desktopBtn.setAttribute('aria-pressed',String(!mobile));
 }
+function goNew(){location.href='/02-pretest-intro.html'}
+function goPrevious(){location.href='/app/index.html'}
+mobileBtn.addEventListener('click',()=>setPreview('mobile'));
+desktopBtn.addEventListener('click',()=>setPreview('desktop'));
+document.getElementById('desktopNewVisitor').addEventListener('click',goNew);
+document.getElementById('desktopPreviousUser').addEventListener('click',goPrevious);
+document.getElementById('mobileNewVisitor').addEventListener('click',goNew);
+document.getElementById('mobilePreviousUser').addEventListener('click',goPrevious);
+setPreview('desktop');
 </script>
 <script src="/pwa-install.js?v=1" defer></script>
 </body>
