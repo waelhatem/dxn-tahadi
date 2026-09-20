@@ -6,6 +6,7 @@ const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY || '').trim().replace(/
 const OPENAI_MODEL = process.env.AI_AGENT_MODEL || process.env.OPENAI_MODEL || 'gpt-5.6-terra';
 
 const SUPABASE_URL_FIXED = 'https://ryqpstkzppaifpvhezzn.supabase.co';
+const { DXN_MARKETING_PLAN, isDxnMarketingPlanRequest } = require('./dxn-marketing-plan');
 
 function httpJson(url,body,headers,timeout){
   return new Promise((resolve,reject)=>{
@@ -1503,6 +1504,9 @@ function instructions(context){
     'في المتابعة: إذا كان العضو متقدمًا، انتقل من الشرح إلى التحدي والتطبيق. إذا كان جديدًا، استخدم شرحًا أبسط وأكثر تدرجًا.',
     'عند الحاجة إلى تحليل مستوى العضو أو نقاط قوته وضعفه في الاختبارات، استخدم أداة أداء الاختبارات بدل الاعتماد على الانطباع من المحادثة فقط.',
     'لديك أداة Team Intelligence لقراءة سجل فريق DXN الحقيقي. استخدمها عندما يسأل العضو عن فريقه أو الـDownline أو الأجيال أو الخطوط المباشرة أو توزيع الرتب أو PV.',
+    'لديك أيضًا مصدر معرفي مستقل لخطة DXN. إذا ظهر marketing_plan في السياق فهو المصدر المرجعي للمفاهيم والخطة والحوافز الواردة في الملف. حافظ على مصطلحات PV وSV وPPV وPSV وPGPV وPGSV وDGPV وDGSV، ولا تخترع أسعارًا أو رسومًا غير موجودة في المصدر.',
+    'إذا سأل العضو عن السعر أو التكلفة، لا تجعل الرقم محور الحوار من تلقاء نفسك. افهم الاحتياج والقيمة أولًا، ثم اذكر السعر فقط إذا كان مصدر أسعار الدولة متاحًا. لا تحوّل شرط النقاط إلى شراء شهري إلزامي ما لم يذكر المصدر ذلك صراحة.',
+    'إذا كان السؤال عن خطة DXN أو العمولات أو النقاط أو الحوافز، استخدم marketing_plan عند وجوده، وانقل الحقائق كما وردت فيه دون تحويل نسب الخطة إلى دخل مضمون أو توقع شخصي.',
     'إذا سأل العضو عن معلومات عضو آخر ولا يعرف رقم العضوية، وكان لديه الاسم أو جزء منه، استخدم أداة search_dxn_team_members أولًا بالاسم أو الجزء الذي أعطاك إياه. لا تخمّن اسمًا بديلًا ولا رقم عضوية. إذا رجعت نتيجة واحدة ومعها member_intelligence، فهذه هي بيانات العضو المطلوب تحديدًا: أجب منها مباشرة ولا تستخدم بيانات member الحالية للحساب بدلًا عنها. لا تقل إن العضو هو الحساب الحالي إلا إذا كانت أرقام العضوية متطابقة. إذا رجعت نتائج متعددة، اعرض الأسماء وأرقام العضوية واطلب تحديد الشخص الصحيح. إذا لم توجد نتائج، قل إنه لم يظهر في فريقه الحالي وابحث بعبارة أقصر عند الحاجة.',
     'Sponsor هو مفتاح علاقة فقط؛ عند تحليل الفريق ركّز على الـDownline الذي يرجع إلى العضو الحالي. لا تعامل الراعي الشخصي للعضو كأنه الفريق المطلوب تحليله.',
     'عند المقارنة بين الخطوط، اعرض أرقامًا وحقائق من الأداة فقط. لا تستنتج نشاطًا أو مبيعات أو إنتاجية تشغيلية إذا لم تكن موجودة في البيانات.',
@@ -1819,8 +1823,12 @@ module.exports=async function handler(req,res){
     let dailyAutoPlan=null;
     let directDailyCompletion=false;
     let teamIntelligence=null;
+    let marketingPlan=null;
     if(isTeamIntelligenceRequest(message)){
       teamIntelligence=await AGENT_TOOLS.get_dxn_team_intelligence(token,{mode:'summary',member_no:null,generation:null,limit:50});
+    }
+    if(isDxnMarketingPlanRequest(message)){
+      marketingPlan=DXN_MARKETING_PLAN;
     }
 
     // Completion of the daily task is a deterministic server-side action.
@@ -1943,7 +1951,8 @@ module.exports=async function handler(req,res){
       ...(dailyAutoPlan?{daily_auto_plan:dailyAutoPlan}: {}),
       ...(directDailyCompletion?{daily_completion:{completed:true}}: {}),
       ...(dailyCompletionDiagnostic?{daily_completion_error:dailyCompletionDiagnostic}: {}),
-      ...(teamIntelligence?{team_intelligence:teamIntelligence}: {})
+      ...(teamIntelligence?{team_intelligence:teamIntelligence}: {}),
+      ...(marketingPlan?{marketing_plan:marketingPlan}: {})
     };
     let input=baseInput;
     const availableAgentTools=(directDailyCompletion||dailyCompletionDiagnostic)
