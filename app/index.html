@@ -219,9 +219,9 @@ const $=id=>document.getElementById(id); const esc=x=>String(x??'').replace(/[&<
 function toast(s){$('toast').textContent=s;$('toast').classList.remove('hidden');setTimeout(()=>$('toast').classList.add('hidden'),2600)}
 
 /* V85.6 — delegated login click handler. The login view is rendered dynamically, so the handler must survive SPA re-renders. */
-document.addEventListener('click',function(e){
-  const btn=e.target&&e.target.closest ? e.target.closest('#loginButton') : null;
-  if(!btn)return;
+document.addEventListener('submit',function(e){
+  const form=e.target&&e.target.id==='loginForm' ? e.target : null;
+  if(!form)return;
   e.preventDefault();
   if(typeof login==='function') login();
 });
@@ -278,7 +278,36 @@ function renderLogin(){
   // Login-only device selector lives outside #app so SPA re-renders cannot remove it.
   const oldSwitch=document.getElementById('viewSwitch');
   if(oldSwitch) oldSwitch.remove();
-  $('app').innerHTML=`<div class="login card"><div style="text-align:center"><img class="logo" src="logo.png" alt="شعار مجتمع الصحة والثراء"><h1>مجتمع الصحة والثراء</h1><p class="muted">دخول موحد من أي جهاز</p></div><label>نوع الدخول</label><select id="role"><option value="member">👤 دخول العضو</option><option value="leader">👑 دخول القائد</option></select><label>رقم العضوية / رمز القائد</label><input id="loginNo" placeholder="مثال: 820426486 أو LEADER"><label>رمز الدخول PIN</label><input id="pin" type="text" autocomplete="current-password" inputmode="text" autocapitalize="characters" spellcheck="false" placeholder="PIN"><button id="loginButton" class="primary" type="button" style="width:100%">🔐 دخول</button><div id="dxnBuildMarker" class="small muted" style="text-align:center;margin-top:8px">مجتمع الصحة والثراء • V86.9</div><button style="width:100%;margin-top:8px" onclick="renderMemberVerify()">👤 لدي عضوية في فريق بداية أمل</button><p class="muted small">لأسباب أمنية، لا تُعرض بيانات دخول تجريبية داخل النسخة المنشورة.</p></div>`;
+
+  // Use the browser's native password-manager flow (Chrome/Edge/etc.).
+  // We never store the PIN ourselves; the browser may save/fill it after
+  // the member explicitly chooses to save the credentials.
+  const savedRole=localStorage.getItem('dxn_login_role')||'member';
+
+  $('app').innerHTML=`<form id="loginForm" class="login card" autocomplete="on" novalidate>
+    <div style="text-align:center">
+      <img class="logo" src="logo.png" alt="شعار مجتمع الصحة والثراء">
+      <h1>مجتمع الصحة والثراء</h1>
+      <p class="muted">دخول موحد من أي جهاز</p>
+    </div>
+    <label for="role">نوع الدخول</label>
+    <select id="role" name="loginRole">
+      <option value="member" ${savedRole==='member'?'selected':''}>👤 دخول العضو</option>
+      <option value="leader" ${savedRole==='leader'?'selected':''}>👑 دخول القائد</option>
+    </select>
+
+    <label for="loginNo">رقم العضوية / رمز القائد</label>
+    <input id="loginNo" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="text" placeholder="مثال: 820426486 أو LEADER">
+
+    <label for="pin">رمز الدخول PIN</label>
+    <input id="pin" name="password" type="password" autocomplete="current-password" inputmode="text" autocapitalize="characters" spellcheck="false" placeholder="PIN">
+
+    <button id="loginButton" class="primary" type="submit" style="width:100%">🔐 دخول</button>
+    <div id="dxnBuildMarker" class="small muted" style="text-align:center;margin-top:8px">مجتمع الصحة والثراء • V86.9</div>
+    <button type="button" style="width:100%;margin-top:8px" onclick="renderMemberVerify()">👤 لدي عضوية في فريق بداية أمل</button>
+    <p class="muted small">يمكن للمتصفح حفظ بيانات الدخول بعد أول تسجيل دخول، ولن نقوم بحفظ رمز PIN داخل الموقع نفسه.</p>
+  </form>`;
+
   const sw=document.createElement('div');
   sw.className='view-switch';
   sw.id='viewSwitch';
@@ -431,7 +460,26 @@ function setViewMode(mode){
   renderViewSwitch();
 }
 
-async function login(){try{const loginNo=$('loginNo').value.trim(),pin=$('pin').value.trim();if(!loginNo||!pin)return toast('أدخل بيانات الدخول أولاً.');const r=await rpc('login',{p_login_no:loginNo,p_pin:pin});token=r.token;localStorage.setItem('dxn_session',token);localStorage.setItem('dxn_session_issued',String(Date.now()));await boot()}catch(e){toast(e.message||'تعذر الدخول')}}
+async function login(){
+  try{
+    const loginNo=$('loginNo').value.trim();
+    const pin=$('pin').value.trim();
+    const loginRole=$('role').value==='leader'?'leader':'member';
+    if(!loginNo||!pin)return toast('أدخل بيانات الدخول أولاً.');
+
+    // Remember only the selected login type. The username/PIN are handled by
+    // the browser's password manager, not stored in our localStorage.
+    localStorage.setItem('dxn_login_role',loginRole);
+
+    const r=await rpc('login',{p_login_no:loginNo,p_pin:pin});
+    token=r.token;
+    localStorage.setItem('dxn_session',token);
+    localStorage.setItem('dxn_session_issued',String(Date.now()));
+    await boot();
+  }catch(e){
+    toast(e.message||'تعذر الدخول');
+  }
+}
 async function logout(){try{await rpc('logout',{p_token:token})}catch{}localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');token='';me=null;data=null;tab='home';renderLogin()}
 const DXN_NAV_KEY='dxn_inapp_nav_v1';
 let dxnNav={back:[],forward:[],current:null,restoring:false};
