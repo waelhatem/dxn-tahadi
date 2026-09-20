@@ -104,10 +104,10 @@
       body.dxn-quiz-page #dxn-quiz-next-arrow{
         position:fixed!important;
         left:50%!important;
-        bottom:18px!important;
+        bottom:8px!important;
         z-index:99999!important;
-        width:72px!important;
-        height:46px!important;
+        width:140px!important;
+        height:70px!important;
         transform:translateX(-50%)!important;
         display:flex!important;
         align-items:center!important;
@@ -124,8 +124,8 @@
         animation:dxnQuizArrowMove 1.15s ease-in-out infinite!important;
       }
       body.dxn-quiz-page #dxn-quiz-next-arrow svg{
-        width:68px!important;
-        height:42px!important;
+        width:140px!important;
+        height:70px!important;
         display:block!important;
       }
       body.dxn-quiz-page #dxn-quiz-next-arrow.is-disabled{
@@ -139,12 +139,12 @@
       @media(max-width:700px){
         body.dxn-quiz-page #dxn-quiz-next-arrow{
           bottom:12px!important;
-          width:60px!important;
-          height:40px!important;
+          width:120px!important;
+          height:60px!important;
         }
         body.dxn-quiz-page #dxn-quiz-next-arrow svg{
-          width:56px!important;
-          height:36px!important;
+          width:120px!important;
+          height:60px!important;
         }
       }
     `;
@@ -160,7 +160,11 @@
         arrow.setAttribute('aria-label','الانتقال إلى السؤال التالي');
         arrow.innerHTML = `
           <svg viewBox="0 0 140 70" aria-hidden="true">
-            <path d="M130 22H54V7L10 35l44 28V48h76V22Z" fill="#20c44a" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
+            <path d="M132 18H55V4L7 35l48 31V52h77V18Z"
+              fill="#20c44a"
+              stroke="#ff1f2d"
+              stroke-width="4"
+              stroke-linejoin="round"/>
           </svg>
         `;
         document.body.appendChild(arrow);
