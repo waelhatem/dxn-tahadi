@@ -215,15 +215,21 @@ begin
     f.created_at
   from public.ai_agent_learned_facts f
   where f.scope='global'
-     or (f.scope='leader' and role_name_for_user(uid)='leader')
+     or (
+       f.scope='leader'
+       and exists (
+         select 1
+         from public.app_users u
+         where u.id=uid
+           and u.role='leader'
+           and u.active=true
+       )
+     )
      or (f.scope='member' and f.member_id=mid)
   order by f.created_at desc
   limit lim;
 end;
 $function$;
-
--- Helper is intentionally avoided here; use the app_users row directly for role.
-drop function if exists public.role_name_for_user(uuid);
 
 revoke all on function public.get_ai_agent_learned_facts(uuid,integer)
 from public,anon,authenticated;
