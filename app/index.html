@@ -2597,28 +2597,40 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     try{
       const summary=await rpc('get_dxn_team_intelligence',{p_token:t,p_mode:'summary',p_member_no:rootNo,p_limit:5000});
 
-      // Load every generation separately so the UI is not limited by the
-      // 200-row cap of the recursive downline endpoint.
-      const generationCalls=Array.from({length:20},(_,i)=>
-        rpc('get_dxn_team_intelligence',{
-          p_token:t,
-          p_mode:'generation',
-          p_member_no:rootNo,
-          p_generation:i+1,
-          p_limit:5000
-        }).catch(()=>({mode:'generation',generation:i+1,members:[]}))
-      );
-      const generations=await Promise.all(generationCalls);
-      const allMembers=[];
-      generations.forEach((g,i)=>{
-        const members=Array.isArray(g&&g.members)?g.members:[];
-        members.forEach(m=>{
-          if(m && (m.member_no||m.member_name)){
-            m.depth_from_target=i+1;
-            allMembers.push(m);
-          }
-        });
+      // Use the recursive downline response as the source of truth.
+      // It already includes depth_from_target plus the member PV/group-PV fields.
+      const downline=await rpc('get_dxn_team_intelligence',{
+        p_token:t,
+        p_mode:'downline',
+        p_member_no:rootNo,
+        p_limit:5000
       });
+      let allMembers=Array.isArray(downline&&downline.members)?downline.members:[];
+      
+      // Backward-compatible fallback for an older RPC that still returns only
+      // a limited downline payload.
+      if(Number(downline&&downline.count||0)>allMembers.length){
+        const generationCalls=Array.from({length:20},(_,i)=>
+          rpc('get_dxn_team_intelligence',{
+            p_token:t,
+            p_mode:'generation',
+            p_member_no:rootNo,
+            p_generation:i+1,
+            p_limit:5000
+          }).catch(()=>({mode:'generation',generation:i+1,members:[]}))
+        );
+        const generations=await Promise.all(generationCalls);
+        allMembers=[];
+        generations.forEach((g,i)=>{
+          const members=Array.isArray(g&&g.members)?g.members:[];
+          members.forEach(m=>{
+            if(m && (m.member_no||m.member_name)){
+              m.depth_from_target=i+1;
+              allMembers.push(m);
+            }
+          });
+        });
+      }
 
       summaryBox.innerHTML=renderSummary(summary,rootNo);
       listBox.innerHTML=renderMembers({members:allMembers});
