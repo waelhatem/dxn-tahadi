@@ -437,6 +437,10 @@ body.dxn-device-tablet .option .txt{font-size:13px}
   .btns #next::after{border-left-width:9px!important}
 }
 </style>
+<style id="dxn-auto-advance-pretest">
+/* أسئلة الاختبار: بدون أزرار التالي/السابق؛ الانتقال يتم تلقائيًا بعد اختيار الإجابة */
+#next,#back,.btns,#global-page-navigation,#dxn-quiz-next-arrow{display:none!important}
+</style>
 </head>
 <body>
 <div class="page">
@@ -637,5 +641,30 @@ body.dxn-device-tablet .option .txt{font-size:13px}
 })();
 </script>
 <script src="/page-navigation.js?v=1" defer></script>
+<script id="dxn-auto-advance-pretest">
+(function(){
+  function installAutoAdvance(){
+    const options=document.getElementById('options');
+    if(!options || options.dataset.autoAdvanceBound==='1') return;
+    options.dataset.autoAdvanceBound='1';
+    options.addEventListener('click',function(event){
+      const option=event.target.closest('.option');
+      if(!option) return;
+      setTimeout(function(){
+        const next=document.getElementById('next');
+        if(next && !next.disabled) next.click();
+      },0);
+    });
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',installAutoAdvance,{once:true});
+  }else{
+    installAutoAdvance();
+  }
+  if(window.MutationObserver){
+    new MutationObserver(installAutoAdvance).observe(document.body,{childList:true,subtree:true});
+  }
+})();
+</script>
 </body>
 </html>
