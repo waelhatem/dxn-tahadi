@@ -1794,7 +1794,15 @@ function dxnSyncBuildRows(){
     return -1;
   })();
   const headerless=idx.member_no<0 && firstRowMemberIdx>=0;
-  const startRow=headerless?0:1;
+  let startRow=headerless?0:1;
+
+  // تقارير DXN قد تحتوي على سطر/سطرين تمهيديين بالعربية قبل أول عضو.
+  // عند غياب صف عناوين واضح، نتجاوز كل السطور السابقة لأول رقم عضوية صحيح
+  // حتى لا تُحتسب عناوين التقرير كصفوف خاطئة.
+  if(headerless){
+    startRow=grid.findIndex(row=>(row||[]).some(cell=>/^\\d{9}$/.test(dxnSyncDigits(cell).replace(/\\s/g,''))));
+    if(startRow<0) startRow=0;
+  }
 
   if(idx.member_no<0 && !headerless){
     return {rows:[],invalid:[{row:1,message:'لم يتم العثور على رقم العضوية. يمكن لصق تقرير DXN بالعناوين أو بدون عناوين.'}],duplicates:0};
