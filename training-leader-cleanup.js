@@ -1,4 +1,4 @@
-/* V86.46.18 — حذف إجابات التدريب نهائيًا لكل عضو بشكل منفصل، مع الإبقاء على حذف السؤال الفردي من لوحة القائد */
+/* V86.46.18 — حفظ سجلات التدريب بشكل دائم؛ الإخفاء من لوحة القائد يبقى ممكنًا دون حذف السجل */
 (function(){
   if(window.__DXN_TRAINING_LEADER_CLEANUP_V864618__) return;
   window.__DXN_TRAINING_LEADER_CLEANUP_V864618__=true;
@@ -69,16 +69,16 @@
     var section=card&&card.closest('.dxn-leader-training-group');
     try{
       if(!token())throw new Error('جلسة القائد غير موجودة. يرجى تسجيل الدخول من جديد.');
-      if(btn){btn.disabled=true;btn.textContent='⏳ جارٍ الحذف...'}
+      if(btn){btn.disabled=true;btn.textContent='⏳ جارٍ الإخفاء...'}
       var d=await rpc('leader_hide_training_answer',{p_token:token(),p_answer_id:answerId});
-      if(!d||d.ok!==true)throw new Error('لم يؤكد الخادم نجاح الحذف.');
+      if(!d||d.ok!==true)throw new Error('لم يؤكد الخادم نجاح الإخفاء.');
       hiddenAnswers[answerId]=true;
       if(card){card.remove();if(section&&!section.querySelector('.challenge'))section.remove()}
       window.dispatchEvent(new CustomEvent('dxn:leader-answer-hidden',{detail:{answerId:answerId}}));
       scrollToNextAfterRemoval(section);
     }catch(e){
-      if(btn){btn.disabled=false;btn.textContent='🗑️ حذف من لوحة القائد'}
-      alert('تعذر حذف الاختبار من لوحة القائد: '+e.message);
+      if(btn){btn.disabled=false;btn.textContent='🙈 إخفاء من لوحة القائد'}
+      alert('تعذر إخفاء الاختبار من لوحة القائد: '+e.message);
     }
   }
   window.hideLeaderTrainingAnswer=hideAnswer;
@@ -89,17 +89,17 @@
     if(!memberId||!lessonNo)return;
     var name=memberName||'العضو';
     var title=lessonTitle||('التدريب '+lessonNo);
-    var ok=confirm('حذف إجابات '+title+' للعضو '+name+' نهائيًا؟\n\nسيتم حذف جميع إجابات ومحاولات هذا التدريب لهذا العضو فقط.\nولن تتأثر إجابات أي عضو آخر.\nوسيتمكن هذا العضو من إعادة الاختبار من البداية.\n\nهذا الحذف نهائي ولا يمكن التراجع عنه.');
+    var ok=confirm('السجل محفوظ بشكل دائم ولا يمكن حذفه.\n\nسيتم إبقاء جميع إجابات ومحاولات '+title+' للعضو '+name+' محفوظة في السجل الدائم.\nهل تريد المتابعة؟');
     if(!ok)return;
     try{
       if(!token())throw new Error('جلسة القائد غير موجودة. يرجى تسجيل الدخول من جديد.');
-      if(btn){btn.disabled=true;btn.textContent='⏳ جارٍ الحذف...'}
+      if(btn){btn.disabled=true;btn.textContent='⏳ جارٍ الحفظ...'}
       var d=await rpc('leader_delete_member_training_answers',{p_token:token(),p_member_id:memberId,p_lesson_no:lessonNo});
       var n=Number(d&&d.deleted_count||0);
-      alert('تم حذف '+n+' إجابة/محاولة للعضو '+name+' من '+title+' نهائيًا.');
+      var preserved=Number(d&&d.preserved_count||0); alert('✅ تم الحفاظ على '+preserved+' إجابة/محاولة للعضو '+name+' من '+title+'.\nلن يتم حذف السجل.');
       location.reload();
     }catch(e){
-      if(btn){btn.disabled=false;btn.textContent='🗑️ حذف إجابات هذا العضو للتدريب نهائيًا'}
+      if(btn){btn.disabled=false;btn.textContent='🔒 سجل التدريب محفوظ دائمًا'}
       alert('تعذر حذف إجابات التدريب لهذا العضو: '+e.message);
     }
   }
@@ -156,7 +156,7 @@
             btn.textContent='🗑️ حذف إجابات هذا العضو للتدريب نهائيًا';
             btn.setAttribute('data-member-id',String(row.member_id||''));
             btn.setAttribute('data-lesson-no',String(no));
-            btn.title='حذف جميع إجابات ومحاولات هذا التدريب لهذا العضو فقط';
+            btn.title='إخفاء النتائج من لوحة القائد مع بقاء السجل محفوظًا دائمًا';
             btn.addEventListener('click',(function(memberId,lessonNo,lessonTitle,memberName,b){return function(){deleteMemberTrainingAnswers(memberId,lessonNo,lessonTitle,memberName,b)}})(String(row.member_id||''),no,g.title,String(row.member_name||'العضو'),btn),false);
             host.appendChild(btn);
           }
