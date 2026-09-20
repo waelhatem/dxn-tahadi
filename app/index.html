@@ -2390,15 +2390,16 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 @media(max-width:560px){.team-sponsor-card{padding:16px}.team-sponsor-actions button{width:100%}}
 </style>
 <script>
-/* Team Genealogy Foundation V2
-   Direct sponsor: candidate -> verify -> explicit confirmation -> permanent lock.
-   This change is isolated to the team sponsor relationship UI. */
+
+/* Team Genealogy Foundation V3
+   Team is derived automatically from the authenticated member number.
+   The member never enters or confirms a sponsor number. */
 (function(){
-  if(window.__DXN_TEAM_SPONSOR_LINK_V2__) return;
-  window.__DXN_TEAM_SPONSOR_LINK_V2__=true;
+  if(window.__DXN_TEAM_MEMBER_NUMBER_V3__) return;
+  window.__DXN_TEAM_MEMBER_NUMBER_V3__=true;
 
   const RPC='/api/rpc';
-  const token=()=>String(localStorage.getItem('dxn_session')||'').trim();
+  const sessionToken=()=>String(localStorage.getItem('dxn_session')||'').trim();
 
   async function rpc(fn,args){
     const r=await fetch(RPC,{
@@ -2408,7 +2409,8 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       cache:'no-store'
     });
     const tx=await r.text();
-    let d=null; try{d=tx?JSON.parse(tx):null}catch(_){d=null}
+    let d=null;
+    try{d=tx?JSON.parse(tx):null}catch(_){d=null}
     if(!r.ok){
       const msg=(d&&(d.message||d.error||d.hint))||tx||('HTTP '+r.status);
       throw new Error(msg);
@@ -2416,196 +2418,169 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     return d;
   }
 
+  function memberNumber(){
+    const fromMe=me && (me.member_no||me.memberNo||me.membership_id);
+    const fromData=data && Array.isArray(data.members) ? data.members[0] : null;
+    return String(fromMe || (fromData&&(fromData.member_no||fromData.memberNo||fromData.membership_id)) || '').trim();
+  }
+
   function ensurePanel(){
-    let panel=document.getElementById('teamSponsorPanel');
+    let panel=document.getElementById('teamMemberPanel');
     if(panel) return panel;
 
     panel=document.createElement('div');
-    panel.id='teamSponsorPanel';
-    panel.className='team-sponsor-panel';
+    panel.id='teamMemberPanel';
+    panel.className='team-member-panel';
     panel.innerHTML=
-      '<div class="team-sponsor-card" role="dialog" aria-modal="true" aria-labelledby="teamSponsorTitle">'+
-        '<div class="team-sponsor-head">'+
-          '<h2 id="teamSponsorTitle">🌳 هيكل فريقي</h2>'+
-          '<button type="button" class="team-sponsor-close" id="teamSponsorClose">✕</button>'+
+      '<div class="team-member-card" role="dialog" aria-modal="true" aria-labelledby="teamMemberTitle">'+
+        '<div class="team-member-head">'+
+          '<div><h2 id="teamMemberTitle">🌳 فريقي</h2><div class="team-member-subtitle">يتم تحديد فريقك تلقائيًا من رقم عضويتك</div></div>'+
+          '<button type="button" class="team-member-close" id="teamMemberClose" aria-label="إغلاق">✕</button>'+
         '</div>'+
-        '<div class="team-sponsor-note">أدخل رقم عضوية الراعي المباشر. ستظهر لك بيانات العضو للتحقق منها أولًا. يمكنك تصحيح الرقم إذا كان الإدخال خاطئًا، ولا يُثبّت الراعي نهائيًا إلا بعد تأكيدك.</div>'+
-        '<label class="team-sponsor-label" for="teamSponsorInput">رقم عضوية الراعي المباشر</label>'+
-        '<input id="teamSponsorInput" class="team-sponsor-input" inputmode="numeric" autocomplete="off" placeholder="مثال: 123456">'+
-        '<div id="teamSponsorStatus" class="team-sponsor-status">جارٍ تحميل بيانات الراعي...</div>'+
-        '<div id="teamSponsorConfirmBox" class="team-sponsor-confirm-box hidden">'+
-          '<div class="team-sponsor-confirm-text">هل تؤكد أن هذا العضو هو <b>الراعي المباشر</b> لك؟</div>'+
-          '<div class="team-sponsor-actions">'+
-            '<button type="button" class="primary" id="teamSponsorConfirm">✅ تأكيد وتثبيت الراعي</button>'+
-            '<button type="button" id="teamSponsorCorrect">↩️ تصحيح الرقم</button>'+
-          '</div>'+
-        '</div>'+
-        '<div class="team-sponsor-actions" id="teamSponsorEntryActions">'+
-          '<button type="button" class="primary" id="teamSponsorCheck">🔎 التحقق من الرقم</button>'+
-          '<button type="button" id="teamSponsorClose2">إغلاق</button>'+
-        '</div>'+
-        '<div class="team-sponsor-actions hidden" id="teamSponsorLockedActions">'+
-          '<button type="button" id="teamSponsorClose3">إغلاق</button>'+
-        '</div>'+
+        '<div id="teamMemberStatus" class="team-member-status">جارٍ تحميل فريقك...</div>'+
+        '<div id="teamMemberSummary" class="team-member-summary"></div>'+
+        '<div id="teamMemberList" class="team-member-list"></div>'+
       '</div>';
     document.body.appendChild(panel);
 
     const close=()=>panel.classList.remove('show');
     panel.addEventListener('click',e=>{if(e.target===panel)close()});
-    panel.querySelector('#teamSponsorClose').onclick=close;
-    panel.querySelector('#teamSponsorClose2').onclick=close;
-    panel.querySelector('#teamSponsorClose3').onclick=close;
-
-    panel.querySelector('#teamSponsorCheck').onclick=async()=>{
-      const input=panel.querySelector('#teamSponsorInput');
-      const status=panel.querySelector('#teamSponsorStatus');
-      const check=panel.querySelector('#teamSponsorCheck');
-      const sponsorNo=String(input.value||'').trim();
-
-      if(!sponsorNo){
-        status.className='team-sponsor-status error';
-        status.textContent='أدخل رقم عضوية الراعي أولًا.';
-        return;
-      }
-      if(!token()){
-        status.className='team-sponsor-status error';
-        status.textContent='جلسة الدخول غير موجودة. أعد تسجيل الدخول.';
-        return;
-      }
-
-      check.disabled=true; check.textContent='⏳ جارٍ التحقق...';
-      try{
-        const d=await rpc('set_member_sponsor_link',{
-          p_token:token(),
-          p_sponsor_member_no:sponsorNo
-        });
-        const row={
-          sponsor_member_no:String((d&&d.sponsor_member_no)||sponsorNo),
-          status:String((d&&d.status)||'pending_confirmation')
-        };
-        await refreshPanel(panel,row);
-      }catch(err){
-        status.className='team-sponsor-status error';
-        status.textContent='تعذر التحقق: '+String(err&&err.message||err);
-      }finally{
-        check.disabled=false; check.textContent='🔎 التحقق من الرقم';
-      }
-    };
-
-    panel.querySelector('#teamSponsorConfirm').onclick=async()=>{
-      const status=panel.querySelector('#teamSponsorStatus');
-      const btn=panel.querySelector('#teamSponsorConfirm');
-      if(!token()) return;
-      btn.disabled=true; btn.textContent='⏳ جارٍ التثبيت...';
-      try{
-        await rpc('confirm_member_sponsor_link',{p_token:token()});
-        await loadLink(panel);
-      }catch(err){
-        status.className='team-sponsor-status error';
-        status.textContent='تعذر تثبيت الراعي: '+String(err&&err.message||err);
-      }finally{
-        btn.disabled=false; btn.textContent='✅ تأكيد وتثبيت الراعي';
-      }
-    };
-
-    panel.querySelector('#teamSponsorCorrect').onclick=()=>{
-      const input=panel.querySelector('#teamSponsorInput');
-      const box=panel.querySelector('#teamSponsorConfirmBox');
-      const actions=panel.querySelector('#teamSponsorEntryActions');
-      input.readOnly=false;
-      input.focus();
-      box.classList.add('hidden');
-      actions.classList.remove('hidden');
-      panel.querySelector('#teamSponsorStatus').className='team-sponsor-status';
-      panel.querySelector('#teamSponsorStatus').textContent='يمكنك تصحيح رقم العضوية ثم إعادة التحقق.';
-    };
-
+    panel.querySelector('#teamMemberClose').onclick=close;
     return panel;
   }
 
-  async function refreshPanel(panel,row){
-    const status=panel.querySelector('#teamSponsorStatus');
-    const input=panel.querySelector('#teamSponsorInput');
-    const box=panel.querySelector('#teamSponsorConfirmBox');
-    const entry=panel.querySelector('#teamSponsorEntryActions');
-    const locked=panel.querySelector('#teamSponsorLockedActions');
-
-    if(!row||!row.sponsor_member_no){
-      box.classList.add('hidden');
-      locked.classList.add('hidden');
-      entry.classList.remove('hidden');
-      input.readOnly=false;
-      status.className='team-sponsor-status';
-      status.textContent='لم يتم تسجيل الراعي المباشر لهذا العضو بعد.';
-      return;
-    }
-
-    input.value=String(row.sponsor_member_no);
-
-    if(String(row.status)==='confirmed'){
-      input.readOnly=true;
-      box.classList.add('hidden');
-      entry.classList.add('hidden');
-      locked.classList.remove('hidden');
-      status.className='team-sponsor-status ok';
-      status.textContent='الراعي المباشر مثبت نهائيًا: '+String(row.sponsor_name||row.sponsor_member_no)+' ✓';
-      return;
-    }
-
-    input.readOnly=false;
-    box.classList.remove('hidden');
-    entry.classList.add('hidden');
-    locked.classList.add('hidden');
-    status.className='team-sponsor-status ok';
-    status.innerHTML='تم العثور على العضو: <b>'+escapeHtml(String(row.sponsor_name||row.sponsor_member_no))+'</b><br>رقم العضوية: '+escapeHtml(String(row.sponsor_member_no))+'<br><span class="muted">راجع البيانات قبل التثبيت.</span>';
-  }
-
   function escapeHtml(v){
-    return v.replace(/[&<>"']/g,function(c){
+    return String(v??'').replace(/[&<>"']/g,function(c){
       return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
     });
   }
 
-  async function loadLink(panel){
-    const status=panel.querySelector('#teamSponsorStatus');
-    if(!token()){
-      status.className='team-sponsor-status error';
+  function renderSummary(summary,rootNo){
+    const s=summary||{};
+    const total=Number(s.total_members||0);
+    const direct=Number(s.direct_downline_count||0);
+    const pv=Number(s.personal_pv_total||0);
+    return '<div class="team-member-root">'+
+      '<div><span>🪪 رقم عضويتك</span><b>'+escapeHtml(rootNo)+'</b></div>'+
+      '<div><span>👥 إجمالي الفريق</span><b>'+total+'</b></div>'+
+      '<div><span>🌱 الفريق المباشر</span><b>'+direct+'</b></div>'+
+      '<div><span>⭐ مجموع PV</span><b>'+pv+'</b></div>'+
+    '</div>';
+  }
+
+  function renderMembers(payload){
+    const list=Array.isArray(payload&&payload.members)?payload.members:[];
+    if(!list.length){
+      return '<div class="team-member-empty">🌱 لا يوجد أعضاء تابعون لك حاليًا.</div>';
+    }
+
+    return list.map((m,index)=>{
+      const depth=Number(m.depth_from_target||1);
+      const indent=Math.min(depth-1,8)*18;
+      const name=String(m.member_name||'عضو');
+      const no=String(m.member_no||'');
+      const sponsor=String(m.sponsor_name||m.sponsor_member_no||'');
+      const rank=String(m.rank||'غير محدد');
+      const status=String(m.dxn_status||m.downline_status||'');
+      const pv=m.personal_pv==null?'—':String(m.personal_pv);
+      return '<div class="team-member-row" style="margin-right:'+indent+'px">'+
+        '<div class="team-member-index">'+(index+1)+'</div>'+
+        '<div class="team-member-main">'+
+          '<div class="team-member-name"><b>'+escapeHtml(name)+'</b><span>🪪 '+escapeHtml(no)+'</span></div>'+
+          '<div class="team-member-meta">'+
+            '<span>المستوى '+depth+'</span>'+
+            '<span>الجيل '+escapeHtml(m.generation==null?'—':m.generation)+'</span>'+
+            '<span>⭐ '+escapeHtml(rank)+'</span>'+
+            '<span>PV: '+escapeHtml(pv)+'</span>'+
+            (status?'<span>'+escapeHtml(status)+'</span>':'')+
+          '</div>'+
+          (sponsor?'<div class="team-member-sponsor">الراعي في السجل: '+escapeHtml(sponsor)+'</div>':'')+
+        '</div>'+
+      '</div>';
+    }).join('');
+  }
+
+  async function loadTeam(panel){
+    const status=panel.querySelector('#teamMemberStatus');
+    const summaryBox=panel.querySelector('#teamMemberSummary');
+    const listBox=panel.querySelector('#teamMemberList');
+    const t=sessionToken();
+    const rootNo=memberNumber();
+
+    if(!t){
+      status.className='team-member-status error';
       status.textContent='جلسة الدخول غير موجودة. أعد تسجيل الدخول.';
       return;
     }
+    if(!rootNo){
+      status.className='team-member-status error';
+      status.textContent='تعذر تحديد رقم عضويتك من جلسة الحساب.';
+      return;
+    }
+
+    status.className='team-member-status';
+    status.textContent='جارٍ تحميل فريق العضو '+rootNo+'...';
+
     try{
-      const rows=await rpc('get_member_sponsor_link',{p_token:token()});
-      const row=Array.isArray(rows)?rows[0]:null;
-      await refreshPanel(panel,row);
+      const [summary,downline]=await Promise.all([
+        rpc('get_dxn_team_intelligence',{p_token:t,p_mode:'summary',p_limit:200}),
+        rpc('get_dxn_team_intelligence',{p_token:t,p_mode:'downline',p_limit:200})
+      ]);
+
+      summaryBox.innerHTML=renderSummary(summary,rootNo);
+      listBox.innerHTML=renderMembers(downline);
+      status.className='team-member-status ok';
+      status.textContent='تم تحميل فريقك تلقائيًا من رقم عضويتك.';
     }catch(err){
-      status.className='team-sponsor-status error';
-      status.textContent='تعذر قراءة بيانات الراعي: '+String(err&&err.message||err);
+      summaryBox.innerHTML='';
+      listBox.innerHTML='';
+      status.className='team-member-status error';
+      status.textContent='تعذر تحميل فريقك: '+String(err&&err.message||err);
     }
   }
 
   function open(){
     const panel=ensurePanel();
     panel.classList.add('show');
-    loadLink(panel);
+    loadTeam(panel);
   }
 
   function addTab(){
     const tabs=document.querySelector('.tabs');
-    if(!tabs || tabs.querySelector('.team-sponsor-tab')) return;
+    if(!tabs || tabs.querySelector('.team-member-tab')) return;
     const b=document.createElement('button');
     b.type='button';
-    b.className='tab team-sponsor-tab';
+    b.className='tab team-member-tab';
     b.textContent='🌳 فريقي';
     b.onclick=open;
     tabs.appendChild(b);
   }
 
+  function injectStyles(){
+    if(document.getElementById('teamMemberStyles')) return;
+    const style=document.createElement('style');
+    style.id='teamMemberStyles';
+    style.textContent=
+      '.team-member-panel{position:fixed;inset:0;z-index:99999;background:rgba(3,28,22,.58);display:none;align-items:center;justify-content:center;padding:18px;direction:rtl}'+
+      '.team-member-panel.show{display:flex}'+
+      '.team-member-card{width:min(920px,96vw);max-height:88vh;overflow:auto;background:#fff;border-radius:24px;box-shadow:0 24px 80px rgba(0,0,0,.25);padding:22px;color:#123b30}'+
+      '.team-member-head{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #e6eee9;padding-bottom:14px}'+
+      '.team-member-head h2{margin:0;font-size:26px}.team-member-subtitle{margin-top:5px;color:#71817a;font-size:13px}'+
+      '.team-member-close{border:0;background:#eef4f1;border-radius:12px;width:42px;height:42px;font-size:20px;cursor:pointer}'+
+      '.team-member-status{margin:14px 0;padding:12px 14px;border-radius:14px;background:#f5f8f7;color:#31544a}.team-member-status.ok{background:#edf8f1;color:#17663f}.team-member-status.error{background:#fff1ef;color:#a32318}'+
+      '.team-member-root{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0 16px}.team-member-root>div{background:#f6faf8;border:1px solid #dfece6;border-radius:16px;padding:13px}.team-member-root span{display:block;color:#71817a;font-size:12px;margin-bottom:5px}.team-member-root b{font-size:18px}'+
+      '.team-member-list{display:grid;gap:9px}.team-member-row{display:flex;gap:10px;align-items:flex-start;border:1px solid #e4ece8;border-radius:16px;padding:12px;background:#fff}.team-member-index{width:30px;height:30px;border-radius:50%;background:#0b6b57;color:#fff;display:grid;place-items:center;font-weight:900;flex:none}.team-member-main{flex:1;min-width:0}.team-member-name{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.team-member-name span{color:#5f716a;font-size:13px}.team-member-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;color:#64766f;font-size:12px}.team-member-meta span{background:#f5f8f7;border-radius:999px;padding:4px 8px}.team-member-sponsor{margin-top:6px;color:#87958f;font-size:11px}.team-member-empty{text-align:center;padding:35px 15px;color:#6b7d76;background:#f7faf8;border-radius:16px}'+
+      '@media(max-width:650px){.team-member-card{padding:16px;border-radius:20px}.team-member-root{grid-template-columns:repeat(2,1fr)}.team-member-row{margin-right:0!important}.team-member-head h2{font-size:22px}}';
+    document.head.appendChild(style);
+  }
+
   function observe(){
+    injectStyles();
     addTab();
     const root=document.getElementById('app')||document.body;
-    if(!root.__teamSponsorObserver){
-      root.__teamSponsorObserver=new MutationObserver(()=>setTimeout(addTab,0));
-      root.__teamSponsorObserver.observe(root,{childList:true,subtree:true});
+    if(!root.__teamMemberObserver){
+      root.__teamMemberObserver=new MutationObserver(()=>setTimeout(()=>{injectStyles();addTab()},0));
+      root.__teamMemberObserver.observe(root,{childList:true,subtree:true});
     }
   }
 
