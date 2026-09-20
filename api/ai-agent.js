@@ -1775,7 +1775,7 @@ module.exports=async function handler(req,res){
       await saveAgentSession(token,currentSession).catch(()=>null);
     }
     requestStage='load_memory_profile';
-    const [persistentMemory,coachingProfile,causalMemory]=await Promise.all([
+    const [persistentMemory,coachingProfile,causalMemory,learningPatterns]=await Promise.all([
       loadAgentMemory(token),
       loadAgentProfile(token),
       loadCausalMemory(token),
