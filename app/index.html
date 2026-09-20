@@ -1796,13 +1796,14 @@ function dxnSyncBuildRows(){
   const headerless=idx.member_no<0 && firstRowMemberIdx>=0;
   let startRow=headerless?0:1;
 
-  // تقارير DXN قد تحتوي على سطر/سطرين تمهيديين بالعربية قبل أول عضو.
-  // عند غياب صف عناوين واضح، نتجاوز كل السطور السابقة لأول رقم عضوية صحيح
-  // حتى لا تُحتسب عناوين التقرير كصفوف خاطئة.
-  if(headerless){
-    startRow=grid.findIndex(row=>(row||[]).some(cell=>/^\\d{9}$/.test(dxnSyncDigits(cell).replace(/\\s/g,''))));
-    if(startRow<0) startRow=0;
-  }
+  // تقرير DXN قد يحتوي على أكثر من صف عناوين/عناوين مجمعة.
+  // نبدأ دائمًا من أول صف يحتوي فعليًا على رقم عضوية من 9 أرقام،
+  // حتى لا تُحتسب أسطر العناوين العربية كصفوف غير صالحة.
+  const firstDataRow=grid.findIndex(row=>(row||[]).some(cell=>{
+    const v=dxnSyncDigits(cell).replace(/\s/g,'');
+    return /^\d{9}$/.test(v);
+  }));
+  if(firstDataRow>=0) startRow=firstDataRow;
 
   if(idx.member_no<0 && !headerless){
     return {rows:[],invalid:[{row:1,message:'لم يتم العثور على رقم العضوية. يمكن لصق تقرير DXN بالعناوين أو بدون عناوين.'}],duplicates:0};
