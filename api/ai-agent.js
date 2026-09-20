@@ -561,6 +561,110 @@ async function extractConversationState(message,answer,currentState){
   }catch(_){return null;}
 }
 
+
+function causalMemoryLikely(message,cognitiveState){
+  const s=String(message||'').toLowerCase();
+  const intent=String(cognitiveState?.intent||'').toLowerCase();
+  const signal=String(cognitiveState?.signal||'').toLowerCase();
+
+  if(/جربت|حاولت|سويت|سويتها|طبقت|طبقتها|نفذت|نفذتها|سويت تجربة|جربنا|حاولنا|اشتغلت|ما اشتغلت|نجحت|نجح|فشلت|فشل|ما ضبط|ما نفع|نفع|استجاب|ما استجاب|رد علي|ما رد|رفض|وافق|اعترض|النتيجة|طلع|صار|صارلي|بسبب|لأن|لان|علشان|حتى بعد|المشكلة/.test(s)) return true;
+  return ['report_attempt','report_obstacle'].includes(intent)
+    || ['positive','frustrated','hesitant'].includes(signal);
+}
+
+async function loadCausalMemory(token){
+  try{
+    const r=await supabaseRpc('get_ai_agent_causal_memory',{p_token:token,p_limit:12});
+    if(!r.ok||!Array.isArray(r.data)) return [];
+    return r.data.map(x=>({
+      id:x.id||null,
+      topic:x.topic||null,
+      attempt:x.attempt||null,
+      result:x.result||null,
+      observation:x.observation||null,
+      hypothesis:x.hypothesis||null,
+      adjustment:x.adjustment||null,
+      status:x.status||'open',
+      created_at:x.created_at||null,
+      updated_at:x.updated_at||null
+    }));
+  }catch(_){return [];}
+}
+
+async function saveCausalMemory(token,event){
+  if(!event) return null;
+  try{
+    const r=await supabaseRpc('save_ai_agent_causal_memory',{
+      p_token:token,
+      p_topic:event.topic||null,
+      p_attempt:event.attempt||null,
+      p_result:event.result||null,
+      p_observation:event.observation||null,
+      p_hypothesis:event.hypothesis||null,
+      p_adjustment:event.adjustment||null,
+      p_status:event.status||'open'
+    });
+    return r.ok ? r.data : null;
+  }catch(_){return null;}
+}
+
+async function extractCausalMemoryEvent(message,answer,currentCausalMemory){
+  const prompt=[
+    'استخرج خبرة سبب/نتيجة واحدة فقط من رسالة العضو الحالية إذا كانت تحتوي على محاولة أو نتيجة أو عائق قابل للتعلم.',
+    'إذا لم توجد محاولة أو نتيجة أو عائق واضح، أعد {"save":false}.',
+    'هذه الذاكرة ليست تلخيصًا عامًا. الهدف هو ربط: المحاولة -> النتيجة -> الملاحظة -> السبب المحتمل -> التعديل القادم.',
+    'اعتمد على كلام العضو كمصدر الحقيقة. لا تعتبر كلام محمد حقيقة عن العضو.',
+    'attempt: ما الذي قال العضو إنه فعله أو حاول فعله فعلًا.',
+    'result: ما النتيجة التي قال العضو إنها حدثت فعلًا.',
+    'observation: ملاحظة مباشرة يمكن دعمها من كلام العضو، بدون تفسير زائد.',
+    'hypothesis: سبب محتمل فقط إذا ذكره العضو صراحة أو كان مستندًا مباشرة إلى وصفه. إذا كان مجرد تخمين من المحلل استخدم null.',
+    'adjustment: خطوة أو تغيير مقترح للمحاولة القادمة. إذا ورد فقط في رد محمد، صنّفه كاقتراح وليس كحقيقة.',
+    'topic: موضوع الخبرة باختصار.',
+    'status: open إذا ما زال التفسير/التجربة القادمة مفتوحًا، learned إذا صرّح العضو بدرس أو سبب/تعديل تعلمه، superseded فقط إذا قال إن التجربة السابقة لم تعد صالحة أو استُبدلت.',
+    'لا تحفظ معلومات صحية أو سياسية أو أسرارًا أو أرقامًا حساسة.',
+    'لا تستنتج صفات ثابتة من تجربة واحدة.',
+    'أعد JSON فقط بالمفاتيح: save, topic, attempt, result, observation, hypothesis, adjustment, status.',
+    'إذا كان save=false فلا حاجة لملء باقي الحقول.',
+    'الخبرات السابقة القريبة:',
+    JSON.stringify(Array.isArray(currentCausalMemory)?currentCausalMemory.slice(0,8):[]),
+    'رسالة العضو:',
+    String(message||'').slice(0,5000),
+    'رد محمد:',
+    String(answer||'').slice(0,5000)
+  ].join('\\n');
+
+  try{
+    const r=await openai({
+      model:OPENAI_MODEL,
+      instructions:'أنت محلل تعلم من التجارب. أعد JSON فقط، ولا تخترع سببًا غير مذكور.',
+      input:[{role:'user',content:prompt}],
+      max_output_tokens:420
+    });
+    if(!r.ok) return null;
+    const text=outputText(r.data);
+    const start=text.indexOf('{'),end=text.lastIndexOf('}');
+    if(start<0||end<=start) return null;
+    const p=JSON.parse(text.slice(start,end+1));
+    if(p.save!==true) return null;
+
+    const statuses=['open','learned','superseded'];
+    const clean=v=>v?String(v).trim().slice(0,1000):null;
+
+    const event={
+      topic:clean(p.topic)?.slice(0,500)||null,
+      attempt:clean(p.attempt),
+      result:clean(p.result),
+      observation:clean(p.observation),
+      hypothesis:clean(p.hypothesis),
+      adjustment:clean(p.adjustment),
+      status:statuses.includes(p.status)?p.status:'open'
+    };
+
+    if(!event.attempt && !event.result && !event.adjustment) return null;
+    return event;
+  }catch(_){return null;}
+}
+
 async function loadAgentMemory(token){
   try{
     const r=await supabaseRpc('get_ai_agent_memory',{p_token:token,p_limit:24});
@@ -1156,6 +1260,11 @@ function instructions(context){
     'استخدم long_term_personal_model لتخصيص التدريب عبر الزمن، لكن لا تعرض النموذج الداخلي للمستخدم.',
     'اعتمد في النموذج طويل المدى على الحقائق الصريحة المحفوظة فقط. الأنماط المستنتجة مؤقتة ولا تعاملها كحقائق.',
     'استخدم outcome الحالي لتكييف الجلسة الحالية، ولا تحفظ نتيجة عابرة كصفة ثابتة للعضو.',
+
+    'لديك أيضًا causal_memory وهي ذاكرة خبرات سبب/نتيجة: المحاولة والنتيجة والملاحظة والسبب المحتمل والتعديل القادم. استخدمها عندما تكون مرتبطة بالموضوع الحالي، حتى لا تعيد نفس الأسلوب بعد تجربة فاشلة.',
+    'في causal_memory ميّز دائمًا بين observation/نتيجة صرّح بها العضو وبين hypothesis/سبب محتمل. لا تقدم hypothesis على أنها حقيقة.',
+    'إذا وجدت تجربة سابقة بنتيجة سلبية، لا تكرر نفس الأسلوب بلا تغيير واضح. وإذا وجدت تجربة ناجحة، حافظ على العنصر الذي دعمه العضو وجرّب تطويره تدريجيًا.',
+    'لا تستنتج من causal_memory أن العضو ضعيف أو قوي بشكل ثابت. هي سجل لتجارب محددة فقط.',
     'إذا كانت النتيجة positive زد التحدي تدريجيًا. إذا كانت negative غيّر الأسلوب أو التمرين. إذا كانت blocked شخّص السبب أولًا.',
     'لا تعتبر نجاحًا أو فشلًا إلا إذا كان مدعومًا بإشارة واضحة من العضو.',
     'التعلم المستمر يكون من النتائج المعلنة والمتكررة، وليس من التخمين.',
@@ -1549,9 +1658,10 @@ module.exports=async function handler(req,res){
       await saveAgentSession(token,currentSession).catch(()=>null);
     }
     requestStage='load_memory_profile';
-    const [persistentMemory,coachingProfile]=await Promise.all([
+    const [persistentMemory,coachingProfile,causalMemory]=await Promise.all([
       loadAgentMemory(token),
-      loadAgentProfile(token)
+      loadAgentProfile(token),
+      loadCausalMemory(token)
     ]);
     const fallbackHistory=cleanHistory(body.history);
     const history=(persistentMemory.length?persistentMemory:fallbackHistory).slice(-24);
@@ -1593,6 +1703,7 @@ module.exports=async function handler(req,res){
       conversation_state:conversationState,
       interaction_signal:conversationState?.interaction_signal||null,
       interaction_confidence:conversationState?.interaction_confidence==null?null:conversationState.interaction_confidence,
+      causal_memory:causalMemory,
       cognitive_state:cognitiveState,
       memory_state:memoryState,
       decision_state:decisionState,
@@ -1714,6 +1825,13 @@ module.exports=async function handler(req,res){
     );
     if(updatedConversationState){
       await saveConversationState(token,updatedConversationState);
+    }
+
+    // Causal memory is a separate learning layer: save only a concrete
+    // attempt/result/obstacle relationship, never a guessed personality trait.
+    if(causalMemoryLikely(message,cognitiveState)){
+      const causalEvent=await extractCausalMemoryEvent(message,answer,causalMemory);
+      if(causalEvent) await saveCausalMemory(token,causalEvent);
     }
 
     return res.status(200).json({
