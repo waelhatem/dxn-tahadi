@@ -9,9 +9,10 @@
 @media(max-width:560px){.progress-grid{grid-template-columns:1fr}}@media(max-width:560px){.badges-grid{grid-template-columns:1fr}}
 
 /* اختيار واجهة العرض */
-.view-switch{display:flex;gap:8px;justify-content:center;margin:12px 0;position:sticky;top:8px;z-index:25}
-.view-switch button{min-width:130px;border:1px solid var(--line);background:#fff}
-.view-switch button.active{background:var(--green);color:#fff}
+.view-switch{display:flex;direction:ltr;gap:0;justify-content:center;align-items:center;width:max-content;margin:12px auto;position:sticky;top:8px;z-index:25;padding:4px;background:#fff;border:1px solid rgba(15,81,63,.18);border-radius:999px;box-shadow:0 5px 16px rgba(15,81,63,.12)}
+.view-switch button{min-width:130px;height:38px;padding:9px 18px;border:0;border-radius:999px;background:transparent;color:#17372d;font-weight:900;line-height:1;white-space:nowrap;transition:.2s}
+.view-switch button.active{background:var(--green);color:#fff;box-shadow:0 4px 10px rgba(15,81,63,.16)}
+.view-switch button:hover:not(.active){background:#f5f8f6}
 body.desktop-mode .app{max-width:1400px;padding:18px 28px 30px}
 body.desktop-mode .top{border-radius:0 0 28px 28px;padding:20px 28px 28px;display:flex;align-items:center;gap:22px;text-align:right}
 body.desktop-mode .top .logo{width:92px;height:92px}
@@ -451,7 +452,7 @@ function renderViewSwitch(){
     el.remove();
     return;
   }
-  el.innerHTML=`<button class="${mode==='mobile'?'active':''}" onclick="setViewMode('mobile')">📱 واجهة الموبايل</button><button class="${mode==='desktop'?'active':''}" onclick="setViewMode('desktop')">🖥️ واجهة الحاسوب</button>`;
+  el.innerHTML=`<button class="${mode==='desktop'?'active':''}" onclick="setViewMode('desktop')">الحاسوب 🖥️</button><button class="${mode==='mobile'?'active':''}" onclick="setViewMode('mobile')">الموبايل 📱</button>`;
 }
 function setViewMode(mode){
   localStorage.setItem('dxn_view_mode',mode);
