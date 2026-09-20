@@ -99,7 +99,44 @@
     style.id = 'dxn-quiz-circular-nav-style';
     style.textContent = `
       body.dxn-quiz-page #global-page-navigation{display:none!important}
-      body.dxn-quiz-page .btns{display:none!important}
+      body.dxn-quiz-page .btns{
+        position:fixed!important;
+        left:50%!important;
+        bottom:18px!important;
+        transform:translateX(-50%)!important;
+        z-index:10001!important;
+        display:flex!important;
+        align-items:center!important;
+        justify-content:center!important;
+        width:auto!important;
+        height:auto!important;
+        margin:0!important;
+        padding:0!important;
+        background:transparent!important;
+        border:0!important;
+        box-shadow:none!important;
+      }
+      body.dxn-quiz-page .btns #back{display:none!important}
+      body.dxn-quiz-page .btns #next{
+        display:grid!important;
+        position:relative!important;
+        width:44px!important;
+        height:44px!important;
+        min-width:44px!important;
+        min-height:44px!important;
+        max-width:44px!important;
+        max-height:44px!important;
+        padding:0!important;
+        margin:0!important;
+        border:1px solid rgba(255,255,255,.55)!important;
+        border-radius:50%!important;
+        background:transparent!important;
+        color:transparent!important;
+        font-size:0!important;
+        line-height:0!important;
+        place-items:center!important;
+        overflow:hidden!important;
+      }
       body.dxn-quiz-page .btns{
         position:fixed!important;
         left:20px!important;
