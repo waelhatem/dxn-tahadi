@@ -138,9 +138,9 @@ async function ragwanPlanFiles(args){
   const role=String(boot&&boot.role||'');
   if(!['leader','member'].includes(role))throw new Error('غير مصرح.');
   const bucket='ragwan-plan';
-  await ensureRagwanBucket();
   if(action==='sign_upload'){
     if(role!=='leader')throw new Error('رفع الملفات متاح للقائد فقط.');
+    await ensureRagwanBucket();
     const name=String(args.name||'').trim();
     const type=String(args.content_type||'application/octet-stream').trim().slice(0,150);
     const size=Number(args.size||0);
