@@ -333,7 +333,7 @@ function validateDXNAge18(birthDate){
     : {ok:false, age, message:'⚠️ عذرًا، يشترط أن يكون عمر المتقدم 18 سنة أو أكثر للتسجيل.'};
 }
 
-const C=window.DXN_CONFIG||{};const SESSION_MAX_MS=12*60*60*1000;let sb=null,token=localStorage.getItem('dxn_session')||'',me=null,role=null,data=null,tab='home',trainingSubtab='home',membershipRequests=[],prospectRequests=[],monthlyPointRequests=[],trainingData={lessons:[],my_progress:[],member_progress:[]},trainingWatch={player:null,timer:null,guardTimer:null,lessonId:null,videoId:null,invalid:false,maxWatchedSeconds:0,lastSampleSeconds:0,suppressSeek:false},siteVisitStats={};
+const C=window.DXN_CONFIG||{};const SESSION_MAX_MS=12*60*60*1000;let sb=null,token=localStorage.getItem('dxn_session')||'',me=null,role=null,data=null,tab='home',trainingSubtab='lessons',membershipRequests=[],prospectRequests=[],monthlyPointRequests=[],trainingData={lessons:[],my_progress:[],member_progress:[]},trainingWatch={player:null,timer:null,guardTimer:null,lessonId:null,videoId:null,invalid:false,maxWatchedSeconds:0,lastSampleSeconds:0,suppressSeek:false},siteVisitStats={};
 const $=id=>document.getElementById(id); const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(s){$('toast').textContent=s;$('toast').classList.remove('hidden');setTimeout(()=>$('toast').classList.add('hidden'),2600)}
 
@@ -661,7 +661,7 @@ function scrollToTabContent(tabName){
   const top=Math.max(0,window.scrollY+target.getBoundingClientRect().top-navOffset);
   window.scrollTo({top,behavior:'smooth'});
 }
-function switchTab(next){if(next==='training'&&!canAccessTraining())return;if(next==='training')trainingSubtab='home';tab=next;try{render();dxnNavPush(`tab:${next}`);recordSiteVisit(role||'visitor',next);requestAnimationFrame(()=>requestAnimationFrame(()=>scrollToTabContent(next)))}catch(e){console.error(e);toast('تعذر فتح القسم: '+(e.message||e))}}
+function switchTab(next){if(next==='training'&&!canAccessTraining())return;tab=next;try{render();dxnNavPush(`tab:${next}`);recordSiteVisit(role||'visitor',next);requestAnimationFrame(()=>requestAnimationFrame(()=>scrollToTabContent(next)))}catch(e){console.error(e);toast('تعذر فتح القسم: '+(e.message||e))}}
 function openMemberProgress(){if(role!=='member'||!me){toast('هذه الصفحة متاحة للأعضاء فقط.');return;}tab='progress';try{render();setTimeout(()=>scrollToTabContent('progress'),30)}catch(e){console.error(e);toast('تعذر فتح صفحة تقدّمي: '+(e.message||e))}}
 
 function memberNextStep(){
@@ -2020,10 +2020,6 @@ function trainings(){
       <span class="training-feature-arrow">›</span>
     </button>
   </div>`;
-
-  if(trainingSubtab==='home'){
-    return subTabs+`<div class="card" style="text-align:center;padding:28px 18px"><div class="title">📚 اختر مسارك</div><p class="muted">اختر القسم الذي تريد الدخول إليه.</p></div>`;
-  }
 
   if(trainingSubtab==='ragwan_success_plan'){
     return subTabs+`<div class="card">
