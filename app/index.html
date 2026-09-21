@@ -1021,6 +1021,7 @@ function ragwanSuccessIntro(){
     if(intro&&video){
       intro.style.display='none';
       video.style.display='block';
+      if(typeof initRagwanFiles==='function') initRagwanFiles();
     }
   },10000);
   return `<style>
