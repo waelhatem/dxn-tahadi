@@ -124,9 +124,10 @@ async function ensureRagwanBucket(){
   const r=await supabaseStorageRequest('/storage/v1/bucket','POST',SUPABASE_SECRET_KEY,{
     id:'ragwan-plan',name:'ragwan-plan',public:false,file_size_limit:52428800
   },15000);
-  if(!r.ok && r.status!==409){
-    throw new Error((r.data&&(r.data.message||r.data.error||r.data.statusCode))||r.text||'تعذر تجهيز مساحة الملفات');
-  }
+  if(r.ok)return;
+  const message=String((r.data&&(r.data.message||r.data.error||r.data.statusCode))||r.text||'').toLowerCase();
+  if(r.status===409 || message.includes('already exists') || message.includes('resource already exists') || message.includes('already_exist'))return;
+  throw new Error((r.data&&(r.data.message||r.data.error||r.data.statusCode))||r.text||'تعذر تجهيز مساحة الملفات');
 }
 async function ragwanPlanFiles(args){
   const token=String(args.p_token||'').trim();
