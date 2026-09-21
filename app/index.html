@@ -124,7 +124,7 @@ button[disabled]:focus-visible{outline-color:#667085!important}
 .ragwan-step-main{min-width:0}.ragwan-training-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:15px}.ragwan-training-card{padding:14px;border:1px solid #e0e9e5;border-radius:16px;background:#fff}.ragwan-training-card>span{font-size:24px;display:block}.ragwan-training-card>b{display:block;margin-top:5px;color:#123b30;font-size:15px}.ragwan-training-card p{margin:6px 0 0;color:#61726b;line-height:1.75;font-size:13px}
 .ragwan-task-box{margin-top:12px;padding:13px 15px;border:2px solid #cfe4da;border-radius:16px;background:#f5fbf8}.ragwan-task-box span{display:block;color:#0f513f;font-size:12px;font-weight:900}.ragwan-task-box b{display:block;margin-top:4px;line-height:1.7}
 .ragwan-step-state-pill{display:inline-flex;align-items:center;justify-content:center;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:950;margin:9px 0}.ragwan-step-state-pill.completed{background:#eaf7ef;color:#16704e}.ragwan-step-state-pill.started{background:#e8f1ff;color:#245b92}.ragwan-step-state-pill.available{background:#fff5dc;color:#805b00}.ragwan-step-state-pill.locked{background:#edf0ef;color:#65716c}
-.ragwan-step-complete{width:100%;margin-top:8px;background:#176b55;color:#fff}.ragwan-step-next{width:100%;margin-top:8px;background:#eef6f2;color:#0f513f}.ragwan-step-action{width:100%}.ragwan-step-side button:disabled{opacity:.45;cursor:not-allowed}
+.ragwan-dxn-sponsor-box{margin-top:14px;padding:16px;border:1px solid #cfe4da;border-radius:18px;background:linear-gradient(135deg,#f5fcf8,#ffffff);box-shadow:0 8px 22px rgba(15,81,63,.08)}.ragwan-dxn-sponsor-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}.ragwan-dxn-sponsor-head .icon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:#eaf7ef;font-size:22px}.ragwan-dxn-sponsor-head b{color:#123b30}.ragwan-dxn-sponsor-note{margin:0 0 12px;color:#61726b;font-size:13px;line-height:1.8}.ragwan-dxn-sponsor-btn{width:100%;min-height:54px;border-radius:14px!important;background:linear-gradient(135deg,#0ca678,#087f5b)!important;color:#fff!important;font-size:16px!important;font-weight:950!important;box-shadow:0 0 0 1px rgba(12,166,120,.28),0 0 18px rgba(12,166,120,.55),0 8px 24px rgba(8,127,91,.28)!important;transition:transform .18s ease,box-shadow .18s ease}.ragwan-dxn-sponsor-btn:hover{transform:translateY(-1px);box-shadow:0 0 0 1px rgba(12,166,120,.35),0 0 25px rgba(12,166,120,.72),0 10px 28px rgba(8,127,91,.34)!important}.ragwan-dxn-sponsor-status{margin-top:9px;text-align:center;font-size:12px;font-weight:900;color:#176b55;min-height:18px}.ragwan-step-complete{width:100%;margin-top:8px;background:#176b55;color:#fff}.ragwan-step-next{width:100%;margin-top:8px;background:#eef6f2;color:#0f513f}.ragwan-step-action{width:100%}.ragwan-step-side button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:700px){.ragwan-progress-stats{grid-template-columns:repeat(2,1fr)}.ragwan-training-grid{grid-template-columns:1fr}.ragwan-progress-top{align-items:flex-start}}
 </style><style id="ragwanVoiceEvidenceStyles">
 .ragwan-evidence-box{margin-top:13px;padding:14px;border:1px solid #d9e8e1;border-radius:18px;background:#f8fcfa}
@@ -1587,16 +1587,54 @@ function ragwanYoutubeId(url){
   const m=String(url||'').match(/[?&]v=([^&]+)/)||String(url||'').match(/youtu\.be\/([^?&/]+)/);
   return m?m[1]:'';
 }
+function ragwanBuildDxnSponsorAction(){
+  if(ragwanCurrentStep!==2) return '';
+  return '<section class="ragwan-dxn-sponsor-box">'+
+    '<div class="ragwan-dxn-sponsor-head"><span class="icon">🔗</span><div><b>التسجيل الذاتي</b><div class="muted">أرسل رابط الرعاية الخاص بك للشخص المهتم ليُكمل التسجيل بنفسه.</div></div></div>'+
+    '<p class="ragwan-dxn-sponsor-note">رابط DXN ثابت، ورقم عضويتك يُضاف تلقائيًا في نهايته. لا تحتاج إلى إدخال الرقم يدويًا.</p>'+
+    '<button type="button" class="ragwan-dxn-sponsor-btn" onclick="ragwanCopyDxnSponsorLink()">🔗 نسخ رابط الرعاية الخاص بي</button>'+
+    '<div id="ragwanDxnSponsorStatus" class="ragwan-dxn-sponsor-status" aria-live="polite"></div>'+
+  '</section>';
+}
+async function ragwanCopyDxnSponsorLink(){
+  const memberNo=String(me&&me.member_no||'').trim();
+  if(!/^\d{9}$/.test(memberNo)){
+    toast('⚠️ تعذر إنشاء رابط الرعاية: رقم عضويتك غير متاح.');
+    const status=document.getElementById('ragwanDxnSponsorStatus');
+    if(status) status.textContent='⚠️ رقم العضوية غير متاح في الحساب الحالي.';
+    return;
+  }
+  const url='https://oldeworld.dxn2u.com/s/accreg/ar/'+memberNo;
+  try{
+    await navigator.clipboard.writeText(url);
+  }catch(_){
+    const ta=document.createElement('textarea');
+    ta.value=url;
+    ta.setAttribute('readonly','');
+    ta.style.position='fixed';
+    ta.style.opacity='0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+  }
+  const status=document.getElementById('ragwanDxnSponsorStatus');
+  if(status) status.textContent='✅ تم نسخ رابط الرعاية الخاص بك';
+  toast('✅ تم نسخ رابط الرعاية الخاص بك');
+}
 function ragwanRenderStepSection(){
   const el=document.getElementById('ragwanStepSection');if(!el)return;
   const sections=ragwanStepSections[ragwanCurrentStep]||[];
-  if(!sections.length){el.innerHTML='';return;}
+  if(!sections.length){
+    el.innerHTML=ragwanBuildDxnSponsorAction();
+    return;
+  }
   el.innerHTML=sections.map(s=>'<section class="ragwan-step-section">'+
     '<div class="ragwan-step-section-head"><span class="icon">'+esc(s.icon||'📌')+'</span><b>'+esc(s.title||'')+'</b></div>'+
     '<ol class="ragwan-step-section-list">'+
       (Array.isArray(s.items)?s.items:[]).map((item,i)=>'<li class="ragwan-step-section-item"><span class="num">'+(i+1)+'</span><span class="text">'+esc(item)+'</span></li>').join('')+
     '</ol>'+
-  '</section>').join('');
+  '</section>').join('')+ragwanBuildDxnSponsorAction();
 }
 function ragwanRenderStepVideos(){
   const el=document.getElementById('ragwanStepVideos');if(!el)return;
