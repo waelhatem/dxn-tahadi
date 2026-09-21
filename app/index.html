@@ -116,6 +116,15 @@ button[disabled]:focus-visible{outline-color:#667085!important}
 .ragwan-step-state-pill{display:inline-flex;align-items:center;justify-content:center;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:950;margin:9px 0}.ragwan-step-state-pill.completed{background:#eaf7ef;color:#16704e}.ragwan-step-state-pill.started{background:#e8f1ff;color:#245b92}.ragwan-step-state-pill.available{background:#fff5dc;color:#805b00}.ragwan-step-state-pill.locked{background:#edf0ef;color:#65716c}
 .ragwan-step-complete{width:100%;margin-top:8px;background:#176b55;color:#fff}.ragwan-step-next{width:100%;margin-top:8px;background:#eef6f2;color:#0f513f}.ragwan-step-action{width:100%}.ragwan-step-side button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:700px){.ragwan-progress-stats{grid-template-columns:repeat(2,1fr)}.ragwan-training-grid{grid-template-columns:1fr}.ragwan-progress-top{align-items:flex-start}}
+</style><style id="ragwanVoiceEvidenceStyles">
+.ragwan-evidence-box{margin-top:13px;padding:14px;border:1px solid #d9e8e1;border-radius:18px;background:#f8fcfa}
+.ragwan-evidence-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.ragwan-evidence-head b{display:block;color:#123b30}.ragwan-evidence-head small{display:block;color:#71817a;margin-top:4px;line-height:1.6}
+.ragwan-voice-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}.ragwan-voice-controls button{min-width:145px}.ragwan-voice-start{background:#0f513f;color:#fff}.ragwan-voice-stop{background:#fee4e2;color:#9f2118}.ragwan-voice-controls>span{font-weight:950;color:#0f513f;min-width:50px;text-align:center}
+.ragwan-voice-status{margin-top:9px;padding:9px 11px;border-radius:12px;background:#fff;border:1px solid #e1ebe6;color:#61726b;font-size:12px}
+#ragwanVoicePreview{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}#ragwanVoicePreview audio,.ragwan-my-evidence audio{width:min(100%,430px);height:42px}.ragwan-voice-upload{background:#176b55;color:#fff}
+.ragwan-my-evidence{margin-top:10px;padding-top:10px;border-top:1px solid #e0e9e5}.ragwan-my-evidence>b{display:block;font-size:12px;margin-bottom:7px}
+.ragwan-evidence-list{display:grid;gap:8px;margin-top:10px}.ragwan-evidence-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border:1px solid #dfe9e5;border-radius:14px;background:#fff}.ragwan-evidence-item>div b{display:block}.ragwan-evidence-item>div span{display:block;font-size:11px;color:#71817a;margin-top:3px}.ragwan-evidence-item audio{width:min(100%,360px);height:38px}.ragwan-evidence-item a{font-weight:900;color:#0f513f}.ragwan-evidence-empty{padding:15px;text-align:center;color:#71817a}
+@media(max-width:600px){.ragwan-evidence-item{align-items:flex-start;flex-direction:column}.ragwan-evidence-item audio{width:100%}.ragwan-voice-controls{display:grid;grid-template-columns:1fr 1fr}.ragwan-voice-controls>span{grid-column:1/-1}}
 </style></head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
   <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
@@ -1493,6 +1502,7 @@ function ragwanDoorJourneyMarkup(){
             '<article class="ragwan-training-card"><span>🏆</span><b>الإنجاز</b><p id="ragwanStepWin"></p></article>'+
           '</div>'+
           '<div class="ragwan-task-box"><span>🎯 المطلوب الآن</span><b id="ragwanStepTask"></b></div>'+
+          '<div class="ragwan-evidence-box" id="ragwanEvidenceBox"></div>'+
         '</div>'+
         '<div class="ragwan-step-side">'+
           '<div class="ragwan-step-big-number" id="ragwanStepNumber">1</div>'+
@@ -1510,6 +1520,93 @@ function ragwanDoorJourneyMarkup(){
   '</section>';
 }
 let ragwanCurrentStep=1;
+async function ragwanEvidenceApi(action,args={}){
+  return ragwanPlanApi(action,args);
+}
+function ragwanEvidenceMemberKeyFromPath(path){
+  const m=String(path||'').match(/^evidence\/([^/]+)\//i);
+  return m?m[1]:'—';
+}
+function ragwanRenderEvidence(files){
+  const box=document.getElementById('ragwanEvidenceBox');if(!box)return;
+  const step=ragwanCurrentStep;
+  const mine=(files||[]).filter(f=>Number(f.step)===step);
+  if(role==='leader'){
+    const all=(files||[]).slice().sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));
+    box.innerHTML='<div class="ragwan-evidence-head"><div><b>🎙️ إثباتات الأعضاء</b><small>التسجيلات الصوتية المرفوعة كإثبات لتنفيذ الخطوات.</small></div><button type="button" onclick="ragwanLoadEvidence()">↻ تحديث</button></div>'+
+      (all.length?'<div class="ragwan-evidence-list">'+all.map(f=>{
+        const isAudio=String(f.mime||'').startsWith('audio/');
+        return '<div class="ragwan-evidence-item"><div><b>الخطوة '+esc(f.step||'—')+'</b><span>العضو: '+esc(ragwanEvidenceMemberKeyFromPath(f.path))+'</span></div>'+(isAudio&&f.url?'<audio controls preload="metadata" src="'+esc(f.url)+'"></audio>':'<a target="_blank" rel="noopener" href="'+esc(f.url||'#')+'">فتح الإثبات</a>')+'</div>';
+      }).join('')+'</div>':'<div class="ragwan-evidence-empty">لا توجد إثباتات صوتية مرفوعة حتى الآن.</div>');
+    return;
+  }
+  box.innerHTML='<div class="ragwan-evidence-head"><div><b>🎙️ إثبات التنفيذ بالصوت</b><small>سجّل رسالة صوتية قصيرة تشرح ماذا نفذت في هذه الخطوة.</small></div></div>'+
+    '<div class="ragwan-voice-controls">'+
+      '<button type="button" class="ragwan-voice-start" id="ragwanVoiceStart" onclick="ragwanStartVoiceEvidence()">🎙️ ابدأ التسجيل</button>'+
+      '<button type="button" class="ragwan-voice-stop" id="ragwanVoiceStop" onclick="ragwanStopVoiceEvidence()" disabled>⏹️ إيقاف</button>'+
+      '<span id="ragwanVoiceTimer">00:00</span>'+
+    '</div>'+
+    '<div id="ragwanVoiceStatus" class="ragwan-voice-status">يمكنك تسجيل إثبات صوتي ثم إرساله مع إنجاز الخطوة.</div>'+
+    '<div id="ragwanVoicePreview"></div>'+
+    (mine.length?'<div class="ragwan-my-evidence"><b>آخر إثباتاتك لهذه الخطوة</b>'+mine.map(f=>f.url&&String(f.mime||'').startsWith('audio/')?'<audio controls src="'+esc(f.url)+'"></audio>':'').join('')+'</div>':'');
+}
+let ragwanVoiceRecorder=null,ragwanVoiceChunks=[],ragwanVoiceStream=null,ragwanVoiceTimerHandle=null,ragwanVoiceSeconds=0,ragwanVoiceBlob=null;
+function ragwanVoiceSetTimer(){
+  const el=document.getElementById('ragwanVoiceTimer');if(!el)return;
+  const mm=String(Math.floor(ragwanVoiceSeconds/60)).padStart(2,'0'),ss=String(ragwanVoiceSeconds%60).padStart(2,'0');el.textContent=mm+':'+ss;
+}
+async function ragwanStartVoiceEvidence(){
+  if(role!=='member'){toast('تسجيل الإثبات الصوتي متاح للعضو.');return;}
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||typeof MediaRecorder==='undefined'){
+    toast('المتصفح لا يدعم تسجيل الصوت من هذه الصفحة.');return;
+  }
+  try{
+    ragwanVoiceStream=await navigator.mediaDevices.getUserMedia({audio:true});
+    const preferred=['audio/webm;codecs=opus','audio/webm','audio/mp4'].find(t=>MediaRecorder.isTypeSupported(t))||'';
+    ragwanVoiceRecorder=preferred?new MediaRecorder(ragwanVoiceStream,{mimeType:preferred}):new MediaRecorder(ragwanVoiceStream);
+    ragwanVoiceChunks=[];ragwanVoiceSeconds=0;ragwanVoiceBlob=null;ragwanVoiceSetTimer();
+    ragwanVoiceRecorder.ondataavailable=e=>{if(e.data&&e.data.size)ragwanVoiceChunks.push(e.data)};
+    ragwanVoiceRecorder.onstop=()=>{
+      clearInterval(ragwanVoiceTimerHandle);ragwanVoiceTimerHandle=null;
+      const type=ragwanVoiceRecorder&&ragwanVoiceRecorder.mimeType||'audio/webm';
+      ragwanVoiceBlob=new Blob(ragwanVoiceChunks,{type});
+      if(ragwanVoiceStream)ragwanVoiceStream.getTracks().forEach(t=>t.stop());
+      const preview=document.getElementById('ragwanVoicePreview');
+      if(preview){
+        const url=URL.createObjectURL(ragwanVoiceBlob);
+        preview.innerHTML='<audio controls src="'+url+'"></audio><button type="button" class="ragwan-voice-upload" onclick="ragwanUploadVoiceEvidence()">📤 إرسال الإثبات الصوتي</button>';
+      }
+      const status=document.getElementById('ragwanVoiceStatus');if(status)status.textContent='تم تسجيل الإثبات. استمع إليه ثم أرسله للمراجعة.';
+      const start=document.getElementById('ragwanVoiceStart'),stop=document.getElementById('ragwanVoiceStop');if(start)start.disabled=false;if(stop)stop.disabled=true;
+    };
+    ragwanVoiceRecorder.start();
+    ragwanVoiceTimerHandle=setInterval(()=>{ragwanVoiceSeconds++;ragwanVoiceSetTimer();if(ragwanVoiceSeconds>=180)ragwanStopVoiceEvidence()},1000);
+    const start=document.getElementById('ragwanVoiceStart'),stop=document.getElementById('ragwanVoiceStop');if(start)start.disabled=true;if(stop)stop.disabled=false;
+    const status=document.getElementById('ragwanVoiceStatus');if(status)status.textContent='🔴 جارٍ التسجيل... تحدث باختصار عن ما نفذته.';
+  }catch(e){if(ragwanVoiceStream)ragwanVoiceStream.getTracks().forEach(t=>t.stop());toast('تعذر تشغيل الميكروفون: '+String(e.message||e));}
+}
+function ragwanStopVoiceEvidence(){
+  if(ragwanVoiceRecorder&&ragwanVoiceRecorder.state!=='inactive')ragwanVoiceRecorder.stop();
+}
+async function ragwanUploadVoiceEvidence(){
+  if(!ragwanVoiceBlob){toast('سجّل الإثبات الصوتي أولًا.');return;}
+  try{
+    const status=document.getElementById('ragwanVoiceStatus');if(status)status.textContent='⏳ جارٍ رفع الإثبات الصوتي...';
+    const ext=String(ragwanVoiceBlob.type||'audio/webm').includes('mp4')?'m4a':'webm';
+    const signed=await ragwanEvidenceApi('sign_evidence_upload',{step:ragwanCurrentStep,name:'voice-evidence.'+ext,content_type:ragwanVoiceBlob.type||'audio/webm',size:ragwanVoiceBlob.size});
+    if(!signed.token||!signed.path)throw new Error('لم يتم إنشاء رابط رفع الإثبات.');
+    const {error}=await sb.storage.from('ragwan-plan').uploadToSignedUrl(signed.path,signed.token,ragwanVoiceBlob,{contentType:ragwanVoiceBlob.type||'audio/webm'});
+    if(error)throw error;
+    if(status)status.textContent='✅ تم إرسال الإثبات الصوتي. سيظهر للقائد للمراجعة.';
+    ragwanVoiceBlob=null;
+    await ragwanLoadEvidence();
+  }catch(e){const status=document.getElementById('ragwanVoiceStatus');if(status)status.textContent='❌ '+String(e.message||'تعذر رفع الإثبات.');}
+}
+async function ragwanLoadEvidence(){
+  try{const out=await ragwanEvidenceApi('evidence_list');ragwanRenderEvidence(out.files||[]);}
+  catch(e){const box=document.getElementById('ragwanEvidenceBox');if(box)box.innerHTML='<div class="ragwan-evidence-empty">⚠️ '+esc(e.message||'تعذر تحميل الإثباتات.')+'</div>';}
+}
+
 function ragwanOpenDoor(n){
   const data=ragwanDoorData(),state=ragwanProgressLoad(),maxOpen=ragwanProgressNextStep(),step=Math.max(1,Math.min(10,Number(n)||1));
   if(step>maxOpen){toast('🔒 هذه الخطوة مغلقة. أكمل الخطوة السابقة أولًا.');return;}
@@ -1534,6 +1631,7 @@ function ragwanOpenDoor(n){
   if(completeBtn){completeBtn.disabled=status==='completed'||status==='locked';completeBtn.textContent=status==='completed'?'✓ تم إكمال الخطوة':'✅ أكملت الخطوة';}
   if(nextBtn){nextBtn.disabled=status!=='completed'&&step===maxOpen;nextBtn.textContent=step>=10?'🏆 عرض حالة الخطة':'الخطوة التالية ←';}
   ragwanRenderProgress();
+  ragwanLoadEvidence();
   const panel=document.getElementById('ragwanStepPanel');if(panel){panel.animate([{opacity:.55,transform:'translateY(12px) scale(.985)'},{opacity:1,transform:'translateY(0) scale(1)'}],{duration:420,easing:'cubic-bezier(.2,.8,.2,1)'});setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'center'}),80)}
 }
 function ragwanStartStep(){
