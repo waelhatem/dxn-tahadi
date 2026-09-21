@@ -1633,7 +1633,7 @@ async function ragwanDeleteFile(path){
   try{await ragwanPlanApi('delete',{path});toast('تم حذف الملف.');await ragwanLoadFiles();}catch(e){toast(e.message||'تعذر حذف الملف.');}
 }
 function initRagwanFiles(){
-  ragwanOpenDoor(1);
+  ragwanOpenDoor(ragwanProgressNextStep());
   const input=document.getElementById('ragwanFileInput');
   if(input&&!input.__ragwanBound){input.__ragwanBound=true;input.addEventListener('change',()=>ragwanUploadFiles(input.files));}
   ragwanLoadFiles();
