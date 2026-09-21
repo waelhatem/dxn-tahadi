@@ -102,7 +102,21 @@ button[disabled]:focus-visible{outline-color:#667085!important}
 @media (forced-colors: active){button,a,input,textarea,select{forced-color-adjust:auto}.tab.active{border:2px solid CanvasText}.bar span{background:Highlight!important}}
 </style>
 <meta name="x-community-version" content="V86.9 Notification Scope Fix + WCAG 2.2 AA + Site Visit Analytics"><meta name="referrer" content="strict-origin-when-cross-origin"><!-- V84.6 Performance: notification summary/cache and render computation deduplication -->
-</head><body>
+<style id="ragwanProgressUpgrade">
+.ragwan-real-progress{margin:18px 0;padding:18px;border:1px solid #dbe9e2;border-radius:22px;background:linear-gradient(135deg,#ffffff,#f5faf7);box-shadow:0 8px 24px rgba(15,81,63,.07)}
+.ragwan-progress-top{display:flex;justify-content:space-between;align-items:center;gap:12px}.ragwan-progress-top b{display:block;font-size:18px;color:#123b30}.ragwan-progress-top span{display:block;color:#6d7d76;font-size:12px;margin-top:4px}.ragwan-progress-top strong{font-size:27px;color:#0f513f}
+.ragwan-progress-track{height:13px;background:#e7efeb;border-radius:999px;overflow:hidden;margin:14px 0 12px}.ragwan-progress-track>span{display:block;height:100%;background:linear-gradient(90deg,#0f513f,#2f8b6d);border-radius:999px;transition:width .45s ease}
+.ragwan-progress-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.ragwan-progress-stats>div{padding:9px;border:1px solid #e0e9e5;border-radius:14px;background:#fff;text-align:center}.ragwan-progress-stats b{display:block;font-size:20px;color:#123b30}.ragwan-progress-stats span{font-size:11px;color:#71817a}
+.ragwan-door.status-completed{border-color:#8bc7ad}.ragwan-door.status-started{border-color:#74aeda}.ragwan-door.status-available{border-color:#c9a348}.ragwan-door.status-locked{opacity:.55;filter:grayscale(.55);cursor:not-allowed}
+.ragwan-door.status-completed .ragwan-door-status{background:#eaf7ef;color:#16704e}.ragwan-door.status-started .ragwan-door-status{background:#e8f1ff;color:#245b92}.ragwan-door.status-available .ragwan-door-status{background:#fff5dc;color:#805b00}.ragwan-door.status-locked .ragwan-door-status{background:#edf0ef;color:#65716c}
+.ragwan-door-status{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:950;margin-top:5px}.ragwan-door-hint{margin-top:5px}
+.ragwan-door-chip.completed{background:#eaf7ef;color:#16704e}.ragwan-door-chip.started{background:#e8f1ff;color:#245b92}.ragwan-door-chip.available{background:#fff5dc;color:#805b00}.ragwan-door-chip.locked{opacity:.45;cursor:not-allowed}
+.ragwan-step-main{min-width:0}.ragwan-training-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:15px}.ragwan-training-card{padding:14px;border:1px solid #e0e9e5;border-radius:16px;background:#fff}.ragwan-training-card>span{font-size:24px;display:block}.ragwan-training-card>b{display:block;margin-top:5px;color:#123b30;font-size:15px}.ragwan-training-card p{margin:6px 0 0;color:#61726b;line-height:1.75;font-size:13px}
+.ragwan-task-box{margin-top:12px;padding:13px 15px;border:2px solid #cfe4da;border-radius:16px;background:#f5fbf8}.ragwan-task-box span{display:block;color:#0f513f;font-size:12px;font-weight:900}.ragwan-task-box b{display:block;margin-top:4px;line-height:1.7}
+.ragwan-step-state-pill{display:inline-flex;align-items:center;justify-content:center;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:950;margin:9px 0}.ragwan-step-state-pill.completed{background:#eaf7ef;color:#16704e}.ragwan-step-state-pill.started{background:#e8f1ff;color:#245b92}.ragwan-step-state-pill.available{background:#fff5dc;color:#805b00}.ragwan-step-state-pill.locked{background:#edf0ef;color:#65716c}
+.ragwan-step-complete{width:100%;margin-top:8px;background:#176b55;color:#fff}.ragwan-step-next{width:100%;margin-top:8px;background:#eef6f2;color:#0f513f}.ragwan-step-action{width:100%}.ragwan-step-side button:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:700px){.ragwan-progress-stats{grid-template-columns:repeat(2,1fr)}.ragwan-training-grid{grid-template-columns:1fr}.ragwan-progress-top{align-items:flex-start}}
+</style></head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
   <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
   <div class="pwa-install-actions"><button id="pwaInstallBtn" class="primary" type="button">تثبيت</button><button id="pwaInstallClose" class="pwa-install-close" type="button">لاحقًا</button></div>
@@ -1335,31 +1349,161 @@ function ragwanSuccessIntro(){
 }
 function ragwanDoorData(){
   return [
-    {n:1,icon:'👥',title:'عرض فكرة العمل مع رد الاعتراضات',short:'فكرة العمل',text:'عرض فكرة العمل مع رد الاعتراضات بأسلوب واضح ومقنع.',goal:'الهدف: إتقان تقديم الفكرة والتعامل مع الاعتراضات بثقة.'},
-    {n:2,icon:'📝',title:'تسجيل عضوية جديدة إذا أعطى وقت وجهد',short:'تسجيل العضوية',text:'تسجيل عضوية جديدة إذا أعطى الشخص وقتًا وجهدًا للمشروع.',goal:'الهدف: تحويل الاهتمام إلى خطوة عملية واضحة.'},
-    {n:3,icon:'👨‍👩‍👧‍👦',title:'إضافة لكروب الجدد المغلق لتحفيزه',short:'كروب الجدد',text:'إضافة العضو إلى كروب الجدد المغلق لتحفيزه ومساعدته على البداية.',goal:'الهدف: إبقاء العضو قريبًا من بيئة الدعم والتحفيز.'},
-    {n:4,icon:'📋',title:'اختبار وإرساله للتدريب مع الأسئلة',short:'اختبار التدريب',text:'اختبار وإرساله للتدريب مع الأسئلة حتى يتحول التعلم إلى تطبيق فعلي.',goal:'الهدف: التأكد من الفهم قبل الانتقال للخطوة التالية.'},
-    {n:5,icon:'🏆',title:'إرسال المسابقات والجوائز لتحفيزه',short:'المسابقات',text:'إرسال المسابقات والجوائز لتحفيز العضو على الحركة والاستمرار.',goal:'الهدف: صناعة نشاط مستمر ومحفز.'},
-    {n:6,icon:'🔗',title:'اتصال لإقناعه باستهلاك وبيع المنتج (اختياري)',short:'اتصال العملاء',text:'اتصال لإقناعه باستهلاك وبيع المنتج، وهذه الخطوة اختيارية بحسب حالة العضو.',goal:'الهدف: دعم الاستخدام الصحيح للمنتج وفتح باب البيع.'},
-    {n:7,icon:'🛒',title:'إذا تسوق المنتجات أعلمه كيف يستخدمه ويبيعه',short:'تسويق المنتجات',text:'إذا تسوق المنتجات، أعلمه كيف يستخدمها ويبيعها بطريقة عملية.',goal:'الهدف: تحويل المنتج إلى تجربة وفائدة وممارسة بيع صحيحة.'},
-    {n:8,icon:'📈',title:'إضافته لكروب الأمل الريادي مع الترحيب',short:'كروب الأمل',text:'إضافته إلى كروب الأمل الريادي مع ترحيب واضح يشعره بأنه أصبح جزءًا من الفريق.',goal:'الهدف: دمج العضو داخل البيئة الريادية للفريق.'},
-    {n:9,icon:'📚',title:'أكمل معه تدريبات احترافية بدون فرض التخليص',short:'تدريبات إضافية',text:'أكمل معه تدريبات احترافية بدون فرض التخليص، وبحسب احتياجه واستعداده.',goal:'الهدف: تطوير المهارة تدريجيًا بدل الضغط على العضو.'},
-    {n:10,icon:'🌐',title:'أعلمه يبني فريق من معارفه ثم من الإنترنت',short:'بناء الفريق',text:'أعلمه كيف يبني فريقًا من معارفه أولًا، ثم يوسع دائرة الوصول من خلال الإنترنت.',goal:'الهدف: الانتقال من عضو متعلم إلى شخص قادر على بناء فريق.'}
+    {n:1,icon:'👥',title:'عرض فكرة العمل مع رد الاعتراضات',short:'فكرة العمل',text:'عرض فكرة العمل مع رد الاعتراضات بأسلوب واضح ومقنع.',goal:'إتقان تقديم الفكرة والتعامل مع الاعتراضات بثقة.',
+      learn:'تعلّم كيف تشرح الفكرة ببساطة، وتفصل بين شرح المشروع وبين الضغط على الشخص.',
+      apply:'قدّم الفكرة لشخص واحد أو تدرب أمام الكاميرا، ثم استخدم ردود الاعتراضات المناسبة.',
+      check:'هل استطعت شرح الفكرة خلال دقائق قليلة والرد على الاعتراض بهدوء ووضوح؟',
+      win:'إنجاز الخطوة عندما تنفذ العرض فعليًا أو توثّق تدريبك عليه.',
+      task:'تنفيذ عرض فكرة عمل واحد.'},
+    {n:2,icon:'📝',title:'تسجيل عضوية جديدة إذا أعطى وقت وجهد',short:'تسجيل العضوية',text:'تسجيل عضوية جديدة عندما يبدي الشخص وقتًا وجهدًا واستعدادًا حقيقيًا للمشروع.',goal:'تحويل الاهتمام إلى خطوة عملية واضحة.',
+      learn:'تعلّم كيف تميّز بين الفضول وبين الشخص الذي أبدى استعدادًا حقيقيًا للبدء.',
+      apply:'تابع الشخص، اشرح له الخطوة التالية، وساعده على إتمام التسجيل بطريقة واضحة.',
+      check:'هل أصبح الشخص عضوًا بعد فهمه للخطوة والتزامه بها؟',
+      win:'إنجاز الخطوة عند إتمام التسجيل أو توثيق محاولة جادة مع شخص مؤهل.',
+      task:'تحويل اهتمام مؤهل إلى تسجيل.'},
+    {n:3,icon:'👨‍👩‍👧‍👦',title:'إضافة لكروب الجدد المغلق لتحفيزه',short:'كروب الجدد',text:'إضافة العضو إلى كروب الجدد المغلق لتحفيزه ومساعدته على البداية.',goal:'إبقاء العضو قريبًا من بيئة الدعم والتحفيز.',
+      learn:'تعلّم كيف تجعل الأيام الأولى للعضو واضحة، منظمة، ومليئة بالدعم بدل تركه وحده.',
+      apply:'أضف العضو إلى المجموعة المناسبة، رحّب به، ووجّهه إلى أول محتوى يحتاجه.',
+      check:'هل أصبح العضو يعرف أين يجد الدعم والتدريب وما هي خطوته التالية؟',
+      win:'إنجاز الخطوة عند إضافة العضو وترحيبه وتوجيهه.',
+      task:'دمج عضو جديد داخل بيئة الدعم.'},
+    {n:4,icon:'📋',title:'اختبار وإرساله للتدريب مع الأسئلة',short:'اختبار التدريب',text:'اختبار وإرساله للتدريب مع الأسئلة حتى يتحول التعلم إلى تطبيق فعلي.',goal:'التأكد من الفهم قبل الانتقال للخطوة التالية.',
+      learn:'تعلّم لماذا الاختبار أداة لفهم الاحتياج، وليس مجرد إجراء شكلي.',
+      apply:'أرسل الاختبار، راجع الإجابات، وحدد التدريب الذي يحتاجه العضو.',
+      check:'هل أصبحت لديك صورة واضحة عن نقاط قوة العضو وما يحتاج إلى تطويره؟',
+      win:'إنجاز الخطوة بعد إتمام الاختبار وتحديد التدريب المناسب.',
+      task:'إتمام اختبار واحد وتحديد تدريب مناسب.'},
+    {n:5,icon:'🏆',title:'إرسال المسابقات والجوائز لتحفيزه',short:'المسابقات',text:'إرسال المسابقات والجوائز لتحفيز العضو على الحركة والاستمرار.',goal:'صناعة نشاط مستمر ومحفز.',
+      learn:'تعلّم كيف تستخدم التحديات والمكافآت كوسيلة لتحفيز السلوك والاستمرارية.',
+      apply:'اختر مسابقة أو تحديًا مناسبًا، واشرح للعضو المطلوب منه وموعده.',
+      check:'هل أصبح لدى العضو نشاط واضح يمكنه تنفيذه بدل الاكتفاء بالمشاهدة؟',
+      win:'إنجاز الخطوة عند مشاركة العضو فعليًا في نشاط أو تحدٍ.',
+      task:'إشراك عضو في نشاط تحفيزي واحد.'},
+    {n:6,icon:'🔗',title:'اتصال لإقناعه باستهلاك وبيع المنتج (اختياري)',short:'اتصال العملاء',text:'اتصال لإقناعه باستهلاك وبيع المنتج، وهذه الخطوة اختيارية بحسب حالة العضو.',goal:'دعم الاستخدام الصحيح للمنتج وفتح باب البيع.',
+      learn:'تعلّم كيف تناقش المنتج بصورة مسؤولة، وتربط الاستخدام بالتجربة والاحتياج دون وعود غير واقعية.',
+      apply:'أجرِ اتصالًا أو حوارًا مناسبًا، واستمع أولًا ثم قدّم المعلومات التي يحتاجها الشخص.',
+      check:'هل كان الحوار قائمًا على الفهم والاستماع والمعلومة الواضحة دون ضغط؟',
+      win:'إنجاز الخطوة عند تنفيذ الحوار أو عندما تكون الحالة غير مناسبة، مع توثيق سبب تجاوزها.',
+      task:'تنفيذ حوار منتج أو توثيق قرار تجاوز الخطوة.'},
+    {n:7,icon:'🛒',title:'إذا تسوق المنتجات أعلمه كيف يستخدمه ويبيعه',short:'تسويق المنتجات',text:'إذا تسوق المنتجات، أعلمه كيف يستخدمها ويبيعها بطريقة عملية.',goal:'تحويل المنتج إلى تجربة وفائدة وممارسة بيع صحيحة.',
+      learn:'تعلّم أساسيات تقديم المنتج، الاستخدام الصحيح، والاستماع إلى احتياج العميل.',
+      apply:'درّب العضو على شرح المنتج ومشاركة تجربته والتعامل مع سؤال عميل محتمل.',
+      check:'هل يستطيع العضو شرح المنتج بوضوح دون مبالغة أو وعود علاجية؟',
+      win:'إنجاز الخطوة عند تنفيذ تدريب عملي على الاستخدام أو البيع.',
+      task:'تطبيق شرح منتج واحد بطريقة عملية.'},
+    {n:8,icon:'📈',title:'إضافته لكروب الأمل الريادي مع الترحيب',short:'كروب الأمل',text:'إضافته إلى كروب الأمل الريادي مع ترحيب واضح يشعره بأنه أصبح جزءًا من الفريق.',goal:'دمج العضو داخل البيئة الريادية للفريق.',
+      learn:'تعلّم كيف تنقل العضو من مرحلة المتابعة إلى بيئة النمو والتواصل مع الفريق.',
+      apply:'أضف العضو، رحّب به، وعرّفه على ما يمكن أن يستفيد منه داخل المجموعة.',
+      check:'هل عرف العضو هدف المجموعة وماذا يفعل بعد انضمامه إليها؟',
+      win:'إنجاز الخطوة عند الإضافة والترحيب والتوجيه.',
+      task:'دمج عضو داخل البيئة الريادية.'},
+    {n:9,icon:'📚',title:'أكمل معه تدريبات احترافية بدون فرض التخليص',short:'تدريبات إضافية',text:'أكمل معه تدريبات احترافية بدون فرض التخليص، وبحسب احتياجه واستعداده.',goal:'تطوير المهارة تدريجيًا بدل الضغط على العضو.',
+      learn:'تعلّم كيف تبني المهارة على مراحل، وتختار التدريب بحسب مستوى العضو واحتياجه.',
+      apply:'اختر تدريبًا واحدًا مناسبًا، ناقشه مع العضو، ثم راقب التطبيق بدل الاكتفاء بالمشاهدة.',
+      check:'هل تحسن سلوك أو مهارة محددة لدى العضو بعد التدريب؟',
+      win:'إنجاز الخطوة عند إكمال تدريب إضافي مع تطبيق واضح.',
+      task:'إكمال تدريب احترافي واحد مع تطبيق.'},
+    {n:10,icon:'🌐',title:'أعلمه يبني فريق من معارفه ثم من الإنترنت',short:'بناء الفريق',text:'أعلمه كيف يبني فريقًا من معارفه أولًا، ثم يوسع دائرة الوصول من خلال الإنترنت.',goal:'الانتقال من عضو متعلم إلى شخص قادر على بناء فريق.',
+      learn:'تعلّم أساسيات بناء العلاقات، التواصل، المتابعة، وصناعة حضور رقمي منظم.',
+      apply:'ساعد العضو على إعداد قائمة معارف ثم خطة تواصل، وبعدها تجربة قناة رقمية مناسبة.',
+      check:'هل أصبح قادرًا على بدء محادثة ومتابعة المهتمين وبناء فريقه بطريقة مستقلة؟',
+      win:'إنجاز الخطوة عند تنفيذ أول نشاط مستقل لبناء الفريق.',
+      task:'تنفيذ أول نشاط مستقل لبناء الفريق.'}
   ];
 }
-function ragwanDoorJourneyMarkup(){
+
+function ragwanProgressKey(){
+  const memberKey=String((me&&(
+    me.member_no||me.membership_no||me.membership_number||me.username||me.phone
+  ))||'self').replace(/[^a-zA-Z0-9_-]/g,'_');
+  return 'dxn_ragwan_progress_v2_'+memberKey;
+}
+function ragwanProgressLoad(){
   const d=ragwanDoorData();
-  const doors=d.map(x=>'<button type="button" class="ragwan-door" id="ragwanDoor'+x.n+'" onclick="ragwanOpenDoor('+x.n+')" aria-label="فتح الخطوة '+x.n+'">'+
-    '<span class="ragwan-door-frame"></span><span class="ragwan-door-leaf"></span><span class="ragwan-door-glow"></span><span class="ragwan-door-room"></span>'+
-    '<span class="ragwan-door-content"><span class="ragwan-door-num">'+x.n+'</span><span class="ragwan-door-icon">'+x.icon+'</span><span class="ragwan-door-label">'+esc(x.short)+'</span><span class="ragwan-door-hint">اضغط لفتح الباب</span></span>'+
-    '</button>').join('');
-  const chips=d.map(x=>'<button type="button" class="ragwan-door-chip" id="ragwanDoorChip'+x.n+'" onclick="ragwanOpenDoor('+x.n+')">'+x.n+'</button>').join('');
+  let state={completed:[],started:[]};
+  try{state=JSON.parse(localStorage.getItem(ragwanProgressKey())||'{}')||{};}catch(_){}
+  state.completed=Array.isArray(state.completed)?state.completed.map(Number).filter(n=>n>=1&&n<=10):[];
+  state.started=Array.isArray(state.started)?state.started.map(Number).filter(n=>n>=1&&n<=10):[];
+  state.completed=[...new Set(state.completed)].sort((a,b)=>a-b);
+  state.started=[...new Set(state.started)].sort((a,b)=>a-b);
+  return state;
+}
+function ragwanProgressSave(state){
+  try{localStorage.setItem(ragwanProgressKey(),JSON.stringify(state));}catch(_){}
+}
+function ragwanProgressNextStep(){
+  const state=ragwanProgressLoad();
+  return Math.max(1,Math.min(10,(state.completed.length<10?state.completed.length+1:10)));
+}
+function ragwanStepStatus(n,state){
+  if(state.completed.includes(n))return 'completed';
+  if(n===ragwanProgressNextStep())return 'available';
+  if(state.started.includes(n))return 'started';
+  return 'locked';
+}
+function ragwanStatusLabel(status){
+  return status==='completed'?'مكتملة':status==='started'?'قيد التنفيذ':status==='available'?'متاحة':'مغلقة';
+}
+function ragwanStepWord(n){
+  return ['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة','السابعة','الثامنة','التاسعة','العاشرة'][n-1]||n;
+}
+function ragwanRenderProgress(){
+  const state=ragwanProgressLoad(),completed=state.completed.length,current=completed<10?completed+1:10,percent=Math.round(completed/10*100),remaining=10-completed;
+  const bar=document.getElementById('ragwanRealProgress');
+  if(bar)bar.style.width=percent+'%';
+  const pct=document.getElementById('ragwanRealProgressPercent');if(pct)pct.textContent=percent+'%';
+  const done=document.getElementById('ragwanRealProgressDone');if(done)done.textContent=completed;
+  const cur=document.getElementById('ragwanRealProgressCurrent');if(cur)cur.textContent=completed<10?current:'—';
+  const rem=document.getElementById('ragwanRealProgressRemaining');if(rem)rem.textContent=remaining;
+  const stateLabel=document.getElementById('ragwanRealProgressState');if(stateLabel)stateLabel.textContent=completed===10?'🏆 الخطة مكتملة — أحسنت!':'الخطوة '+current+' هي خطوتك الحالية';
+}
+function ragwanDoorJourneyMarkup(){
+  const d=ragwanDoorData(),state=ragwanProgressLoad(),current=ragwanProgressNextStep();
+  const doors=d.map(x=>{
+    const status=ragwanStepStatus(x.n,state),locked=status==='locked';
+    return '<button type="button" class="ragwan-door '+status+'" id="ragwanDoor'+x.n+'" '+(locked?'disabled':'')+' onclick="ragwanOpenDoor('+x.n+')" aria-label="'+esc(x.title)+'">'+
+      '<span class="ragwan-door-frame"></span><span class="ragwan-door-leaf"></span><span class="ragwan-door-glow"></span><span class="ragwan-door-room"></span>'+
+      '<span class="ragwan-door-content"><span class="ragwan-door-num">'+x.n+'</span><span class="ragwan-door-icon">'+x.icon+'</span><span class="ragwan-door-label">'+esc(x.short)+'</span><span class="ragwan-door-status">'+ragwanStatusLabel(status)+'</span><span class="ragwan-door-hint">'+(status==='completed'?'✓ تم الإنجاز':locked?'🔒 أكمل السابقة':'اضغط لفتح الخطوة')+'</span></span>'+
+    '</button>';
+  }).join('');
+  const chips=d.map(x=>{
+    const status=ragwanStepStatus(x.n,state),locked=status==='locked';
+    return '<button type="button" class="ragwan-door-chip '+status+'" id="ragwanDoorChip'+x.n+'" '+(locked?'disabled':'')+' onclick="ragwanOpenDoor('+x.n+')">'+x.n+'</button>';
+  }).join('');
   return '<section class="ragwan-journey" id="ragwanJourney">'+
-    '<div class="ragwan-journey-head"><div class="ragwan-journey-kicker">🚪 رحلة التطبيق الاحترافي</div><div class="ragwan-journey-title">خطوات خطة رجوان للنجاح</div><div class="ragwan-journey-sub">اختر الباب وادخل إلى الخطوة — كل خطوة تفتح لك المرحلة التالية.</div></div>'+
+    '<div class="ragwan-journey-head"><div class="ragwan-journey-kicker">🚪 رحلة التطبيق الاحترافي</div><div class="ragwan-journey-title">خطوات خطة رجوان للنجاح</div><div class="ragwan-journey-sub">كل خطوة تُفتح بعد إنجاز السابقة، والتقدم لا يرتفع إلا عند الضغط على «أكملت الخطوة».</div></div>'+
+    '<div class="ragwan-real-progress">'+
+      '<div class="ragwan-progress-top"><div><b>📊 تقدمك الحقيقي</b><span id="ragwanRealProgressState">الخطوة '+current+' هي خطوتك الحالية</span></div><strong id="ragwanRealProgressPercent">0%</strong></div>'+
+      '<div class="ragwan-progress-track"><span id="ragwanRealProgress" style="width:0%"></span></div>'+
+      '<div class="ragwan-progress-stats"><div><b id="ragwanRealProgressDone">0</b><span>مكتملة</span></div><div><b id="ragwanRealProgressCurrent">'+current+'</b><span>الحالية</span></div><div><b id="ragwanRealProgressRemaining">10</b><span>متبقية</span></div><div><b>10</b><span>إجمالي الخطوات</span></div></div>'+
+    '</div>'+
     '<div class="ragwan-door-gallery">'+doors+'</div>'+
-    '<div class="ragwan-reference-open"><div><div class="n" id="ragwanOpenDoorNumber">1</div><div class="i" id="ragwanOpenDoorIcon">👥</div><div class="t" id="ragwanOpenDoorLabel">عرض فكرة العمل مع رد الاعتراضات</div><small>أهدافك في الخطوة الأولى</small></div></div><div class="ragwan-step-panel" id="ragwanStepPanel">'+
-      '<div class="ragwan-step-inner"><div><div class="ragwan-step-kicker" id="ragwanStepKicker">الخطوة الأولى</div><div class="ragwan-step-title" id="ragwanStepTitle"></div><div class="ragwan-step-text" id="ragwanStepText"></div><div class="ragwan-step-goal" id="ragwanStepGoal"></div></div>'+
-      '<div class="ragwan-step-side"><div class="ragwan-step-big-number" id="ragwanStepNumber">1</div><div class="ragwan-step-progress"><span id="ragwanStepProgress"></span></div><div class="ragwan-step-progress-label" id="ragwanStepProgressLabel">1 من 10</div><button type="button" class="ragwan-step-action" onclick="ragwanEnterNextStep()">🚪 دخول الخطوة</button></div></div>'+
+    '<div class="ragwan-reference-open"><div><div class="n" id="ragwanOpenDoorNumber">1</div><div class="i" id="ragwanOpenDoorIcon">👥</div><div class="t" id="ragwanOpenDoorLabel">عرض فكرة العمل مع رد الاعتراضات</div><small id="ragwanOpenDoorStatus">متاحة</small></div></div>'+
+    '<div class="ragwan-step-panel" id="ragwanStepPanel">'+
+      '<div class="ragwan-step-inner">'+
+        '<div class="ragwan-step-main">'+
+          '<div class="ragwan-step-kicker" id="ragwanStepKicker">الخطوة الأولى</div>'+
+          '<div class="ragwan-step-title" id="ragwanStepTitle"></div>'+
+          '<div class="ragwan-step-text" id="ragwanStepText"></div>'+
+          '<div class="ragwan-step-goal" id="ragwanStepGoal"></div>'+
+          '<div class="ragwan-training-grid">'+
+            '<article class="ragwan-training-card"><span>📚</span><b>تعلّم</b><p id="ragwanStepLearn"></p></article>'+
+            '<article class="ragwan-training-card"><span>📝</span><b>طبّق</b><p id="ragwanStepApply"></p></article>'+
+            '<article class="ragwan-training-card"><span>🔎</span><b>تحقق</b><p id="ragwanStepCheck"></p></article>'+
+            '<article class="ragwan-training-card"><span>🏆</span><b>الإنجاز</b><p id="ragwanStepWin"></p></article>'+
+          '</div>'+
+          '<div class="ragwan-task-box"><span>🎯 المطلوب الآن</span><b id="ragwanStepTask"></b></div>'+
+        '</div>'+
+        '<div class="ragwan-step-side">'+
+          '<div class="ragwan-step-big-number" id="ragwanStepNumber">1</div>'+
+          '<div class="ragwan-step-state-pill" id="ragwanStepStatePill">متاحة</div>'+
+          '<div class="ragwan-step-progress"><span id="ragwanStepProgress"></span></div>'+
+          '<div class="ragwan-step-progress-label" id="ragwanStepProgressLabel">0 من 10 مكتملة</div>'+
+          '<button type="button" class="ragwan-step-action" id="ragwanStartBtn" onclick="ragwanStartStep()">▶️ ابدأ الخطوة</button>'+
+          '<button type="button" class="ragwan-step-complete" id="ragwanCompleteBtn" onclick="ragwanCompleteStep()">✅ أكملت الخطوة</button>'+
+          '<button type="button" class="ragwan-step-next" id="ragwanNextBtn" onclick="ragwanEnterNextStep()">الخطوة التالية ←</button>'+
+        '</div>'+
+      '</div>'+
     '</div>'+
     '<div class="ragwan-door-controls"><button type="button" class="ragwan-door-nav" onclick="ragwanPrevDoor()">‹</button>'+chips+'<button type="button" class="ragwan-door-nav" onclick="ragwanNextDoor()">›</button></div>'+
     '<div class="ragwan-journey-note">✨ خطوات بسيطة اليوم... تصنع نجاحات كبيرة غدًا</div>'+
@@ -1367,16 +1511,64 @@ function ragwanDoorJourneyMarkup(){
 }
 let ragwanCurrentStep=1;
 function ragwanOpenDoor(n){
-  const data=ragwanDoorData(),step=Math.max(1,Math.min(10,Number(n)||1)),item=data[step-1];
+  const data=ragwanDoorData(),state=ragwanProgressLoad(),maxOpen=ragwanProgressNextStep(),step=Math.max(1,Math.min(10,Number(n)||1));
+  if(step>maxOpen){toast('🔒 هذه الخطوة مغلقة. أكمل الخطوة السابقة أولًا.');return;}
+  const item=data[step-1],status=ragwanStepStatus(step,state);
   ragwanCurrentStep=step;
-  data.forEach(x=>{const door=document.getElementById('ragwanDoor'+x.n),chip=document.getElementById('ragwanDoorChip'+x.n);if(door)door.classList.toggle('open',x.n===step);if(chip)chip.classList.toggle('active',x.n===step)});
-  const title=document.getElementById('ragwanStepTitle'),text=document.getElementById('ragwanStepText'),goal=document.getElementById('ragwanStepGoal'),num=document.getElementById('ragwanStepNumber'),k=document.getElementById('ragwanStepKicker'),p=document.getElementById('ragwanStepProgress'),pl=document.getElementById('ragwanStepProgressLabel'),openNum=document.getElementById('ragwanOpenDoorNumber'),openIcon=document.getElementById('ragwanOpenDoorIcon'),openLabel=document.getElementById('ragwanOpenDoorLabel');
-  if(title)title.textContent=item.title;if(text)text.textContent=item.text;if(goal)goal.innerHTML='<b>🎯 '+item.goal.split(':')[0]+'</b>'+esc(item.goal.split(':').slice(1).join(':').trim());if(num)num.textContent=step;if(openNum)openNum.textContent=step;if(openIcon)openIcon.textContent=item.icon;if(openLabel)openLabel.textContent=item.title;if(k)k.textContent='الخطوة '+(step===1?'الأولى':step===2?'الثانية':step===3?'الثالثة':step===4?'الرابعة':step===5?'الخامسة':step===6?'السادسة':step===7?'السابعة':step===8?'الثامنة':step===9?'التاسعة':'العاشرة');if(p)p.style.width=(step*10)+'%';if(pl)pl.textContent=step+' من 10';
-  const panel=document.getElementById('ragwanStepPanel');if(panel){panel.animate([{opacity:.55,transform:'translateY(12px) scale(.985)'},{opacity:1,transform:'translateY(0) scale(1)'}],{duration:520,easing:'cubic-bezier(.2,.8,.2,1)'});setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'center'}),80)}
+  data.forEach(x=>{
+    const door=document.getElementById('ragwanDoor'+x.n),chip=document.getElementById('ragwanDoorChip'+x.n),s=ragwanStepStatus(x.n,state);
+    if(door){door.classList.remove('open','active','completed','started','available','locked');door.classList.add(s);door.classList.toggle('open',x.n===step);}
+    if(chip){chip.classList.remove('active','completed','started','available','locked');chip.classList.add(s);chip.classList.toggle('active',x.n===step);}
+  });
+  const title=document.getElementById('ragwanStepTitle'),text=document.getElementById('ragwanStepText'),goal=document.getElementById('ragwanStepGoal'),num=document.getElementById('ragwanStepNumber'),k=document.getElementById('ragwanStepKicker'),p=document.getElementById('ragwanStepProgress'),pl=document.getElementById('ragwanStepProgressLabel'),openNum=document.getElementById('ragwanOpenDoorNumber'),openIcon=document.getElementById('ragwanOpenDoorIcon'),openLabel=document.getElementById('ragwanOpenDoorLabel'),openStatus=document.getElementById('ragwanOpenDoorStatus');
+  if(title)title.textContent=item.title;if(text)text.textContent=item.text;if(goal)goal.innerHTML='<b>🎯 الهدف</b> '+esc(item.goal);
+  if(num)num.textContent=step;if(openNum)openNum.textContent=step;if(openIcon)openIcon.textContent=item.icon;if(openLabel)openLabel.textContent=item.title;if(openStatus)openStatus.textContent=ragwanStatusLabel(status);
+  const ids=[['ragwanStepLearn',item.learn],['ragwanStepApply',item.apply],['ragwanStepCheck',item.check],['ragwanStepWin',item.win],['ragwanStepTask',item.task]];
+  ids.forEach(([id,value])=>{const el=document.getElementById(id);if(el)el.textContent=value;});
+  if(k)k.textContent='الخطوة '+ragwanStepWord(step);
+  if(p)p.style.width=((state.completed.length/10)*100)+'%';
+  if(pl)pl.textContent=state.completed.length+' من 10 مكتملة';
+  const pill=document.getElementById('ragwanStepStatePill');if(pill){pill.textContent=ragwanStatusLabel(status);pill.className='ragwan-step-state-pill '+status;}
+  const startBtn=document.getElementById('ragwanStartBtn'),completeBtn=document.getElementById('ragwanCompleteBtn'),nextBtn=document.getElementById('ragwanNextBtn');
+  if(startBtn){startBtn.disabled=status==='completed';startBtn.textContent=status==='started'?'▶️ أتابع الخطوة':status==='completed'?'✓ مكتملة':'▶️ ابدأ الخطوة';}
+  if(completeBtn){completeBtn.disabled=status==='completed'||status==='locked';completeBtn.textContent=status==='completed'?'✓ تم إكمال الخطوة':'✅ أكملت الخطوة';}
+  if(nextBtn){nextBtn.disabled=status!=='completed'&&step===maxOpen;nextBtn.textContent=step>=10?'🏆 عرض حالة الخطة':'الخطوة التالية ←';}
+  ragwanRenderProgress();
+  const panel=document.getElementById('ragwanStepPanel');if(panel){panel.animate([{opacity:.55,transform:'translateY(12px) scale(.985)'},{opacity:1,transform:'translateY(0) scale(1)'}],{duration:420,easing:'cubic-bezier(.2,.8,.2,1)'});setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'center'}),80)}
 }
-function ragwanEnterNextStep(){ragwanOpenDoor(Math.min(10,ragwanCurrentStep+1));}
+function ragwanStartStep(){
+  const state=ragwanProgressLoad(),step=ragwanCurrentStep;
+  if(state.completed.includes(step))return;
+  if(step!==ragwanProgressNextStep()){toast('🔒 أكمل الخطوة السابقة أولًا.');return;}
+  if(!state.started.includes(step))state.started.push(step);
+  ragwanProgressSave(state);ragwanOpenDoor(step);
+}
+function ragwanCompleteStep(){
+  const state=ragwanProgressLoad(),step=ragwanCurrentStep;
+  if(state.completed.includes(step))return;
+  if(step!==ragwanProgressNextStep()){toast('🔒 أكمل الخطوة السابقة أولًا.');return;}
+  if(!state.started.includes(step))state.started.push(step);
+  state.completed.push(step);state.completed=[...new Set(state.completed)].sort((a,b)=>a-b);
+  ragwanProgressSave(state);
+  ragwanRenderProgress();
+  toast(step===10?'🏆 أحسنت! أكملت خطة رجوان للنجاح كاملة.':'✅ تم تسجيل إنجاز الخطوة '+step+' — فتحت لك الخطوة التالية.');
+  ragwanOpenDoor(step);
+}
+function ragwanEnterNextStep(){
+  const state=ragwanProgressLoad();
+  if(state.completed.includes(ragwanCurrentStep)){
+    const next=Math.min(10,ragwanCurrentStep+1);
+    ragwanOpenDoor(next);
+    return;
+  }
+  ragwanStartStep();
+}
 function ragwanPrevDoor(){ragwanOpenDoor(Math.max(1,ragwanCurrentStep-1));}
-function ragwanNextDoor(){ragwanOpenDoor(Math.min(10,ragwanCurrentStep+1));}
+function ragwanNextDoor(){
+  const state=ragwanProgressLoad(),next=Math.min(10,ragwanCurrentStep+1);
+  if(next>ragwanProgressNextStep()&&!state.completed.includes(ragwanCurrentStep)){toast('🔒 أكمل الخطوة الحالية أولًا.');return;}
+  ragwanOpenDoor(next);
+}
 async function ragwanPlanApi(action,args={}){
   const res=await fetch('/api/ragwan-files',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({args:{p_token:token,action,...args}}),cache:'no-store'});
   const text=await res.text();let out={};try{out=text?JSON.parse(text):{}}catch(_){}
