@@ -122,7 +122,7 @@ async function supabaseStorageRequest(path,method,key,body,timeoutMs){
 async function ensureRagwanBucket(){
   if(!SUPABASE_SECRET_KEY)throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
   const r=await supabaseStorageRequest('/storage/v1/bucket','POST',SUPABASE_SECRET_KEY,{
-    id:'ragwan-plan',name:'ragwan-plan',public:false,file_size_limit:524288000
+    id:'ragwan-plan',name:'ragwan-plan',public:false,file_size_limit:52428800
   },15000);
   if(!r.ok && r.status!==409){
     throw new Error((r.data&&(r.data.message||r.data.error||r.data.statusCode))||r.text||'تعذر تجهيز مساحة الملفات');
@@ -144,7 +144,7 @@ async function ragwanPlanFiles(args){
     const type=String(args.content_type||'application/octet-stream').trim().slice(0,150);
     const size=Number(args.size||0);
     if(!name)throw new Error('اسم الملف مطلوب.');
-    if(!Number.isFinite(size)||size<=0||size>500*1024*1024)throw new Error('حجم الملف يجب ألا يتجاوز 500 MB.');
+    if(!Number.isFinite(size)||size<=0||size>50*1024*1024)throw new Error('حجم الملف يجب ألا يتجاوز 50 MB.');
     const safe=name.replace(/[^\p{L}\p{N}._()\- ]/gu,'_').replace(/\s+/g,' ').trim().slice(0,140)||'file';
     const path=`ragwan/${Date.now()}-${Math.random().toString(36).slice(2,8)}-${safe}`;
     const signed=await supabaseStorageRequest('/storage/v1/object/upload/sign/'+bucket+'/'+encodeURIComponent(path),'POST',SUPABASE_SECRET_KEY,{upsert:false},15000);
