@@ -116,3 +116,28 @@ button.danger{
 .login select{
   background:#fff!important;
 }
+
+/* Community page: semi-transparent content surfaces. */
+.community-page .community-quick,
+.community-page .community-feed-card,
+.community-page .community-side-card,
+.community-page .community-post,
+.community-page .community-event-mini,
+.community-page .community-profile-mini,
+.community-page .community-stat-row,
+.community-page .community-command-card,
+.community-page .community-card,
+.community-page .community-panel{
+  background:rgba(255,255,255,.68)!important;
+  border-color:rgba(255,255,255,.58)!important;
+  box-shadow:0 8px 26px rgba(15,81,63,.10);
+  backdrop-filter:blur(7px);
+  -webkit-backdrop-filter:blur(7px);
+}
+/* Keep the community hero readable while allowing the page background to show through. */
+.community-page .community-hero{
+  background:rgba(8,76,59,.84)!important;
+  backdrop-filter:blur(5px);
+  -webkit-backdrop-filter:blur(5px);
+}
+.community-page .community-floating-card{display:none!important;}
