@@ -1140,7 +1140,7 @@ function initRagwanFiles(){
   if(input&&!input.__ragwanBound){input.__ragwanBound=true;input.addEventListener('change',()=>ragwanUploadFiles(input.files));}
   ragwanLoadFiles();
 }
-\${jsNeedle}
+function trainings(){
   const lessons=(trainingData.lessons||[]).sort((a,b)=>Number(a.lesson_no)-Number(b.lesson_no));
   const progress=trainingData.my_progress||[];
 
