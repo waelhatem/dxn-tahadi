@@ -274,3 +274,16 @@ button.danger{
   background:rgba(255,255,255,.50)!important;
   background-image:none!important;
 }
+
+
+/* Mobile header size adjustment */
+@media (max-width:799px){
+  .login-header-top{
+    aspect-ratio:1920/360!important;
+    min-height:0!important;
+    padding:10px 12px!important;
+    border-radius:0 0 24px 24px!important;
+    background-size:cover!important;
+    background-position:center!important;
+  }
+}
