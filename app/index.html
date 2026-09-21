@@ -1027,7 +1027,9 @@ async function loadRagwanPlanContent(){
 async function switchTrainingSubtab(next){
   if(next!=='lessons'&&next!=='ragwan_success_plan')return;
   trainingSubtab=next;
-  if(next==='ragwan_success_plan')await loadRagwanPlanContent();
+  if(next==='ragwan_success_plan'){
+    try{await loadRagwanPlanContent()}catch(e){console.error('ragwan plan load failed',e);ragwanPlanContent=[];}
+  }
   try{render();requestAnimationFrame(()=>scrollToTabContent('training'))}catch(e){console.error(e);toast('تعذر فتح القسم: '+(e.message||e))}
 }
 let ragwanPlanImageData='';
@@ -1145,7 +1147,7 @@ function trainings(){
       if(x.content_type==='image')return '<div class="ragwan-saved-block"><img src="'+x.image_data+'" alt="محتوى الخطة" style="display:block;width:100%;max-height:900px;object-fit:contain;border-radius:18px"></div>';
       return '<div class="ragwan-saved-block ragwan-saved-text">'+esc(x.text_content||'')+'</div>';
     }).join('');
-    const editor=role==='leader'?'<div class="ragwan-content-entry"><div class="ragwan-content-entry-title">إضافة محتوى للخطة</div><div class="ragwan-content-entry-subtitle">اختر صورة أو اكتب النص، ثم اضغط «رفع المحتوى إلى الموقع» ليظهر لجميع الأعضاء.</div><div class="ragwan-entry-actions"><label class="ragwan-entry-btn">🖼️ اختيار صورة<input id="ragwanPlanImageInput" type="file" accept="image/*" onchange="previewRagwanPlanImage(this)" hidden></label><button type="button" class="ragwan-entry-btn" onclick="focusRagwanPlanText()">✍️ كتابة</button></div><div id="ragwanPlanImagePreview" class="ragwan-plan-image-preview"></div><textarea id="ragwanPlanText" class="ragwan-plan-text" rows="7" placeholder="اكتب تفاصيل الخطة هنا..."></textarea><button id="ragwanPlanSaveBtn" type="button" class="primary" style="width:100%;margin-top:12px;min-height:52px;font-size:18px" onclick="saveRagwanPlanContent()">⬆️ رفع المحتوى إلى الموقع</button></div>':'';
+    const editor=role==='leader'?'<div class="ragwan-content-entry"><div class="ragwan-content-entry-title">📝 إضافة محتوى للخطة</div><div class="ragwan-content-entry-subtitle">يمكنك هنا إضافة تفاصيل الخطة بطريقتين: <b>رفعها كصورة</b> أو <b>كتابتها مباشرة</b>. المحتوى المحفوظ يظهر لجميع الأعضاء داخل هذا التبويب.</div><div class="ragwan-entry-actions"><label class="ragwan-entry-btn">🖼️ اختيار صورة<input id="ragwanPlanImageInput" type="file" accept="image/*" onchange="previewRagwanPlanImage(this)" hidden></label><button type="button" class="ragwan-entry-btn" onclick="focusRagwanPlanText()">✍️ كتابة</button></div><div id="ragwanPlanImagePreview" class="ragwan-plan-image-preview"></div><textarea id="ragwanPlanText" class="ragwan-plan-text" rows="7" placeholder="اكتب تفاصيل الخطة هنا..."></textarea><button id="ragwanPlanSaveBtn" type="button" class="primary" style="width:100%;margin-top:12px;min-height:52px;font-size:18px" onclick="saveRagwanPlanContent()">⬆️ رفع المحتوى إلى الموقع</button></div>':'';
     return subTabs+`<div class="card">
       <div class="title">📘 الخطة الاحترافية لرجوان نجاح</div>
       ${ragwanSuccessIntro()}
