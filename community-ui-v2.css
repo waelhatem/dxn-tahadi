@@ -1,0 +1,110 @@
+/* Community UI V2 — premium glass dashboard over community-dashboard-bg.png */
+:root{
+  --community-green:#0b5b46;
+  --community-green-2:#138266;
+  --community-gold:#d8a33a;
+  --community-ink:#17332b;
+  --community-glass:rgba(255,255,255,.74);
+  --community-glass-dark:rgba(8,45,35,.72);
+  --community-border:rgba(255,255,255,.42);
+  --community-shadow:0 16px 45px rgba(7,39,31,.16);
+}
+body{
+  background:#071d17 url('/community-dashboard-bg.png') center top/cover fixed no-repeat!important;
+  min-height:100vh;
+}
+body:before{
+  content:"";position:fixed;inset:0;z-index:-1;
+  background:linear-gradient(180deg,rgba(4,35,27,.12),rgba(4,35,27,.30));
+  pointer-events:none;
+}
+body.desktop-mode .app, body:not(.mobile-mode) .app{
+  max-width:1480px!important;
+  padding:18px 30px 34px!important;
+}
+.app{position:relative}
+.top{
+  background:linear-gradient(135deg,rgba(6,62,47,.82),rgba(14,101,78,.68))!important;
+  border:1px solid rgba(255,255,255,.28)!important;
+  box-shadow:0 12px 34px rgba(0,0,0,.18)!important;
+  backdrop-filter:blur(16px)!important;
+  -webkit-backdrop-filter:blur(16px);
+}
+body.desktop-mode .top, body:not(.mobile-mode) .top{
+  border-radius:24px!important;
+}
+.login-header-top{
+  background-image:linear-gradient(90deg,rgba(3,35,27,.18),rgba(3,35,27,.02)),url('/community-dashboard-bg.png')!important;
+  background-size:cover!important;
+  background-position:center!important;
+  border-radius:24px!important;
+  border:1px solid rgba(255,255,255,.28)!important;
+  box-shadow:var(--community-shadow)!important;
+  min-height:310px!important;
+}
+.tabs{
+  gap:10px!important;
+  padding:10px!important;
+  border-radius:20px!important;
+  background:rgba(4,43,33,.54)!important;
+  border:1px solid rgba(255,255,255,.22)!important;
+  box-shadow:var(--community-shadow)!important;
+  backdrop-filter:blur(14px)!important;
+  -webkit-backdrop-filter:blur(14px);
+}
+.tabs .tab{
+  background:rgba(255,255,255,.78)!important;
+  border:1px solid rgba(255,255,255,.55)!important;
+  color:var(--community-ink)!important;
+  box-shadow:0 7px 18px rgba(5,39,30,.10)!important;
+  transition:transform .18s ease,background .18s ease,box-shadow .18s ease!important;
+}
+.tabs .tab:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(5,39,30,.16)!important}
+.tabs .tab.active{
+  background:linear-gradient(135deg,var(--community-green),var(--community-green-2))!important;
+  color:#fff!important;
+  border-color:rgba(255,255,255,.32)!important;
+}
+.card,.stat,.challenge,.question,.next-step-card,.level-card,.daily-mission-card,.target-card{
+  background:var(--community-glass)!important;
+  border:1px solid var(--community-border)!important;
+  box-shadow:var(--community-shadow)!important;
+  backdrop-filter:blur(15px)!important;
+  -webkit-backdrop-filter:blur(15px);
+}
+.stats .stat{background:rgba(255,255,255,.72)!important}
+.nav{
+  background:rgba(5,48,37,.70)!important;
+  border:1px solid rgba(255,255,255,.24)!important;
+  backdrop-filter:blur(14px)!important;
+}
+body.desktop-mode .nav, body:not(.mobile-mode) .nav{
+  border-radius:18px!important;
+}
+.nav button{
+  color:#fff!important;
+  background:rgba(255,255,255,.10)!important;
+  border:1px solid rgba(255,255,255,.18)!important;
+}
+button.primary{
+  background:linear-gradient(135deg,#0b684f,#18a077)!important;
+  box-shadow:0 8px 18px rgba(11,104,79,.22)!important;
+}
+button.gold{box-shadow:0 8px 18px rgba(168,119,20,.12)!important}
+.view-switch{
+  background:rgba(255,255,255,.72)!important;
+  backdrop-filter:blur(12px)!important;
+  -webkit-backdrop-filter:blur(12px);
+}
+@media(min-width:800px){
+  .tabs{display:grid!important;grid-template-columns:repeat(8,minmax(0,1fr));overflow:visible!important}
+  .tabs .tab{min-width:0!important;height:58px!important;padding:9px 7px!important}
+  .app>.card,.app>.smart-columns,.app>.stats{position:relative}
+}
+@media(max-width:799px){
+  body{background-attachment:scroll!important}
+  .app{padding:10px 10px 90px!important}
+  .login-header-top{min-height:260px!important}
+  .tabs{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .tabs .tab:last-child{grid-column:auto!important}
+}
