@@ -404,8 +404,10 @@ function renderLogin(){
   const savedRole=localStorage.getItem('dxn_login_role')||'member';
 
   $('app').innerHTML=`<form id="loginForm" class="login card" autocomplete="on" novalidate>
-    <div class="login-header-wrap">
-      <img class="login-header-image" src="/login-header.png" alt="مجتمع الصحة والثراء">
+    <div style="text-align:center">
+      <img class="logo" src="/logo.png" alt="شعار مجتمع الصحة والثراء">
+      <h1>مجتمع الصحة والثراء</h1>
+      <p class="muted">دخول موحد من أي جهاز</p>
     </div>
     <label for="role">نوع الدخول</label>
     <select id="role" name="loginRole">
@@ -3635,9 +3637,6 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 <script src="login-scene.js?v=86.65"></script>
 
 <style>
-.login-header-wrap{width:100%;margin:0 0 18px;border-radius:18px;overflow:hidden;line-height:0;background:#fff}
-.login-header-image{display:block;width:100%;height:auto;max-height:260px;object-fit:cover;margin:0 auto}
-@media(max-width:560px){.login-header-wrap{margin-bottom:16px;border-radius:16px}.login-header-image{max-height:220px;object-fit:cover}}
 /* V87.4 — Mobile training feature cards: visual-only enhancement, existing actions unchanged. */
 .training-feature-tabs{display:flex;gap:14px;margin:0 0 18px;direction:rtl}
 .training-feature-card{position:relative;isolation:isolate;overflow:hidden;flex:1;min-height:112px;border:0;border-radius:22px;padding:20px 22px;background:#fff;box-shadow:0 8px 24px rgba(15,81,63,.12);cursor:pointer;text-align:right;display:flex;align-items:center;gap:16px;transition:transform .25s ease,box-shadow .25s ease}
