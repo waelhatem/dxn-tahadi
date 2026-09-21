@@ -82,6 +82,39 @@ async function ragwanPlanFiles(args){
     if(!signed.ok)throw new Error((signed.data&&(signed.data.message||signed.data.error))||signed.text||'تعذر إنشاء رابط الرفع.');
     return {path,name:safe,content_type:type,size,token:signed.data&&signed.data.token,signed_url:absoluteSupabaseStorageUrl(signed.data&&signed.data.signedURL)};
   }
+  if(action==='sign_evidence_upload'){
+    if(role!=='member')throw new Error('إثباتات الخطوات متاحة للأعضاء فقط.');
+    await ensureRagwanBucket();
+    const step=Math.max(1,Math.min(10,Number(args.step)||0));
+    if(!step)throw new Error('رقم الخطوة غير صالح.');
+    const name=String(args.name||'voice-evidence.webm').trim();
+    const type=String(args.content_type||'audio/webm').trim().slice(0,150);
+    const size=Number(args.size||0);
+    if(!Number.isFinite(size)||size<=0||size>25*1024*1024)throw new Error('حجم إثبات الصوت يجب ألا يتجاوز 25 MB.');
+    const memberKey=String(boot.member_no||boot.membership_no||boot.membership_number||boot.username||'member').replace(/[^\p{L}\p{N}_-]/gu,'_').slice(0,80)||'member';
+    const safe=name.replace(/[^\p{L}\p{N}._()\- ]/gu,'_').replace(/\s+/g,' ').trim().slice(0,100)||'evidence.webm';
+    const path=\`evidence/\${memberKey}/step-\${step}-\${Date.now()}-\${safe}\`;
+    const signed=await supabaseStorageRequest('/storage/v1/object/upload/sign/'+bucket+'/'+encodeURIComponent(path),'POST',SUPABASE_SECRET_KEY,{upsert:false},15000);
+    if(!signed.ok)throw new Error((signed.data&&(signed.data.message||signed.data.error))||signed.text||'تعذر إنشاء رابط رفع الإثبات.');
+    return {path,name:safe,content_type:type,size,step,member_no:boot.member_no||boot.membership_no||null,token:signed.data&&signed.data.token,signed_url:absoluteSupabaseStorageUrl(signed.data&&signed.data.signedURL)};
+  }
+  if(action==='evidence_list'){
+    const memberKey=String(boot.member_no||boot.membership_no||boot.membership_number||boot.username||'member').replace(/[^\p{L}\p{N}_-]/gu,'_').slice(0,80)||'member';
+    const prefix=role==='leader'?'evidence/':\`evidence/\${memberKey}/\`;
+    const listed=await supabaseStorageRequest('/storage/v1/object/list/'+bucket,'POST',SUPABASE_SECRET_KEY,{prefix,limit:500,offset:0},15000);
+    if(!listed.ok)throw new Error((listed.data&&(listed.data.message||listed.data.error))||listed.text||'تعذر تحميل إثباتات الخطوات.');
+    const items=Array.isArray(listed.data)?listed.data:[],paths=items.map(x=>String(x.name||'')).filter(Boolean).map(n=>prefix.endsWith('/')?prefix+n:n);
+    let signedMap={};
+    if(paths.length){
+      const sr=await supabaseStorageRequest('/storage/v1/object/sign/'+bucket,'POST',SUPABASE_SECRET_KEY,{expiresIn:3600,paths},15000);
+      if(sr.ok){const rows=Array.isArray(sr.data)?sr.data:[];rows.forEach(x=>{if(x&&x.path)signedMap[x.path]=absoluteSupabaseStorageUrl(x.signedURL||x.signedUrl||'')});}
+    }
+    return {files:items.map(x=>{
+      const raw=String(x.name||''),path=prefix.endsWith('/')?prefix+raw:raw;
+      const match=raw.match(/step-(\d+)-/i);
+      return {name:raw,path,step:match?Number(match[1]):null,created_at:x.created_at||x.updated_at||null,size:Number(x.metadata&&x.metadata.size||0),mime:String(x.metadata&&x.metadata.mimetype||x.metadata&&x.metadata.contentType||''),url:signedMap[path]||''};
+    })};
+  }
   if(action==='list'){
     const listed=await supabaseStorageRequest('/storage/v1/object/list/'+bucket,'POST',SUPABASE_SECRET_KEY,{prefix:'ragwan/',limit:100,offset:0},15000);
     if(!listed.ok)throw new Error((listed.data&&(listed.data.message||listed.data.error))||listed.text||'تعذر تحميل الملفات.');
