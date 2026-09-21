@@ -93,14 +93,14 @@ async function ragwanPlanFiles(args){
     if(!Number.isFinite(size)||size<=0||size>25*1024*1024)throw new Error('حجم إثبات الصوت يجب ألا يتجاوز 25 MB.');
     const memberKey=String(boot.member_no||boot.membership_no||boot.membership_number||boot.username||'member').replace(/[^\p{L}\p{N}_-]/gu,'_').slice(0,80)||'member';
     const safe=name.replace(/[^\p{L}\p{N}._()\- ]/gu,'_').replace(/\s+/g,' ').trim().slice(0,100)||'evidence.webm';
-    const path=\`evidence/\${memberKey}/step-\${step}-\${Date.now()}-\${safe}\`;
+    const path=`evidence/${memberKey}/step-${step}-${Date.now()}-${safe}`;
     const signed=await supabaseStorageRequest('/storage/v1/object/upload/sign/'+bucket+'/'+encodeURIComponent(path),'POST',SUPABASE_SECRET_KEY,{upsert:false},15000);
     if(!signed.ok)throw new Error((signed.data&&(signed.data.message||signed.data.error))||signed.text||'تعذر إنشاء رابط رفع الإثبات.');
     return {path,name:safe,content_type:type,size,step,member_no:boot.member_no||boot.membership_no||null,token:signed.data&&signed.data.token,signed_url:absoluteSupabaseStorageUrl(signed.data&&signed.data.signedURL)};
   }
   if(action==='evidence_list'){
     const memberKey=String(boot.member_no||boot.membership_no||boot.membership_number||boot.username||'member').replace(/[^\p{L}\p{N}_-]/gu,'_').slice(0,80)||'member';
-    const prefix=role==='leader'?'evidence/':\`evidence/\${memberKey}/\`;
+    const prefix=role==='leader'?'evidence/':`evidence/${memberKey}/`;
     const listed=await supabaseStorageRequest('/storage/v1/object/list/'+bucket,'POST',SUPABASE_SECRET_KEY,{prefix,limit:500,offset:0},15000);
     if(!listed.ok)throw new Error((listed.data&&(listed.data.message||listed.data.error))||listed.text||'تعذر تحميل إثباتات الخطوات.');
     const items=Array.isArray(listed.data)?listed.data:[],paths=items.map(x=>String(x.name||'')).filter(Boolean).map(n=>prefix.endsWith('/')?prefix+n:n);
