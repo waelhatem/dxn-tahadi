@@ -765,7 +765,7 @@ function memberPathMap(){
 }
 
 function canAccessTraining(){return (role==='member'&&!!me&&/^\d{9}$/.test(String(me.member_no||'')))||role==='leader';}
-function nav(){return `<div class="nav"><button onclick="switchTab('home')">🏠<br><span class="small">الرئيسية</span></button><button onclick="switchTab('notifications')">🔔<br><span class="small">الإشعارات ${notificationSummary().unread.length?`(${notificationSummary().unread.length})`:''}</span></button><button onclick="switchTab('ch')">🎯<br><span class="small">التحديات</span></button><button onclick="switchTab('teams')">👥<br><span class="small">الأعضاء والفرق</span></button>${role==='member'&&me?`<button onclick="switchTab('progress')">📊<br><span class="small">تقدّمي</span></button>`:''}${canAccessTraining()?`<button onclick="switchTab('training')">📚<br><span class="small">التدريبات</span></button>`:''}${role==='leader'?`<button onclick="switchTab('leader')">👑<br><span class="small">القائد</span></button>`:''}<button onclick="switchTab('advanced')">🚀<br><span class="small">المركز</span></button></div>`}
+function nav(){return `<div class="nav"><button onclick="switchTab('home')">🏠<br><span class="small">الرئيسية</span></button><button onclick="switchTab('notifications')">🔔<br><span class="small">الإشعارات ${notificationSummary().unread.length?`(${notificationSummary().unread.length})`:''}</span></button><button onclick="switchTab('ch')">🎯<br><span class="small">التحديات</span></button><button onclick="switchTab('teams')">👥<br><span class="small">الأعضاء والفرق</span></button>${role==='member'&&me?`<button onclick="switchTab('progress')">📊<br><span class="small">تقدّمي</span></button>`:''}${canAccessTraining()?`<button onclick="switchTab('training')">📚<br><span class="small">التدريبات</span></button>`:''}${role==='leader'?`<button onclick="switchTab('leader')">👑<br><span class="small">القائد</span></button>`:''}<button onclick="switchTab('advanced')">🚀<br><span class="small">المركز</span></button><button class="tab community-tab" type="button">🌐<br><span class="small">المجتمع</span></button></div>`}
 
 function notificationStorageKey(){return `dxn_notifications_seen_${role==='member'?(me?.id||'member'):'leader'}`}
 function getSeenNotifications(){try{return JSON.parse(localStorage.getItem(notificationStorageKey())||'[]')}catch{return[]}}
@@ -3481,6 +3481,8 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 @media (max-width:600px){.dxn-inapp-nav{bottom:10px}.dxn-nav-btn{min-width:90px;padding:9px 10px;font-size:14px}}
 @media (prefers-reduced-motion:reduce){.dxn-inapp-nav{scroll-behavior:auto}}
 @media (min-width:800px){.app-copyright-footer{padding-bottom:28px}}
+
+.community-tab{background:linear-gradient(135deg,#7c3aed,#a855f7)!important;color:#fff!important;border:2px solid #c084fc!important;box-shadow:0 7px 18px rgba(124,58,237,.24)!important}.community-tab:hover{background:linear-gradient(135deg,#6d28d9,#9333ea)!important;transform:translateY(-1px)}
 </style>
 <script>
 /* V81 Universal Internal i18n — exhaustive UI fallback
