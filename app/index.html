@@ -1090,7 +1090,7 @@ function ragwanSuccessIntro(){
 </div>`;
 }
 async function ragwanPlanApi(action,args={}){
-  const res=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn:'ragwan_plan_files',args:{p_token:token,action,...args}}),cache:'no-store'});
+  const res=await fetch('/api/ragwan-files',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({args:{p_token:token,action,...args}}),cache:'no-store'});
   const text=await res.text();let out={};try{out=text?JSON.parse(text):{}}catch(_){}
   if(!res.ok||!out.ok)throw new Error(out.error||`تعذر تنفيذ العملية (${res.status})`);
   return out;
