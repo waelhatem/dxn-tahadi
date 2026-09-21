@@ -119,6 +119,12 @@ async function supabaseStorageRequest(path,method,key,body,timeoutMs){
     request.end();
   });
 }
+function absoluteSupabaseStorageUrl(value){
+  const raw=String(value||'').trim();
+  if(!raw)return '';
+  if(/^https?:\\/\\//i.test(raw))return raw;
+  return SUPABASE_URL + (raw.startsWith('/')?'':'/') + raw;
+}
 async function ensureRagwanBucket(){
   if(!SUPABASE_SECRET_KEY)throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
   const r=await supabaseStorageRequest('/storage/v1/bucket','POST',SUPABASE_SECRET_KEY,{
@@ -150,7 +156,7 @@ async function ragwanPlanFiles(args){
     const path=`ragwan/${Date.now()}-${Math.random().toString(36).slice(2,8)}-${safe}`;
     const signed=await supabaseStorageRequest('/storage/v1/object/upload/sign/'+bucket+'/'+encodeURIComponent(path),'POST',SUPABASE_SECRET_KEY,{upsert:false},15000);
     if(!signed.ok)throw new Error((signed.data&&(signed.data.message||signed.data.error))||signed.text||'تعذر إنشاء رابط الرفع.');
-    return {path,name:safe,content_type:type,size,token:signed.data&&signed.data.token,signed_url:signed.data&&signed.data.signedURL};
+    return {path,name:safe,content_type:type,size,token:signed.data&&signed.data.token,signed_url:absoluteSupabaseStorageUrl(signed.data&&signed.data.signedURL)};
   }
   if(action==='list'){
     const listed=await supabaseStorageRequest('/storage/v1/object/list/'+bucket,'POST',SUPABASE_SECRET_KEY,{prefix:'ragwan/',limit:100,offset:0},15000);
@@ -162,7 +168,7 @@ async function ragwanPlanFiles(args){
       const sr=await supabaseStorageRequest('/storage/v1/object/sign/'+bucket,'POST',SUPABASE_SECRET_KEY,{expiresIn:3600,paths},15000);
       if(sr.ok){
         const rows=Array.isArray(sr.data)?sr.data:[];
-        rows.forEach(x=>{if(x&&x.path)signedMap[x.path]=x.signedURL||x.signedUrl||''});
+        rows.forEach(x=>{if(x&&x.path)signedMap[x.path]=absoluteSupabaseStorageUrl(x.signedURL||x.signedUrl||'')});
       }
     }
     return {files:items.map(x=>{const path='ragwan/'+String(x.name||'');return {name:x.name||'file',path,created_at:x.created_at||x.updated_at||null,size:Number(x.metadata&&x.metadata.size||0),mime:String(x.metadata&&x.metadata.mimetype||x.metadata&&x.metadata.contentType||''),url:signedMap[path]||''}})};
