@@ -51,7 +51,8 @@ async function supabaseStorageRequest(path,method,key,body,timeoutMs){
 function absoluteSupabaseStorageUrl(value){
   const raw=String(value||'').trim();if(!raw)return '';
   if(/^https?:\/\//i.test(raw))return raw;
-  return SUPABASE_URL+(raw.startsWith('/')?'':'/')+raw;
+  const path=raw.startsWith('/')?raw:'/'+raw;
+  return SUPABASE_URL+(path.startsWith('/storage/v1/')?path:'/storage/v1'+path);
 }
 async function ensureRagwanBucket(){
   if(!SUPABASE_SECRET_KEY)throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
