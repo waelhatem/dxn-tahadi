@@ -253,3 +253,24 @@ button.danger{
 .ragwan-step-section-item{
   border-color:rgba(255,255,255,.55)!important;
 }
+
+/* Final 50/50 override for the Professional Plan container itself.
+   The parent journey was opaque, which prevented transparent child cards from revealing the page background. */
+.ragwan-journey{
+  background:rgba(236,244,240,.50)!important;
+  background-image:none!important;
+  backdrop-filter:blur(4px)!important;
+  -webkit-backdrop-filter:blur(4px)!important;
+}
+.ragwan-files-box,
+.ragwan-file-card,
+.ragwan-file-media,
+.ragwan-step-section,
+.ragwan-step-section-item{
+  background:rgba(255,255,255,.50)!important;
+  background-image:none!important;
+}
+.ragwan-ref-hero{
+  background:rgba(255,255,255,.50)!important;
+  background-image:none!important;
+}
