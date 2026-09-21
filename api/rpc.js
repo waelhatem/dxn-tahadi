@@ -266,6 +266,16 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid RPC name' });
     }
 
+    if (fn === 'ragwan_plan_files') {
+      try {
+        const result = await ragwanPlanFiles(args);
+        return res.status(200).json({ok:true,...result});
+      } catch (error) {
+        console.error('ragwan_plan_files error:',error);
+        return res.status(400).json({ok:false,error:String(error&&error.message||error)});
+      }
+    }
+
     if (fn === 'generate_training_answer') {
       try {
         const question = await generateIdealTrainingAnswer({
