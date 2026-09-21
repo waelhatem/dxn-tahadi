@@ -1879,7 +1879,12 @@ function ragwanOpenDoor(n){
   ragwanRenderStepTest();
   ragwanLoadStepResources().then(()=>{
     const heading=document.getElementById('ragwanStepTitle');
-    if(heading) setTimeout(()=>heading.scrollIntoView({behavior:'smooth',block:'center'}),180);
+    if(heading) setTimeout(()=>{
+      const top=window.scrollY+heading.getBoundingClientRect().top-Math.max(90,window.innerWidth<=620?78:90);
+      window.scrollTo({top:Math.max(0,top),behavior:'smooth'});
+      document.documentElement.scrollLeft=0;
+      document.body.scrollLeft=0;
+    },180);
   });
   if(k)k.textContent='الخطوة '+ragwanStepWord(step);
   if(p)p.style.width=((state.completed.length/10)*100)+'%';
@@ -1891,7 +1896,15 @@ function ragwanOpenDoor(n){
   if(nextBtn){nextBtn.disabled=status!=='completed'&&step===maxOpen;nextBtn.textContent=step>=10?'🏆 عرض حالة الخطة':'الخطوة التالية ←';}
   ragwanRenderProgress();
   ragwanLoadEvidence();
-  const panel=document.getElementById('ragwanStepPanel');if(panel){panel.animate([{opacity:.55,transform:'translateY(12px) scale(.985)'},{opacity:1,transform:'translateY(0) scale(1)'}],{duration:420,easing:'cubic-bezier(.2,.8,.2,1)'});setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'center'}),80)}
+  const panel=document.getElementById('ragwanStepPanel');if(panel){
+    panel.animate([{opacity:.55,transform:'translateY(12px) scale(.985)'},{opacity:1,transform:'translateY(0) scale(1)'}],{duration:420,easing:'cubic-bezier(.2,.8,.2,1)'});
+    setTimeout(()=>{
+      const top=window.scrollY+panel.getBoundingClientRect().top-Math.max(90,window.innerWidth<=620?78:90);
+      window.scrollTo({top:Math.max(0,top),behavior:'smooth'});
+      document.documentElement.scrollLeft=0;
+      document.body.scrollLeft=0;
+    },80);
+  }
 }
 function ragwanStartStep(){
   const state=ragwanProgressLoad(),step=ragwanCurrentStep;
