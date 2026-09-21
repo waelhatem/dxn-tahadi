@@ -225,7 +225,7 @@ function validateDXNAge18(birthDate){
     : {ok:false, age, message:'⚠️ عذرًا، يشترط أن يكون عمر المتقدم 18 سنة أو أكثر للتسجيل.'};
 }
 
-const C=window.DXN_CONFIG||{};const SESSION_MAX_MS=12*60*60*1000;let sb=null,token=localStorage.getItem('dxn_session')||'',me=null,role=null,data=null,tab='home',trainingSubtab='lessons',membershipRequests=[],prospectRequests=[],monthlyPointRequests=[],trainingData={lessons:[],my_progress:[],member_progress:[]},trainingWatch={player:null,timer:null,guardTimer:null,lessonId:null,videoId:null,invalid:false,maxWatchedSeconds:0,lastSampleSeconds:0,suppressSeek:false},siteVisitStats={};
+const C=window.DXN_CONFIG||{};const SESSION_MAX_MS=12*60*60*1000;let sb=null,token=localStorage.getItem('dxn_session')||'',me=null,role=null,data=null,tab='home',trainingSubtab='lessons',ragwanPlanContent=[],ragwanPlanImageData='',membershipRequests=[],prospectRequests=[],monthlyPointRequests=[],trainingData={lessons:[],my_progress:[],member_progress:[]},trainingWatch={player:null,timer:null,guardTimer:null,lessonId:null,videoId:null,invalid:false,maxWatchedSeconds:0,lastSampleSeconds:0,suppressSeek:false},siteVisitStats={};
 const $=id=>document.getElementById(id); const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(s){$('toast').textContent=s;$('toast').classList.remove('hidden');setTimeout(()=>$('toast').classList.add('hidden'),2600)}
 
@@ -1015,26 +1015,84 @@ function ideaTrustVideos(){
   </div>`;
   renderViewSwitch();
 }
-function switchTrainingSubtab(next){
+async function loadRagwanPlanContent(){
+  try{
+    const rows=await rpc('get_ragwan_success_plan_content',{p_token:token});
+    ragwanPlanContent=Array.isArray(rows)?rows:(typeof rows==='string'?JSON.parse(rows||'[]'):[]);
+  }catch(e){
+    console.error('ragwan plan content load failed',e);
+    ragwanPlanContent=[];
+  }
+}
+async function switchTrainingSubtab(next){
   if(next!=='lessons'&&next!=='ragwan_success_plan')return;
   trainingSubtab=next;
+  if(next==='ragwan_success_plan')await loadRagwanPlanContent();
   try{render();requestAnimationFrame(()=>scrollToTabContent('training'))}catch(e){console.error(e);toast('تعذر فتح القسم: '+(e.message||e))}
 }
+let ragwanPlanImageData='';
 function previewRagwanPlanImage(input){
-  const box=document.getElementById('ragwanPlanImagePreview');
-  if(!box)return;
-  box.innerHTML='';
   const file=input&&input.files&&input.files[0];
   if(!file)return;
-  if(!file.type.startsWith('image/')){toast('يرجى اختيار ملف صورة فقط');input.value='';return;}
+  if(!file.type.startsWith('image/')){toast('اختر ملف صورة فقط.');return;}
   const reader=new FileReader();
-  reader.onload=()=>{box.innerHTML=`<img src="${reader.result}" alt="صورة من خطة رجوان نجاح" style="max-width:100%;height:auto;display:block;margin:0 auto;border-radius:16px">`;};
+  reader.onload=()=>{
+    const img=new Image();
+    img.onload=()=>{
+      const max=1600;
+      const scale=Math.min(1,max/Math.max(img.width,img.height));
+      const w=Math.max(1,Math.round(img.width*scale));
+      const h=Math.max(1,Math.round(img.height*scale));
+      const canvas=document.createElement('canvas');
+      canvas.width=w;canvas.height=h;
+      const ctx=canvas.getContext('2d');
+      ctx.drawImage(img,0,0,w,h);
+      ragwanPlanImageData=canvas.toDataURL('image/jpeg',0.78);
+      const box=document.getElementById('ragwanPlanImagePreview');
+      if(box)box.innerHTML='<div class="muted" style="margin-bottom:8px">✅ الصورة جاهزة للرفع إلى الموقع</div><img src="'+ragwanPlanImageData+'" alt="معاينة صورة الخطة" style="max-width:100%;max-height:360px;border-radius:14px;display:block;margin:auto;box-shadow:0 8px 22px rgba(0,0,0,.12)">';
+    };
+    img.src=reader.result;
+  };
   reader.readAsDataURL(file);
 }
 function focusRagwanPlanText(){
   const el=document.getElementById('ragwanPlanText');
   if(el){el.focus();el.scrollIntoView({behavior:'smooth',block:'center'});}
 }
+async function saveRagwanPlanContent(){
+  if(role!=='leader'){toast('إضافة محتوى الخطة متاحة للقائد فقط.');return;}
+  const textValue=(document.getElementById('ragwanPlanText')?.value||'').trim();
+  const imageValue=ragwanPlanImageData;
+  if(!textValue&&!imageValue){toast('اختر صورة أو اكتب المحتوى أولاً.');return;}
+  try{
+    const btn=document.getElementById('ragwanPlanSaveBtn');
+    if(btn){btn.disabled=true;btn.textContent='⏳ جارٍ الرفع...';}
+    if(imageValue)await rpc('save_ragwan_success_plan_content',{p_token:token,p_content_type:'image',p_text_content:null,p_image_data:imageValue});
+    if(textValue)await rpc('save_ragwan_success_plan_content',{p_token:token,p_content_type:'text',p_text_content:textValue,p_image_data:null});
+    ragwanPlanImageData='';
+    await loadRagwanPlanContent();
+    render();
+    toast('✅ تم رفع المحتوى إلى الموقع بنجاح.');
+  }catch(e){
+    console.error(e);
+    toast('تعذر رفع المحتوى: '+(e?.message||e));
+  }finally{
+    const btn=document.getElementById('ragwanPlanSaveBtn');
+    if(btn){btn.disabled=false;btn.textContent='⬆️ رفع المحتوى إلى الموقع';}
+  }
+}
+<style id="ragwan-plan-content-style">
+.ragwan-saved-content{margin:18px auto 0;max-width:1100px}
+.ragwan-saved-block{margin:18px 0;background:#fff;border:1px solid #dce8e3;border-radius:20px;padding:14px;box-shadow:0 8px 24px rgba(15,81,63,.08)}
+.ragwan-saved-text{padding:24px;text-align:right;line-height:2;font-size:20px;font-weight:750;white-space:pre-wrap}
+.ragwan-content-entry{margin:22px auto 0;max-width:1100px;padding:24px;border:2px dashed #9bc7b8;border-radius:20px;background:#f8fcfa}
+.ragwan-content-entry-title{font-size:22px;font-weight:950;color:#0f513f}
+.ragwan-content-entry-subtitle{margin:7px 0 16px;color:#66746f;line-height:1.8}
+.ragwan-entry-actions{display:flex;gap:10px;flex-wrap:wrap}
+.ragwan-entry-btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:10px 18px;border:1px solid #b8d8cc;border-radius:12px;background:#fff;color:#0f513f;font-weight:900;cursor:pointer}
+.ragwan-plan-text{width:100%;margin-top:14px;min-height:170px;border:1px solid #cbded6;border-radius:14px;padding:14px;box-sizing:border-box;resize:vertical;font:inherit;background:#fff}
+.ragwan-plan-image-preview{margin-top:14px}
+</style>
 function ragwanSuccessIntro(){
   const line1='الخطوات العشرة لبناء فريق قوي';
   const line2='10 خطوات ستنقلك نقلة نوعية في العمل الاحترافي مع شركة DXN';
@@ -1084,25 +1142,18 @@ function trainings(){
   </div>`;
 
   if(trainingSubtab==='ragwan_success_plan'){
+    const savedBlocks=ragwanPlanContent.map(x=>{
+      if(x.content_type==='image')return '<div class="ragwan-saved-block"><img src="'+x.image_data+'" alt="محتوى الخطة" style="display:block;width:100%;max-height:900px;object-fit:contain;border-radius:18px"></div>';
+      return '<div class="ragwan-saved-block ragwan-saved-text">'+esc(x.text_content||'')+'</div>';
+    }).join('');
+    const editor=role==='leader'?'<div class="ragwan-content-entry"><div class="ragwan-content-entry-title">إضافة محتوى للخطة</div><div class="ragwan-content-entry-subtitle">اختر صورة أو اكتب النص، ثم اضغط «رفع المحتوى إلى الموقع» ليظهر لجميع الأعضاء.</div><div class="ragwan-entry-actions"><label class="ragwan-entry-btn">🖼️ اختيار صورة<input id="ragwanPlanImageInput" type="file" accept="image/*" onchange="previewRagwanPlanImage(this)" hidden></label><button type="button" class="ragwan-entry-btn" onclick="focusRagwanPlanText()">✍️ كتابة</button></div><div id="ragwanPlanImagePreview" class="ragwan-plan-image-preview"></div><textarea id="ragwanPlanText" class="ragwan-plan-text" rows="7" placeholder="اكتب تفاصيل الخطة هنا..."></textarea><button id="ragwanPlanSaveBtn" type="button" class="primary" style="width:100%;margin-top:12px;min-height:52px;font-size:18px" onclick="saveRagwanPlanContent()">⬆️ رفع المحتوى إلى الموقع</button></div>':'';
     return subTabs+`<div class="card">
       <div class="title">📘 الخطة الاحترافية لرجوان نجاح</div>
       ${ragwanSuccessIntro()}
-      <div class="ragwan-content-entry">
-        <div class="ragwan-content-entry-title">إضافة محتوى للخطة</div>
-        <div class="ragwan-content-entry-subtitle">يمكنك إضافة تفاصيل الخطة كصورة أو كتابتها مباشرة.</div>
-        <div class="ragwan-entry-actions">
-          <label class="ragwan-entry-btn">
-            🖼️ رفع ملف كصورة
-            <input id="ragwanPlanImageInput" type="file" accept="image/*" onchange="previewRagwanPlanImage(this)" hidden>
-          </label>
-          <button type="button" class="ragwan-entry-btn" onclick="focusRagwanPlanText()">✍️ كتابة</button>
-        </div>
-        <div id="ragwanPlanImagePreview" class="ragwan-plan-image-preview"></div>
-        <textarea id="ragwanPlanText" class="ragwan-plan-text" rows="7" placeholder="اكتب تفاصيل الخطة هنا..."></textarea>
-      </div>
+      <div id="ragwanPlanSavedContent" class="ragwan-saved-content">${savedBlocks}</div>
+      ${editor}
     </div>`;
   }
-
   if(!canAccessTraining())return subTabs+`<div class="card"><div class="title">🔒 التدريب للأعضاء والقائد</div><p class="muted">هذا القسم متاح للعضو صاحب رقم عضوية DXN وللقائد.</p></div>`;
   if(!lessons.length)return subTabs+`<div class="card"><div class="title">📚 الشروحات والتدريبات</div><p class="muted">لم تتم إضافة تدريبات بعد. يمكن للقائد إضافة روابط YouTube من مركز القيادة.</p>${role==='leader'?`<button class="primary" onclick="openTrainingManager()">➕ إضافة أول تدريب</button>`:''}</div>`;
 
