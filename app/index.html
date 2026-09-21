@@ -1027,7 +1027,7 @@ function trainings(){
   }
 
   if(!canAccessTraining())return subTabs+`<div class="card"><div class="title">🔒 التدريب للأعضاء والقائد</div><p class="muted">هذا القسم متاح للعضو صاحب رقم عضوية DXN وللقائد.</p></div>`;
-  if(!lessons.length)return subTabs+`<div class="card"><div class="title">📚 الشروحات والتدريبات</div><p class="muted">لم تتم إضافة تدريبات بعد. يمكن للقائد إضافة روابط YouTube من مركز القيادة.</p>${role==='leader'?\`<button class="primary" onclick="openTrainingManager()">➕ إضافة أول تدريب</button>\`:''}</div>`;
+  if(!lessons.length)return subTabs+`<div class="card"><div class="title">📚 الشروحات والتدريبات</div><p class="muted">لم تتم إضافة تدريبات بعد. يمكن للقائد إضافة روابط YouTube من مركز القيادة.</p>${role==='leader'?`<button class="primary" onclick="openTrainingManager()">➕ إضافة أول تدريب</button>`:''}</div>`;
 
   const completedNo=new Set(progress.filter(p=>p.completed).map(p=>{
     const l=lessons.find(x=>String(x.id)===String(p.lesson_id)); return l?Number(l.lesson_no):0;
