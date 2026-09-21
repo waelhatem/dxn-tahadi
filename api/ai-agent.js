@@ -70,6 +70,102 @@ function openai(payload){
   });
 }
 
+const OBJECTIONS_KNOWLEDGE_PACK=[
+  {
+    category:'objections_training',
+    title:'رد الاعتراضات — الرؤية الأساسية',
+    content:'المصدر: ملف «الاعتراضات — رؤية شاملة ومعالجة فاعلة» للم. محمود المصري، 50 صفحة. الاعتراض فرصة للتعرف على ما يدور في ذهن الشريك المحتمل، وقد يكون أقوى فرصة للاقتراب منه. الاعتراضات أسئلة تحتاج إقناعًا، والتعامل معها يحتاج فهمًا وتدريبًا. مكونات الاعتراض: المعترض، الاعتراض عليه، ونوع الاعتراض.'
+  },
+  {
+    category:'objections_training',
+    title:'أسباب الاعتراضات وأنواعها',
+    content:'وفق المادة: من أسباب الاعتراضات اختلاف الشريك مع أسلوب طرح فرصة العمل أو عدم فهمه. ومن الأنواع المذكورة: الاعتراض الحقيقي، الاعتراض غير الحقيقي، الاعتراض المعلّق، والاعتراض غير المعلنة/الصامتة؛ ويجب التمييز بين أنواع الاعتراضات وفهم ما وراء الاعتراض بدل التعامل معه كرفض نهائي.'
+  },
+  {
+    category:'objections_training',
+    title:'مواجهة الاعتراضات — المبدأ',
+    content:'تؤكد المادة على عدم الدخول في عقل الشخص بالقوة، وأن أكبر خطأ هو مواجهة الاعتراض بعناد. من أساسيات المواجهة: التسليح بالمعرفة الجيدة حول شركتك، والتأثير على الناس وجذبهم بالإحسان، والاهتمام بهم، والاستماع الجيد.'
+  },
+  {
+    category:'objections_training',
+    title:'الأسرار العشرة لجاذبية التواصل',
+    content:'تورد المادة عشرة مفاتيح لجاذبية التواصل: كن خلوقًا تنل ذكرًا جميلًا، أظهر اهتمامك بالآخرين، التفاؤل والحماس، تواضع لكل الناس، لا تغضب أبدًا، تعلم السحر الحلال (الابتسامة)، لا تنس تقديم الهدايا، اهتم بشكلك ومظهرك، أتقن فن الاستماع والإصغاء، وأتقن فن الكلام.'
+  },
+  {
+    category:'objections_training',
+    title:'تسعة مفاتيح لمعالجة أي اعتراض',
+    content:'تسلسل المفاتيح الوارد في المادة: أولًا تجاهل الإساءة ولا تجعل الاستفزاز يشتتك؛ ثانيًا استمع جيدًا للسؤال وافهمه؛ ثالثًا لتكن ردودك لينة؛ رابعًا استوعب الاعتراض بسؤال؛ خامسًا حاصر الاعتراض برفق واجعله الأخير؛ سادسًا ساير المدعو واجعله مرتاحًا؛ سابعًا أشعره أن اعتراضه له قيمة لكن لا توافقه عليه؛ ثامنًا جاوب عن السؤال بأمانة ولا تكذب أو تبالغ؛ تاسعًا تعلّم متى تنسحب بدل تحويل الحوار إلى صراع.'
+  },
+  {
+    category:'objections_training',
+    title:'أمثلة اعتراضات الوقت والمال والاهتمام والخبرة',
+    content:'من الاعتراضات التي تعالجها المادة: «ليس لدي وقت»، «ليس لدي مال»، «لست مهتمًا بهذا العمل»، «النجاح مستحيل»، «لا أحب المبيعات»، «سمعت أن هذا التسويق حرام»، «لماذا منتجاتكم قوية؟»، «لماذا لا تباع المنتجات في الأسواق؟»، «أغلب الناس يشتركون من أجل المال فقط؟»، «الناس لا تقتنع بالمكملات والوقاية»، «هذا التسويق هرمي»، «لقد جربت وحاولت ولم أنجح»، «صاحب الشركة ليس مسلمًا»، «لماذا شرط المئة نقطة؟»، و«كسب سهل بدون مجهود».'
+  },
+  {
+    category:'objections_training',
+    title:'اعتراض «ليس لدي وقت»',
+    content:'تعرض المادة الرد على «ليس لدي وقت لعملي الأساسي» من خلال طلب النظر في العمل باعتباره فرصة قد تساعد على توفير دخل واستثمار الوقت، مع التأكيد على فهم واقع الشخص بدل الضغط عليه.'
+  },
+  {
+    category:'objections_training',
+    title:'اعتراض «ليس لدي مال»',
+    content:'تعرض المادة سؤالًا تمهيديًا عن امتلاك بعض المال والتفكير فيه جيدًا، ثم طرح العمل باعتباره وسيلة قد تساعد على توفير المال الذي يسعد الشخص ويغطي التزاماته. يجب تقديم هذا كصياغة تدريبية واردة في المصدر، لا كوعد بنتيجة مالية.'
+  },
+  {
+    category:'objections_training',
+    title:'اعتراض «لست مهتمًا بهذا العمل»',
+    content:'ترد المادة بصيغة مفادها: أتفهم أن معلوماتك غير كافية، ولذلك الهدف من عرض العمل هو إعطاء معلومات تساعد الشخص على اتخاذ قرار مبني على معرفة كافية، دون افتراض أن الرفض النهائي حصل قبل الفهم.'
+  },
+  {
+    category:'objections_training',
+    title:'اعتراض «النجاح مستحيل» و«لا أحب المبيعات»',
+    content:'في المادة: عند «النجاح مستحيل» يُشار إلى أن أي عمل يمكن أن ينجح بطريقة صحيحة أو خاطئة، وأن الصديق يمكنه تجربة العمل بالطريقة الصحيحة. وعند «لا أحب المبيعات/ليست لدي خبرة» يُعاد التركيز على طبيعة العمل وشرح أن المطلوب ليس افتراض امتلاك خبرة سابقة.'
+  },
+  {
+    category:'objections_training',
+    title:'الاعتراضات الشرعية والتسويقية',
+    content:'المادة تتناول اعتراض «سمعت أن هذا التسويق حرام» وتطلب السؤال عن مصدر المعلومة، ثم تعرض نقاشًا شرعيًا داخل المادة. كما تشرح الفرق الذي تراه بين التسويق متعدد المستويات والتسويق الهرمي، وتعرض معايير قانونية لشركات البيع المباشر. عند استخدام هذه المادة مع الأعضاء يجب نسب الآراء الشرعية والقانونية إلى المصدر وعدم تقديمها كفتوى أو استشارة قانونية مستقلة.'
+  },
+  {
+    category:'objections_training',
+    title:'الاعتراضات المتعلقة بمنتجات DXN والسوق',
+    content:'تطرح المادة أسئلة مثل: لماذا منتجاتكم قوية؟ ولماذا لا تباع المنتجات في الأسواق؟ وتعرض تفسيرًا يعتمد على التسويق المباشر والدعاية الشفهية والثقة، وعلى وجود أعضاء مستهلكين. كما تعرض أسئلة عن السعر مقارنة بالسوق، وتحث على مقارنة المنتجات وفوائدها واستخدامها وفهم النظام التسويقي.'
+  },
+  {
+    category:'objections_training',
+    title:'إرشادات ومحاذير التغلب على الاعتراضات',
+    content:'في خاتمة المادة: عندما ترد على الاعتراض كن واثقًا جدًا، لا تدافع بانفعال بل افهم ما يريد السائل أن يعرفه أكثر، استمع جيدًا، أجب عن السؤال بسؤال، وعند الرد على الاعتراضات تذكر «3 اعتبارات» بحسب المادة، لا تتحدث عن العمل قبل الإلمام بالحد الأدنى من المعلومات، واختر الزمان والمكان المناسبين. الهدف هو تحويل الاعتراض من مواجهة إلى فرصة لفهم الشخص.'
+  },
+  {
+    category:'objections_training',
+    title:'حدود استخدام مادة رد الاعتراضات',
+    content:'هذه المعرفة مشتقة من ملف تدريبي واحد للم. محمود المصري. يجب على المدرب وائل حاتم تمييز ما هو نص/منهج المصدر عن الحقائق المحدثة الخاصة بـDXN أو القوانين أو الأحكام الشرعية. لا يخترع المدرب معلومات غير موجودة في المصدر، ولا يحول الأمثلة التدريبية إلى وعود مالية أو طبية أو قانونية.'
+  }
+];
+
+async function ensureObjectionsKnowledgePack(){
+  if(!SUPABASE_SECRET_KEY)return;
+  try{
+    for(const item of OBJECTIONS_KNOWLEDGE_PACK){
+      const title=encodeURIComponent(item.title);
+      const check=await new Promise((resolve,reject)=>{
+        const target=new URL(SUPABASE_URL_FIXED);
+        const req=https.request({
+          protocol:target.protocol,hostname:target.hostname,port:target.port||443,method:'GET',
+          path:'/rest/v1/ai_agent_knowledge?select=id&scope=eq.global&category=eq.'+encodeURIComponent(item.category)+'&title=eq.'+title+'&limit=1',
+          headers:{Accept:'application/json',apikey:SUPABASE_SECRET_KEY,Authorization:'Bearer '+SUPABASE_SECRET_KEY},
+          timeout:10000
+        },res=>{let t='';res.setEncoding('utf8');res.on('data',c=>t+=c);res.on('end',()=>{let d=[];try{d=t?JSON.parse(t):[]}catch(_){d=[]}resolve({ok:res.statusCode>=200&&res.statusCode<300,data:d});});});
+        req.on('error',reject);req.on('timeout',()=>req.destroy(new Error('timeout')));req.end();
+      });
+      if(check.ok&&Array.isArray(check.data)&&check.data.length)continue;
+      await httpJson(SUPABASE_URL_FIXED+'/rest/v1/ai_agent_knowledge',{
+        scope:'global',category:item.category,title:item.title,content:item.content,priority:110,active:true,source:'pdf_objections_vision_mmahmoud'
+      },{apikey:SUPABASE_SECRET_KEY,Authorization:'Bearer '+SUPABASE_SECRET_KEY,Prefer:'return=minimal'},15000);
+    }
+  }catch(e){console.error('[ai-agent] objections knowledge seed failed',String(e.message||e));}
+}
+
 function outputText(data){
   if(data&&typeof data.output_text==='string'&&data.output_text.trim())return data.output_text.trim();
   const parts=[];
@@ -2145,6 +2241,8 @@ module.exports=async function handler(req,res){
       currentSession={active:true,session_type:sessionCommand.session_type||'coaching',objective:sessionCommand.objective||null,phase:'discover',turn_count:0,started_at:new Date().toISOString()};
       await saveAgentSession(token,currentSession).catch(()=>null);
     }
+    requestStage='seed_curated_knowledge';
+    await ensureObjectionsKnowledgePack();
     requestStage='load_memory_profile';
     const [persistentMemory,coachingProfile,causalMemory,learningPatterns,knowledgeMemory,permanentMemory,learnedFacts,memberTrainingMemory]=await Promise.all([
       loadAgentMemory(token),
