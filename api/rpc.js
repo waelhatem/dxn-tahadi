@@ -51,32 +51,38 @@ function openaiResponses(payload){
   });
 }
 
-async function supabaseRpcRequest(fn,args,key,timeoutMs){
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),timeoutMs||10000);
-  try{
-    const response=await fetch(SUPABASE_URL+'/rest/v1/rpc/'+encodeURIComponent(fn),{
+function supabaseRpcRequest(fn,args,key,timeoutMs){
+  return new Promise((resolve,reject)=>{
+    const base=new URL(SUPABASE_URL);
+    const body=JSON.stringify(args||{});
+    const request=https.request({
+      protocol:base.protocol,
+      hostname:base.hostname,
+      port:base.port||443,
+      path:`/rest/v1/rpc/${encodeURIComponent(fn)}`,
       method:'POST',
       headers:{
         'Content-Type':'application/json',
         Accept:'application/json',
-        ...(key?{apikey:key,Authorization:'Bearer '+key}:{})
+        ...(key?{apikey:key,Authorization:`Bearer ${key}`}:{}),
+        'Content-Length':Buffer.byteLength(body)
       },
-      body:JSON.stringify(args||{}),
-      signal:controller.signal
+      timeout:timeoutMs||10000
+    },response=>{
+      let text='';
+      response.setEncoding('utf8');
+      response.on('data',chunk=>{text+=chunk});
+      response.on('end',()=>{
+        let data=null;
+        try{data=text?JSON.parse(text):null}catch(_){data=text}
+        resolve({ok:response.statusCode>=200&&response.statusCode<300,status:response.statusCode||0,data,text});
+      });
     });
-    const text=await response.text();
-    let data=null;
-    try{data=text?JSON.parse(text):null}catch(_){data=text}
-    return {ok:response.ok,status:response.status||0,data,text};
-  }catch(error){
-    if(error&&error.name==='AbortError'){
-      return {ok:false,status:504,data:null,text:'انتهت مهلة الاتصال بخدمة Supabase'};
-    }
-    throw error;
-  }finally{
-    clearTimeout(timer);
-  }
+    request.on('timeout',()=>request.destroy(new Error('انتهت مهلة الاتصال بخدمة Supabase')));
+    request.on('error',reject);
+    request.write(body);
+    request.end();
+  });
 }
 async function supabaseSecretRpc(fn,args){
   if(!SUPABASE_SECRET_KEY) throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
