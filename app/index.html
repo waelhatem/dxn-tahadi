@@ -1723,7 +1723,18 @@ function ragwanRenderStepResources(files){
   el.innerHTML='<div class="ragwan-resource-head"><div><b>📚 مواد الخطوة '+step+'</b><small>اطلع على الملفات أولًا ثم انتقل إلى اختبار الفهم.</small></div>'+leaderUpload+'</div>'+
     '<div class="ragwan-resource-list">'+(arr.length?arr.map(f=>'<div class="ragwan-resource-item"><span class="ragwan-resource-icon">'+ragwanFileIcon(f)+'</span><div><b>'+esc(f.name)+'</b><small>'+ragwanFormatSize(f.size)+'</small></div>'+(f.url?'<a href="'+esc(f.url)+'" target="_blank" rel="noopener">فتح</a>':'')+'</div>').join(''):'<div class="ragwan-resource-empty">'+(role==='leader'?'أضف ملف عرض الفكرة وملف رد الاعتراضات هنا.':'لم تتم إضافة مواد لهذه الخطوة بعد.')+'</div>')+'</div>';
 }
-async function ragwanLoadStepResources(){
+async function ragwanFocusFirstMaterial(){
+  if(role!=='member')return;
+  const firstFile=document.querySelector('#ragwanStepResources .ragwan-resource-item');
+  const firstVideo=document.querySelector('#ragwanStepVideos .ragwan-step-video-card');
+  const target=firstFile||firstVideo;
+  if(!target)return;
+  target.scrollIntoView({behavior:'smooth',block:'center'});
+  target.style.outline='3px solid #f0bd38';
+  target.style.outlineOffset='4px';
+  setTimeout(()=>{target.style.outline='';target.style.outlineOffset='';},1800);
+}
+function ragwanLoadStepResources(){
   try{const out=await ragwanPlanApi('step_resource_list',{step:ragwanCurrentStep});ragwanRenderStepResources(out.files||[]);}
   catch(e){const el=document.getElementById('ragwanStepResources');if(el)el.innerHTML='<div class="ragwan-resource-empty">⚠️ '+esc(e.message||'تعذر تحميل مواد الخطوة.')+'</div>';}
 }
@@ -1866,7 +1877,9 @@ function ragwanOpenDoor(n){
   ragwanRenderStepSection();
   ragwanRenderStepVideos();
   ragwanRenderStepTest();
-  ragwanLoadStepResources();
+  ragwanLoadStepResources().then(()=>{
+    if(role==='member') setTimeout(()=>ragwanFocusFirstMaterial(),180);
+  });
   if(k)k.textContent='الخطوة '+ragwanStepWord(step);
   if(p)p.style.width=((state.completed.length/10)*100)+'%';
   if(pl)pl.textContent=state.completed.length+' من 10 مكتملة';
