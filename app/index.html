@@ -1116,7 +1116,7 @@ async function ragwanUploadFiles(fileList){
   const files=Array.from(fileList||[]);if(!files.length)return;
   const status=document.getElementById('ragwanUploadStatus'),input=document.getElementById('ragwanFileInput');
   try{
-    if(files.some(f=>f.size>500*1024*1024))throw new Error('لا يمكن رفع ملف أكبر من 500 MB.');
+    if(files.some(f=>f.size>50*1024*1024))throw new Error('لا يمكن رفع ملف أكبر من 50 MB.');
     if(status)status.textContent='⏳ جارٍ تجهيز الرفع...';
     for(let i=0;i<files.length;i++){
       const f=files[i];
