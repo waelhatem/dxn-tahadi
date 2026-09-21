@@ -1036,6 +1036,23 @@ function ragwanSuccessIntro(){
 .ragwan-video-frame{position:relative;width:100%;padding-top:56.25%;overflow:hidden;border-radius:20px;background:#000;box-shadow:0 14px 38px rgba(15,81,63,.2)}
 .ragwan-video-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 .ragwan-video-title{text-align:center;font-size:clamp(22px,2.5vw,32px);font-weight:950;margin:0 0 16px;color:#0f513f}
+.ragwan-files-box{margin:22px auto 4px;padding:18px;border:1px solid rgba(15,81,63,.16);border-radius:18px;background:linear-gradient(180deg,#fbfefd,#f5faf8);box-shadow:0 8px 24px rgba(15,81,63,.08)}
+.ragwan-files-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.ragwan-files-title{font-size:20px;font-weight:950;color:#0f513f}
+.ragwan-files-sub{color:#64756f;font-size:13px;margin-top:4px}
+.ragwan-file-input{display:none}
+.ragwan-upload-label{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 16px;border-radius:12px;background:#0f513f;color:#fff;font-weight:900;cursor:pointer;border:0}
+.ragwan-upload-status{margin:12px 0 0;font-weight:800;min-height:22px}
+.ragwan-files-list{display:grid;gap:10px;margin-top:14px}
+.ragwan-file-card{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #e0e9e5;border-radius:14px;background:#fff}
+.ragwan-file-icon{font-size:28px;width:38px;text-align:center}
+.ragwan-file-info{flex:1;min-width:0;text-align:right}
+.ragwan-file-name{font-weight:900;word-break:break-word}
+.ragwan-file-meta{font-size:12px;color:#71817b;margin-top:3px}
+.ragwan-file-actions{display:flex;gap:7px;flex-wrap:wrap}
+.ragwan-file-actions a,.ragwan-file-actions button{border:1px solid #d8e4df;background:#f8fbfa;color:#0f513f;border-radius:10px;padding:7px 10px;font-weight:800;text-decoration:none;cursor:pointer}
+.ragwan-file-preview{width:58px;height:58px;border-radius:10px;object-fit:cover;border:1px solid #e1e8e5}
+@media(max-width:650px){.ragwan-file-card{align-items:flex-start}.ragwan-file-actions{width:100%}.ragwan-files-head{align-items:stretch}.ragwan-upload-label{width:100%}}
 @keyframes ragwanWordReveal{to{opacity:1;transform:translateY(0)}}
 </style>
 <div id="ragwanIntroNotice" class="ragwan-intro-notice" role="status" aria-live="polite">
@@ -1048,10 +1065,81 @@ function ragwanSuccessIntro(){
   <div class="ragwan-video-frame">
     <iframe src="https://www.youtube.com/embed/esfetpV_Upw?rel=0&cc_load_policy=1&cc_lang_pref=ar" title="الخطوات ال10 لبناء فريق قوي" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
   </div>
-  
+  <div class="ragwan-files-box" id="ragwanFilesBox">
+    <div class="ragwan-files-head">
+      <div>
+        <div class="ragwan-files-title">📎 ملفات الخطة الاحترافية</div>
+        <div class="ragwan-files-sub">يمكن للقائد رفع الصور والملفات والفيديوهات، وتظهر هنا للأعضاء.</div>
+      </div>
+      \${role==='leader'?'<div><label class="ragwan-upload-label" for="ragwanFileInput">➕ رفع ملفات</label><input id="ragwanFileInput" class="ragwan-file-input" type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"></div>':''}
+    </div>
+    <div id="ragwanUploadStatus" class="ragwan-upload-status"></div>
+    <div id="ragwanFilesList" class="ragwan-files-list"><div class="muted">⏳ جارٍ تحميل الملفات...</div></div>
+  </div>
 </div>`;
 }
-function trainings(){
+async function ragwanPlanApi(action,args={}){
+  const res=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn:'ragwan_plan_files',args:{p_token:token,action,...args}}),cache:'no-store'});
+  const text=await res.text();let out={};try{out=text?JSON.parse(text):{}}catch(_){}
+  if(!res.ok||!out.ok)throw new Error(out.error||\`تعذر تنفيذ العملية (\${res.status})\`);
+  return out;
+}
+function ragwanFileIcon(file){
+  const mime=String(file.mime||'').toLowerCase(),name=String(file.name||'').toLowerCase();
+  if(mime.startsWith('image/'))return '🖼️';
+  if(mime.startsWith('video/'))return '🎥';
+  if(name.endsWith('.pdf'))return '📕';
+  if(/\.docx?$/.test(name))return '📝';
+  if(/\.xlsx?$/.test(name))return '📊';
+  if(/\.pptx?$/.test(name))return '📽️';
+  if(name.endsWith('.zip'))return '🗜️';
+  return '📄';
+}
+function ragwanFormatSize(n){
+  n=Number(n||0);if(n<1024)return n+' B';if(n<1024*1024)return (n/1024).toFixed(1)+' KB';if(n<1024*1024*1024)return (n/1024/1024).toFixed(1)+' MB';return (n/1024/1024/1024).toFixed(1)+' GB';
+}
+function ragwanRenderFiles(files){
+  const el=document.getElementById('ragwanFilesList');if(!el)return;
+  if(!files.length){el.innerHTML='<div class="muted">لا توجد ملفات مضافة حتى الآن.</div>';return;}
+  el.innerHTML=files.map(f=>{
+    const mime=String(f.mime||'').toLowerCase(),url=String(f.url||'');
+    const preview=mime.startsWith('image/')&&url?\`<img class="ragwan-file-preview" src="\${esc(url)}" alt="">\`:\`<div class="ragwan-file-icon">\${ragwanFileIcon(f)}</div>\`;
+    return \`<div class="ragwan-file-card">\${preview}<div class="ragwan-file-info"><div class="ragwan-file-name">\${esc(f.name)}</div><div class="ragwan-file-meta">\${esc(ragwanFormatSize(f.size))}</div></div><div class="ragwan-file-actions">\${url?\`<a href="\${esc(url)}" target="_blank" rel="noopener">فتح</a><a href="\${esc(url)}" download>تنزيل</a>\`:''}\${role==='leader'?\`<button type="button" onclick="ragwanDeleteFile('\${esc(f.path)}')">🗑️ حذف</button>\`:''}</div></div>\`;
+  }).join('');
+}
+async function ragwanLoadFiles(){
+  try{const out=await ragwanPlanApi('list');ragwanRenderFiles(out.files||[]);}
+  catch(e){const el=document.getElementById('ragwanFilesList');if(el)el.innerHTML='<div class="muted">⚠️ '+esc(e.message||'تعذر تحميل الملفات.')+'</div>';}
+}
+async function ragwanUploadFiles(fileList){
+  const files=Array.from(fileList||[]);if(!files.length)return;
+  const status=document.getElementById('ragwanUploadStatus'),input=document.getElementById('ragwanFileInput');
+  try{
+    if(files.some(f=>f.size>500*1024*1024))throw new Error('لا يمكن رفع ملف أكبر من 500 MB.');
+    if(status)status.textContent='⏳ جارٍ تجهيز الرفع...';
+    for(let i=0;i<files.length;i++){
+      const f=files[i];
+      if(status)status.textContent=\`⏳ جارٍ رفع الملف \${i+1} من \${files.length}: \${f.name}\`;
+      const signed=await ragwanPlanApi('sign_upload',{name:f.name,content_type:f.type||'application/octet-stream',size:f.size});
+      if(!signed.token||!signed.path)throw new Error('لم يتم إنشاء رابط الرفع.');
+      const {error}=await sb.storage.from('ragwan-plan').uploadToSignedUrl(signed.path,signed.token,f,{contentType:f.type||'application/octet-stream'});
+      if(error)throw error;
+    }
+    if(status)status.textContent='✅ تم رفع الملفات بنجاح.';
+    if(input)input.value='';
+    await ragwanLoadFiles();
+  }catch(e){if(status)status.textContent='❌ '+(e.message||'تعذر رفع الملف.');}
+}
+async function ragwanDeleteFile(path){
+  if(!confirm('هل تريد حذف هذا الملف؟'))return;
+  try{await ragwanPlanApi('delete',{path});toast('تم حذف الملف.');await ragwanLoadFiles();}catch(e){toast(e.message||'تعذر حذف الملف.');}
+}
+function initRagwanFiles(){
+  const input=document.getElementById('ragwanFileInput');
+  if(input&&!input.__ragwanBound){input.__ragwanBound=true;input.addEventListener('change',()=>ragwanUploadFiles(input.files));}
+  ragwanLoadFiles();
+}
+\${jsNeedle}
   const lessons=(trainingData.lessons||[]).sort((a,b)=>Number(a.lesson_no)-Number(b.lesson_no));
   const progress=trainingData.my_progress||[];
 
