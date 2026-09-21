@@ -1044,16 +1044,26 @@ function ragwanSuccessIntro(){
 .ragwan-file-input{display:none}
 .ragwan-upload-label{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 16px;border-radius:12px;background:#0f513f;color:#fff;font-weight:900;cursor:pointer;border:0}
 .ragwan-upload-status{margin:12px 0 0;font-weight:800;min-height:22px}
-.ragwan-files-list{display:grid;gap:10px;margin-top:14px}
-.ragwan-file-card{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #e0e9e5;border-radius:14px;background:#fff}
-.ragwan-file-icon{font-size:28px;width:38px;text-align:center}
-.ragwan-file-info{flex:1;min-width:0;text-align:right}
-.ragwan-file-name{font-weight:900;word-break:break-word}
+.ragwan-files-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:14px}
+.ragwan-file-card{display:flex;flex-direction:column;align-items:stretch;gap:10px;padding:12px;border:1px solid #e0e9e5;border-radius:16px;background:#fff;overflow:hidden}
+.ragwan-file-media{width:100%;border-radius:12px;background:#f1f5f3;border:1px solid #e1e8e5;overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:170px}
+.ragwan-file-media img{display:block;width:100%;height:auto;max-height:420px;object-fit:contain;background:#fff}
+.ragwan-file-media video{display:block;width:100%;max-height:420px;background:#000}
+.ragwan-file-icon{font-size:44px;display:flex;align-items:center;justify-content:center;min-height:170px;width:100%}
+.ragwan-file-info{min-width:0;text-align:right}
+.ragwan-file-name{font-weight:900;word-break:break-word;line-height:1.5}
 .ragwan-file-meta{font-size:12px;color:#71817b;margin-top:3px}
 .ragwan-file-actions{display:flex;gap:7px;flex-wrap:wrap}
 .ragwan-file-actions a,.ragwan-file-actions button{border:1px solid #d8e4df;background:#f8fbfa;color:#0f513f;border-radius:10px;padding:7px 10px;font-weight:800;text-decoration:none;cursor:pointer}
-.ragwan-file-preview{width:58px;height:58px;border-radius:10px;object-fit:cover;border:1px solid #e1e8e5}
-@media(max-width:650px){.ragwan-file-card{align-items:flex-start}.ragwan-file-actions{width:100%}.ragwan-files-head{align-items:stretch}.ragwan-upload-label{width:100%}}
+.ragwan-file-actions a:first-child{background:#eef8f2}
+@media(max-width:650px){
+  .ragwan-files-list{grid-template-columns:1fr}
+  .ragwan-file-card{align-items:stretch}
+  .ragwan-file-actions{width:100%}
+  .ragwan-file-actions a,.ragwan-file-actions button{flex:1;text-align:center}
+  .ragwan-files-head{align-items:stretch}
+  .ragwan-upload-label{width:100%}
+}
 @keyframes ragwanWordReveal{to{opacity:1;transform:translateY(0)}}
 </style>
 <div id="ragwanIntroNotice" class="ragwan-intro-notice" role="status" aria-live="polite">
@@ -1104,8 +1114,15 @@ function ragwanRenderFiles(files){
   if(!files.length){el.innerHTML='<div class="muted">لا توجد ملفات مضافة حتى الآن.</div>';return;}
   el.innerHTML=files.map(f=>{
     const mime=String(f.mime||'').toLowerCase(),url=String(f.url||'');
-    const preview=mime.startsWith('image/')&&url?`<img class="ragwan-file-preview" src="${esc(url)}" alt="">`:`<div class="ragwan-file-icon">${ragwanFileIcon(f)}</div>`;
-    return `<div class="ragwan-file-card">${preview}<div class="ragwan-file-info"><div class="ragwan-file-name">${esc(f.name)}</div><div class="ragwan-file-meta">${esc(ragwanFormatSize(f.size))}</div></div><div class="ragwan-file-actions">${url?`<a href="${esc(url)}" target="_blank" rel="noopener">فتح</a><a href="${esc(url)}" download>تنزيل</a>`:''}${role==='leader'?`<button type="button" onclick="ragwanDeleteFile('${esc(f.path)}')">🗑️ حذف</button>`:''}</div></div>`;
+    let media='';
+    if(url&&mime.startsWith('image/')){
+      media=`<div class="ragwan-file-media"><img src="${esc(url)}" alt="${esc(f.name)}" loading="lazy"></div>`;
+    }else if(url&&mime.startsWith('video/')){
+      media=`<div class="ragwan-file-media"><video src="${esc(url)}" controls preload="metadata"></video></div>`;
+    }else{
+      media=`<div class="ragwan-file-media"><div class="ragwan-file-icon">${ragwanFileIcon(f)}</div></div>`;
+    }
+    return `<div class="ragwan-file-card">${media}<div class="ragwan-file-info"><div class="ragwan-file-name">${esc(f.name)}</div><div class="ragwan-file-meta">${esc(ragwanFormatSize(f.size))}</div></div><div class="ragwan-file-actions">${url?`<a href="${esc(url)}" target="_blank" rel="noopener">فتح</a><a href="${esc(url)}" download>تنزيل</a>`:''}${role==='leader'?`<button type="button" onclick="ragwanDeleteFile('${esc(f.path)}')">🗑️ حذف</button>`:''}</div></div>`;
   }).join('');
 }
 async function ragwanLoadFiles(){
