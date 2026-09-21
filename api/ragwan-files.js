@@ -32,6 +32,33 @@ async function supabaseSecretRpc(fn,args){
   if(!r.ok)throw new Error((r.data&&(r.data.message||r.data.error||r.data.hint))||r.text||`Supabase HTTP ${r.status}`);
   return r.data;
 }
+async function supabaseStorageDownload(path,key,timeoutMs){
+  return new Promise((resolve,reject)=>{
+    const base=new URL(SUPABASE_URL);
+    const request=https.request({protocol:base.protocol,hostname:base.hostname,port:base.port||443,method:'GET',path,
+      headers:{Accept:'application/octet-stream',...(key?{apikey:key,Authorization:`Bearer ${key}`}:{} )},
+      timeout:timeoutMs||15000
+    },response=>{
+      const chunks=[];response.on('data',chunk=>chunks.push(Buffer.from(chunk)));
+      response.on('end',()=>resolve({ok:response.statusCode>=200&&response.statusCode<300,status:response.statusCode||0,buffer:Buffer.concat(chunks)}));
+    });
+    request.on('timeout',()=>request.destroy(new Error('انتهت مهلة الاتصال بتخزين Supabase')));
+    request.on('error',reject);request.end();
+  });
+}
+async function supabaseStorageUploadJson(path,key,data){
+  return new Promise((resolve,reject)=>{
+    const base=new URL(SUPABASE_URL),payload=Buffer.from(JSON.stringify(data,null,2),'utf8');
+    const request=https.request({protocol:base.protocol,hostname:base.hostname,port:base.port||443,method:'POST',
+      path:'/storage/v1/object/ragwan-plan/'+path.split('/').map(encodeURIComponent).join('/'),
+      headers:{'Content-Type':'application/json',Accept:'application/json',...(key?{apikey:key,Authorization:`Bearer ${key}`}:{}), 'Content-Length':payload.length, 'x-upsert':'true'}
+    },response=>{
+      let text='';response.setEncoding('utf8');response.on('data',c=>text+=c);
+      response.on('end',()=>resolve({ok:response.statusCode>=200&&response.statusCode<300,status:response.statusCode||0,text}));
+    });
+    request.on('error',reject);request.write(payload);request.end();
+  });
+}
 async function supabaseStorageRequest(path,method,key,body,timeoutMs){
   return new Promise((resolve,reject)=>{
     const base=new URL(SUPABASE_URL),payload=body==null?'':JSON.stringify(body);
@@ -62,6 +89,11 @@ async function ensureRagwanBucket(){
   const message=String((r.data&&(r.data.message||r.data.error||r.data.statusCode))||r.text||'').toLowerCase();
   if(r.status===409||message.includes('already exists')||message.includes('resource already exists')||message.includes('already_exist'))return;
   throw new Error((r.data&&(r.data.message||r.data.error||r.data.statusCode))||r.text||'تعذر تجهيز مساحة الملفات');
+}
+async function ragwanEvidenceRecordPath(memberKey,step){return `evidence-records/${memberKey}/step-${step}.json`;}
+async function ragwanReadEvidenceRecord(path){
+  const r=await supabaseStorageDownload('/storage/v1/object/authenticated/ragwan-plan/'+path.split('/').map(encodeURIComponent).join('/'),SUPABASE_SECRET_KEY,15000);
+  if(!r.ok)return null;try{return JSON.parse(r.buffer.toString('utf8'));}catch(_){return null;}
 }
 async function ragwanPlanFiles(args){
   const token=String(args.p_token||'').trim(),action=String(args.action||'').trim();
@@ -97,6 +129,30 @@ async function ragwanPlanFiles(args){
     const signed=await supabaseStorageRequest('/storage/v1/object/upload/sign/'+bucket+'/'+encodeURIComponent(path),'POST',SUPABASE_SECRET_KEY,{upsert:false},15000);
     if(!signed.ok)throw new Error((signed.data&&(signed.data.message||signed.data.error))||signed.text||'تعذر إنشاء رابط رفع الإثبات.');
     return {path,name:safe,content_type:type,size,step,member_no:boot.member_no||boot.membership_no||null,token:signed.data&&signed.data.token,signed_url:absoluteSupabaseStorageUrl(signed.data&&signed.data.signedURL)};
+  }
+  if(action==='evidence_submit'){
+    if(role!=='member')throw new Error('إرسال الإثبات متاح للعضو فقط.');
+    const memberKey=String(boot.member_no||boot.membership_no||boot.membership_number||boot.username||'member').replace(/[^\p{L}\p{N}_-]/gu,'_').slice(0,80)||'member';
+    const step=Math.max(1,Math.min(10,Number(args.step)||0)), evidencePath=String(args.path||'').trim();
+    if(!step||!evidencePath.startsWith(`evidence/${memberKey}/step-${step}-`))throw new Error('إثبات الخطوة غير صالح.');
+    const path=await ragwanEvidenceRecordPath(memberKey,step),now=new Date().toISOString(),existing=await ragwanReadEvidenceRecord(path)||{};
+    const record={...existing,member_no:boot.member_no||boot.membership_no||null,member_key:memberKey,step,evidence_path:evidencePath,status:'pending',submitted_at:now,reviewed_at:null,review_note:'',reviewed_by:null};
+    const saved=await supabaseStorageUploadJson(path,SUPABASE_SECRET_KEY,record);if(!saved.ok)throw new Error(saved.text||'تعذر حفظ طلب المراجعة.');return record;
+  }
+  if(action==='evidence_review'){
+    if(role!=='leader')throw new Error('مراجعة الإثباتات متاحة للقائد فقط.');
+    const memberKey=String(args.member_key||'').trim(),step=Math.max(1,Math.min(10,Number(args.step)||0)),decision=String(args.status||'').trim();
+    if(!memberKey||!step||!['approved','rejected'].includes(decision))throw new Error('بيانات المراجعة غير صالحة.');
+    const path=await ragwanEvidenceRecordPath(memberKey,step),existing=await ragwanReadEvidenceRecord(path);if(!existing)throw new Error('لا يوجد طلب إثبات لهذه الخطوة.');
+    const record={...existing,status:decision,review_note:String(args.note||'').trim().slice(0,1000),reviewed_at:new Date().toISOString(),reviewed_by:boot.member_no||boot.membership_no||boot.username||'leader'};
+    const saved=await supabaseStorageUploadJson(path,SUPABASE_SECRET_KEY,record);if(!saved.ok)throw new Error(saved.text||'تعذر حفظ قرار المراجعة.');return record;
+  }
+  if(action==='evidence_records'){
+    const requested=String(args.member_key||'').trim(),memberKey=role==='leader'?(requested||''):String(boot.member_no||boot.membership_no||boot.membership_number||boot.username||'member').replace(/[^\p{L}\p{N}_-]/gu,'_').slice(0,80)||'member';
+    const prefix=role==='leader'?'evidence-records/':`evidence-records/${memberKey}/`,listed=await supabaseStorageRequest('/storage/v1/object/list/'+bucket,'POST',SUPABASE_SECRET_KEY,{prefix,limit:500,offset:0},15000);
+    if(!listed.ok)throw new Error((listed.data&&(listed.data.message||listed.data.error))||listed.text||'تعذر تحميل حالات الإثبات.');
+    const rows=[];for(const item of (Array.isArray(listed.data)?listed.data:[])){const raw=String(item.name||'');if(!raw.endsWith('.json'))continue;const rec=await ragwanReadEvidenceRecord(prefix+raw);if(rec)rows.push(rec);}
+    return {records:rows};
   }
   if(action==='evidence_list'){
     const memberKey=String(boot.member_no||boot.membership_no||boot.membership_number||boot.username||'member').replace(/[^\p{L}\p{N}_-]/gu,'_').slice(0,80)||'member';
