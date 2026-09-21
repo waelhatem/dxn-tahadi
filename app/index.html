@@ -1613,9 +1613,12 @@ async function ragwanUploadStepResources(files){
   for(const file of Array.from(files)){
     try{
       const signed=await ragwanPlanApi('sign_step_resource_upload',{step:ragwanCurrentStep,name:file.name,content_type:file.type,size:file.size});
-      const form=new FormData();
-      form.append('',file);
-      const response=await fetch(signed.signed_url,{method:'PUT',headers:{'x-upsert':'false'},body:form});
+      let uploadUrl=String(signed.signed_url||'');
+      if(!uploadUrl && signed.token && signed.path){
+        uploadUrl='https://ryqpstkzppaifpvhezzn.supabase.co/storage/v1/object/upload/sign/ragwan-plan/'+signed.path.split('/').map(encodeURIComponent).join('/')+'?token='+encodeURIComponent(signed.token);
+      }
+      if(!uploadUrl)throw new Error('لم يتم الحصول على رابط رفع صالح من الخادم.');
+      const response=await fetch(uploadUrl,{method:'PUT',headers:{'Content-Type':file.type||'application/octet-stream','x-upsert':'false'},body:file});
       if(!response.ok){
         let detail='';
         try{detail=await response.text();}catch(_){}
