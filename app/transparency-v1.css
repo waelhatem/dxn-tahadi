@@ -1,7 +1,7 @@
 /* Semi-transparent content surfaces — header remains fully opaque */
 :root{
-  --surface-glass:rgba(255,255,255,.84);
-  --surface-glass-strong:rgba(255,255,255,.90);
+  --surface-glass:rgba(255,255,255,.50);
+  --surface-glass-strong:rgba(255,255,255,.50);
   --surface-border:rgba(255,255,255,.58);
   --surface-shadow:0 8px 26px rgba(15,81,63,.10);
 }
@@ -58,16 +58,16 @@ button.danger{
 }
 .challenge,
 .question{
-  background:rgba(255,253,245,.84)!important;
+  background:rgba(255,253,245,.50)!important;
 }
 .answer{
-  background:rgba(247,249,251,.82)!important;
+  background:rgba(247,249,251,.50)!important;
 }
 .notif-item.unread{
-  background:rgba(247,252,249,.84)!important;
+  background:rgba(247,252,249,.50)!important;
 }
 .badge-card.locked{
-  background:rgba(255,255,255,.72)!important;
+  background:rgba(255,255,255,.50)!important;
 }
 .evidence-modal .card,
 .team-member-panel .team-member-card{
@@ -128,7 +128,7 @@ button.danger{
 .community-page .community-command-card,
 .community-page .community-card,
 .community-page .community-panel{
-  background:rgba(255,255,255,.58)!important;
+  background:rgba(255,255,255,.50)!important;
   border-color:rgba(255,255,255,.58)!important;
   box-shadow:0 8px 26px rgba(15,81,63,.10);
   backdrop-filter:blur(7px);
@@ -136,7 +136,7 @@ button.danger{
 }
 /* Keep the community hero readable while allowing the page background to show through. */
 .community-page .community-hero{
-  background:rgba(8,76,59,.72)!important;
+  background:rgba(8,76,59,.50)!important;
   backdrop-filter:blur(5px);
   -webkit-backdrop-filter:blur(5px);
 }
