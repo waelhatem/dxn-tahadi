@@ -1609,25 +1609,29 @@ async function ragwanLoadStepResources(){
 }
 async function ragwanUploadStepResources(files){
   if(role!=='leader'||!files||!files.length)return;
+  if(!sb)sb=supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY);
   const status=[];
+  const input=document.getElementById('ragwanStepResourceInput');
+  if(input)input.disabled=true;
   for(const file of Array.from(files)){
     try{
-      const signed=await ragwanPlanApi('sign_step_resource_upload',{step:ragwanCurrentStep,name:file.name,content_type:file.type,size:file.size});
-      let uploadUrl=String(signed.signed_url||'');
-      if(!uploadUrl && signed.token && signed.path){
-        uploadUrl='https://ryqpstkzppaifpvhezzn.supabase.co/storage/v1/object/upload/sign/ragwan-plan/'+signed.path.split('/').map(encodeURIComponent).join('/')+'?token='+encodeURIComponent(signed.token);
-      }
-      if(!uploadUrl)throw new Error('لم يتم الحصول على رابط رفع صالح من الخادم.');
-      const response=await fetch(uploadUrl,{method:'PUT',headers:{'Content-Type':file.type||'application/octet-stream','x-upsert':'false'},body:file});
-      if(!response.ok){
-        let detail='';
-        try{detail=await response.text();}catch(_){}
-        throw new Error('فشل رفع '+file.name+(detail?' — '+detail.slice(0,180):''));
-      }
-      status.push('✅ '+file.name);
-    }catch(e){status.push('❌ '+file.name+': '+String(e.message||'فشل الرفع'));}
+      const signed=await ragwanPlanApi('sign_step_resource_upload',{
+        step:ragwanCurrentStep,name:file.name,content_type:file.type||'application/octet-stream',size:file.size
+      });
+      if(!signed.path||!signed.token)throw new Error('الخادم لم يُرجع بيانات رفع صالحة.');
+      const result=await sb.storage.from('ragwan-plan').uploadToSignedUrl(
+        signed.path,signed.token,file,{contentType:file.type||'application/octet-stream'}
+      );
+      if(result&&result.error)throw new Error(result.error.message||'رفض التخزين رفع الملف.');
+      status.push('✅ تم رفع '+file.name);
+    }catch(e){
+      status.push('❌ '+file.name+': '+String(e.message||'فشل الرفع'));
+    }
   }
-  toast(status.join(' | '));await ragwanLoadStepResources();
+  if(input)input.value='';
+  if(input)input.disabled=false;
+  toast(status.join(' | '));
+  await ragwanLoadStepResources();
 }
 function ragwanEvidenceMemberKeyFromPath(path){
   const m=String(path||'').match(/^evidence\/([^/]+)\//i);
