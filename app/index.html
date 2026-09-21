@@ -149,7 +149,78 @@ button[disabled]:focus-visible{outline-color:#667085!important}
 .ragwan-step-video-title{display:flex;gap:8px;align-items:flex-start;line-height:1.65;margin-bottom:9px}
 .ragwan-step-video-frame{position:relative;width:100%;padding-top:56.25%;border-radius:12px;overflow:hidden;background:#000}
 .ragwan-step-video-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-</style></head><body>
+</style><style id="dxn-universal-glow-buttons-v1">
+/* V87.5 — Universal luminous buttons across the entire application.
+   Visual-only enhancement: existing colors, actions, permissions and click handlers remain unchanged. */
+:where(button,[type="button"],[type="submit"],[type="reset"],a.button,.btn,.primary,.danger,.tab){
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  transition:transform .22s ease,box-shadow .22s ease,filter .22s ease!important;
+}
+:where(button,[type="button"],[type="submit"],[type="reset"],a.button,.btn,.primary,.danger,.tab):not(:disabled):not(.disabled):hover{
+  transform:translateY(-2px);
+  filter:brightness(1.06) saturate(1.08);
+  box-shadow:0 8px 22px rgba(15,81,63,.20),0 0 16px rgba(255,255,255,.16);
+}
+:where(button,[type="button"],[type="submit"],[type="reset"],a.button,.btn,.primary,.danger,.tab):not(:disabled):not(.disabled):active{
+  transform:translateY(0) scale(.985);
+}
+:where(button,[type="button"],[type="submit"],[type="reset"],a.button,.btn,.primary,.danger,.tab):not(:disabled):not(.disabled)::after{
+  content:"";
+  position:absolute;
+  z-index:5;
+  top:-70%;
+  left:-75%;
+  width:42%;
+  height:240%;
+  pointer-events:none;
+  background:linear-gradient(105deg,transparent 0%,rgba(255,255,255,.05) 34%,rgba(255,255,255,.72) 50%,rgba(255,255,255,.08) 66%,transparent 100%);
+  transform:translateX(-180%) rotate(12deg);
+  animation:dxnUniversalButtonShine 3.8s ease-in-out infinite;
+}
+:where(button,[type="button"],[type="submit"],[type="reset"],a.button,.btn,.primary,.danger,.tab):not(:disabled):not(.disabled)::before{
+  content:"";
+  position:absolute;
+  z-index:4;
+  inset:1px;
+  border-radius:inherit;
+  pointer-events:none;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.20),inset 0 0 14px rgba(255,255,255,.07);
+}
+:where(button,[type="button"],[type="submit"],[type="reset"],a.button,.btn,.primary,.danger,.tab):not(:disabled):not(.disabled){
+  box-shadow:0 5px 16px rgba(15,81,63,.14),0 0 10px rgba(20,170,120,.10);
+}
+:where(button,[type="button"],[type="submit"],[type="reset"],a.button,.btn,.primary,.danger,.tab):disabled,
+:where(button,[type="button"],[type="submit"],[type="reset"],a.button,.btn,.primary,.danger,.tab).disabled{
+  filter:none!important;
+  transform:none!important;
+  animation:none!important;
+  box-shadow:none!important;
+}
+@keyframes dxnUniversalButtonShine{
+  0%,34%{transform:translateX(-180%) rotate(12deg);opacity:0}
+  42%{opacity:1}
+  58%{transform:translateX(560%) rotate(12deg);opacity:.95}
+  68%,100%{transform:translateX(560%) rotate(12deg);opacity:0}
+}
+/* Keep compact icon/close controls elegant rather than oversized. */
+:where(button.icon,button.close,button[aria-label="إغلاق"],.team-member-close,.team-member-zoom-in,.team-member-zoom-out,.team-member-fullscreen){
+  box-shadow:0 4px 12px rgba(15,81,63,.12),0 0 8px rgba(20,170,120,.08);
+}
+/* The feature cards already have their own shine; prevent double animation there. */
+.training-feature-card::after,.training-feature-card::before{display:none!important}
+@media(max-width:799px){
+  :where(button,[type="button"],[type="submit"],[type="reset"],a.button,.btn,.primary,.danger,.tab):not(:disabled):not(.disabled){
+    box-shadow:0 6px 18px rgba(15,81,63,.16),0 0 13px rgba(20,170,120,.11);
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  :where(button,[type="button"],[type="submit"],[type="reset"],a.button,.btn,.primary,.danger,.tab)::after{animation:none!important}
+  :where(button,[type="button"],[type="submit"],[type="reset"],a.button,.btn,.primary,.danger,.tab){transition:none!important}
+}
+</style>
+</head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
   <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
   <div class="pwa-install-actions"><button id="pwaInstallBtn" class="primary" type="button">تثبيت</button><button id="pwaInstallClose" class="pwa-install-close" type="button">لاحقًا</button></div>
@@ -4001,75 +4072,5 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 })();</script>
 
 </body>
-<style id="dxn-universal-glow-buttons-v1">
-/* V87.5 — Universal luminous buttons across the entire application.
-   Visual-only enhancement: existing colors, actions, permissions and click handlers remain unchanged. */
-:where(button,[type="button"],[type="submit"],[type="reset"],a.button,.btn,.primary,.danger,.tab){
-  position:relative;
-  isolation:isolate;
-  overflow:hidden;
-  transition:transform .22s ease,box-shadow .22s ease,filter .22s ease!important;
-}
-:where(button,[type="button"],[type="submit"],[type="reset"],a.button,.btn,.primary,.danger,.tab):not(:disabled):not(.disabled):hover{
-  transform:translateY(-2px);
-  filter:brightness(1.06) saturate(1.08);
-  box-shadow:0 8px 22px rgba(15,81,63,.20),0 0 16px rgba(255,255,255,.16);
-}
-:where(button,[type="button"],[type="submit"],[type="reset"],a.button,.btn,.primary,.danger,.tab):not(:disabled):not(.disabled):active{
-  transform:translateY(0) scale(.985);
-}
-:where(button,[type="button"],[type="submit"],[type="reset"],a.button,.btn,.primary,.danger,.tab):not(:disabled):not(.disabled)::after{
-  content:"";
-  position:absolute;
-  z-index:5;
-  top:-70%;
-  left:-75%;
-  width:42%;
-  height:240%;
-  pointer-events:none;
-  background:linear-gradient(105deg,transparent 0%,rgba(255,255,255,.05) 34%,rgba(255,255,255,.72) 50%,rgba(255,255,255,.08) 66%,transparent 100%);
-  transform:translateX(-180%) rotate(12deg);
-  animation:dxnUniversalButtonShine 3.8s ease-in-out infinite;
-}
-:where(button,[type="button"],[type="submit"],[type="reset"],a.button,.btn,.primary,.danger,.tab):not(:disabled):not(.disabled)::before{
-  content:"";
-  position:absolute;
-  z-index:4;
-  inset:1px;
-  border-radius:inherit;
-  pointer-events:none;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.20),inset 0 0 14px rgba(255,255,255,.07);
-}
-:where(button,[type="button"],[type="submit"],[type="reset"],a.button,.btn,.primary,.danger,.tab):not(:disabled):not(.disabled){
-  box-shadow:0 5px 16px rgba(15,81,63,.14),0 0 10px rgba(20,170,120,.10);
-}
-:where(button,[type="button"],[type="submit"],[type="reset"],a.button,.btn,.primary,.danger,.tab):disabled,
-:where(button,[type="button"],[type="submit"],[type="reset"],a.button,.btn,.primary,.danger,.tab).disabled{
-  filter:none!important;
-  transform:none!important;
-  animation:none!important;
-  box-shadow:none!important;
-}
-@keyframes dxnUniversalButtonShine{
-  0%,34%{transform:translateX(-180%) rotate(12deg);opacity:0}
-  42%{opacity:1}
-  58%{transform:translateX(560%) rotate(12deg);opacity:.95}
-  68%,100%{transform:translateX(560%) rotate(12deg);opacity:0}
-}
-/* Keep compact icon/close controls elegant rather than oversized. */
-:where(button.icon,button.close,button[aria-label="إغلاق"],.team-member-close,.team-member-zoom-in,.team-member-zoom-out,.team-member-fullscreen){
-  box-shadow:0 4px 12px rgba(15,81,63,.12),0 0 8px rgba(20,170,120,.08);
-}
-/* The feature cards already have their own shine; prevent double animation there. */
-.training-feature-card::after,.training-feature-card::before{display:none!important}
-@media(max-width:799px){
-  :where(button,[type="button"],[type="submit"],[type="reset"],a.button,.btn,.primary,.danger,.tab):not(:disabled):not(.disabled){
-    box-shadow:0 6px 18px rgba(15,81,63,.16),0 0 13px rgba(20,170,120,.11);
-  }
-}
-@media(prefers-reduced-motion:reduce){
-  :where(button,[type="button"],[type="submit"],[type="reset"],a.button,.btn,.primary,.danger,.tab)::after{animation:none!important}
-  :where(button,[type="button"],[type="submit"],[type="reset"],a.button,.btn,.primary,.danger,.tab){transition:none!important}
-}
-</style>
+
 </html>
