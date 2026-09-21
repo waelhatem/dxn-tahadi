@@ -215,7 +215,7 @@ function validateDXNAge18(birthDate){
     : {ok:false, age, message:'⚠️ عذرًا، يشترط أن يكون عمر المتقدم 18 سنة أو أكثر للتسجيل.'};
 }
 
-const C=window.DXN_CONFIG||{};const SESSION_MAX_MS=12*60*60*1000;let sb=null,token=localStorage.getItem('dxn_session')||'',me=null,role=null,data=null,tab='home',membershipRequests=[],prospectRequests=[],monthlyPointRequests=[],trainingData={lessons:[],my_progress:[],member_progress:[]},trainingWatch={player:null,timer:null,guardTimer:null,lessonId:null,videoId:null,invalid:false,maxWatchedSeconds:0,lastSampleSeconds:0,suppressSeek:false},siteVisitStats={};
+const C=window.DXN_CONFIG||{};const SESSION_MAX_MS=12*60*60*1000;let sb=null,token=localStorage.getItem('dxn_session')||'',me=null,role=null,data=null,tab='home',trainingSubtab='lessons',membershipRequests=[],prospectRequests=[],monthlyPointRequests=[],trainingData={lessons:[],my_progress:[],member_progress:[]},trainingWatch={player:null,timer:null,guardTimer:null,lessonId:null,videoId:null,invalid:false,maxWatchedSeconds:0,lastSampleSeconds:0,suppressSeek:false},siteVisitStats={};
 const $=id=>document.getElementById(id); const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(s){$('toast').textContent=s;$('toast').classList.remove('hidden');setTimeout(()=>$('toast').classList.add('hidden'),2600)}
 
@@ -1005,11 +1005,29 @@ function ideaTrustVideos(){
   </div>`;
   renderViewSwitch();
 }
+function switchTrainingSubtab(next){
+  if(next!=='lessons'&&next!=='ragwan_success_plan')return;
+  trainingSubtab=next;
+  try{render();requestAnimationFrame(()=>scrollToTabContent('training'))}catch(e){console.error(e);toast('تعذر فتح القسم: '+(e.message||e))}
+}
 function trainings(){
   const lessons=(trainingData.lessons||[]).sort((a,b)=>Number(a.lesson_no)-Number(b.lesson_no));
   const progress=trainingData.my_progress||[];
-  if(!canAccessTraining())return `<div class="card"><div class="title">🔒 التدريب للأعضاء والقائد</div><p class="muted">هذا القسم متاح للعضو صاحب رقم عضوية DXN وللقائد.</p></div>`;
-  if(!lessons.length)return `<div class="card"><div class="title">📚 الشروحات والتدريبات</div><p class="muted">لم تتم إضافة تدريبات بعد. يمكن للقائد إضافة روابط YouTube من مركز القيادة.</p>${role==='leader'?`<button class="primary" onclick="openTrainingManager()">➕ إضافة أول تدريب</button>`:''}</div>`;
+
+  const subTabs=`<div class="tabs" style="margin-bottom:18px;justify-content:center">
+    <button type="button" class="tab ${trainingSubtab==='lessons'?'active':''}" onclick="switchTrainingSubtab('lessons')">📚 التدريبات</button>
+    <button type="button" class="tab ${trainingSubtab==='ragwan_success_plan'?'active':''}" onclick="switchTrainingSubtab('ragwan_success_plan')">📘 الخطة الاحترافية لرجوان نجاح</button>
+  </div>`;
+
+  if(trainingSubtab==='ragwan_success_plan'){
+    return subTabs+`<div class="card">
+      <div class="title">📘 الخطة الاحترافية لرجوان نجاح</div>
+      <p class="muted">هذا المكان مخصص لهذا التدريب.</p>
+    </div>`;
+  }
+
+  if(!canAccessTraining())return subTabs+`<div class="card"><div class="title">🔒 التدريب للأعضاء والقائد</div><p class="muted">هذا القسم متاح للعضو صاحب رقم عضوية DXN وللقائد.</p></div>`;
+  if(!lessons.length)return subTabs+`<div class="card"><div class="title">📚 الشروحات والتدريبات</div><p class="muted">لم تتم إضافة تدريبات بعد. يمكن للقائد إضافة روابط YouTube من مركز القيادة.</p>${role==='leader'?\`<button class="primary" onclick="openTrainingManager()">➕ إضافة أول تدريب</button>\`:''}</div>`;
 
   const completedNo=new Set(progress.filter(p=>p.completed).map(p=>{
     const l=lessons.find(x=>String(x.id)===String(p.lesson_id)); return l?Number(l.lesson_no):0;
@@ -1039,7 +1057,7 @@ function trainings(){
     </div>`;
   }).join('');
 
-  return `<div class="card">
+  return subTabs+`<div class="card">
     <div class="title">📚 الشروحات والتدريبات</div>
     <p class="muted">شاهد التدريبات بالترتيب. لا يفتح التدريب التالي إلا بعد إكمال التدريب السابق، ويمكنك إعادة مشاهدة أي تدريب أكملته في أي وقت.</p>
     <div style="background:#eef3f1;border-radius:999px;height:14px;overflow:hidden;margin:15px 0"><div style="width:${pct}%;height:100%;background:#0f513f"></div></div>
