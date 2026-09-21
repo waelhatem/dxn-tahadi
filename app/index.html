@@ -1470,9 +1470,8 @@ function ragwanProgressNextStep(){
 }
 function ragwanStepStatus(n,state){
   if(state.completed.includes(n))return 'completed';
-  if(n===ragwanProgressNextStep())return 'available';
   if(state.started.includes(n))return 'started';
-  return 'locked';
+  return 'available';
 }
 function ragwanStatusLabel(status){
   return status==='completed'?'مكتملة':status==='started'?'قيد التنفيذ':status==='available'?'متاحة':'مغلقة';
