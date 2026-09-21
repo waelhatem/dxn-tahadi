@@ -1124,6 +1124,37 @@ function ragwanSuccessIntro(){
 @media(max-width:650px){.ragwan-journey{padding:20px 10px;border-radius:22px}.ragwan-door-gallery{grid-template-columns:repeat(5,125px);gap:10px}.ragwan-door{height:225px}.ragwan-door-label{font-size:13px}.ragwan-step-inner{grid-template-columns:1fr}.ragwan-step-side{order:-1}.ragwan-step-panel{padding:20px;border-radius:22px}.ragwan-step-action{min-height:50px}}
 @media(prefers-reduced-motion:reduce){.ragwan-door,.ragwan-journey:before{animation:none}.ragwan-door-leaf,.ragwan-door-room,.ragwan-step-progress span{transition:none}}
 @keyframes ragwanWordReveal{to{opacity:1;transform:translateY(0)}}
+
+/* V88 reference-matched cinematic layout */
+.ragwan-plan-stage{max-width:1280px;margin:auto;direction:rtl}
+.ragwan-plan-video{max-width:1280px!important;margin:auto!important}
+.ragwan-cinema{background:#061b28;border-radius:0 0 28px 28px;overflow:hidden;box-shadow:0 25px 65px rgba(0,0,0,.28)}
+.ragwan-ref-hero{position:relative;display:grid;grid-template-columns:1.05fr .95fr;gap:24px;min-height:290px;padding:28px 34px;overflow:hidden;background:linear-gradient(120deg,#071f31,#0b3851 55%,#123f58);color:#fff}
+.ragwan-ref-hero:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 82% 35%,rgba(255,210,76,.75) 0 2%,rgba(255,210,76,.18) 9%,transparent 30%),linear-gradient(180deg,transparent,rgba(0,0,0,.58))}
+.ragwan-ref-scene{position:relative;min-height:235px;border-radius:18px;overflow:hidden;background:linear-gradient(#7595a9 0 45%,#263d4d 46% 100%);box-shadow:inset 0 0 60px #061522,0 14px 30px #0006}
+.ragwan-ref-scene:before{content:"";position:absolute;left:0;right:0;bottom:32px;height:115px;background:#122b3b;clip-path:polygon(0 55%,8% 42%,15% 58%,23% 25%,31% 58%,42% 12%,51% 55%,63% 30%,74% 58%,85% 20%,100% 48%,100% 100%,0 100%)}
+.ragwan-ref-scene:after{content:"";position:absolute;right:9%;top:20px;width:150px;height:185px;background:repeating-linear-gradient(180deg,transparent 0 18px,#ffd45b 19px 22px);transform:skewY(-8deg);filter:drop-shadow(0 0 13px #ffd45b)}
+.ragwan-ref-person{position:absolute;left:34%;bottom:31px;width:26px;height:82px;background:#07121a;border-radius:45% 45% 10% 10%;z-index:2}
+.ragwan-ref-person:before{content:"";position:absolute;left:0;top:-17px;width:25px;height:25px;border-radius:50%;background:#07121a}
+.ragwan-ref-person:after{content:"";position:absolute;left:-7px;top:45px;width:8px;height:55px;background:#07121a;box-shadow:33px 0 #07121a}
+.ragwan-ref-copy{position:relative;z-index:2;display:flex;flex-direction:column;justify-content:center;text-align:right}
+.ragwan-ref-copy h1{font-size:clamp(30px,4vw,55px);margin:0;font-weight:950;text-shadow:0 4px 14px #0008}.ragwan-ref-copy h1 span{color:#efb62d}.ragwan-ref-copy p{font-size:20px;font-weight:800;margin:12px 0 18px}.ragwan-ref-icons{display:flex;gap:25px}.ragwan-ref-icons b{display:block;color:#f4c44e;font-size:25px}.ragwan-ref-cta{margin-top:16px;width:max-content;border:1px solid #ffe28b;background:linear-gradient(135deg,#f4c64f,#b87612);color:#15232b;border-radius:12px;padding:11px 18px;font-weight:950;cursor:pointer}
+.ragwan-ref-video{background:#081d2a;padding:14px 24px 0}.ragwan-ref-video .ragwan-video-frame{position:relative;width:100%;padding-top:56.25%;overflow:hidden;border-radius:16px;background:#000;box-shadow:0 14px 35px #0008}.ragwan-ref-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.ragwan-journey{margin-top:0!important;max-width:none!important;border-radius:0!important;padding:30px 18px 25px!important;background:radial-gradient(circle at 50% 15%,#fff 0,#e1e5e1 55%,#7f8984 100%)!important;box-shadow:none!important;border:0!important;overflow:hidden!important}
+.ragwan-journey:after{content:"";position:absolute;left:-10%;right:-10%;bottom:-55px;height:220px;background:repeating-linear-gradient(90deg,#ffffff22 0 2px,transparent 2px 100px),linear-gradient(#dfe3df,#7d8781);transform:perspective(600px) rotateX(60deg);transform-origin:bottom;pointer-events:none}
+.ragwan-door-gallery{display:flex!important;flex-wrap:nowrap!important;grid-template-columns:none!important;gap:9px!important;overflow-x:auto!important;justify-content:center!important;align-items:flex-end!important;padding:15px 8px 28px!important;min-height:270px!important;position:relative!important;z-index:2!important}
+.ragwan-door{flex:0 0 108px!important;width:108px!important;height:238px!important;min-width:108px!important}
+.ragwan-door.open{transform:translateY(-7px) scale(1.03)!important}.ragwan-door.open .ragwan-door-leaf{transform:rotateY(-108deg)!important;filter:brightness(.72)}
+.ragwan-plant{z-index:4!important}
+.ragwan-step-zone{position:relative;z-index:5!important;grid-template-columns:minmax(250px,.72fr) minmax(420px,1.28fr)!important;max-width:1120px!important;margin:auto!important}
+.ragwan-reference-open{position:relative;min-height:310px;border-radius:0 24px 24px 0;background:linear-gradient(145deg,#a66d0d,#f2cc5c 38%,#65430a);padding:10px;box-shadow:0 18px 42px #0005;overflow:hidden}
+.ragwan-reference-open:after{content:"";position:absolute;inset:10px;background:linear-gradient(180deg,#fff4c6,#ead294);clip-path:polygon(0 8%,100% 0,100% 100%,0 92%);box-shadow:inset 0 0 45px #ffd75c66}
+.ragwan-reference-open>div{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#fff;text-shadow:0 3px 7px #0008}.ragwan-reference-open .n{font-size:64px;font-weight:950}.ragwan-reference-open .i{font-size:40px}.ragwan-reference-open .t{font-size:17px;font-weight:950;line-height:1.45}
+.ragwan-journey .ragwan-step-panel{max-width:720px!important;margin:0!important;min-height:310px!important;border-radius:24px 0 0 24px!important;background:linear-gradient(135deg,#082732,#103b49)!important;border:1px solid #d8a82c66!important}
+.ragwan-journey .ragwan-step-inner{grid-template-columns:1fr 220px!important}.ragwan-journey .ragwan-step-action{background:linear-gradient(135deg,#37c86c,#159c54)!important}
+.ragwan-journey .ragwan-door-controls{display:flex!important;position:relative!important;z-index:5!important}.ragwan-journey .ragwan-door-chip{min-width:86px!important;background:linear-gradient(#fff,#edf0ee)!important;color:#19323a!important;border:1px solid #d3dbd7!important;border-radius:10px!important}.ragwan-journey .ragwan-door-chip.active{background:linear-gradient(135deg,#f0c44d,#a96d0d)!important;color:#fff!important;border-color:#fff0a5!important}
+.ragwan-journey-note{color:#fff!important;position:relative;z-index:5}
+@media(max-width:900px){.ragwan-ref-hero{grid-template-columns:1fr;padding:22px}.ragwan-ref-copy{order:-1;text-align:center;align-items:center}.ragwan-ref-icons{justify-content:center}.ragwan-ref-cta{margin:auto}.ragwan-door-gallery{justify-content:flex-start!important}.ragwan-step-zone{grid-template-columns:1fr!important}.ragwan-reference-open,.ragwan-journey .ragwan-step-panel{border-radius:20px!important}.ragwan-journey .ragwan-step-inner{grid-template-columns:1fr!important}.ragwan-journey .ragwan-step-side{order:-1}}
 </style>
 <div id="ragwanIntroNotice" class="ragwan-intro-notice" role="status" aria-live="polite">
     <div class="ragwan-intro-line ragwan-intro-main">${words(line1)}</div>
@@ -1131,9 +1162,19 @@ function ragwanSuccessIntro(){
     <div class="ragwan-intro-line ragwan-intro-warning">${words(line3)}</div>
 </div>
 <div id="ragwanPlanVideo" class="ragwan-plan-video">
-  <div class="ragwan-video-title">💎 الخطوات ال10 لبناء فريق قوي</div>
+  <div class="ragwan-ref-hero">
+  <div class="ragwan-ref-scene" aria-hidden="true"><div class="ragwan-ref-person"></div></div>
+  <div class="ragwan-ref-copy">
+    <h1>خطة <span>رجوان</span> للنجاح</h1>
+    <p>خطوات بسيطة ... تصنع نجاحات كبيرة</p>
+    <div class="ragwan-ref-icons"><div><b>☆</b>تعلّم</div><div><b>▥</b>طبّق</div><div><b>♟</b>طوّر</div><div><b>♜</b>حقّق</div></div>
+    <button type="button" class="ragwan-ref-cta" onclick="document.getElementById('ragwanJourney')?.scrollIntoView({behavior:'smooth',block:'center'})">🚪 مستقبلك يبدأ من هنا</button>
+  </div>
+</div>
+<div class="ragwan-ref-video"><div class="ragwan-video-title">💎 الخطوات ال10 لبناء فريق قوي</div>
   <div class="ragwan-video-frame">
     <iframe src="https://www.youtube.com/embed/esfetpV_Upw?rel=0&cc_load_policy=1&cc_lang_pref=ar" title="الخطوات ال10 لبناء فريق قوي" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+  </div>
   </div>
   <div class="ragwan-files-box" id="ragwanFilesBox">
     <div class="ragwan-files-head">
@@ -1173,7 +1214,7 @@ function ragwanDoorJourneyMarkup(){
   return '<section class="ragwan-journey" id="ragwanJourney">'+
     '<div class="ragwan-journey-head"><div class="ragwan-journey-kicker">🚪 رحلة التطبيق الاحترافي</div><div class="ragwan-journey-title">خطوات خطة رجوان للنجاح</div><div class="ragwan-journey-sub">اختر الباب وادخل إلى الخطوة — كل خطوة تفتح لك المرحلة التالية.</div></div>'+
     '<div class="ragwan-door-gallery">'+doors+'</div>'+
-    '<div class="ragwan-step-panel" id="ragwanStepPanel">'+
+    '<div class="ragwan-reference-open"><div><div class="n" id="ragwanOpenDoorNumber">1</div><div class="i" id="ragwanOpenDoorIcon">👥</div><div class="t" id="ragwanOpenDoorLabel">عرض فكرة العمل مع رد الاعتراضات</div><small>أهدافك في الخطوة الأولى</small></div></div><div class="ragwan-step-panel" id="ragwanStepPanel">'+
       '<div class="ragwan-step-inner"><div><div class="ragwan-step-kicker" id="ragwanStepKicker">الخطوة الأولى</div><div class="ragwan-step-title" id="ragwanStepTitle"></div><div class="ragwan-step-text" id="ragwanStepText"></div><div class="ragwan-step-goal" id="ragwanStepGoal"></div></div>'+
       '<div class="ragwan-step-side"><div class="ragwan-step-big-number" id="ragwanStepNumber">1</div><div class="ragwan-step-progress"><span id="ragwanStepProgress"></span></div><div class="ragwan-step-progress-label" id="ragwanStepProgressLabel">1 من 10</div><button type="button" class="ragwan-step-action" onclick="ragwanEnterNextStep()">🚪 دخول الخطوة</button></div></div>'+
     '</div>'+
@@ -1186,8 +1227,8 @@ function ragwanOpenDoor(n){
   const data=ragwanDoorData(),step=Math.max(1,Math.min(10,Number(n)||1)),item=data[step-1];
   ragwanCurrentStep=step;
   data.forEach(x=>{const door=document.getElementById('ragwanDoor'+x.n),chip=document.getElementById('ragwanDoorChip'+x.n);if(door)door.classList.toggle('open',x.n===step);if(chip)chip.classList.toggle('active',x.n===step)});
-  const title=document.getElementById('ragwanStepTitle'),text=document.getElementById('ragwanStepText'),goal=document.getElementById('ragwanStepGoal'),num=document.getElementById('ragwanStepNumber'),k=document.getElementById('ragwanStepKicker'),p=document.getElementById('ragwanStepProgress'),pl=document.getElementById('ragwanStepProgressLabel');
-  if(title)title.textContent=item.title;if(text)text.textContent=item.text;if(goal)goal.innerHTML='<b>🎯 '+item.goal.split(':')[0]+'</b>'+esc(item.goal.split(':').slice(1).join(':').trim());if(num)num.textContent=step;if(k)k.textContent='الخطوة '+(step===1?'الأولى':step===2?'الثانية':step===3?'الثالثة':step===4?'الرابعة':step===5?'الخامسة':step===6?'السادسة':step===7?'السابعة':step===8?'الثامنة':step===9?'التاسعة':'العاشرة');if(p)p.style.width=(step*10)+'%';if(pl)pl.textContent=step+' من 10';
+  const title=document.getElementById('ragwanStepTitle'),text=document.getElementById('ragwanStepText'),goal=document.getElementById('ragwanStepGoal'),num=document.getElementById('ragwanStepNumber'),k=document.getElementById('ragwanStepKicker'),p=document.getElementById('ragwanStepProgress'),pl=document.getElementById('ragwanStepProgressLabel'),openNum=document.getElementById('ragwanOpenDoorNumber'),openIcon=document.getElementById('ragwanOpenDoorIcon'),openLabel=document.getElementById('ragwanOpenDoorLabel');
+  if(title)title.textContent=item.title;if(text)text.textContent=item.text;if(goal)goal.innerHTML='<b>🎯 '+item.goal.split(':')[0]+'</b>'+esc(item.goal.split(':').slice(1).join(':').trim());if(num)num.textContent=step;if(openNum)openNum.textContent=step;if(openIcon)openIcon.textContent=item.icon;if(openLabel)openLabel.textContent=item.title;if(k)k.textContent='الخطوة '+(step===1?'الأولى':step===2?'الثانية':step===3?'الثالثة':step===4?'الرابعة':step===5?'الخامسة':step===6?'السادسة':step===7?'السابعة':step===8?'الثامنة':step===9?'التاسعة':'العاشرة');if(p)p.style.width=(step*10)+'%';if(pl)pl.textContent=step+' من 10';
   const panel=document.getElementById('ragwanStepPanel');if(panel){panel.animate([{opacity:.55,transform:'translateY(12px) scale(.985)'},{opacity:1,transform:'translateY(0) scale(1)'}],{duration:520,easing:'cubic-bezier(.2,.8,.2,1)'});setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'center'}),80)}
 }
 function ragwanEnterNextStep(){ragwanOpenDoor(Math.min(10,ragwanCurrentStep+1));}
