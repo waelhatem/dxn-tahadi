@@ -178,3 +178,26 @@ button.danger{
   -webkit-text-fill-color:#fff!important;
   opacity:1!important;
 }
+
+/* Community tab: keep exactly the same dimensions as the other navigation buttons. */
+.tabs .community-tab{
+  flex:1 1 0!important;
+  width:auto!important;
+  min-width:0!important;
+  max-width:none!important;
+  padding:10px 7px!important;
+  font-size:13px!important;
+  line-height:1.25!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important;
+}
+.tabs .community-tab.active{
+  background:var(--green)!important;
+  color:#fff!important;
+  -webkit-text-fill-color:#fff!important;
+}
