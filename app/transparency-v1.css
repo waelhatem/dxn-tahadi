@@ -201,3 +201,21 @@ button.danger{
   color:#fff!important;
   -webkit-text-fill-color:#fff!important;
 }
+
+/* Community navigation button: preserve its purple identity and visible label. */
+.tabs .community-tab,
+.tabs .community-tab.active{
+  background:linear-gradient(135deg,#7c3aed,#a855f7)!important;
+  color:#fff!important;
+  -webkit-text-fill-color:#fff!important;
+  border:2px solid #c084fc!important;
+  box-shadow:0 7px 18px rgba(124,58,237,.24)!important;
+  opacity:1!important;
+  visibility:visible!important;
+}
+.tabs .community-tab:hover,
+.tabs .community-tab.active:hover{
+  background:linear-gradient(135deg,#6d28d9,#9333ea)!important;
+  color:#fff!important;
+  -webkit-text-fill-color:#fff!important;
+}
