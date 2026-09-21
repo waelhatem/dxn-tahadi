@@ -1,0 +1,95 @@
+/* Semi-transparent content surfaces — header remains fully opaque */
+:root{
+  --surface-glass:rgba(255,255,255,.68);
+  --surface-glass-strong:rgba(255,255,255,.76);
+  --surface-border:rgba(255,255,255,.58);
+  --surface-shadow:0 8px 26px rgba(15,81,63,.10);
+}
+body{
+  background-color:var(--bg);
+  background-attachment:fixed;
+}
+.app{
+  position:relative;
+}
+.tabs .tab,
+.stat,
+.card,
+.admin-stat,
+.challenge,
+.question,
+.answer,
+.badge-card,
+.level-mini,
+.progress-stat,
+.notif-item,
+.next-step-card,
+.daily-mission-card,
+.member-journey-card,
+.team-sponsor-card,
+.team-member-card,
+.target-card,
+.streak-card,
+.level-card,
+.smart-card,
+.login,
+input,
+textarea,
+select,
+.view-switch,
+.nav button{
+  background:var(--surface-glass)!important;
+  border-color:var(--surface-border)!important;
+  box-shadow:var(--surface-shadow);
+  backdrop-filter:blur(7px);
+  -webkit-backdrop-filter:blur(7px);
+}
+.tabs .tab.active,
+button.primary,
+button.gold,
+button.danger{
+  backdrop-filter:blur(7px);
+  -webkit-backdrop-filter:blur(7px);
+}
+.row,
+.admin-table th,
+.admin-table td{
+  border-color:rgba(255,255,255,.48)!important;
+}
+.challenge,
+.question{
+  background:rgba(255,253,245,.66)!important;
+}
+.answer{
+  background:rgba(247,249,251,.64)!important;
+}
+.notif-item.unread{
+  background:rgba(247,252,249,.66)!important;
+}
+.badge-card.locked{
+  background:rgba(255,255,255,.48)!important;
+}
+.evidence-modal .card,
+.team-member-panel .team-member-card{
+  background:rgba(255,255,255,.94)!important;
+}
+/* Keep the main header completely opaque and unchanged. */
+.login-header-top,
+.top.login-header-top{
+  opacity:1!important;
+  background-color:transparent;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+/* Preserve readability on translucent surfaces. */
+.card,.stat,.admin-stat,.challenge,.question,.notif-item,.next-step-card,
+.daily-mission-card,.member-journey-card,.target-card,.streak-card,.level-card{
+  color:var(--text);
+}
+@media(max-width:799px){
+  .mobile-member-identity{
+    background:linear-gradient(135deg,#ffffff,#f3faf7)!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+  }
+}
