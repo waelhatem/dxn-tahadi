@@ -1010,6 +1010,17 @@ function switchTrainingSubtab(next){
   trainingSubtab=next;
   try{render();requestAnimationFrame(()=>scrollToTabContent('training'))}catch(e){console.error(e);toast('تعذر فتح القسم: '+(e.message||e))}
 }
+function ragwanSuccessIntro(){
+  const line1='الخطوات العشرة لبناء فريق قوي';
+  const line2='10 خطوات ستنقلك نقلة نوعية في العمل الاحترافي مع شركة DXN';
+  const line3='ولكن إن لم تكن مستعدًا للتطبيق فلن تجدي معك نفعًا.';
+  const words=s=>s.split(' ').map((w,i)=>`<span class="ragwan-word" style="animation-delay:${(i*0.16).toFixed(2)}s">${esc(w)}</span>`).join(' ');
+  return `<div class="ragwan-intro-notice" role="status" aria-live="polite">
+    <div class="ragwan-intro-line ragwan-intro-main">${words(line1)}</div>
+    <div class="ragwan-intro-line ragwan-intro-secondary">${words(line2)}</div>
+    <div class="ragwan-intro-line ragwan-intro-warning">${words(line3)}</div>
+  </div>`;
+}
 function trainings(){
   const lessons=(trainingData.lessons||[]).sort((a,b)=>Number(a.lesson_no)-Number(b.lesson_no));
   const progress=trainingData.my_progress||[];
@@ -1022,7 +1033,7 @@ function trainings(){
   if(trainingSubtab==='ragwan_success_plan'){
     return subTabs+`<div class="card">
       <div class="title">📘 الخطة الاحترافية لرجوان نجاح</div>
-      <p class="muted">هذا المكان مخصص لهذا التدريب.</p>
+      ${ragwanSuccessIntro()}
     </div>`;
   }
 
@@ -1065,7 +1076,35 @@ function trainings(){
     <div class="muted" style="text-align:center;margin-top:8px">⭐ أكمل التدريب كاملًا لتحصل على مكافأة النجوم مرة واحدة.</div>
   </div>${cards}`;
 }
-function youtubeEmbed(url){
+<style id="ragwan-success-intro-style">
+.ragwan-intro-notice{
+  margin-top:18px;
+  padding:34px 28px;
+  border-radius:22px;
+  text-align:center;
+  background:linear-gradient(135deg,#0f513f,#146b54);
+  color:#fff;
+  box-shadow:0 18px 45px rgba(15,81,63,.18);
+  overflow:hidden;
+}
+.ragwan-intro-line{
+  line-height:1.9;
+  margin:8px auto;
+  font-weight:900;
+}
+.ragwan-intro-main{font-size:clamp(26px,3.4vw,42px);}
+.ragwan-intro-secondary{font-size:clamp(19px,2.2vw,27px);}
+.ragwan-intro-warning{font-size:clamp(18px,2vw,24px);opacity:.96;}
+.ragwan-word{
+  display:inline-block;
+  opacity:0;
+  transform:translateY(10px);
+  animation:ragwanWordReveal .65s ease forwards;
+}
+@keyframes ragwanWordReveal{
+  to{opacity:1;transform:translateY(0)}
+}
+</style>\nfunction youtubeEmbed(url){
   const s=String(url||'').trim();
   let id='';
   const m=s.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{6,})/i);
