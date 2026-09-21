@@ -1503,7 +1503,7 @@ function ragwanDoorJourneyMarkup(){
     return '<button type="button" class="ragwan-door-chip '+status+'" id="ragwanDoorChip'+x.n+'" '+(locked?'disabled':'')+' onclick="ragwanOpenDoor('+x.n+')">'+x.n+'</button>';
   }).join('');
   return '<section class="ragwan-journey" id="ragwanJourney">'+
-    '<div class="ragwan-journey-head"><div class="ragwan-journey-kicker">🚪 رحلة التطبيق الاحترافي</div><div class="ragwan-journey-title">خطوات خطة رجوان للنجاح</div><div class="ragwan-journey-sub">كل خطوة تُفتح بعد إنجاز السابقة، والتقدم لا يرتفع إلا عند الضغط على «أكملت الخطوة».</div></div>'+
+    '<div class="ragwan-journey-head"><div class="ragwan-journey-kicker">🚪 رحلة التطبيق الاحترافي</div><div class="ragwan-journey-title">خطوات خطة رجوان للنجاح</div><div class="ragwan-journey-sub">يمكنك فتح أي خطوة للاطلاع عليها، والتقدم لا يرتفع إلا عند الضغط على «أكملت الخطوة».</div></div>'+
     '<div class="ragwan-real-progress">'+
       '<div class="ragwan-progress-top"><div><b>📊 تقدمك الحقيقي</b><span id="ragwanRealProgressState">الخطوة '+current+' هي خطوتك الحالية</span></div><strong id="ragwanRealProgressPercent">0%</strong></div>'+
       '<div class="ragwan-progress-track"><span id="ragwanRealProgress" style="width:0%"></span></div>'+
@@ -1789,8 +1789,7 @@ async function ragwanLoadEvidence(){
 }
 
 function ragwanOpenDoor(n){
-  const data=ragwanDoorData(),state=ragwanProgressLoad(),maxOpen=ragwanProgressNextStep(),step=Math.max(1,Math.min(10,Number(n)||1));
-  if(step>maxOpen){toast('🔒 هذه الخطوة مغلقة. أكمل الخطوة السابقة أولًا.');return;}
+  const data=ragwanDoorData(),state=ragwanProgressLoad(),step=Math.max(1,Math.min(10,Number(n)||1));
   const item=data[step-1],status=ragwanStepStatus(step,state);
   ragwanCurrentStep=step;
   data.forEach(x=>{
