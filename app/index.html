@@ -1878,7 +1878,8 @@ function ragwanOpenDoor(n){
   ragwanRenderStepVideos();
   ragwanRenderStepTest();
   ragwanLoadStepResources().then(()=>{
-    if(role==='member') setTimeout(()=>ragwanFocusFirstMaterial(),180);
+    const heading=document.getElementById('ragwanStepTitle');
+    if(heading) setTimeout(()=>heading.scrollIntoView({behavior:'smooth',block:'center'}),180);
   });
   if(k)k.textContent='الخطوة '+ragwanStepWord(step);
   if(p)p.style.width=((state.completed.length/10)*100)+'%';
