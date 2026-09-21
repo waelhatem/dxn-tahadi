@@ -153,7 +153,7 @@ async function ragwanPlanFiles(args){
     return {path,name:safe,content_type:type,size,token:signed.data&&signed.data.token,signed_url:signed.data&&signed.data.signedURL};
   }
   if(action==='list'){
-    const listed=await supabaseStorageRequest('/storage/v1/object/list/'+bucket,'POST',SUPABASE_SECRET_KEY,{prefix:'ragwan/',limit:100,offset:0,sortBy:{column:'created_at',order:'desc'}},15000);
+    const listed=await supabaseStorageRequest('/storage/v1/object/list/'+bucket,'POST',SUPABASE_SECRET_KEY,{prefix:'ragwan/',limit:100,offset:0},15000);
     if(!listed.ok)throw new Error((listed.data&&(listed.data.message||listed.data.error))||listed.text||'تعذر تحميل الملفات.');
     const items=Array.isArray(listed.data)?listed.data:[];
     const paths=items.map(x=>String(x.name||'')).filter(Boolean).map(n=>'ragwan/'+n);
