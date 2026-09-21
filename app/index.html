@@ -1015,21 +1015,39 @@ function ragwanSuccessIntro(){
   const line2='10 خطوات ستنقلك نقلة نوعية في العمل الاحترافي مع شركة DXN';
   const line3='ولكن إن لم تكن مستعدًا للتطبيق فلن تجدي معك نفعًا.';
   const words=s=>s.split(' ').map((w,i)=>`<span class="ragwan-word" style="animation-delay:${(i*0.16).toFixed(2)}s">${esc(w)}</span>`).join(' ');
+  setTimeout(()=>{
+    const intro=document.getElementById('ragwanIntroNotice');
+    const video=document.getElementById('ragwanPlanVideo');
+    if(intro&&video){
+      intro.style.display='none';
+      video.style.display='block';
+    }
+  },10000);
   return `<style>
 .ragwan-intro-notice{margin:24px auto 28px;padding:42px 34px;border-radius:26px;text-align:center;background:linear-gradient(135deg,#063d2f,#0f6b52);color:#fff;box-shadow:0 14px 38px rgba(15,81,63,.28),0 0 0 3px rgba(210,231,72,.18);overflow:hidden;max-width:1100px;border:2px solid rgba(210,231,72,.42);position:relative}
 .ragwan-intro-notice:before{content:"";position:absolute;inset:10px;border:1px solid rgba(255,255,255,.2);border-radius:19px;pointer-events:none}
-.ragwan-intro-line{position:relative;z-index:1}
-.ragwan-intro-line{line-height:1.9;margin:8px auto;font-weight:900}
+.ragwan-intro-line{position:relative;z-index:1;line-height:1.9;margin:8px auto;font-weight:900}
 .ragwan-intro-main{font-size:clamp(26px,3.4vw,42px)}
 .ragwan-intro-secondary{font-size:clamp(19px,2.2vw,27px)}
 .ragwan-intro-warning{font-size:clamp(18px,2vw,24px);opacity:.96}
 .ragwan-word{display:inline-block;opacity:0;transform:translateY(10px);animation:ragwanWordReveal .65s ease forwards}
+.ragwan-plan-video{display:none;margin:24px auto;max-width:1100px}
+.ragwan-video-frame{position:relative;width:100%;padding-top:56.25%;overflow:hidden;border-radius:20px;background:#000;box-shadow:0 14px 38px rgba(15,81,63,.2)}
+.ragwan-video-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.ragwan-video-title{text-align:center;font-size:clamp(22px,2.5vw,32px);font-weight:950;margin:0 0 16px;color:#0f513f}
 @keyframes ragwanWordReveal{to{opacity:1;transform:translateY(0)}}
-</style><div class="ragwan-intro-notice" role="status" aria-live="polite">
+</style>
+<div id="ragwanIntroNotice" class="ragwan-intro-notice" role="status" aria-live="polite">
     <div class="ragwan-intro-line ragwan-intro-main">${words(line1)}</div>
     <div class="ragwan-intro-line ragwan-intro-secondary">${words(line2)}</div>
     <div class="ragwan-intro-line ragwan-intro-warning">${words(line3)}</div>
-  </div>`;
+</div>
+<div id="ragwanPlanVideo" class="ragwan-plan-video">
+  <div class="ragwan-video-title">💎 الخطوات ال10 لبناء فريق قوي</div>
+  <div class="ragwan-video-frame">
+    <iframe src="https://www.youtube.com/embed/esfetpV_Upw?rel=0&cc_load_policy=1&cc_lang_pref=ar" title="الخطوات ال10 لبناء فريق قوي" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+  </div>
+</div>`;
 }
 function trainings(){
   const lessons=(trainingData.lessons||[]).sort((a,b)=>Number(a.lesson_no)-Number(b.lesson_no));
