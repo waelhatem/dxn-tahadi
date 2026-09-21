@@ -1084,7 +1084,8 @@ function trainings(){
     <div class="muted" style="text-align:center;margin-top:8px">⭐ أكمل التدريب كاملًا لتحصل على مكافأة النجوم مرة واحدة.</div>
   </div>${cards}`;
 }
-\nfunction youtubeEmbed(url){
+
+function youtubeEmbed(url){
   const s=String(url||'').trim();
   let id='';
   const m=s.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{6,})/i);
