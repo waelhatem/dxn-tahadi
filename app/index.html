@@ -1015,7 +1015,7 @@ function ideaTrustVideos(){
   </div>`;
   renderViewSwitch();
 }
-async function loadRagwanPlanContent(){
+async async function loadRagwanPlanContent(){
   try{
     const rows=await rpc('get_ragwan_success_plan_content',{p_token:token});
     ragwanPlanContent=Array.isArray(rows)?rows:(typeof rows==='string'?JSON.parse(rows||'[]'):[]);
