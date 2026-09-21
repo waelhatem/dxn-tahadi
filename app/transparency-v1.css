@@ -141,3 +141,15 @@ button.danger{
   -webkit-backdrop-filter:blur(5px);
 }
 .community-page .community-floating-card{display:none!important;}
+
+/* Keep navigation labels visible after the transparency effect. */
+.tabs .tab{
+  color:var(--text)!important;
+  opacity:1!important;
+  text-shadow:none!important;
+}
+.tabs .tab.active{
+  background:var(--green)!important;
+  color:#fff!important;
+  opacity:1!important;
+}
