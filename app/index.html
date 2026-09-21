@@ -1072,7 +1072,7 @@ function ragwanSuccessIntro(){
         <div class="ragwan-files-title">📎 ملفات الخطة الاحترافية</div>
         <div class="ragwan-files-sub">يمكن للقائد رفع الصور والملفات والفيديوهات، وتظهر هنا للأعضاء.</div>
       </div>
-      \${role==='leader'?'<div><label class="ragwan-upload-label" for="ragwanFileInput">➕ رفع ملفات</label><input id="ragwanFileInput" class="ragwan-file-input" type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"></div>':''}
+      ${role==='leader'?'<div><label class="ragwan-upload-label" for="ragwanFileInput">➕ رفع ملفات</label><input id="ragwanFileInput" class="ragwan-file-input" type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"></div>':''}
     </div>
     <div id="ragwanUploadStatus" class="ragwan-upload-status"></div>
     <div id="ragwanFilesList" class="ragwan-files-list"><div class="muted">⏳ جارٍ تحميل الملفات...</div></div>
@@ -1082,7 +1082,7 @@ function ragwanSuccessIntro(){
 async function ragwanPlanApi(action,args={}){
   const res=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn:'ragwan_plan_files',args:{p_token:token,action,...args}}),cache:'no-store'});
   const text=await res.text();let out={};try{out=text?JSON.parse(text):{}}catch(_){}
-  if(!res.ok||!out.ok)throw new Error(out.error||\`تعذر تنفيذ العملية (\${res.status})\`);
+  if(!res.ok||!out.ok)throw new Error(out.error||`تعذر تنفيذ العملية (${res.status})`);
   return out;
 }
 function ragwanFileIcon(file){
@@ -1104,8 +1104,8 @@ function ragwanRenderFiles(files){
   if(!files.length){el.innerHTML='<div class="muted">لا توجد ملفات مضافة حتى الآن.</div>';return;}
   el.innerHTML=files.map(f=>{
     const mime=String(f.mime||'').toLowerCase(),url=String(f.url||'');
-    const preview=mime.startsWith('image/')&&url?\`<img class="ragwan-file-preview" src="\${esc(url)}" alt="">\`:\`<div class="ragwan-file-icon">\${ragwanFileIcon(f)}</div>\`;
-    return \`<div class="ragwan-file-card">\${preview}<div class="ragwan-file-info"><div class="ragwan-file-name">\${esc(f.name)}</div><div class="ragwan-file-meta">\${esc(ragwanFormatSize(f.size))}</div></div><div class="ragwan-file-actions">\${url?\`<a href="\${esc(url)}" target="_blank" rel="noopener">فتح</a><a href="\${esc(url)}" download>تنزيل</a>\`:''}\${role==='leader'?\`<button type="button" onclick="ragwanDeleteFile('\${esc(f.path)}')">🗑️ حذف</button>\`:''}</div></div>\`;
+    const preview=mime.startsWith('image/')&&url?`<img class="ragwan-file-preview" src="${esc(url)}" alt="">`:`<div class="ragwan-file-icon">${ragwanFileIcon(f)}</div>`;
+    return `<div class="ragwan-file-card">${preview}<div class="ragwan-file-info"><div class="ragwan-file-name">${esc(f.name)}</div><div class="ragwan-file-meta">${esc(ragwanFormatSize(f.size))}</div></div><div class="ragwan-file-actions">${url?`<a href="${esc(url)}" target="_blank" rel="noopener">فتح</a><a href="${esc(url)}" download>تنزيل</a>`:''}${role==='leader'?`<button type="button" onclick="ragwanDeleteFile('${esc(f.path)}')">🗑️ حذف</button>`:''}</div></div>`;
   }).join('');
 }
 async function ragwanLoadFiles(){
@@ -1120,7 +1120,7 @@ async function ragwanUploadFiles(fileList){
     if(status)status.textContent='⏳ جارٍ تجهيز الرفع...';
     for(let i=0;i<files.length;i++){
       const f=files[i];
-      if(status)status.textContent=\`⏳ جارٍ رفع الملف \${i+1} من \${files.length}: \${f.name}\`;
+      if(status)status.textContent=`⏳ جارٍ رفع الملف ${i+1} من ${files.length}: ${f.name}`;
       const signed=await ragwanPlanApi('sign_upload',{name:f.name,content_type:f.type||'application/octet-stream',size:f.size});
       if(!signed.token||!signed.path)throw new Error('لم يتم إنشاء رابط الرفع.');
       const {error}=await sb.storage.from('ragwan-plan').uploadToSignedUrl(signed.path,signed.token,f,{contentType:f.type||'application/octet-stream'});
