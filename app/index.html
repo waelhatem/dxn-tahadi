@@ -1734,7 +1734,7 @@ async function ragwanFocusFirstMaterial(){
   target.style.outlineOffset='4px';
   setTimeout(()=>{target.style.outline='';target.style.outlineOffset='';},1800);
 }
-function ragwanLoadStepResources(){
+async function ragwanLoadStepResources(){
   try{const out=await ragwanPlanApi('step_resource_list',{step:ragwanCurrentStep});ragwanRenderStepResources(out.files||[]);}
   catch(e){const el=document.getElementById('ragwanStepResources');if(el)el.innerHTML='<div class="ragwan-resource-empty">⚠️ '+esc(e.message||'تعذر تحميل مواد الخطوة.')+'</div>';}
 }
