@@ -167,3 +167,14 @@ button.danger{
   color:#ffffff!important;
   -webkit-text-fill-color:#ffffff!important;
 }
+
+
+/* Selected navigation button always uses white text. */
+.tabs .tab.active,
+.tabs .tab.active *,
+.tabs .tab.active span,
+.tabs .tab.active b{
+  color:#fff!important;
+  -webkit-text-fill-color:#fff!important;
+  opacity:1!important;
+}
