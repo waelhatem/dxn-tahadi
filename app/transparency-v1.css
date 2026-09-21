@@ -235,3 +235,21 @@ button.danger{
   backdrop-filter:blur(4px)!important;
   -webkit-backdrop-filter:blur(4px)!important;
 }
+
+/* Professional Plan files: enforce the same 50/50 transparency as the rest of the site. */
+.ragwan-files-box,
+.ragwan-file-card,
+.ragwan-file-media,
+.ragwan-step-section,
+.ragwan-step-section-item{
+  background:rgba(255,255,255,.50)!important;
+  backdrop-filter:blur(4px)!important;
+  -webkit-backdrop-filter:blur(4px)!important;
+}
+.ragwan-files-box{
+  border-color:rgba(15,81,63,.22)!important;
+}
+.ragwan-file-card,
+.ragwan-step-section-item{
+  border-color:rgba(255,255,255,.55)!important;
+}
