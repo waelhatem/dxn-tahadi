@@ -114,6 +114,33 @@ async function ragwanPlanFiles(args){
     if(!signed.ok)throw new Error((signed.data&&(signed.data.message||signed.data.error))||signed.text||'تعذر إنشاء رابط الرفع.');
     return {path,name:safe,content_type:type,size,token:signed.data&&signed.data.token,signed_url:absoluteSupabaseStorageUrl(signed.data&&signed.data.signedURL)};
   }
+  if(action==='sign_step_resource_upload'){
+    if(role!=='leader')throw new Error('رفع ملفات خطوات رجوان متاح للقائد فقط.');
+    await ensureRagwanBucket();
+    const step=Math.max(1,Math.min(10,Number(args.step)||0));
+    const name=String(args.name||'').trim(),type=String(args.content_type||'application/octet-stream').trim().slice(0,150),size=Number(args.size||0);
+    if(!step||!name)throw new Error('بيانات الملف غير مكتملة.');
+    if(!Number.isFinite(size)||size<=0||size>50*1024*1024)throw new Error('حجم الملف يجب ألا يتجاوز 50 MB.');
+    const safe=name.replace(/[^\p{L}\p{N}._()\- ]/gu,'_').replace(/\s+/g,' ').trim().slice(0,140)||'file';
+    const path=`step-resources/step-${step}/${Date.now()}-${Math.random().toString(36).slice(2,8)}-${safe}`;
+    const signed=await supabaseStorageRequest('/storage/v1/object/upload/sign/'+bucket+'/'+encodeURIComponent(path),'POST',SUPABASE_SECRET_KEY,{upsert:false},15000);
+    if(!signed.ok)throw new Error((signed.data&&(signed.data.message||signed.data.error))||signed.text||'تعذر إنشاء رابط رفع ملف الخطوة.');
+    return {path,name:safe,content_type:type,size,step,token:signed.data&&signed.data.token,signed_url:absoluteSupabaseStorageUrl(signed.data&&signed.data.signedURL)};
+  }
+  if(action==='step_resource_list'){
+    const step=Math.max(1,Math.min(10,Number(args.step)||0));
+    if(!step)throw new Error('رقم الخطوة غير صالح.');
+    const prefix=`step-resources/step-${step}/`;
+    const listed=await supabaseStorageRequest('/storage/v1/object/list/'+bucket,'POST',SUPABASE_SECRET_KEY,{prefix,limit:100,offset:0},15000);
+    if(!listed.ok)throw new Error((listed.data&&(listed.data.message||listed.data.error))||listed.text||'تعذر تحميل ملفات الخطوة.');
+    const items=Array.isArray(listed.data)?listed.data:[],paths=items.map(x=>String(x.name||'')).filter(Boolean).map(n=>prefix+n);
+    let signedMap={};
+    if(paths.length){
+      const sr=await supabaseStorageRequest('/storage/v1/object/sign/'+bucket,'POST',SUPABASE_SECRET_KEY,{expiresIn:3600,paths},15000);
+      if(sr.ok){const rows=Array.isArray(sr.data)?sr.data:[];rows.forEach(x=>{if(x&&x.path)signedMap[x.path]=absoluteSupabaseStorageUrl(x.signedURL||x.signedUrl||'');});}
+    }
+    return {files:items.map(x=>{const raw=String(x.name||''),path=prefix+raw;return {name:raw.replace(/^\d+-[a-z0-9]+-/i,''),path,size:Number(x.metadata&&x.metadata.size||0),mime:String(x.metadata&&x.metadata.mimetype||x.metadata&&x.metadata.contentType||''),created_at:x.created_at||x.updated_at||null,url:signedMap[path]||''};})};
+  }
   if(action==='sign_evidence_upload'){
     if(role!=='member')throw new Error('إثباتات الخطوات متاحة للأعضاء فقط.');
     await ensureRagwanBucket();
