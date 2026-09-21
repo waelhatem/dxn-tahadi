@@ -131,6 +131,14 @@ button[disabled]:focus-visible{outline-color:#667085!important}
 .ragwan-resource-upload label{display:inline-flex;padding:9px 13px;border-radius:11px;background:#0f513f;color:#fff;font-weight:900;cursor:pointer}.ragwan-resource-upload input{display:none}
 .ragwan-resource-list{display:grid;gap:8px;margin-top:11px}.ragwan-resource-item{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #dfe9e5;border-radius:13px;background:#fff}.ragwan-resource-item>div{flex:1}.ragwan-resource-item b{display:block}.ragwan-resource-item small{display:block;color:#71817a;margin-top:2px}.ragwan-resource-item a{font-weight:900;color:#0f513f}.ragwan-resource-icon{font-size:24px}.ragwan-resource-empty{padding:12px;text-align:center;color:#71817a;background:#fff;border-radius:12px}
 .ragwan-test-head>span{font-weight:900;color:#0f513f}.ragwan-test-questions{display:grid;gap:12px;margin-top:12px}.ragwan-test-q{padding:12px;border:1px solid #e0e9e5;border-radius:13px;background:#fff}.ragwan-test-q>b{display:block;margin-bottom:8px}.ragwan-test-q label{display:block;padding:6px 4px;cursor:pointer}.ragwan-test-submit{margin-top:12px;background:#0f513f;color:#fff;border:0;border-radius:11px;padding:10px 15px;font-weight:900;cursor:pointer}.ragwan-test-status{margin-top:8px;font-weight:800}.ragwan-test-card.passed{display:flex;align-items:center;justify-content:space-between;background:#edf8f2;border-color:#bfe2cf}.ragwan-test-card.passed span{font-size:24px;color:#16704e}
+</style><style>
+.ragwan-step-videos{margin-top:13px;padding:14px;border:1px solid #d9e8e1;border-radius:18px;background:#f8fcfa}
+.ragwan-video-material-head b{display:block;color:#123b30}.ragwan-video-material-head small{display:block;color:#71817a;margin-top:4px}
+.ragwan-step-video-list{display:grid;gap:14px;margin-top:12px}
+.ragwan-step-video-card{padding:11px;border:1px solid #dfe9e5;border-radius:15px;background:#fff}
+.ragwan-step-video-title{display:flex;gap:8px;align-items:flex-start;line-height:1.65;margin-bottom:9px}
+.ragwan-step-video-frame{position:relative;width:100%;padding-top:56.25%;border-radius:12px;overflow:hidden;background:#000}
+.ragwan-step-video-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 </style></head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
   <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
@@ -1509,6 +1517,7 @@ function ragwanDoorJourneyMarkup(){
           '</div>'+
           '<div class="ragwan-task-box"><span>🎯 المطلوب الآن</span><b id="ragwanStepTask"></b></div>'+
           '<div class="ragwan-step-resources" id="ragwanStepResources"></div>'+
+          '<div class="ragwan-step-videos" id="ragwanStepVideos"></div>'+
           '<div class="ragwan-step-test" id="ragwanStepTest"></div>'+
           '<div class="ragwan-evidence-box" id="ragwanEvidenceBox"></div>'+
         '</div>'+
@@ -1538,6 +1547,30 @@ const ragwanStepTests={
     {q:'متى يُطلب إثبات تنفيذ الخطوة؟',a:['قبل الاطلاع على مواد الخطوة','بعد فهم المادة واجتياز الاختبار وتنفيذ التطبيق','مباشرة عند فتح الباب'],c:1}
   ]
 };
+const ragwanStepVideos={
+  1:[
+    {title:'محاضرة رد الاعتراضات — م. محمود المصري 👑 — الجزء الأول',url:'https://www.youtube.com/watch?v=XTSo0spAdn0'},
+    {title:'محاضرة رد الاعتراضات — م. محمود المصري 👑 — الجزء الثاني',url:'https://www.youtube.com/watch?v=legVKa8e3yg'},
+    {title:'تدريب «سعرك غالي» — م. محمود المصري 👑',url:'https://www.youtube.com/watch?v=W-xJ67OZbD0'},
+    {title:'محاضرة رد الاعتراضات — م. فراس الجنابي 👑 — الجزء الأول',url:'https://www.youtube.com/watch?v=5f03-0VDRmw'},
+    {title:'محاضرة رد الاعتراضات — م. فراس الجنابي 👑 — الجزء الثاني',url:'https://www.youtube.com/watch?v=cOraXbUmInw'},
+    {title:'تدريب «سعرك غالي» — م. حسام علي 👑',url:'https://www.youtube.com/watch?v=QnyLC6AKb00'}
+  ]
+};
+function ragwanYoutubeId(url){
+  const m=String(url||'').match(/[?&]v=([^&]+)/)||String(url||'').match(/youtu\.be\/([^?&/]+)/);
+  return m?m[1]:'';
+}
+function ragwanRenderStepVideos(){
+  const el=document.getElementById('ragwanStepVideos');if(!el)return;
+  const videos=ragwanStepVideos[ragwanCurrentStep]||[];
+  if(!videos.length){el.innerHTML='';return;}
+  el.innerHTML='<div class="ragwan-video-material-head"><div><b>🎥 فيديوهات الاعتراضات</b><small>هذه الفيديوهات مخصصة للخطوة الأولى وتأتي بعد ملفات طرح فكرة العمل.</small></div></div>'+
+    '<div class="ragwan-step-video-list">'+videos.map((v,i)=>{
+      const id=ragwanYoutubeId(v.url);
+      return '<article class="ragwan-step-video-card"><div class="ragwan-step-video-title"><span>🎥</span><b>'+esc(v.title)+'</b></div>'+(id?'<div class="ragwan-step-video-frame"><iframe src="https://www.youtube.com/embed/'+esc(id)+'" title="'+esc(v.title)+'" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>':'<a href="'+esc(v.url)+'" target="_blank" rel="noopener">فتح الفيديو</a>')+'</article>';
+    }).join('')+'</div>';
+}
 function ragwanStepTestPassed(step){
   const raw=localStorage.getItem('dxn_ragwan_test_v1_'+step);
   return raw==='passed';
@@ -1697,6 +1730,7 @@ function ragwanOpenDoor(n){
   if(num)num.textContent=step;if(openNum)openNum.textContent=step;if(openIcon)openIcon.textContent=item.icon;if(openLabel)openLabel.textContent=item.title;if(openStatus)openStatus.textContent=ragwanStatusLabel(status);
   const ids=[['ragwanStepLearn',item.learn],['ragwanStepApply',item.apply],['ragwanStepCheck',item.check],['ragwanStepWin',item.win],['ragwanStepTask',item.task]];
   ids.forEach(([id,value])=>{const el=document.getElementById(id);if(el)el.textContent=value;});
+  ragwanRenderStepVideos();
   ragwanRenderStepTest();
   ragwanLoadStepResources();
   if(k)k.textContent='الخطوة '+ragwanStepWord(step);
