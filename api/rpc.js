@@ -1,8 +1,8 @@
 const https = require('https');
 
-const DEFAULT_SUPABASE_URL = 'https://ryqpstkzppaifpvhezzn.supabase.co';
+const DEFAULT_SUPABASE_URL = 'https://ryqpstkzppaifpvhezz.supabase.co';
 const configuredSupabaseUrl = String(process.env.SUPABASE_URL || '').trim().replace(/[\r\n]/g,'').replace(/\/$/,'');
-const SUPABASE_URL = /^https:\/\/ryqpstkzppaifpvhezzn\.supabase\.co$/i.test(configuredSupabaseUrl) ? configuredSupabaseUrl : DEFAULT_SUPABASE_URL;
+const SUPABASE_URL = /^https:\/\/ryqpstkzppaifpvhezz\.supabase\.co$/i.test(configuredSupabaseUrl) ? configuredSupabaseUrl : DEFAULT_SUPABASE_URL;
 const SUPABASE_KEY = String(process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || 'sb_publishable_pD9m1Z3gN--2HAfhf_t2YA_2RiAeUh').trim().replace(/[\r\n]/g,'');
 const SUPABASE_SECRET_KEY = String(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim().replace(/[\r\n]/g,'');
 const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY || '').trim().replace(/[\r\n]/g,'');
