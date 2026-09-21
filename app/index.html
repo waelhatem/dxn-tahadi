@@ -262,7 +262,18 @@ body:has(.login-header-top) .stat,
 body:has(.login-header-top) .notif-item{
   box-shadow:0 10px 28px rgba(15,81,63,.08);
 }
-</style><link rel="stylesheet" href="./transparency-v1.css?v=1"></head><body>
+</style><link rel="stylesheet" href="./transparency-v1.css?v=1">
+<style id="mobileLayoutStabilityV1">
+/* Mobile layout stability: prevent viewport reflow/zoom-like jumping while browser chrome changes size. */
+@media (max-width:799px){
+  html,body{width:100%;max-width:100%;min-width:0;overflow-x:hidden!important;}
+  body{zoom:1!important;}
+  #app{width:100%;max-width:100%;min-width:0;overflow-x:hidden!important;}
+  .app,.top,.tabs,.card,.stat,.community-page{max-width:100%;box-sizing:border-box;}
+  img,video,iframe{max-width:100%;}
+}
+</style>
+</head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
   <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
   <div class="pwa-install-actions"><button id="pwaInstallBtn" class="primary" type="button">تثبيت</button><button id="pwaInstallClose" class="pwa-install-close" type="button">لاحقًا</button></div>
@@ -3499,7 +3510,7 @@ updateSiteMeta();
 dxnNav.current=token?`tab:${tab}`:'public:login';
 renderInAppNav();
 boot();
-window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForward=dxnNavGoForward;window.sendChallengeEvidence=sendChallengeEvidence;window.openEvidence=openEvidence;window.openMemberProgress=openMemberProgress;window.editMyMonthlyPoints=editMyMonthlyPoints;window.closeMonthlyPointsEvidenceModal=closeMonthlyPointsEvidenceModal;window.previewMonthlyPointsEvidence=previewMonthlyPointsEvidence;window.sendMonthlyPointsEvidence=sendMonthlyPointsEvidence;window.decideMonthlyPointRequest=decideMonthlyPointRequest;window.openMemberProfile=openMemberProfile;window.closeMemberProfile=closeMemberProfile;window.memberPathMap=memberPathMap;window.openTrainingManager=openTrainingManager;window.restartTrainingWatch=restartTrainingWatch;window.startTrainingLesson=startTrainingLesson;window.completeTrainingLesson=completeTrainingLesson;window.saveTrainingFromManager=saveTrainingFromManager;window.editTrainingLesson=editTrainingLesson;window.toggleTrainingLesson=toggleTrainingLesson;window.closeTraining=closeTraining;window.closeTrainingManager=closeTrainingManager;window.challenges=challenges;window.teams=teams;window.leader=leader;window.approvalCard=approvalCard;window.renderIdea=renderIdea;window.trainings=trainings;window.approveDXNMembershipRequest=approveDXNMembershipRequest;window.rejectDXNMembershipRequest=rejectDXNMembershipRequest;window.openDXNMembershipRequests=openDXNMembershipRequests;window.openApprovedDXNMembershipRequests=openApprovedDXNMembershipRequests;window.backToLeaderDashboard=backToLeaderDashboard;window.addEventListener('resize',()=>{if(!localStorage.getItem('dxn_view_mode'))renderViewSwitch()});
+window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForward=dxnNavGoForward;window.sendChallengeEvidence=sendChallengeEvidence;window.openEvidence=openEvidence;window.openMemberProgress=openMemberProgress;window.editMyMonthlyPoints=editMyMonthlyPoints;window.closeMonthlyPointsEvidenceModal=closeMonthlyPointsEvidenceModal;window.previewMonthlyPointsEvidence=previewMonthlyPointsEvidence;window.sendMonthlyPointsEvidence=sendMonthlyPointsEvidence;window.decideMonthlyPointRequest=decideMonthlyPointRequest;window.openMemberProfile=openMemberProfile;window.closeMemberProfile=closeMemberProfile;window.memberPathMap=memberPathMap;window.openTrainingManager=openTrainingManager;window.restartTrainingWatch=restartTrainingWatch;window.startTrainingLesson=startTrainingLesson;window.completeTrainingLesson=completeTrainingLesson;window.saveTrainingFromManager=saveTrainingFromManager;window.editTrainingLesson=editTrainingLesson;window.toggleTrainingLesson=toggleTrainingLesson;window.closeTraining=closeTraining;window.closeTrainingManager=closeTrainingManager;window.challenges=challenges;window.teams=teams;window.leader=leader;window.approvalCard=approvalCard;window.renderIdea=renderIdea;window.trainings=trainings;window.approveDXNMembershipRequest=approveDXNMembershipRequest;window.rejectDXNMembershipRequest=rejectDXNMembershipRequest;window.openDXNMembershipRequests=openDXNMembershipRequests;window.openApprovedDXNMembershipRequests=openApprovedDXNMembershipRequests;window.backToLeaderDashboard=backToLeaderDashboard;window.addEventListener('resize',()=>{const loginActive=!!document.getElementById('loginButton');if(loginActive&&!localStorage.getItem('dxn_view_mode'))renderViewSwitch()});
 </script>
 <style>
 #app{padding-top:48px!important;min-height:calc(100vh - 48px)}
