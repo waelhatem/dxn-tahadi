@@ -153,3 +153,17 @@ button.danger{
   color:#fff!important;
   opacity:1!important;
 }
+
+/* Force the two edge navigation labels to remain readable on the translucent bar. */
+.tabs .tab:first-child,
+.tabs .community-tab{
+  color:#17352d!important;
+  -webkit-text-fill-color:#17352d!important;
+  opacity:1!important;
+  visibility:visible!important;
+  text-shadow:0 1px 1px rgba(255,255,255,.35)!important;
+}
+.tabs .community-tab{
+  color:#ffffff!important;
+  -webkit-text-fill-color:#ffffff!important;
+}
