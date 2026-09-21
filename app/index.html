@@ -1920,9 +1920,21 @@ function trainings(){
   const lessons=(trainingData.lessons||[]).sort((a,b)=>Number(a.lesson_no)-Number(b.lesson_no));
   const progress=trainingData.my_progress||[];
 
-  const subTabs=`<div class="tabs" style="margin-bottom:18px;justify-content:center">
-    <button type="button" class="tab ${trainingSubtab==='lessons'?'active':''}" onclick="switchTrainingSubtab('lessons')">📚 التدريبات</button>
-    <button type="button" class="tab ${trainingSubtab==='ragwan_success_plan'?'active':''}" onclick="switchTrainingSubtab('ragwan_success_plan')">📘 الخطة الاحترافية لرجوان نجاح</button>
+  const subTabs=`<div class="training-feature-tabs" aria-label="أقسام التدريب">
+    <button type="button" class="training-feature-card training-feature-lessons ${trainingSubtab==='lessons'?'is-active':''}" onclick="switchTrainingSubtab('lessons')">
+      <span class="training-feature-shine"></span>
+      <span class="training-feature-badge">ابدأ التعلم الآن 🎓</span>
+      <span class="training-feature-icon">📚</span>
+      <span class="training-feature-copy"><strong>الشروحات والتدريبات</strong><small>تعلّم ... طبّق ... تطوّر</small></span>
+      <span class="training-feature-arrow">›</span>
+    </button>
+    <button type="button" class="training-feature-card training-feature-ragwan ${trainingSubtab==='ragwan_success_plan'?'is-active':''}" onclick="switchTrainingSubtab('ragwan_success_plan')">
+      <span class="training-feature-shine"></span>
+      <span class="training-feature-badge">طريقك للنجاح 📈</span>
+      <span class="training-feature-icon">📊</span>
+      <span class="training-feature-copy"><strong>الخطة الاحترافية</strong><em>لرجوان نجاح</em><small>خطوات بسيطة ... تصنع نجاحات كبيرة</small></span>
+      <span class="training-feature-arrow">›</span>
+    </button>
   </div>`;
 
   if(trainingSubtab==='ragwan_success_plan'){
@@ -3553,6 +3565,44 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 <script src="membership-registration-guard.js?v=1"></script>
 <script src="login-scene.js?v=86.65"></script>
 
+<style>
+/* V87.4 — Mobile training feature cards: visual-only enhancement, existing actions unchanged. */
+.training-feature-tabs{display:flex;gap:14px;margin:0 0 18px;direction:rtl}
+.training-feature-card{position:relative;isolation:isolate;overflow:hidden;flex:1;min-height:112px;border:0;border-radius:22px;padding:20px 22px;background:#fff;box-shadow:0 8px 24px rgba(15,81,63,.12);cursor:pointer;text-align:right;display:flex;align-items:center;gap:16px;transition:transform .25s ease,box-shadow .25s ease}
+.training-feature-card:hover{transform:translateY(-2px)}
+.training-feature-lessons{background:linear-gradient(135deg,#063b9a,#0879ee 58%,#0ac8ff);color:#fff;box-shadow:0 10px 30px rgba(0,132,255,.28),0 0 22px rgba(0,196,255,.22)}
+.training-feature-ragwan{background:linear-gradient(135deg,#063d2f,#0b6d4d 58%,#0e8c62);color:#fff;box-shadow:0 10px 30px rgba(0,105,76,.28),0 0 22px rgba(28,213,133,.18)}
+.training-feature-card.is-active{outline:3px solid rgba(255,215,82,.9);outline-offset:2px}
+.training-feature-icon{width:82px;height:82px;flex:0 0 82px;border-radius:20px;background:rgba(255,255,255,.13);display:flex;align-items:center;justify-content:center;font-size:48px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.18))}
+.training-feature-copy{display:flex;flex-direction:column;gap:3px;min-width:0;position:relative;z-index:2}
+.training-feature-copy strong{font-size:clamp(21px,2.4vw,30px);font-weight:950;line-height:1.25;color:#fff!important}
+.training-feature-copy em{font-style:normal;font-size:clamp(18px,2vw,25px);font-weight:900;color:#ffe08a!important}
+.training-feature-copy small{font-size:14px;font-weight:800;color:rgba(255,255,255,.9)!important}
+.training-feature-badge{position:absolute;top:0;right:0;z-index:3;padding:7px 14px;border-radius:0 0 0 16px;background:#f7bd27;color:#183b2e;font-size:12px;font-weight:950;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.training-feature-arrow{margin-inline-start:auto;flex:0 0 58px;width:58px;height:58px;border:2px solid rgba(255,255,255,.75);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:48px;line-height:1;color:#fff;box-shadow:0 0 18px rgba(255,255,255,.28);position:relative;z-index:2}
+.training-feature-shine{position:absolute;inset:-80% -25%;z-index:1;background:linear-gradient(105deg,transparent 43%,rgba(255,255,255,.08) 47%,rgba(255,255,255,.72) 50%,rgba(255,255,255,.08) 53%,transparent 57%);transform:translateX(-65%) rotate(8deg);animation:trainingFeatureSweep 3.2s ease-in-out infinite;pointer-events:none}
+.training-feature-card:nth-child(2) .training-feature-shine{animation-delay:1.2s}
+@keyframes trainingFeatureSweep{0%,38%{transform:translateX(-75%) rotate(8deg);opacity:0}48%{opacity:1}68%,100%{transform:translateX(75%) rotate(8deg);opacity:0}}
+@media(max-width:799px){
+  .training-feature-tabs{display:grid;grid-template-columns:1fr;gap:13px;margin:4px 0 18px}
+  .training-feature-card{min-height:154px;padding:24px 18px;border-radius:24px;gap:12px}
+  .training-feature-icon{width:76px;height:76px;flex-basis:76px;font-size:42px}
+  .training-feature-copy strong{font-size:24px}
+  .training-feature-copy em{font-size:20px}
+  .training-feature-copy small{font-size:13px}
+  .training-feature-arrow{flex-basis:54px;width:54px;height:54px;font-size:44px}
+  .training-feature-badge{font-size:11px;padding:7px 11px}
+}
+@media(max-width:430px){
+  .training-feature-card{min-height:146px;padding:22px 14px}
+  .training-feature-icon{width:68px;height:68px;flex-basis:68px;font-size:38px}
+  .training-feature-copy strong{font-size:21px}
+  .training-feature-copy em{font-size:18px}
+  .training-feature-copy small{font-size:12px}
+  .training-feature-arrow{flex-basis:50px;width:50px;height:50px;font-size:40px}
+}
+@media(prefers-reduced-motion:reduce){.training-feature-shine{animation:none}.training-feature-card{transition:none}}
+</style>
 <style>
 /* V87.1 — Family page typography: darker/bolder text, muted form values. */
 /* Keep the family/dashboard interface readable on both desktop and mobile. */
