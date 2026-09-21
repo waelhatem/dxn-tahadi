@@ -102,7 +102,17 @@ button[disabled]:focus-visible{outline-color:#667085!important}
 @media (forced-colors: active){button,a,input,textarea,select{forced-color-adjust:auto}.tab.active{border:2px solid CanvasText}.bar span{background:Highlight!important}}
 </style>
 <meta name="x-community-version" content="V86.9 Notification Scope Fix + WCAG 2.2 AA + Site Visit Analytics"><meta name="referrer" content="strict-origin-when-cross-origin"><!-- V84.6 Performance: notification summary/cache and render computation deduplication -->
-</head><body>
+<style id="ragwan-content-entry-style">
+.ragwan-content-entry{margin:24px auto 8px;padding:24px;border:2px solid #dbe9e3;border-radius:20px;background:#f8fbfa;max-width:1100px}
+.ragwan-content-entry-title{text-align:center;font-size:24px;font-weight:950;color:#0f513f}
+.ragwan-content-entry-subtitle{text-align:center;color:#65756e;margin:7px 0 18px}
+.ragwan-entry-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.ragwan-entry-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:46px;padding:10px 18px;border:1px solid #cfe0d8;border-radius:12px;background:#fff;color:#0f513f;font-weight:900;cursor:pointer}
+.ragwan-entry-btn:hover{transform:translateY(-1px)}
+.ragwan-plan-image-preview{margin-top:18px;text-align:center}
+.ragwan-plan-image-preview:empty{display:none}
+.ragwan-plan-text{width:100%;box-sizing:border-box;margin-top:18px;padding:15px;border:1px solid #cfe0d8;border-radius:14px;background:#fff;color:#18352b;font:inherit;line-height:1.9;resize:vertical}
+</style></head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
   <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
   <div class="pwa-install-actions"><button id="pwaInstallBtn" class="primary" type="button">تثبيت</button><button id="pwaInstallClose" class="pwa-install-close" type="button">لاحقًا</button></div>
@@ -1010,6 +1020,21 @@ function switchTrainingSubtab(next){
   trainingSubtab=next;
   try{render();requestAnimationFrame(()=>scrollToTabContent('training'))}catch(e){console.error(e);toast('تعذر فتح القسم: '+(e.message||e))}
 }
+function previewRagwanPlanImage(input){
+  const box=document.getElementById('ragwanPlanImagePreview');
+  if(!box)return;
+  box.innerHTML='';
+  const file=input&&input.files&&input.files[0];
+  if(!file)return;
+  if(!file.type.startsWith('image/')){toast('يرجى اختيار ملف صورة فقط');input.value='';return;}
+  const reader=new FileReader();
+  reader.onload=()=>{box.innerHTML=`<img src="${reader.result}" alt="صورة من خطة رجوان نجاح" style="max-width:100%;height:auto;display:block;margin:0 auto;border-radius:16px">`;};
+  reader.readAsDataURL(file);
+}
+function focusRagwanPlanText(){
+  const el=document.getElementById('ragwanPlanText');
+  if(el){el.focus();el.scrollIntoView({behavior:'smooth',block:'center'});}
+}
 function ragwanSuccessIntro(){
   const line1='الخطوات العشرة لبناء فريق قوي';
   const line2='10 خطوات ستنقلك نقلة نوعية في العمل الاحترافي مع شركة DXN';
@@ -1062,6 +1087,19 @@ function trainings(){
     return subTabs+`<div class="card">
       <div class="title">📘 الخطة الاحترافية لرجوان نجاح</div>
       ${ragwanSuccessIntro()}
+      <div class="ragwan-content-entry">
+        <div class="ragwan-content-entry-title">إضافة محتوى للخطة</div>
+        <div class="ragwan-content-entry-subtitle">يمكنك إضافة تفاصيل الخطة كصورة أو كتابتها مباشرة.</div>
+        <div class="ragwan-entry-actions">
+          <label class="ragwan-entry-btn">
+            🖼️ رفع ملف كصورة
+            <input id="ragwanPlanImageInput" type="file" accept="image/*" onchange="previewRagwanPlanImage(this)" hidden>
+          </label>
+          <button type="button" class="ragwan-entry-btn" onclick="focusRagwanPlanText()">✍️ كتابة</button>
+        </div>
+        <div id="ragwanPlanImagePreview" class="ragwan-plan-image-preview"></div>
+        <textarea id="ragwanPlanText" class="ragwan-plan-text" rows="7" placeholder="اكتب تفاصيل الخطة هنا..."></textarea>
+      </div>
     </div>`;
   }
 
