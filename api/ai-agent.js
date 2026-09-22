@@ -2373,6 +2373,8 @@ function buildCostOptimizedAgentContext({
 
   const knowledgeRows=Array.isArray(knowledgeMemory)?knowledgeMemory:[];
   const sourceRequest=isSourceKnowledgeRequest(message);
+  const rankRequest=isRankKnowledgeRequest(message);
+
   const sourceRows=knowledgeRows
     .filter(x=>/^(?:dxn_marketing_plan_full|dxn_pdf_source_exact)$/i.test(String(x?.category||'')))
     .sort((a,b)=>{
@@ -2381,21 +2383,36 @@ function buildCostOptimizedAgentContext({
       return Number(pa||999)-Number(pb||999);
     });
 
+  const rankRows=knowledgeRows
+    .filter(x=>/^(?:dxn_ranks_authoritative|coach_behavior_permanent)$/i.test(String(x?.category||'')))
+    .sort((a,b)=>Number(b?.priority||0)-Number(a?.priority||0));
+
+  const rankSourcePages=sourceRows.filter(x=>{
+    const title=String(x?.title||'');
+    return /(?:الصفحة|page)\s*(?:9|10)\b/i.test(title);
+  });
+
+  const excludedKnowledge=new Set([...sourceRows,...rankRows]);
   const relevantRows=rankMemoryByRelevance(
-    knowledgeRows.filter(x=>!sourceRows.includes(x)),
+    knowledgeRows.filter(x=>!excludedKnowledge.has(x)),
     message,
     {
-      limit:sourceRequest?20:(knowledgeRequest?12:6),
+      limit:(rankRequest||sourceRequest)?24:(knowledgeRequest?14:6),
       textOf:x=>[x?.title,x?.category,x?.content].filter(Boolean).join(' ')
     }
   );
 
-  const chosenKnowledge=sourceRequest
-    ? [...sourceRows,...relevantRows]
-    : relevantRows;
+  let chosenKnowledge;
+  if(rankRequest){
+    chosenKnowledge=[...rankRows,...rankSourcePages,...relevantRows];
+  }else if(sourceRequest){
+    chosenKnowledge=[...sourceRows,...relevantRows];
+  }else{
+    chosenKnowledge=relevantRows;
+  }
 
   const compactKnowledge=chosenKnowledge
-    .slice(0,sourceRequest?45:20)
+    .slice(0,rankRequest?30:(sourceRequest?45:20))
     .map(x=>({
       scope:x.scope||'global',
       category:x.category||'platform',
