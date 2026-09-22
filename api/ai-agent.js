@@ -2224,6 +2224,58 @@ function buildDirectTrainingReply(context,kind,message){
 
   return null;
 }
+function memorySearchTerms(message){
+  const raw=String(message||'').toLowerCase();
+  const aliases=[
+    ['نجم ياقوتي','sr','ياقوت','star ruby'],
+    ['نجم ماسي','qsd','ماسي','diamond'],
+    ['وكيل نجم','qsa','sa','star agent'],
+    ['السفير','ambassador'],
+    ['رتب','رتبة','مستويات','ترقية'],
+    ['تدريب','درس','اختبار','مشاهدة','تقدم'],
+    ['فريق','downline','الاجيال','الخطوط','pv','sv'],
+    ['اعتراض','اعتراضات','تواصل','بيع','تسويق'],
+  ];
+  const terms=new Set();
+  raw.replace(/[أإآ]/g,'ا')
+    .split(/[^\p{L}\p{N}]+/u)
+    .map(x=>x.trim())
+    .filter(x=>x.length>=2)
+    .forEach(x=>terms.add(x));
+  for(const [canonical,...alts] of aliases){
+    if(raw.includes(canonical)||alts.some(a=>raw.includes(a))){
+      terms.add(canonical);
+      alts.forEach(a=>terms.add(a));
+    }
+  }
+  return [...terms].slice(0,24);
+}
+
+function rankMemoryByRelevance(items,message,options={}){
+  const list=Array.isArray(items)?items:[];
+  const limit=Math.max(0,Number(options.limit||8));
+  const textOf=typeof options.textOf==='function'
+    ? options.textOf
+    : (x)=>JSON.stringify(x||{});
+  const terms=memorySearchTerms(message);
+  const ranked=list.map((item,index)=>{
+    const text=String(textOf(item)||'').toLowerCase();
+    let score=0;
+    for(const term of terms){
+      if(!term)continue;
+      if(text===term)score+=10;
+      if(text.includes(term))score+=3;
+    }
+    if(index<3)score+=1.5;
+    return {item,score,index};
+  });
+  ranked.sort((a,b)=>b.score-a.score||a.index-b.index);
+  const selected=ranked.slice(0,limit);
+  const useful=selected.filter(x=>x.score>0).map(x=>x.item);
+  if(useful.length>=Math.min(2,limit))return useful;
+  return selected.map(x=>x.item);
+}
+
 function adaptiveReasoningEffort(message,cognitiveState,currentSession){
   const s=String(message||'').trim().toLowerCase();
   const intent=String(cognitiveState?.user_intent||'general_conversation');
@@ -2291,11 +2343,15 @@ function buildCostOptimizedAgentContext({
     training.progress=progress.slice(0,10);
   }
 
-  const compactKnowledge=(Array.isArray(knowledgeMemory)?knowledgeMemory:[])
-    .slice()
-    .sort((a,b)=>Number(b?.priority||0)-Number(a?.priority||0))
-    .slice(0,knowledgeRequest?10:4)
-    .map(x=>({
+  const compactKnowledge=rankMemoryByRelevance(
+    Array.isArray(knowledgeMemory)?knowledgeMemory:[],
+    message,
+    {
+      limit:knowledgeRequest?10:4,
+      textOf:x=>[x?.title,x?.category,x?.content].filter(Boolean).join(' ')
+    }
+  ).sort((a,b)=>Number(b?.priority||0)-Number(a?.priority||0))
+   .map(x=>({
       scope:x.scope||'global',
       category:x.category||'platform',
       title:x.title||null,
@@ -2303,31 +2359,68 @@ function buildCostOptimizedAgentContext({
       priority:Number(x.priority||0)
     }));
 
-  const compactPermanent=(Array.isArray(permanentMemory)?permanentMemory:[])
-    .slice(0,coachingRequest?10:4)
-    .map(x=>({
-      role:x.role||null,
+  const compactPermanent=rankMemoryByRelevance(
+    Array.isArray(permanentMemory)?permanentMemory:[],
+    message,
+    {
+      limit:coachingRequest?10:4,
+      textOf:x=>String(x?.payload||x?.content||x?.text||'')
+    }
+  ).map(x=>({
+      event_type:x.event_type||null,
+      entity_type:x.entity_type||null,
+      entity_id:x.entity_id||null,
       payload:String(x.payload||x.content||x.text||'').slice(0,1200),
       created_at:x.created_at||null
     }))
-    .filter(x=>x.content);
+    .filter(x=>x.payload);
 
-  const compactFacts=(Array.isArray(learnedFacts)?learnedFacts:[])
-    .slice(0,coachingRequest?12:6)
-    .map(x=>({
+  const compactFacts=rankMemoryByRelevance(
+    Array.isArray(learnedFacts)?learnedFacts:[],
+    message,
+    {
+      limit:coachingRequest?12:6,
+      textOf:x=>String(x?.fact||'')
+    }
+  ).map(x=>({
       scope:x.scope||'member',
       fact:String(x.fact||'').slice(0,700)
-    }))
-    .filter(x=>x.fact);
+  }))
+  .filter(x=>x.fact);
 
   const compactCausal=coachingRequest
-    ? (Array.isArray(causalMemory)?causalMemory.slice(0,4):[])
+    ? rankMemoryByRelevance(
+        Array.isArray(causalMemory)?causalMemory:[],
+        message,
+        {
+          limit:4,
+          textOf:x=>[x?.topic,x?.attempt,x?.result,x?.observation,x?.adjustment].filter(Boolean).join(' ')
+        }
+      )
     : [];
   const compactPatterns=coachingRequest
-    ? (Array.isArray(learningPatterns)?learningPatterns.slice(0,4):[])
+    ? rankMemoryByRelevance(
+        Array.isArray(learningPatterns)?learningPatterns:[],
+        message,
+        {
+          limit:4,
+          textOf:x=>[x?.topic,x?.pattern,x?.working_lesson,x?.next_test].filter(Boolean).join(' ')
+        }
+      )
     : [];
   const compactTrainingMemory=trainingRequest
-    ? (Array.isArray(memberTrainingMemory)?memberTrainingMemory.slice(0,6):[])
+    ? rankMemoryByRelevance(
+        Array.isArray(memberTrainingMemory)?memberTrainingMemory:[],
+        message,
+        {
+          limit:6,
+          textOf:x=>[
+            x?.topic,x?.objective,x?.phase,x?.member_statement,
+            x?.coach_action,x?.outcome,x?.lesson,x?.next_step,
+            Array.isArray(x?.member_facts)?x.member_facts.join(' '):''
+          ].filter(Boolean).join(' ')
+        }
+      )
     : [];
 
   const compactProfile=coachingProfile?{
