@@ -151,7 +151,6 @@ ${answer}
           }
         },
         max_output_tokens: 190
-      }
     };
 
 
