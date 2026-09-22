@@ -240,7 +240,7 @@ function outputText(data){
 
 function cleanHistory(history){
   if(!Array.isArray(history))return [];
-  return history.slice(-6).map(x=>{
+  return history.slice(-24).map(x=>{
     const role=String(x&&x.role||'user').toLowerCase()==='assistant'?'assistant':'user';
     const content=String(x&&x.content||'').trim().slice(0,5000);
     return content?{role,content}:null;
@@ -255,6 +255,11 @@ function isTeamIntelligenceRequest(message){
 function isRankKnowledgeRequest(message){
   const s=String(message||'').trim().toLowerCase();
   return /(?:رتب(?:ة|ات)?|الرتب|سلم الرتب|مستويات الشركة|مستويات dxn|رتبة الشركة|رتب dxn|وكيل نجم|نجم ياقوتي|نجم ماسي|نجم ماسى|السفير|qsa|qsd|\bsa\b|\bsr\b|dgpv|pgpv|شروط التأهل|شروط التأهل للرتبة|كيف أصير.*(?:نجم|وكيل|سفير)|شلون أصير.*(?:نجم|وكيل|سفير))/i.test(s);
+}
+
+function isSourceKnowledgeRequest(message){
+  const s=String(message||'').trim().toLowerCase();
+  return /(?:خطة\s*dxn|الخطة\s*المالية|الخطة\s*التسويقية|مراتب|رتب|رتبة|مستويات الشركة|وكيل نجم|نجم ياقوتي|النجم الماسي|السفير|qsa|qsd|sa|sr|sd|esd|ssd|essd|dd|edd|td|etd|gd|egd|cd|ecd|scd|escd|dcd|edcd|tcd|etcd|gcd|egcd|ca|عمولة|علاوة|حوافز|pv|sv|ppv|psv|pgpv|pgsv|dgpv|dgsv)/i.test(s);
 }
 
 function isDailyPlanRequest(message){
@@ -1413,7 +1418,7 @@ async function loadAgentKnowledge(token){
       scope:x.scope||'global',
       category:x.category||'platform',
       title:x.title||null,
-      content:String(x.content||'').trim().slice(0,4000),
+      content:String(x.content||'').trim().slice(0,12000),
       priority:Number(x.priority||0)
     })).filter(x=>x.content);
   }catch(_){return [];}
@@ -2309,13 +2314,15 @@ function adaptiveReasoningEffort(message,cognitiveState,currentSession){
 function adaptiveOutputTokenBudget(message,cognitiveState,currentSession){
   const s=String(message||'').trim().toLowerCase();
   const intent=String(cognitiveState?.user_intent||'general_conversation');
+  const sourceRequest=isSourceKnowledgeRequest(message);
   const complex=/(حلل|تحليل|قارن|مقارنة|خطة|استراتيجية|اشرح بالتفصيل|بالتفصيل|أريد شرح|اريد شرح|اعتراض|عمولات|نقاط|فريق|downline|الأجيال|الخطوط|roleplay|محاكاة|تمثيل|اختبار|تدريب)/i.test(s);
-  if(currentSession?.active) return 680;
-  if(complex || intent==='report_obstacle' || intent==='report_attempt') return 680;
-  if(s.length<=90 && intent==='ask_question') return 380;
-  if(s.length<=180) return 460;
-  if(s.length<=450) return 560;
-  return 680;
+  if(sourceRequest) return 1400;
+  if(currentSession?.active) return 900;
+  if(complex || intent==='report_obstacle' || intent==='report_attempt') return 900;
+  if(s.length<=90 && intent==='ask_question') return 500;
+  if(s.length<=180) return 650;
+  if(s.length<=450) return 800;
+  return 900;
 }
 
 function buildCostOptimizedAgentContext({
@@ -2364,20 +2371,38 @@ function buildCostOptimizedAgentContext({
     training.progress=progress.slice(0,10);
   }
 
-  const compactKnowledge=rankMemoryByRelevance(
-    Array.isArray(knowledgeMemory)?knowledgeMemory:[],
+  const knowledgeRows=Array.isArray(knowledgeMemory)?knowledgeMemory:[];
+  const sourceRequest=isSourceKnowledgeRequest(message);
+  const sourceRows=knowledgeRows
+    .filter(x=>/^(?:dxn_marketing_plan_full|dxn_pdf_source_exact)$/i.test(String(x?.category||'')))
+    .sort((a,b)=>{
+      const pa=(String(a?.title||'').match(/(?:الصفحة|page)\s*([0-9]+)/i)||[])[1];
+      const pb=(String(b?.title||'').match(/(?:الصفحة|page)\s*([0-9]+)/i)||[])[1];
+      return Number(pa||999)-Number(pb||999);
+    });
+
+  const relevantRows=rankMemoryByRelevance(
+    knowledgeRows.filter(x=>!sourceRows.includes(x)),
     message,
     {
-      limit:knowledgeRequest?14:4,
+      limit:sourceRequest?20:(knowledgeRequest?12:6),
       textOf:x=>[x?.title,x?.category,x?.content].filter(Boolean).join(' ')
     }
-  ).sort((a,b)=>Number(b?.priority||0)-Number(a?.priority||0))
-   .map(x=>({
+  );
+
+  const chosenKnowledge=sourceRequest
+    ? [...sourceRows,...relevantRows]
+    : relevantRows;
+
+  const compactKnowledge=chosenKnowledge
+    .slice(0,sourceRequest?45:20)
+    .map(x=>({
       scope:x.scope||'global',
       category:x.category||'platform',
       title:x.title||null,
-      content:String(x.content||'').slice(0,900),
-      priority:Number(x.priority||0)
+      content:String(x.content||'').slice(0,12000),
+      priority:Number(x.priority||0),
+      source:x.source||null
     }));
 
   const permanentSource=Array.isArray(permanentMemory)?permanentMemory:[];
@@ -2386,7 +2411,7 @@ function buildCostOptimizedAgentContext({
     permanentSource,
     message,
     {
-      limit:coachingRequest?8:4,
+      limit:coachingRequest?16:6,
       textOf:x=>String(x?.payload||x?.content||x?.text||'')
     }
   );
@@ -2567,6 +2592,7 @@ function instructions(context){
 
     'أولوية الحوار: الرسالة الحالية للعضو هي المصدر الأول لتحديد موضوع الرد. إذا سأل سؤالًا مباشرًا أو طلب معلومة/مساعدة محددة، أجب عن هذا الطلب أولًا وبشكل مباشر.',
     'قاعدة صارمة لعزل السؤال: لا تستخدم أي معلومة من الذاكرة أو سجل الحوار أو الخطة اليومية إلا إذا كانت مرتبطة مباشرة بالسؤال الحالي. إذا تعارضت ذاكرة قديمة أو موضوع سابق مع الرسالة الحالية، تجاهل القديم وأجب عن الرسالة الحالية فقط. لا تجب عن سؤال آخر لم يُطرح.',
+    'أولوية المعرفة: عندما يكون السؤال عن مادة تدريبية أو خطة DXN أو معلومة تم تثبيتها من ملف، استخدم knowledge_memory والمصدر الأصلي أولًا. لا تختصر قائمة أو جدولًا أو شروطًا متعددة إذا كان السؤال يطلبها كاملة، ولا تغيّر الأرقام أو أسماء المراتب. انقل الحقائق بأمانة ثم اشرحها بأسلوب احترافي.',
     'وجود coaching_session أو daily_auto_plan أو مهمة يومية في السياق لا يعني أن الرد يجب أن يكون عن التدريب. لا تجرّ السؤال الحالي إلى المهمة اليومية لمجرد وجود جلسة نشطة.',
     'إذا كان السؤال الحالي عن بيانات العضو أو فريقه أو أي موضوع آخر، ابقَ على موضوع السؤال. يمكن ذكر الجلسة أو الخطوة اليومية فقط بعد الإجابة وإذا كان ذلك مرتبطًا بشكل طبيعي بالطلب.',
     'لا تستخدم مرحلة الجلسة الحالية أو المهمة اليومية كبديل عن فهم الرسالة الحالية. القرار continue_daily_plan لا يُستخدم عندما تكون هناك نية مباشرة مثل ask_question أو request_help أو report_obstacle أو report_attempt.',
@@ -3094,7 +3120,7 @@ module.exports=async function handler(req,res){
     ]);
     const fallbackHistory=cleanHistory(body.history);
     const historySource=(persistentMemory.length?persistentMemory:fallbackHistory);
-    const history=historySource.slice(-6);
+    const history=historySource.slice(-24);
     const baseInput=[...history,{role:'user',content:message}];
     requestStage='build_state';
     const cognitiveState=buildCognitiveState({
@@ -3164,9 +3190,9 @@ module.exports=async function handler(req,res){
       .filter(x=>!(directDailyCompletion||dailyCompletionDiagnostic) || x.name!=='complete_daily_coaching_task');
     requestStage='openai';
     let ai=null;
-    // Stage 11: at most one tool round per turn.
-    // Round 0 may call tools; round 1 is the final synthesis call with tools disabled.
-    const maxToolRounds=availableAgentTools.length ? 1 : 0;
+    // Primary trainer quality takes precedence over tool-call minimization.
+    // Knowledge/coaching turns may need multiple read-only tool rounds before synthesis.
+    const maxToolRounds=availableAgentTools.length ? 3 : 0;
 
     if(dailyCompletionDiagnostic){
       return res.status(200).json({
