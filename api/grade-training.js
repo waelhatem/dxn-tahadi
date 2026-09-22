@@ -1,7 +1,8 @@
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ryqpstkzppaifpvhezzn.supabase.co';
 const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
-const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-5.6-luna';
+const OPENAI_MODEL = process.env.AI_AGENT_GRADING_MODEL || process.env.AI_AGENT_HELPER_MODEL || 'gpt-5-nano';
+const FALLBACK_MODEL = process.env.AI_AGENT_MODEL || 'gpt-5.6-luna';
 
 async function supabaseRpc(fn, args) {
   if (!SUPABASE_SECRET_KEY) throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
@@ -45,6 +46,48 @@ function extractOutputText(aiData) {
   return parts.join('').trim();
 }
 
+async function logUsage(model,usage,requestKind,metadata){
+  if(!usage||!SUPABASE_SECRET_KEY)return;
+  const input=Number(usage.input_tokens||0);
+  const cached=Number(usage.input_tokens_details?.cached_tokens||0);
+  const output=Number(usage.output_tokens||0);
+  const total=Number(usage.total_tokens||input+output);
+  const rates={
+    'gpt-5.6-luna':{input:0.20,cached:0.02,output:1.20},
+    'gpt-5-nano':{input:0.05,cached:0.005,output:0.40}
+  };
+  const rate=rates[String(model||'').toLowerCase()];
+  const uncached=Math.max(input-cached,0);
+  const cost=rate?((uncached*rate.input)+(cached*rate.cached)+(output*rate.output))/1000000:0;
+  try{
+    await supabaseRpc('log_ai_agent_usage',{
+      p_model:String(model),
+      p_input_tokens:input,
+      p_cached_input_tokens:cached,
+      p_output_tokens:output,
+      p_total_tokens:total,
+      p_estimated_cost_usd:cost,
+      p_request_kind:requestKind||'training_grade',
+      p_metadata:metadata||{source:'grade-training'}
+    });
+  }catch(error){console.error('[grade-training] usage logging failed',String(error?.message||error));}
+}
+
+async function runGrade(model,payload){
+  const response=await fetch('https://api.openai.com/v1/responses',{
+    method:'POST',
+    headers:{
+      Authorization:`Bearer ${OPENAI_API_KEY}`,
+      'Content-Type':'application/json'
+    },
+    body:JSON.stringify({...payload,model,reasoning:{effort:model===FALLBACK_MODEL?'low':'none'}})
+  });
+  const text=await response.text();
+  let data=null;try{data=text?JSON.parse(text):null}catch(_){data=null}
+  if(response.ok&&data?.usage) await logUsage(model,data.usage,'training_grade',{source:'grade-training'});
+  return {response,text,data};
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return json(res, 405, { error: 'Method not allowed' });
   if (!OPENAI_API_KEY) return json(res, 503, { error: 'OPENAI_API_KEY غير مضبوط في Vercel' });
@@ -64,13 +107,7 @@ module.exports = async function handler(req, res) {
       p_question_id: questionId
     });
 
-    const aiResponse = await fetch('https://api.openai.com/v1/responses', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
+    const gradePayload = {
         model: OPENAI_MODEL,
         instructions: [
           'أنت مقيّم أكاديمي صارم وعادل لاختبارات متدربي مجتمع الصحة والثراء.',
@@ -105,20 +142,26 @@ ${answer}
               properties: {
                 score: { type: 'integer', minimum: 0, maximum: 100 },
                 status: { type: 'string', enum: ['approved', 'retry'] },
-                note: { type: 'string', minLength: 1, maxLength: 500 }
+                note: { type: 'string', minLength: 1, maxLength: 500 },
+                confidence: { type: 'number', minimum: 0, maximum: 1 }
               },
-              required: ['score', 'status', 'note'],
+              required: ['score', 'status', 'note', 'confidence'],
               additionalProperties: false
             }
           }
         },
-        max_output_tokens: 250
+        max_output_tokens: 190
       })
     });
 
-    const aiText = await aiResponse.text();
-    let aiData = null;
-    try { aiData = aiText ? JSON.parse(aiText) : null; } catch (_) { aiData = null; }
+
+    let gradeRun=await runGrade(OPENAI_MODEL,gradePayload);
+    if(!gradeRun.response.ok){
+      gradeRun=await runGrade(FALLBACK_MODEL,gradePayload);
+    }
+    const aiResponse=gradeRun.response;
+    const aiText=gradeRun.text;
+    let aiData=gradeRun.data;
     if (!aiResponse.ok) {
       return json(res, 502, { error: (aiData && aiData.error && aiData.error.message) || aiText || 'فشل اتصال التقييم بالذكاء الاصطناعي' });
     }
@@ -133,6 +176,16 @@ ${answer}
       grade = JSON.parse(outputText);
     } catch (_) {
       return json(res, 502, { error: 'نتيجة التقييم غير صالحة', raw_output: outputText.slice(0, 1000) });
+    }
+
+    if(OPENAI_MODEL!==FALLBACK_MODEL && Number(grade.confidence||0)<0.72){
+      gradeRun=await runGrade(FALLBACK_MODEL,gradePayload);
+      if(gradeRun.response.ok){
+        const escalatedText=extractOutputText(gradeRun.data);
+        try{
+          grade=JSON.parse(escalatedText||'{}');
+        }catch(_){}
+      }
     }
 
     const score = Math.max(0, Math.min(100, Number(grade.score || 0)));
