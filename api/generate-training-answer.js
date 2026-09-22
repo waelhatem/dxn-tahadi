@@ -16,6 +16,23 @@ async function supabaseRpc(fn,args){
   return data;
 }
 
+async function supabaseSecretRpc(fn,args){
+  if(!SUPABASE_SECRET_KEY)throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/${encodeURIComponent(fn)}`,{
+    method:'POST',
+    headers:{
+      apikey:SUPABASE_SECRET_KEY,
+      Authorization:`Bearer ${SUPABASE_SECRET_KEY}`,
+      'Content-Type':'application/json',
+      Accept:'application/json'
+    },
+    body:JSON.stringify(args||{})
+  });
+  const text=await r.text();let data=null;try{data=text?JSON.parse(text):null}catch(_){data=text}
+  if(!r.ok)throw new Error((data&&(data.message||data.error||data.hint))||text||`Supabase HTTP ${r.status}`);
+  return data;
+}
+
 function json(res,status,body){
   res.status(status).setHeader('Content-Type','application/json; charset=utf-8');
   return res.end(JSON.stringify(body));
@@ -36,7 +53,7 @@ async function logUsage(model,usage,requestKind){
   const uncached=Math.max(input-cached,0);
   const cost=rate?((uncached*rate.input)+(cached*rate.cached)+(output*rate.output))/1000000:0;
   try{
-    await supabaseRpc('log_ai_agent_usage',{
+    await supabaseSecretRpc('log_ai_agent_usage',{
       p_model:String(model),
       p_input_tokens:input,
       p_cached_input_tokens:cached,
