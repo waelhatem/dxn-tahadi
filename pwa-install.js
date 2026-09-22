@@ -127,7 +127,20 @@ async function hasInstalledApp(){
 
 async function maybeShow(){
   if(await hasInstalledApp()) return;
-  if(deferredPrompt) showInstallNotice('native');
+  if(deferredPrompt){
+    showInstallNotice('native');
+    return;
+  }
+  // Chrome can dispatch beforeinstallprompt after the first page lifecycle.
+  // Re-check for a short period without fabricating a non-functional prompt.
+  [1500,3000,5000,8000].forEach(function(delay){
+    setTimeout(async function(){
+      if(await hasInstalledApp()) return;
+      if(deferredPrompt && !document.getElementById('dxn-install-app')){
+        showInstallNotice('native');
+      }
+    },delay);
+  });
 }
 
 window.addEventListener('beforeinstallprompt',function(e){
@@ -144,6 +157,16 @@ window.addEventListener('beforeinstallprompt',function(e){
 window.addEventListener('appinstalled',function(){
   deferredPrompt=null;
   removePrompt();
+});
+
+window.addEventListener('pageshow',function(){
+  setTimeout(maybeShow,250);
+});
+
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='visible'){
+    setTimeout(maybeShow,250);
+  }
 });
 
 if(document.readyState==='loading'){
