@@ -143,6 +143,12 @@ async function hasInstalledApp(){
 
 async function maybeShow(){
   if(await hasInstalledApp()) return;
+  // iOS Safari has no beforeinstallprompt API, so show the native
+  // Add to Home Screen guidance automatically on the same URL.
+  if(isIOSSafari()){
+    showInstallNotice('ios');
+    return;
+  }
   if(deferredPrompt){
     showInstallNotice('native');
     return;
