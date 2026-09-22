@@ -60,7 +60,17 @@ function supabaseRpc(fn,args){
 
 function openai(payload){
   return new Promise((resolve,reject)=>{
-    const body=JSON.stringify(payload);
+    const model=String(payload?.model||'');
+    const cacheableGpt56=/^gpt-5\\.6(?:-|$)/i.test(model);
+    const requestPayload=cacheableGpt56
+      ? {
+          ...payload,
+          // Keep the large stable trainer prefix cacheable for repeated turns.
+          // GPT-5.6 uses implicit prompt caching with a 30-minute minimum TTL.
+          prompt_cache_options:{mode:'implicit',ttl:'30m'}
+        }
+      : payload;
+    const body=JSON.stringify(requestPayload);
     const req=https.request('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:`Bearer ${OPENAI_API_KEY}`,'Content-Type':'application/json','Content-Length':Buffer.byteLength(body)},timeout:45000},res=>{
       let text='';res.setEncoding('utf8');res.on('data',c=>text+=c);res.on('end',()=>{let data=null;try{data=text?JSON.parse(text):null}catch(_){data=null}resolve({ok:res.statusCode>=200&&res.statusCode<300,status:res.statusCode||0,data,text})});
     });
