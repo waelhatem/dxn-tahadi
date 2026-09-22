@@ -273,7 +273,14 @@ body:has(.login-header-top) .notif-item{
   img,video,iframe{max-width:100%;}
 }
 </style>
-</head><body>
+<style id="ragwan-mobile-file-open-v1">
+.ragwan-resource-item[role="button"]{cursor:pointer}
+.ragwan-resource-open{display:inline-flex!important;align-items:center;justify-content:center;flex:0 0 auto;min-height:40px;padding:8px 13px;border-radius:11px;background:#0f513f!important;color:#fff!important;font-weight:900;text-decoration:none!important;white-space:nowrap}
+@media(max-width:620px){
+  .ragwan-resource-item{display:grid!important;grid-template-columns:auto 1fr!important;align-items:center!important}
+  .ragwan-resource-item .ragwan-resource-open{grid-column:1/-1;width:100%;margin-top:4px}
+}
+</style></head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
   <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
   <div class="pwa-install-actions"><button id="pwaInstallBtn" class="primary" type="button">تثبيت</button><button id="pwaInstallClose" class="pwa-install-close" type="button">لاحقًا</button></div>
@@ -1771,12 +1778,25 @@ function ragwanSubmitStepTest(){
   if(status)status.textContent='🟢 ممتاز — اجتزت الاختبار بالكامل.';
   ragwanRenderStepTest();ragwanOpenDoor(step);
 }
+function ragwanOpenResource(url){
+  const u=String(url||'').trim();
+  if(!u)return;
+  const w=window.open(u,'_blank','noopener,noreferrer');
+  if(!w)location.href=u;
+}
 function ragwanRenderStepResources(files){
   const el=document.getElementById('ragwanStepResources');if(!el)return;
   const step=ragwanCurrentStep,arr=files||[];
   const leaderUpload=role==='leader'?'<div class="ragwan-resource-upload"><label for="ragwanStepResourceInput">➕ إضافة ملفات هذه الخطوة</label><input id="ragwanStepResourceInput" type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" onchange="ragwanUploadStepResources(this.files)"></div>':'';
   el.innerHTML='<div class="ragwan-resource-head"><div><b>📚 مواد الخطوة '+step+'</b><small>اطلع على الملفات أولًا ثم انتقل إلى اختبار الفهم.</small></div>'+leaderUpload+'</div>'+
-    '<div class="ragwan-resource-list">'+(arr.length?arr.map(f=>'<div class="ragwan-resource-item"><span class="ragwan-resource-icon">'+ragwanFileIcon(f)+'</span><div><b>'+esc(f.name)+'</b><small>'+ragwanFormatSize(f.size)+'</small></div>'+(f.url?'<a href="'+esc(f.url)+'" target="_blank" rel="noopener">فتح</a>':'')+'</div>').join(''):'<div class="ragwan-resource-empty">'+(role==='leader'?'أضف ملف عرض الفكرة وملف رد الاعتراضات هنا.':'لم تتم إضافة مواد لهذه الخطوة بعد.')+'</div>')+'</div>';
+    '<div class="ragwan-resource-list">'+(arr.length?arr.map(f=>{
+      const url=String(f.url||'').trim(),name=esc(f.name);
+      return '<div class="ragwan-resource-item" '+(url?'role="button" tabindex="0" onclick="ragwanOpenResource(\''+esc(url)+'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \')ragwanOpenResource(\''+esc(url)+'\')"':'')+'>'+
+        '<span class="ragwan-resource-icon">'+ragwanFileIcon(f)+'</span>'+
+        '<div><b>'+name+'</b><small>'+ragwanFormatSize(f.size)+'</small></div>'+
+        (url?'<a class="ragwan-resource-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">📖 فتح الملف</a>':'')+
+      '</div>';
+    }).join(''):'<div class="ragwan-resource-empty">'+(role==='leader'?'أضف ملف عرض الفكرة وملف رد الاعتراضات هنا.':'لم تتم إضافة مواد لهذه الخطوة بعد.')+'</div>')+'</div>';
 }
 async function ragwanFocusFirstMaterial(){
   if(role!=='member')return;
