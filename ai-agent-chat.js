@@ -366,6 +366,56 @@
     dailyHeartbeatTimer=null;
   }
 
+  function getCommunityMemberName(){
+    const selectors=[
+      '.mobile-member-identity .mobile-member-text b',
+      '.member-identity b',
+      '[data-community-member-name]',
+      '[data-member-name]'
+    ];
+    for(const selector of selectors){
+      const nodes=[...document.querySelectorAll(selector)];
+      for(const node of nodes){
+        const text=String(node.textContent||'').replace(/\s+/g,' ').trim();
+        if(!text)continue;
+        const cleaned=text.replace(/[⭐🌟🏆🥇🥈🥉🔥💎👑🟢🔵🟣🟡⚪⚫]/g,'').replace(/\s+/g,' ').trim();
+        if(cleaned && cleaned.length>=2)return cleaned;
+      }
+    }
+    return '';
+  }
+
+  function isCommunityMember(){
+    const roleNodes=[
+      ...document.querySelectorAll('.mobile-member-identity .role-label'),
+      ...document.querySelectorAll('.member-identity .role-label')
+    ];
+    const roleText=roleNodes.map(x=>String(x.textContent||'')).join(' ');
+    if(roleText.includes('القائد'))return false;
+    if(roleText.includes('العضو'))return true;
+    return !!getCommunityMemberName();
+  }
+
+  async function waitForCommunityMemberName(timeoutMs=5000){
+    const started=Date.now();
+    while(Date.now()-started<timeoutMs){
+      const name=getCommunityMemberName();
+      if(name)return name;
+      await new Promise(resolve=>setTimeout(resolve,120));
+    }
+    return '';
+  }
+
+  async function openPersonalizedGreeting(){
+    if(document.querySelector('#dxnAgentMessages .dxn-agent-ai'))return;
+    const name=await waitForCommunityMemberName();
+    if(isCommunityMember() && name){
+      addMsg('هلا '+name+' 👋 أنا المدرب وائل حاتم، شلونك؟ خلّينا نحچي براحتنا، وإذا عندك سؤال أو شي تريد تشتغل عليه اليوم، آني وياك.','ai');
+      return;
+    }
+    addMsg('هلا والله 😄 أنا المدرب وائل حاتم، شلونك؟ خلّينا نحچي براحتنا، وإذا عندك سؤال أو شي تريد تشتغل عليه اليوم، آني وياك.','ai');
+  }
+
   function mount(){
     if(document.getElementById('dxnAgentLauncher'))return;
     const style=el('style',{},STYLE);document.head.appendChild(style);
@@ -378,7 +428,7 @@
       panel.classList.toggle('show');
       if(opening){
         document.getElementById('dxnAgentInput')?.focus();
-        startDailyBootstrap({notify:false});
+        openPersonalizedGreeting().then(()=>startDailyBootstrap({notify:false}));
       }
     });
     panel.querySelector('.dxn-agent-close').addEventListener('click',()=>panel.classList.remove('show'));
@@ -387,7 +437,6 @@
     panel.querySelector('form').addEventListener('submit',e=>{e.preventDefault();send();});
     document.getElementById('dxnAgentInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
     setupVoice();
-    addMsg('هلا والله 😄 أنا المدرب وائل حاتم، شلونك؟ خلّينا نحچي براحتنا، وإذا عندك سؤال أو شي تريد تشتغل عليه اليوم، آني وياك.','ai');
     startDailyHeartbeat();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
