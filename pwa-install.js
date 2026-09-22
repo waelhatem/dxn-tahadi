@@ -18,8 +18,8 @@ window.__DXN_PWA_INSTALL__=true;
     else{
       var link=document.createElement('link');
       link.rel='icon';
-      link.type='image/webp';
-      link.sizes='192x192';
+      link.type='image/png';
+      link.sizes='512x512';
       link.href=href;
       link.setAttribute('data-dxn-community-icon','true');
       (document.head||document.documentElement).appendChild(link);
@@ -56,7 +56,7 @@ function isIOSSafari(){
 function showInstallNotice(mode){
   if(installed() || document.getElementById('dxn-install-app')) return;
 
-  const ios=isIOSSafari();
+  const ios=isIOS();
   const wrap=document.createElement('div');
   wrap.id='dxn-install-app';
 
