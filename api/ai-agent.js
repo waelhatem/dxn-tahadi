@@ -287,7 +287,7 @@ function selectRelevantMarketingPlan(message){
 
 function isRankKnowledgeRequest(message){
   const s=String(message||'').trim().toLowerCase();
-  return /(?:رتب(?:ة|ات)?|الرتب|سلم الرتب|مستويات الشركة|مستويات dxn|رتبة الشركة|رتب dxn|وكيل نجم|نجم ياقوتي|نجم ماسي|نجم ماسى|السفير|qsa|qsd|sa|sr|dgpv|pgpv|شروط التأهل|شروط التأهل للرتبة|كيف أصير.*(?:نجم|وكيل|سفير)|شلون أصير.*(?:نجم|وكيل|سفير))/i.test(s);
+  return /(?:رتب(?:ة|ات)?|الرتب|سلم الرتب|مستويات الشركة|مستويات dxn|رتبة الشركة|رتب dxn|وكيل نجم|نجم ياقوتي|نجم ماسي|نجم ماسى|السفير|qsa|qsd|\bsa\b|\bsr\b|dgpv|pgpv|شروط التأهل|شروط التأهل للرتبة|كيف أصير.*(?:نجم|وكيل|سفير)|شلون أصير.*(?:نجم|وكيل|سفير))/i.test(s);
 }
 
 function isDailyPlanRequest(message){
@@ -2266,7 +2266,14 @@ function buildDirectTrainingReply(context,kind,message){
   return null;
 }
 function memorySearchTerms(message){
-  const raw=String(message||'').toLowerCase();
+  const raw=String(message||'').toLowerCase().replace(/[أإآ]/g,'ا');
+  const stop=new Set([
+    'شنو','شنه','شن','ما','ماذا','ممكن','اريد','أريد','اعطني','أعطني',
+    'كيف','شلون','وين','متى','ليش','هل','من','الى','إلى','عن','في','على',
+    'هذا','هذه','ذلك','تريد','اريد','عندي','عندك','هو','هي','هم','انا','اني',
+    'الي','اللي','الذي','التي','اذا','إذا','او','أو','بس','تمام','زين','طيب',
+    'شنويا','يعني','هسه'
+  ]);
   const aliases=[
     ['نجم ياقوتي','sr','ياقوت','star ruby'],
     ['نجم ماسي','qsd','ماسي','diamond'],
@@ -2278,17 +2285,20 @@ function memorySearchTerms(message){
     ['اعتراض','اعتراضات','تواصل','بيع','تسويق'],
   ];
   const terms=new Set();
-  raw.replace(/[أإآ]/g,'ا')
+
+  raw
     .split(/[^\p{L}\p{N}]+/u)
     .map(x=>x.trim())
-    .filter(x=>x.length>=2)
+    .filter(x=>x.length>=3&&!stop.has(x))
     .forEach(x=>terms.add(x));
+
   for(const [canonical,...alts] of aliases){
     if(raw.includes(canonical)||alts.some(a=>raw.includes(a))){
       terms.add(canonical);
       alts.forEach(a=>terms.add(a));
     }
   }
+
   return [...terms].slice(0,24);
 }
 
@@ -2522,7 +2532,8 @@ function contextualCoachingStateForModel({message,currentSession,conversationSta
     pending_question:conversationState?.pending_question||null,
     pending_member_action:conversationState?.pending_member_action||null,
     coaching_relevance:!!coachingRequest,
-    current_message:String(message||'').slice(0,500)
+    current_message:String(message||'').slice(0,1200),
+    instruction_priority:'أجب عن current_message أولًا. الذاكرة والسياق المساعد مرجعان فقط ولا يغيران موضوع السؤال.'
   };
 }
 
@@ -2548,6 +2559,7 @@ function instructions(context){
     'لا تقل «حاتم سعيد» أو أي اسم كمثال إلا إذا كان هو فعلًا قيمة member.name في السياق. الاسم يجب أن يأتي من بيانات العضو الحالية فقط.',
 
     'أولوية الحوار: الرسالة الحالية للعضو هي المصدر الأول لتحديد موضوع الرد. إذا سأل سؤالًا مباشرًا أو طلب معلومة/مساعدة محددة، أجب عن هذا الطلب أولًا وبشكل مباشر.',
+    'قاعدة صارمة لعزل السؤال: لا تستخدم أي معلومة من الذاكرة أو سجل الحوار أو الخطة اليومية إلا إذا كانت مرتبطة مباشرة بالسؤال الحالي. إذا تعارضت ذاكرة قديمة أو موضوع سابق مع الرسالة الحالية، تجاهل القديم وأجب عن الرسالة الحالية فقط. لا تجب عن سؤال آخر لم يُطرح.',
     'وجود coaching_session أو daily_auto_plan أو مهمة يومية في السياق لا يعني أن الرد يجب أن يكون عن التدريب. لا تجرّ السؤال الحالي إلى المهمة اليومية لمجرد وجود جلسة نشطة.',
     'إذا كان السؤال الحالي عن بيانات العضو أو فريقه أو أي موضوع آخر، ابقَ على موضوع السؤال. يمكن ذكر الجلسة أو الخطوة اليومية فقط بعد الإجابة وإذا كان ذلك مرتبطًا بشكل طبيعي بالطلب.',
     'لا تستخدم مرحلة الجلسة الحالية أو المهمة اليومية كبديل عن فهم الرسالة الحالية. القرار continue_daily_plan لا يُستخدم عندما تكون هناك نية مباشرة مثل ask_question أو request_help أو report_obstacle أو report_attempt.',
