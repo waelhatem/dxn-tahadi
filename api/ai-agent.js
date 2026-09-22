@@ -2153,7 +2153,7 @@ async function buildMemoryState(token,message,cognitiveState,currentSession,coac
       }
     );
 
-    const shortFollowup=/^(?:طيب|زين|تمام|بس|وبعدين|واذا|إذا|ليش|شلون|شنو|وهسه|يعني|اوكي|أوكي|نعم|إي|اي)/i.test(String(message||'').trim());
+    const shortFollowup=/^(?:طيب|زين|تمام|بس|وبعدين|واذا|إذا|ليش|شلون|شنو|وهسه|يعني|اوكي|أوكي|نعم|إي|اي)\b/i.test(String(message||'').trim());
     if(!relevant.length&&shortFollowup){
       relevant=recent.slice(-2);
     }
