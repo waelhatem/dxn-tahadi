@@ -274,11 +274,27 @@ body:has(.login-header-top) .notif-item{
 }
 </style>
 <style id="ragwan-mobile-file-open-v1">
-.ragwan-resource-item[role="button"]{cursor:pointer}
-.ragwan-resource-open{display:inline-flex!important;align-items:center;justify-content:center;flex:0 0 auto;min-height:40px;padding:8px 13px;border-radius:11px;background:#0f513f!important;color:#fff!important;font-weight:900;text-decoration:none!important;white-space:nowrap}
+.ragwan-resource-item[role="button"]{cursor:pointer;max-width:100%;min-width:0;box-sizing:border-box}
+.ragwan-resource-open{display:inline-flex!important;align-items:center;justify-content:center;flex:0 1 auto!important;min-width:0!important;width:auto!important;max-width:100%!important;min-height:40px;padding:8px 13px;border-radius:11px;background:#0f513f!important;color:#fff!important;font-weight:900;text-decoration:none!important;white-space:nowrap;box-sizing:border-box;overflow:hidden}
 @media(max-width:620px){
-  .ragwan-resource-item{display:grid!important;grid-template-columns:auto 1fr!important;align-items:center!important}
-  .ragwan-resource-item .ragwan-resource-open{grid-column:1/-1;width:100%;margin-top:4px}
+  .ragwan-resource-item{
+    display:grid!important;
+    grid-template-columns:auto minmax(0,1fr)!important;
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    align-items:center!important;
+    overflow:hidden!important;
+  }
+  .ragwan-resource-item>div{min-width:0!important;max-width:100%!important;overflow:hidden!important}
+  .ragwan-resource-open{
+    grid-column:1/-1;
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    margin-top:4px;
+    justify-self:stretch;
+  }
 }
 </style></head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
