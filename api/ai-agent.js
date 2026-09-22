@@ -2089,6 +2089,91 @@ function canUseDeterministicChatReply(message,currentSession,conversationState){
   return true;
 }
 
+function detectDirectTrainingInfoRequest(message){
+  const s=String(message||'').trim().toLowerCase();
+  if(!s) return null;
+  if(/(?:شنو|ما هي|ماهي|اعرف|أريد أعرف|اريد اعرف|اعرفلي|اعطني|أعطني|اعطنيلي).*?(?:التدريبات|الدروس)/.test(s) ||
+     /(?:كل|قائمة).*?(?:التدريبات|الدروس)/.test(s)){
+    return 'list';
+  }
+  if(/(?:تقدمي|تقدمي بالتدريبات|وين وصلت|وين واصل|كم كملت|شكد كملت|كم تدربت|شكد تدربت|نسبة إكمال|نسبه اكمال|نسبة التقدم|نسبه التقدم)/.test(s)){
+    return 'progress';
+  }
+  if(/(?:مشاهدتي|مشاهداتي|نسبة المشاهدة|نسبه المشاهده|كم شاهدت|شكد شاهدت|شكد وصلت مشاهدة|وين وصلت مشاهدة|watch[_\s-]?percent)/.test(s)){
+    return 'watch';
+  }
+  if(/(?:التدريب|الدرس)\s*(?:رقم|رقمًا)?\s*([0-9]{1,2})/.test(s) ||
+     /(?:الدرس|التدريب)\s*(?:الأول|الاول|الثاني|الثانى|الثالث|الرابع|الخامس|السادس|السابع|الثامن|التاسع|العاشر)/.test(s)){
+    return 'lesson';
+  }
+  if(/(?:شنو|ما هو|ماهو).*?(?:التدريب|الدرس).*?(?:الي|الذي|اللي).*?(?:مكتمل|اكملته|كملته|خلصته|متبقي|باقي)/.test(s) ||
+     /(?:شنو|ما هي|ماهي).*?(?:التدريبات|الدروس).*?(?:المتبقية|الباقية)/.test(s)){
+    return 'remaining';
+  }
+  return null;
+}
+
+function directTrainingOrdinalToNumber(message){
+  const s=String(message||'').toLowerCase();
+  const m=s.match(/(?:التدريب|الدرس)\s*(?:رقم|رقمًا)?\s*(\d{1,2})/);
+  if(m)return Number(m[1]);
+  const words={
+    'الأول':1,'الاول':1,'الثاني':2,'الثانى':2,'الثالث':3,'الرابع':4,
+    'الخامس':5,'السادس':6,'السابع':7,'الثامن':8,'التاسع':9,'العاشر':10
+  };
+  for(const [w,n] of Object.entries(words)) if(s.includes(w)) return n;
+  return null;
+}
+
+function buildDirectTrainingReply(context,kind,message){
+  const lessons=Array.isArray(context?.lessons)?context.lessons:[];
+  const progress=Array.isArray(context?.progress)?context.progress:[];
+  const byId=new Map(progress.map(p=>[String(p.lesson_id),p]));
+  const rows=lessons.map((l,index)=>{
+    const p=byId.get(String(l.id))||byId.get(String(l.lesson_id))||{};
+    return {
+      no:Number(l.lesson_no||index+1),
+      title:String(l.title||'').trim()||('التدريب '+(index+1)),
+      completed:!!p.completed,
+      watch_percent:Math.max(0,Math.min(100,Number(p.watch_percent||0)))
+    };
+  });
+  const completed=rows.filter(x=>x.completed).length;
+  const total=rows.length;
+  const remaining=rows.filter(x=>!x.completed);
+
+  if(kind==='list'){
+    if(!rows.length)return 'ماكو تدريبات متاحة حاليًا في بيانات حسابك.';
+    const lines=rows.map(x=>String(x.no)+'. '+x.title).join('\n');
+    return 'هذه التدريبات الموجودة بحسابك حاليًا:\n'+lines;
+  }
+
+  if(kind==='progress'){
+    if(!rows.length)return 'ماكو بيانات تدريبات متاحة حاليًا.';
+    const pct=total?Math.round(completed/total*100):0;
+    return 'تقدمك الحالي: '+completed+' من '+total+' تدريبات مكتملة ('+pct+'%).\nالمتبقي: '+remaining.length+' تدريب.';
+  }
+
+  if(kind==='watch'){
+    if(!rows.length)return 'ماكو بيانات مشاهدة متاحة حاليًا.';
+    const lines=rows.map(x=>String(x.no)+'. '+x.title+': '+x.watch_percent+'%'+(x.completed?' — مكتمل':'' )).join('\n');
+    return 'هذه نسب المشاهدة المسجلة عندك:\n'+lines;
+  }
+
+  if(kind==='remaining'){
+    if(!remaining.length)return 'كل التدريبات المتاحة عندك مكتملة حاليًا. ✅';
+    return 'التدريبات المتبقية عندك:\n'+remaining.map(x=>String(x.no)+'. '+x.title+' — '+x.watch_percent+'% مشاهدة').join('\n');
+  }
+
+  if(kind==='lesson'){
+    const no=directTrainingOrdinalToNumber(message);
+    const row=rows.find(x=>x.no===no);
+    if(!row)return no?'ما لقيت تدريب رقم '+no+' ضمن تدريبات حسابك.':'حدد لي رقم التدريب حتى أعطيك حالته.';
+    return 'التدريب '+row.no+': '+row.title+'\nنسبة المشاهدة: '+row.watch_percent+'%\nالحالة: '+(row.completed?'مكتمل ✅':'غير مكتمل');
+  }
+
+  return null;
+}
 function adaptiveOutputTokenBudget(message,cognitiveState,currentSession){
   const s=String(message||'').trim().toLowerCase();
   const intent=String(cognitiveState?.user_intent||'general_conversation');
@@ -2669,6 +2754,25 @@ module.exports=async function handler(req,res){
         await saveAgentMessage(token,'user',message).catch(()=>null);
         await saveAgentMessage(token,'assistant',deterministicAnswer).catch(()=>null);
         return res.status(200).json({ok:true,answer:deterministicAnswer,deterministic:true});
+      }
+    }
+
+    // Stage 15: simple training-data lookups bypass OpenAI completely.
+    // These are read-only facts already available from Supabase training data.
+    if(!sessionCommand && !currentSession?.active && !conversationState?.pending_question && !conversationState?.pending_member_action && !conversationState?.open_loop){
+      const directTrainingKind=detectDirectTrainingInfoRequest(message);
+      if(directTrainingKind){
+        const directTrainingAnswer=buildDirectTrainingReply(context,directTrainingKind,message);
+        if(directTrainingAnswer){
+          await saveAgentMessage(token,'user',message).catch(()=>null);
+          await saveAgentMessage(token,'assistant',directTrainingAnswer).catch(()=>null);
+          return res.status(200).json({
+            ok:true,
+            answer:directTrainingAnswer,
+            deterministic:true,
+            source:'training-data'
+          });
+        }
       }
     }
 
