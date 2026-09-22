@@ -69,14 +69,12 @@ function showInstallNotice(mode){
             : 'ثبّت التطبيق على جهازك للوصول إليه بسرعة، بدون الحاجة لفتح المتصفح كل مرة.')+
       '</div>'+
       '<button class="dxn-install-main" type="button">'+
-        (ios ? '📱 طريقة التثبيت' : desktop ? '💻 طريقة التثبيت على الحاسوب' : '📲 تثبيت التطبيق الآن')+
+        (ios ? '📱 طريقة التثبيت' : '📲 تثبيت التطبيق الآن')+
       '</button>'+
       '<div class="dxn-install-help">'+
         (ios
           ? 'اضغط مشاركة ↗ ثم «إضافة إلى الشاشة الرئيسية».'
-          : desktop
-            ? 'يمكنك التثبيت من أيقونة التثبيت بجانب شريط العنوان، أو من قائمة المتصفح ⋮ ثم خيار تثبيت التطبيق.'
-            : 'سيظهر لك تأكيد التثبيت من المتصفح.')+
+          : 'اضغط الزر أعلاه لبدء تثبيت التطبيق مباشرة.')+
       '</div>'+
       '<button class="dxn-install-later" type="button">ليس الآن</button>'+
     '</div>';
@@ -112,11 +110,10 @@ function showInstallNotice(mode){
       wrap.querySelector('.dxn-install-help').textContent='اضغط زر المشاركة في المتصفح ↗ ثم اختر «إضافة إلى الشاشة الرئيسية».';
       return;
     }
-    if(desktop && !deferredPrompt){
-      wrap.querySelector('.dxn-install-help').textContent='على الحاسوب: اضغط أيقونة التثبيت بجانب شريط العنوان، أو افتح قائمة ⋮ واختر «تثبيت التطبيق». بعد ذلك سيُضاف التطبيق إلى سطح المكتب/قائمة التطبيقات.';
+    if(!deferredPrompt){
+      wrap.querySelector('.dxn-install-help').textContent='إذا لم يرسل المتصفح أمر التثبيت المباشر، سيظهر خيار التثبيت الأصلي من المتصفح.';
       return;
     }
-    if(!deferredPrompt) return;
     try{
       await deferredPrompt.prompt();
       await deferredPrompt.userChoice;
