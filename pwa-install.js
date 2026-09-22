@@ -12,7 +12,7 @@ window.__DXN_PWA_INSTALL__=true;
 
 (function setCommunityFavicon(){
   try{
-    var href='/community-icon.webp?v=20260922';
+    var href='/community-icon-192.webp?v=20260922';
     var old=document.querySelector('link[data-dxn-community-icon]');
     if(old) old.href=href;
     else{
