@@ -1054,6 +1054,183 @@ async function loadMemberTrainingMemory(token){
   }catch(_){return [];}
 }
 
+async function extractBackgroundMemoryBundle({
+  message,
+  answer,
+  context,
+  currentSession,
+  conversationState,
+  recentTraining,
+  learnedFacts,
+  permanentMemory,
+  causalMemory,
+  learningPatterns,
+  doPersonalTraining,
+  doDurableFacts,
+  doConversationState,
+  doCausalMemory,
+  doLearningPattern
+}){
+  if(!doPersonalTraining&&!doDurableFacts&&!doConversationState&&!doCausalMemory&&!doLearningPattern) return null;
+
+  const prompt=[
+    'أنت محلل خلفي واحد للمدرب وائل حاتم. مهمتك استخراج عدة طبقات من الذاكرة في استدعاء واحد فقط.',
+    'لا تخترع معلومات. المصدر الأساسي لحقائق العضو هو كلام العضو نفسه، ورد المدرب يستخدم فقط لتوثيق الإجراء التدريبي أو سياق الجلسة.',
+    'أعد JSON فقط. أي قسم غير مطلوب أو لا توجد له معلومة مفيدة يجب أن يبقى null/فارغًا.',
+    'لا تحفظ معلومات صحية أو سياسية أو أسرارًا أو بيانات شديدة الحساسية.',
+    'لا تجعل التحية أو الشكر أو التفاصيل العابرة ذاكرة.',
+    'personal_training: احفظ محاولة/نتيجة/تصحيح/درس/هدف/عقبة/تقدم/خطوة تالية واضحة، مع member_facts للمعلومات الثابتة التي صرح بها العضو.',
+    'durable_facts: احفظ فقط المعلومات التي تستحق الاستمرار طويلًا. scope أحد global أو leader أو member.',
+    'conversation_state: احفظ موضوع الحوار المفتوح والسؤال أو الإجراء الذي ما زال ينتظر العضو، مع interaction_signal محصورًا في neutral,positive,hesitant,confused,frustrated,rushed ودون أي تشخيص.',
+    'causal_event: استخرج محاولة -> نتيجة -> ملاحظة -> سبب محتمل -> تعديل فقط إذا كانت هناك تجربة أو عائق واضح. hypothesis ليس حقيقة.',
+    'learning_pattern: لا تنشئه إلا إذا أصبح لدينا دليل من تجربتين أو أكثر. استخدم CURRENT_EVENT عندما يكون الحدث الحالي نفسه جزءًا من الدليل.',
+    'إذا لم توجد معلومة كافية في أي قسم، أعد القسم فارغًا بدل التخمين.',
+    'صيغة JSON المطلوبة:',
+    JSON.stringify({
+      personal_training:{training:null,member_facts:[]},
+      durable_facts:[],
+      conversation_state:null,
+      causal_event:null,
+      learning_pattern:null
+    }),
+    'تعريف training عند الحاجة:',
+    JSON.stringify({topic:null,objective:null,phase:null,member_statement:null,coach_action:null,outcome:null,lesson:null,next_step:null}),
+    'تعريف durable_facts عند الحاجة:',
+    JSON.stringify([{scope:'member',fact:'',supersedes_id:null}]),
+    'تعريف conversation_state عند الحاجة:',
+    JSON.stringify({current_topic:null,open_loop:null,pending_question:null,pending_member_action:null,state_status:'open',interaction_signal:'neutral',interaction_confidence:0.35}),
+    'تعريف causal_event عند الحاجة:',
+    JSON.stringify({topic:null,attempt:null,result:null,observation:null,hypothesis:null,adjustment:null,status:'open'}),
+    'تعريف learning_pattern عند الحاجة:',
+    JSON.stringify({save:false,topic:null,pattern:null,evidence_summary:null,working_lesson:null,next_test:null,evidence_count:0,confidence:null,status:'testing',source_event_ids:[]}),
+    'الأقسام المطلوبة:',
+    JSON.stringify({
+      doPersonalTraining:!!doPersonalTraining,
+      doDurableFacts:!!doDurableFacts,
+      doConversationState:!!doConversationState,
+      doCausalMemory:!!doCausalMemory,
+      doLearningPattern:!!doLearningPattern
+    }),
+    'سياق العضو:',
+    JSON.stringify(context.member||{}),
+    'الجلسة الحالية:',
+    JSON.stringify(currentSession||{}),
+    'حالة الحوار السابقة:',
+    JSON.stringify(conversationState||{}),
+    'آخر سجل تدريبي:',
+    JSON.stringify((Array.isArray(recentTraining)?recentTraining.slice(0,12):[])),
+    'الحقائق الحالية:',
+    JSON.stringify((Array.isArray(learnedFacts)?learnedFacts.slice(0,30):[])),
+    'الذاكرة الدائمة الحالية:',
+    JSON.stringify((Array.isArray(permanentMemory)?permanentMemory.slice(0,30):[])),
+    'الخبرات السببية السابقة:',
+    JSON.stringify((Array.isArray(causalMemory)?causalMemory.slice(0,8):[])),
+    'دروس التعلم السابقة:',
+    JSON.stringify((Array.isArray(learningPatterns)?learningPatterns.slice(0,8):[])),
+    'رسالة العضو:',
+    String(message||'').slice(0,6000),
+    'رد المدرب:',
+    String(answer||'').slice(0,6000)
+  ].join('\\n');
+
+  try{
+    const r=await openai({
+      model:OPENAI_HELPER_MODEL,
+      instructions:'أنت محلل ذاكرة خلفي موحد. أعد JSON فقط. لا تخترع.',
+      input:[{role:'user',content:prompt}],
+      max_output_tokens:1100
+    });
+    if(!r.ok)return null;
+    const text=outputText(r.data);
+    const start=text.indexOf('{'),end=text.lastIndexOf('}');
+    if(start<0||end<=start)return null;
+    const p=JSON.parse(text.slice(start,end+1));
+    const phases=['discover','explain','practice','feedback','next_step','complete'];
+    const states=['open','waiting_member','closed'];
+    const signals=['neutral','positive','hesitant','confused','frustrated','rushed'];
+    const causalStatuses=['open','learned','superseded'];
+    const patternStatuses=['testing','supported','rejected','superseded'];
+
+    const training=p.personal_training&&p.personal_training.training&&typeof p.personal_training.training==='object'
+      ? p.personal_training.training : null;
+    const facts=Array.isArray(p.personal_training?.member_facts)
+      ? p.personal_training.member_facts.map(f=>({
+          fact:String(f?.fact||'').trim().slice(0,4000),
+          supersedes_id:f?.supersedes_id||null
+        })).filter(f=>f.fact).slice(0,8) : [];
+
+    const personalTraining=training||facts.length
+      ? {training:{
+          topic:String(training?.topic||'').trim().slice(0,500)||null,
+          objective:String(training?.objective||'').trim().slice(0,500)||null,
+          phase:phases.includes(training?.phase)?training.phase:null,
+          member_statement:String(training?.member_statement||'').trim().slice(0,3000)||null,
+          coach_action:String(training?.coach_action||'').trim().slice(0,3000)||null,
+          outcome:String(training?.outcome||'').trim().slice(0,1200)||null,
+          lesson:String(training?.lesson||'').trim().slice(0,1400)||null,
+          next_step:String(training?.next_step||'').trim().slice(0,900)||null
+        },member_facts:facts}
+      : {training:null,member_facts:[]};
+
+    const durableFacts=Array.isArray(p.durable_facts)
+      ? p.durable_facts.map(f=>({
+          scope:['global','leader','member'].includes(f?.scope)?f.scope:'member',
+          fact:String(f?.fact||'').trim().slice(0,4000),
+          supersedes_id:f?.supersedes_id||null
+        })).filter(f=>f.fact).slice(0,8) : [];
+
+    const s=p.conversation_state&&typeof p.conversation_state==='object'?p.conversation_state:null;
+    const conversation=s?{
+      current_topic:s.current_topic?String(s.current_topic).slice(0,500):null,
+      open_loop:s.open_loop?String(s.open_loop).slice(0,1000):null,
+      pending_question:s.pending_question?String(s.pending_question).slice(0,700):null,
+      pending_member_action:s.pending_member_action?String(s.pending_member_action).slice(0,700):null,
+      state_status:states.includes(s.state_status)?s.state_status:'open',
+      interaction_signal:signals.includes(s.interaction_signal)?s.interaction_signal:'neutral',
+      interaction_confidence:Number.isFinite(Number(s.interaction_confidence))
+        ? Math.max(0,Math.min(1,Number(s.interaction_confidence))) : 0.35,
+      last_member_message_at:new Date().toISOString()
+    }:null;
+
+    const c=p.causal_event&&typeof p.causal_event==='object'?p.causal_event:null;
+    const causal=c?{
+      topic:c.topic?String(c.topic).trim().slice(0,500):null,
+      attempt:c.attempt?String(c.attempt).trim().slice(0,1000):null,
+      result:c.result?String(c.result).trim().slice(0,1000):null,
+      observation:c.observation?String(c.observation).trim().slice(0,1000):null,
+      hypothesis:c.hypothesis?String(c.hypothesis).trim().slice(0,1000):null,
+      adjustment:c.adjustment?String(c.adjustment).trim().slice(0,1000):null,
+      status:causalStatuses.includes(c.status)?c.status:'open'
+    }:{
+      topic:null,attempt:null,result:null,observation:null,hypothesis:null,adjustment:null,status:'open'
+    };
+
+    const lp=p.learning_pattern&&typeof p.learning_pattern==='object'?p.learning_pattern:null;
+    const learning=lp?{
+      save:lp.save===true,
+      topic:lp.topic?String(lp.topic).trim().slice(0,500):null,
+      pattern:lp.pattern?String(lp.pattern).trim().slice(0,1000):null,
+      evidence_summary:lp.evidence_summary?String(lp.evidence_summary).trim().slice(0,1500):null,
+      working_lesson:lp.working_lesson?String(lp.working_lesson).trim().slice(0,1200):null,
+      next_test:lp.next_test?String(lp.next_test).trim().slice(0,1000):null,
+      evidence_count:Math.max(0,Math.min(20,Number(lp.evidence_count||0))),
+      confidence:lp.confidence==null?null:Math.max(0,Math.min(1,Number(lp.confidence))),
+      status:patternStatuses.includes(lp.status)?lp.status:'testing',
+      source_event_ids:Array.isArray(lp.source_event_ids)?lp.source_event_ids.map(x=>String(x||'')).filter(Boolean).slice(0,12):[]
+    }:null;
+
+    return {
+      personal_training:personalTraining,
+      durable_facts:durableFacts,
+      conversation_state:conversation,
+      causal_event:causal,
+      learning_pattern:learning
+    };
+  }catch(_){
+    return null;
+  }
+}
+
 async function extractPersonalTrainingMemory(message,answer,context,currentSession,recentTraining,learnedFacts){
   const prompt=[
     'أنت أمين سجل التدريب الشخصي للمدرب وائل حاتم.',
@@ -2495,8 +2672,8 @@ module.exports=async function handler(req,res){
     await saveAgentMessage(token,'user',message).catch(()=>null);
     await saveAgentMessage(token,'assistant',answer).catch(()=>null);
 
-    // Low-information greetings/thanks do not need a second AI analysis call
-    // when there is no active training session or unresolved dialogue state.
+    // One Nano pass handles the background memory layers together.
+    // This avoids sending the same message/answer to multiple helper calls.
     const skipTurnAnalysis =
       isLowInformationChatMessage(message) &&
       !currentSession?.active &&
@@ -2504,70 +2681,84 @@ module.exports=async function handler(req,res){
       !conversationState?.pending_member_action &&
       !conversationState?.open_loop;
 
-    // Every meaningful member conversation is evaluated as a personal training turn.
-    // The structured journal is append-only and scoped to this member.
-    if(context.role==='member' && !skipTurnAnalysis){
-      const personalTraining=await extractPersonalTrainingMemory(
+    const causalRequested=causalMemoryLikely(message,cognitiveState,causalMemory);
+    const durableRequested=durableLearningLikely(message,context.role);
+    const personalRequested=context.role==='member' && !skipTurnAnalysis;
+    const conversationRequested=!skipTurnAnalysis;
+    const learningRequested=causalRequested && (Array.isArray(causalMemory)&&causalMemory.length>=1);
+    const needBackgroundAnalysis=personalRequested||durableRequested||conversationRequested||causalRequested;
+
+    let backgroundBundle=null;
+    if(needBackgroundAnalysis){
+      backgroundBundle=await extractBackgroundMemoryBundle({
         message,
         answer,
         context,
         currentSession,
-        memberTrainingMemory,
-        learnedFacts
-      );
-      if(personalTraining){
-        await savePersonalTrainingMemory(token,personalTraining,currentSession).catch(()=>null);
-        await savePersonalTrainingFacts(token,personalTraining).catch(()=>null);
-      }
+        conversationState,
+        recentTraining:memberTrainingMemory,
+        learnedFacts,
+        permanentMemory,
+        causalMemory,
+        learningPatterns,
+        doPersonalTraining:personalRequested,
+        doDurableFacts:durableRequested,
+        doConversationState:conversationRequested,
+        doCausalMemory:causalRequested,
+        doLearningPattern:learningRequested
+      });
     }
 
-    // Save only genuinely durable new knowledge. Old memory is never edited;
-    // corrections are appended as a new fact with an optional supersedes link.
-    const durableFacts=await extractDurableLearnedFacts(
-      message,
-      answer,
-      context.role,
-      learnedFacts,
-      permanentMemory
-    );
-    if(durableFacts.length) await saveLearnedFacts(token,durableFacts,message).catch(()=>null);
-
-    // Keep the short-term dialogue state separate from durable memory.
-    // This records unresolved questions/actions so Muhammad can resume the
-    // member's actual topic instead of treating every return as a fresh start.
-    const updatedConversationState = skipTurnAnalysis
-      ? conversationState
-      : await extractConversationState(
-          message,
-          answer,
-          conversationState
+    if(backgroundBundle){
+      if(personalRequested && backgroundBundle.personal_training){
+        const pt=backgroundBundle.personal_training;
+        const hasTraining=pt.training && (
+          pt.training.topic||pt.training.objective||pt.training.member_statement||
+          pt.training.coach_action||pt.training.outcome||pt.training.lesson||pt.training.next_step
         );
-    if(!skipTurnAnalysis && updatedConversationState){
-      await saveConversationState(token,updatedConversationState);
-    }
+        if(hasTraining||pt.member_facts?.length){
+          await savePersonalTrainingMemory(token,pt,currentSession).catch(()=>null);
+          await savePersonalTrainingFacts(token,pt).catch(()=>null);
+        }
+      }
 
-    // Causal memory is a separate learning layer: save only a concrete
-    // attempt/result/obstacle relationship, never a guessed personality trait.
-    if(causalMemoryLikely(message,cognitiveState,causalMemory)){
-      const causalEvent=await extractCausalMemoryEvent(message,answer,causalMemory);
-      if(causalEvent){
-        const causalId=await saveCausalMemory(token,causalEvent);
-        const latestCausalMemory=[
-          {id:causalId, ...causalEvent},
-          ...causalMemory
-        ].slice(0,12);
+      if(durableRequested && backgroundBundle.durable_facts?.length){
+        await saveLearnedFacts(token,backgroundBundle.durable_facts,message).catch(()=>null);
+      }
 
-        // Only synthesize a learning pattern when there are at least two
-        // concrete experiences; one experience is not enough to "learn" a rule.
-        if(learningLoopLikely(latestCausalMemory,learningPatterns)){
-          const learningPattern=await extractLearningPattern(
-            latestCausalMemory,
-            learningPatterns
-          );
-          if(learningPattern) await saveLearningPattern(token,learningPattern);
+      const updatedConversationState =
+        conversationRequested && backgroundBundle.conversation_state
+          ? backgroundBundle.conversation_state
+          : conversationState;
+      if(conversationRequested && updatedConversationState){
+        await saveConversationState(token,updatedConversationState);
+      }
+
+      if(causalRequested && backgroundBundle.causal_event){
+        const ce=backgroundBundle.causal_event;
+        if(ce.attempt||ce.result||ce.adjustment){
+          const causalId=await saveCausalMemory(token,ce);
+          const latestCausalMemory=[
+            {id:causalId,...ce},
+            ...causalMemory
+          ].slice(0,12);
+
+          if(learningRequested && backgroundBundle.learning_pattern?.save){
+            const lp={...backgroundBundle.learning_pattern};
+            lp.source_event_ids=(Array.isArray(lp.source_event_ids)?lp.source_event_ids:[])
+              .map(id=>String(id||'')==='CURRENT_EVENT'?String(causalId):String(id||''))
+              .filter(id=>String(id)===String(causalId)||latestCausalMemory.some(e=>String(e.id||'')===String(id)))
+              .slice(0,12);
+            if(lp.source_event_ids.length) await saveLearningPattern(token,lp);
+          }
         }
       }
     }
+
+    const updatedConversationState =
+      conversationRequested && backgroundBundle?.conversation_state
+        ? backgroundBundle.conversation_state
+        : conversationState;
 
     return res.status(200).json({
       ok:true,
