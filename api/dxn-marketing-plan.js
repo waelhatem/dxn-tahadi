@@ -38,11 +38,41 @@ const DXN_MARKETING_PLAN = {
     {
       pages: '9-10',
       topic: 'المستويات والرتب',
+      rank_count_note: 'جدول Status Recognition الرسمي في خطة DXN يعرض 24 مستوى/حالة إذا حُسب الموزع ضمنها، أي 23 مستويات ترقية بعد الموزع. قد تختلف شروط بعض المستويات الرقمية حسب السوق/نسخة الخطة.',
+      status_recognition:[
+        {no:1,name_ar:'الموزع',name_en:'Distributor',code:'MEM',condition:'بداية العضوية وفق شروط السوق.'},
+        {no:2,name_ar:'وكيل نجم',name_en:'Star Agent',code:'SA',condition:'يحقق مبيعات المجموعة التراكمية المطلوبة في السوق وفق نسخة الخطة.'},
+        {no:3,name_ar:'النجم الياقوتي',name_en:'Star Ruby',code:'SR',condition:'يرعى 3 وكلاء نجوم SA في الجيل الأول.'},
+        {no:4,name_ar:'النجم الماسي',name_en:'Star Diamond',code:'SD',condition:'مع 6 وكلاء نجوم SA في الجيل الأول والتأهل لمكافأة المجموعة النجمية 37% وفق الخطة.'},
+        {no:5,name_ar:'النجم الماسي التنفيذي',name_en:'Executive Star Diamond',code:'ESD',condition:'النجم الماسي الذي يرعى نجمًا ماسيًا واحدًا.'},
+        {no:6,name_ar:'النجم الماسي الأقدم',name_en:'Senior Star Diamond',code:'SSD',condition:'النجم الماسي الذي يرعى نجميْن ماسيين.'},
+        {no:7,name_ar:'النجم الماسي الأقدم التنفيذي',name_en:'Executive Senior Star Diamond',code:'ESSD',condition:'النجم الماسي الذي يرعى 3 نجوم ماسيين.'},
+        {no:8,name_ar:'الماسي المزدوج',name_en:'Double Diamond',code:'DD',condition:'النجم الماسي الذي يرعى 4 نجوم ماسيين.'},
+        {no:9,name_ar:'الماسي المزدوج التنفيذي',name_en:'Executive Double Diamond',code:'EDD',condition:'النجم الماسي الذي يرعى 5 نجوم ماسيين.'},
+        {no:10,name_ar:'الماسي الثلاثي',name_en:'Triple Diamond',code:'TD',condition:'النجم الماسي الذي يرعى 6 نجوم ماسيين.'},
+        {no:11,name_ar:'الماسي الثلاثي التنفيذي',name_en:'Executive Triple Diamond',code:'ETD',condition:'النجم الماسي الذي يرعى 7 نجوم ماسيين.'},
+        {no:12,name_ar:'الماسي الذهبي',name_en:'Gold Diamond',code:'GD',condition:'النجم الماسي الذي يرعى 8 نجوم ماسيين.'},
+        {no:13,name_ar:'الماسي الذهبي التنفيذي',name_en:'Executive Gold Diamond',code:'EGD',condition:'النجم الماسي الذي يرعى 9 نجوم ماسيين.'},
+        {no:14,name_ar:'التاج الماسي',name_en:'Crown Diamond',code:'CD',condition:'النجم الماسي الذي يرعى 10 نجوم ماسيين.'},
+        {no:15,name_ar:'التاج الماسي التنفيذي',name_en:'Executive Crown Diamond',code:'ECD',condition:'النجم الماسي الذي يرعى 11 نجمًا ماسيًا.'},
+        {no:16,name_ar:'التاج الماسي الأقدم',name_en:'Senior Crown Diamond',code:'SCD',condition:'النجم الماسي الذي يرعى 12 نجمًا ماسيًا.'},
+        {no:17,name_ar:'التاج الماسي الأقدم التنفيذي',name_en:'Executive Senior Crown Diamond',code:'ESCD',condition:'النجم الماسي الذي يرعى 13 نجمًا ماسيًا.'},
+        {no:18,name_ar:'التاج الماسي المزدوج',name_en:'Double Crown Diamond',code:'DCD',condition:'النجم الماسي الذي يرعى 14 نجمًا ماسيًا.'},
+        {no:19,name_ar:'التاج الماسي المزدوج التنفيذي',name_en:'Executive Double Crown Diamond',code:'EDCD',condition:'النجم الماسي الذي يرعى 15 نجمًا ماسيًا.'},
+        {no:20,name_ar:'التاج الماسي الثلاثي',name_en:'Triple Crown Diamond',code:'TCD',condition:'النجم الماسي الذي يرعى 16 نجمًا ماسيًا.'},
+        {no:21,name_ar:'التاج الماسي الثلاثي التنفيذي',name_en:'Executive Triple Crown Diamond',code:'ETCD',condition:'النجم الماسي الذي يرعى 17 نجمًا ماسيًا.'},
+        {no:22,name_ar:'التاج الماسي الذهبي',name_en:'Gold Crown Diamond',code:'GCD',condition:'النجم الماسي الذي يرعى 18 نجمًا ماسيًا.'},
+        {no:23,name_ar:'التاج الماسي الذهبي التنفيذي',name_en:'Executive Gold Crown Diamond',code:'EGCD',condition:'النجم الماسي الذي يرعى 19 نجمًا ماسيًا.'},
+        {no:24,name_ar:'سفير التاج',name_en:'Crown Ambassador',code:'CA',condition:'النجم الماسي الذي يرعى 20 نجمًا ماسيًا.'}
+      ],
       facts: [
-        'يعرض المصدر تسلسلًا من موزع مستقل ثم وكيل نجم مؤهل (SA) ثم نجم ياقوتي (SR) ثم نجم ماسي مؤهل (QSD) ثم مستويات أعلى نحو السفير الملكي، مع شروط ونقاط وخطوط موضحة في الجداول.',
-        'في الرسم التوضيحي يذكر المصدر 100 PV للموزع المستقل، و4500 PV مع QSA ضمن مسار وكيل النجم المؤهل، مع نسب العمولة الموضحة في المصدر.'
+        'المصدر الرسمي لحالة الاعتراف بالرتب يعرض 24 حالة عند احتساب الموزع، وتنتهي بسفير التاج Crown Ambassador (CA).',
+        'الترتيب من الموزع إلى SA ثم SR ثم SD، وبعدها مستويات الماسي التنفيذي/الأقدم/المزدوج/الثلاثي/الذهبي، ثم مستويات التاج الماسي حتى سفير التاج.',
+        'الشروط الرقمية لمستوى SA قد تختلف حسب السوق ونسخة خطة DXN، لذلك يجب استخدام شرط السوق المعني عند شرح التأهل بالنقاط.',
+        'المصدر الرسمي الماليزي يعرض SA عند 4500PV، بينما توجد أسواق/نسخ أخرى بقيم مختلفة؛ لا تعمم رقم SA على جميع الدول.'
       ]
     },
+
     {
       pages: '16-18',
       topic: 'العوائد والحوافز',
