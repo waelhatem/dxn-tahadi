@@ -409,7 +409,7 @@ function validateDXNAge18(birthDate){
     : {ok:false, age, message:'⚠️ عذرًا، يشترط أن يكون عمر المتقدم 18 سنة أو أكثر للتسجيل.'};
 }
 
-const C=window.DXN_CONFIG||{};const SESSION_MAX_MS=12*60*60*1000;let sb=null,token=localStorage.getItem('dxn_session')||'',me=null,role=null,data=null,tab='home',trainingSubtab='home',membershipRequests=[],prospectRequests=[],monthlyPointRequests=[],trainingData={lessons:[],my_progress:[],member_progress:[]},trainingWatch={player:null,timer:null,guardTimer:null,lessonId:null,videoId:null,invalid:false,maxWatchedSeconds:0,lastSampleSeconds:0,suppressSeek:false},siteVisitStats={};
+const C=window.DXN_CONFIG||{};const SESSION_MAX_MS=12*60*60*1000;let sb=null,token=localStorage.getItem('dxn_session')||'',me=null,role=null,data=null,tab='home',trainingSubtab='home',membershipRequests=[],prospectRequests=[],monthlyPointRequests=[],trainingData={lessons:[],my_progress:[],member_progress:[]},trainingWatch={player:null,timer:null,guardTimer:null,lessonId:null,videoId:null,invalid:false,maxWatchedSeconds:0,lastSampleSeconds:0,suppressSeek:false},siteVisitStats={},aiUsageStats=null,aiUsageTimer=null;
 const $=id=>document.getElementById(id); const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(s){$('toast').textContent=s;$('toast').classList.remove('hidden');setTimeout(()=>$('toast').classList.add('hidden'),2600)}
 
@@ -427,6 +427,64 @@ async function recordSiteVisit(type='visitor',view='landing'){if(!sb)return;try{
 async function loadSiteVisitStats(){if(role!=='leader')return;try{siteVisitStats=await rpc('leader_site_visit_stats',{p_token:token})||{};}catch(e){siteVisitStats={};}}
 function siteVisitStatsPanel(){const x=siteVisitStats||{};const n=v=>Number(v||0).toLocaleString('ar-IQ');return `<div class="card leaderbox" style="margin-top:14px;background:linear-gradient(180deg,#fff,#f7fbf9)"><div class="admin-section-title">📈 إحصائيات دخول الموقع</div><p class="muted" style="line-height:1.8">تُسجّل جلسات الزوار والأعضاء والقائد تلقائيًا، مع فصل عدد الزيارات عن عدد الجلسات الفريدة. لا يتم حفظ عنوان IP أو بصمة الجهاز.</p><div class="admin-grid" style="margin-top:12px"><div class="admin-stat"><div class="emoji">👁️</div><div class="label">إجمالي الزيارات</div><b>${n(x.total_page_views)}</b><div class="muted">جميع مرات فتح الصفحات المسجلة</div></div><div class="admin-stat"><div class="emoji">🧑‍🤝‍🧑</div><div class="label">جلسات فريدة</div><b>${n(x.unique_sessions)}</b><div class="muted">متصفح/جلسة مميزة</div></div><div class="admin-stat"><div class="emoji">📅</div><div class="label">جلسات اليوم</div><b>${n(x.today_sessions)}</b><div class="muted">منذ بداية اليوم</div></div><div class="admin-stat"><div class="emoji">👤</div><div class="label">جلسات الأعضاء</div><b>${n(x.member_sessions)}</b><div class="muted">أعضاء مسجلون</div></div><div class="admin-stat"><div class="emoji">🌱</div><div class="label">جلسات الزوار</div><b>${n(x.visitor_sessions)}</b><div class="muted">لم يسجلوا دخولًا</div></div><div class="admin-stat"><div class="emoji">👑</div><div class="label">جلسات القائد</div><b>${n(x.leader_sessions)}</b><div class="muted">دخول القائد</div></div><div class="admin-stat"><div class="emoji">🗓️</div><div class="label">آخر 7 أيام</div><b>${n(x.last_7_days_sessions)}</b><div class="muted">جلسات فريدة</div></div><div class="admin-stat"><div class="emoji">⏱️</div><div class="label">آخر نشاط</div><b style="font-size:16px">${x.last_seen?esc(new Date(x.last_seen).toLocaleString('ar-IQ',{dateStyle:'short',timeStyle:'short'})):'لا توجد بيانات'}</b><div class="muted">آخر جلسة مسجلة</div></div></div><div class="command-actions" style="margin-top:12px"><button class="primary" onclick="refreshSiteVisitStats()">🔄 تحديث الإحصائيات</button></div></div>`}
 async function refreshSiteVisitStats(){await loadSiteVisitStats();render()}
+function aiUsageRows(){return Array.isArray(aiUsageStats?.rows)?aiUsageStats.rows:[]}
+function aiUsageTotals(filterFn){
+  return aiUsageRows().filter(filterFn).reduce((a,r)=>({
+    requests:a.requests+Number(r.requests||0),
+    input_tokens:a.input_tokens+Number(r.input_tokens||0),
+    cached_input_tokens:a.cached_input_tokens+Number(r.cached_input_tokens||0),
+    output_tokens:a.output_tokens+Number(r.output_tokens||0),
+    total_tokens:a.total_tokens+Number(r.total_tokens||0),
+    estimated_cost_usd:a.estimated_cost_usd+Number(r.estimated_cost_usd||0)
+  }),{requests:0,input_tokens:0,cached_input_tokens:0,output_tokens:0,total_tokens:0,estimated_cost_usd:0})
+}
+function aiUsageDateKey(d){return String(d||'').slice(0,10)}
+function aiUsagePanelContent(){
+  if(!aiUsageStats){
+    return '<div class="card leaderbox" style="margin-top:14px" id="aiUsagePanel"><div class="admin-section-title">💳 مؤشر استهلاك الذكاء الاصطناعي وتكلفته</div><p class="muted" style="line-height:1.8">هذا المؤشر مخصص للقائد فقط، ويعرض الاستهلاك اليومي والتكلفة التقديرية للمدرب وعمليات التحليل الخلفية.</p><div class="card" style="margin-top:12px;background:#fff8e8;border:1px solid #e8cf8a"><b>⏳ بانتظار تفعيل سجل الاستهلاك في قاعدة البيانات.</b><div class="muted" style="margin-top:6px">بعد تنفيذ Migration الخاص بالاستهلاك ستظهر الأرقام تلقائيًا هنا.</div></div><div class="command-actions" style="margin-top:12px"><button class="primary" onclick="refreshAiUsageStats()">🔄 تحديث</button></div></div>';
+  }
+  if(aiUsageStats.error){
+    return '<div class="card leaderbox" style="margin-top:14px" id="aiUsagePanel"><div class="admin-section-title">💳 مؤشر استهلاك الذكاء الاصطناعي وتكلفته</div><div class="card" style="margin-top:12px;background:#fff5f4;border:1px solid #efb4ad"><b>⚠️ '+esc(aiUsageStats.error)+'</b></div><div class="command-actions" style="margin-top:12px"><button class="primary" onclick="refreshAiUsageStats()">🔄 محاولة التحديث</button></div></div>';
+  }
+  const rows=aiUsageRows();
+  const todayKey=new Date().toISOString().slice(0,10);
+  const today=aiUsageTotals(r=>aiUsageDateKey(r.usage_date)===todayKey);
+  const weekStart=new Date();weekStart.setHours(0,0,0,0);weekStart.setDate(weekStart.getDate()-6);
+  const weekStartKey=weekStart.toISOString().slice(0,10);
+  const week=aiUsageTotals(r=>aiUsageDateKey(r.usage_date)>=weekStartKey);
+  const monthKey=todayKey.slice(0,7);
+  const month=aiUsageTotals(r=>aiUsageDateKey(r.usage_date).slice(0,7)===monthKey);
+  const luna=aiUsageTotals(r=>String(r.model||'').toLowerCase()==='gpt-5.6-luna');
+  const nano=aiUsageTotals(r=>String(r.model||'').toLowerCase()==='gpt-5-nano');
+  const dailyMap={};
+  rows.forEach(r=>{const k=aiUsageDateKey(r.usage_date);if(!k)return;dailyMap[k]??={date:k,requests:0,input_tokens:0,cached_input_tokens:0,output_tokens:0,total_tokens:0,estimated_cost_usd:0};const x=dailyMap[k];x.requests+=Number(r.requests||0);x.input_tokens+=Number(r.input_tokens||0);x.cached_input_tokens+=Number(r.cached_input_tokens||0);x.output_tokens+=Number(r.output_tokens||0);x.total_tokens+=Number(r.total_tokens||0);x.estimated_cost_usd+=Number(r.estimated_cost_usd||0)});
+  const daily=Object.values(dailyMap).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,14);
+  const n=v=>Number(v||0).toLocaleString('ar-IQ');
+  const usd=v=>'$'+Number(v||0).toFixed(4);
+  const cachedPct=t=>t?.input_tokens?Math.round(Number(t.cached_input_tokens||0)/Number(t.input_tokens||1)*100):0;
+  const updated=aiUsageStats.updated_at?new Date(aiUsageStats.updated_at).toLocaleString('ar-IQ',{dateStyle:'short',timeStyle:'short'}):'الآن';
+  const dailyRows=daily.length?daily.map(x=>'<tr><td style="padding:9px;border-bottom:1px solid var(--line)">'+esc(x.date)+'</td><td style="padding:9px;border-bottom:1px solid var(--line)">'+n(x.requests)+'</td><td style="padding:9px;border-bottom:1px solid var(--line)">'+n(x.input_tokens)+'</td><td style="padding:9px;border-bottom:1px solid var(--line)">'+n(x.output_tokens)+'</td><td style="padding:9px;border-bottom:1px solid var(--line)">'+n(x.cached_input_tokens)+'</td><td style="padding:9px;border-bottom:1px solid var(--line);font-weight:900">'+usd(x.estimated_cost_usd)+'</td></tr>').join(''):'<tr><td colspan="6" style="padding:16px;text-align:center" class="muted">لا توجد بيانات بعد.</td></tr>';
+  return '<div class="card leaderbox" style="margin-top:14px" id="aiUsagePanel"><div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap"><div><div class="admin-section-title">💳 مؤشر استهلاك الذكاء الاصطناعي وتكلفته</div><p class="muted" style="line-height:1.8;margin:5px 0 0">يظهر للقائد فقط. البيانات تُجمع تلقائيًا لكل طلب وتُحدّث مع الاستخدام.</p></div><button class="primary" onclick="refreshAiUsageStats()">🔄 تحديث الآن</button></div><div class="admin-grid" style="margin-top:12px">'+
+  '<div class="admin-stat"><div class="emoji">📅</div><div class="label">تكلفة اليوم</div><b>'+usd(today.estimated_cost_usd)+'</b><div class="muted">'+n(today.requests)+' طلب</div></div>'+
+  '<div class="admin-stat"><div class="emoji">🗓️</div><div class="label">آخر 7 أيام</div><b>'+usd(week.estimated_cost_usd)+'</b><div class="muted">'+n(week.requests)+' طلب</div></div>'+
+  '<div class="admin-stat"><div class="emoji">📆</div><div class="label">هذا الشهر</div><b>'+usd(month.estimated_cost_usd)+'</b><div class="muted">'+n(month.requests)+' طلب</div></div>'+
+  '<div class="admin-stat"><div class="emoji">⚡</div><div class="label">Luna</div><b>'+usd(luna.estimated_cost_usd)+'</b><div class="muted">'+n(luna.requests)+' طلب · تخزين '+cachedPct(luna)+'%</div></div>'+
+  '<div class="admin-stat"><div class="emoji">🪶</div><div class="label">Nano</div><b>'+usd(nano.estimated_cost_usd)+'</b><div class="muted">'+n(nano.requests)+' طلب</div></div>'+
+  '<div class="admin-stat"><div class="emoji">🎯</div><div class="label">توكنات اليوم</div><b>'+n(today.total_tokens)+'</b><div class="muted">إدخال '+n(today.input_tokens)+' · إخراج '+n(today.output_tokens)+'</div></div>'+
+  '</div><div class="card" style="margin-top:12px"><div class="title">📊 السجل اليومي</div><div style="overflow:auto"><table style="width:100%;border-collapse:collapse;min-width:620px"><thead><tr><th style="padding:9px;text-align:right;border-bottom:1px solid var(--line)">اليوم</th><th style="padding:9px;text-align:right;border-bottom:1px solid var(--line)">الطلبات</th><th style="padding:9px;text-align:right;border-bottom:1px solid var(--line)">الإدخال</th><th style="padding:9px;text-align:right;border-bottom:1px solid var(--line)">الإخراج</th><th style="padding:9px;text-align:right;border-bottom:1px solid var(--line)">Cached</th><th style="padding:9px;text-align:right;border-bottom:1px solid var(--line)">التكلفة</th></tr></thead><tbody>'+dailyRows+'</tbody></table></div></div><div class="muted small" style="margin-top:10px">آخر تحديث: '+esc(updated)+' · التكلفة تقديرية وفق الأسعار المعرّفة للنماذج المستخدمة في النظام.</div></div>';
+}
+function aiUsageStatsPanel(){return aiUsagePanelContent()}
+async function loadAiUsageStats(){
+  if(role!=='leader'||!token)return;
+  try{
+    const res=await fetch('/api/ai-usage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,days:30}),cache:'no-store'});
+    const d=await res.json().catch(()=>null);
+    aiUsageStats=res.ok&&d?.ok?{...d,updated_at:new Date().toISOString()}:{error:d?.error||'تعذر تحميل إحصائيات الذكاء الاصطناعي.'};
+  }catch(e){aiUsageStats={error:e.message||'تعذر تحميل إحصائيات الذكاء الاصطناعي.'}}
+  const host=$('aiUsagePanel');if(host)host.outerHTML=aiUsagePanelContent();
+}
+async function refreshAiUsageStats(){await loadAiUsageStats();if(!$('aiUsagePanel'))render()}
+function startAiUsageAutoRefresh(){clearInterval(aiUsageTimer);if(role!=='leader')return;aiUsageTimer=setInterval(()=>{if(role==='leader')loadAiUsageStats().catch(()=>{})},5*60*1000)}
 async function boot(){
   if(!ready()){renderSetup();return}
   if(!sb) sb=supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY);
@@ -449,14 +507,15 @@ async function boot(){
           rpc('leader_monthly_point_requests',{p_token:token}).catch(()=>[]),
           rpc('leader_team_registry',{p_token:token}).catch(()=>[]),
           rpc('leader_prospect_requests',{p_token:token}).catch(()=>[]),
-          loadSiteVisitStats().catch(()=>{})
+          loadSiteVisitStats().catch(()=>{}),
+          loadAiUsageStats().catch(()=>{})
         ])
       : rpc('my_monthly_point_requests',{p_token:token}).catch(()=>[]);
     await Promise.all([trainingP,extras]);
     trainingData=await trainingP;
     if(role==='leader'){
       const [mr,pr,tr,prospects]=await extras;
-      membershipRequests=mr||[];prospectRequests=prospects||[];monthlyPointRequests=pr||[];
+      membershipRequests=mr||[];prospectRequests=prospects||[];monthlyPointRequests=pr||[];startAiUsageAutoRefresh();
       let rr=tr;
       if(typeof rr==='string'){try{rr=JSON.parse(rr)}catch(e){rr=[]}}
       teamRegistryRows=Array.isArray(rr)?rr:(Array.isArray(rr?.data)?rr.data:(Array.isArray(rr?.members)?rr.members:(Array.isArray(rr?.result)?rr.result:[])));
@@ -3204,7 +3263,7 @@ function leader(){
       <div style="margin-top:16px"><h3 style="margin:0 0 10px">🛠️ المهام التي ترفع صحة النظام</h3>${tasks.map((t,i)=>`<div class="row" style="margin-bottom:8px"><div style="flex:1"><b>${t.icon} ${esc(t.text)}</b><div class="muted small" style="margin-top:4px">الخطوة المقترحة: ${esc(t.action)}</div></div><button onclick="${t.fn}">فتح</button></div>`).join('')}</div>
       <div class="muted small" style="margin-top:10px">ℹ️ النسبة تُحسب تلقائيًا من قوائم المراجعة والمتابعة الحالية، وتتغير عند تحديث البيانات.</div>`;
    })()}
- </div>`+siteVisitStatsPanel()+leaderDailyPlan()+`<div class="card leaderbox">
+ </div>`+siteVisitStatsPanel()+aiUsageStatsPanel()+leaderDailyPlan()+`<div class="card leaderbox">
    <div class="title">👑 مركز القيادة — تحليل وإدارة الموقع</div>
    <p class="muted">من هنا تتابع حالة الموقع، الأعضاء والفرق، التحديات، التارجت، الطلبات، وحركة الإنجازات. أدوات الإدارة تبقى للقائد فقط.</p>
    <div class="admin-toolbar"><button class="primary" onclick="refresh()">🔄 تحديث البيانات</button><button onclick="createMemberForm()">➕ عضو</button><button onclick="createTeamForm()">🏆 فريق</button><button onclick="openChallengeEditor()">🎯 تحدٍ</button>${prospectRequestsButton()}<button onclick="openProspectLog()">📋 سجل الطلبات (${prospectRequests.length})</button>${dxnMembershipRequestsButton()}<button onclick="openTeamRegistry()">👥 سجل أعضاء الفريق</button><button class="primary" onclick="openDxnSync()">📥 مزامنة سجل DXN</button><button onclick="openTrainingManager()">📚 إدارة التدريبات</button><button onclick="changePin()">🔐 PIN القائد</button></div>
@@ -3391,13 +3450,14 @@ async function refresh(){
         rpc('leader_dxn_membership_requests',{p_token:token}).catch(()=>[]),
         rpc('leader_monthly_point_requests',{p_token:token}).catch(()=>[]),
         rpc('leader_prospect_requests',{p_token:token}).catch(()=>[]),
-        loadSiteVisitStats().catch(()=>{})
+        loadSiteVisitStats().catch(()=>{}),
+        loadAiUsageStats().catch(()=>{})
       ])
     : rpc('my_monthly_point_requests',{p_token:token}).catch(()=>[]);
   await Promise.all([trainingP,extras]);
   trainingData=await trainingP;
   if(role==='leader'){
-    const [mr,pr,prospects]=await extras;membershipRequests=mr||[];monthlyPointRequests=pr||[];prospectRequests=prospects||[];
+    const [mr,pr,prospects]=await extras;membershipRequests=mr||[];monthlyPointRequests=pr||[];prospectRequests=prospects||[];startAiUsageAutoRefresh();
   }else monthlyPointRequests=(await extras)||[];
   recordSiteVisit(role||'visitor',tab||'home');
   render()
