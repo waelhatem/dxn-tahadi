@@ -252,6 +252,52 @@ function isDailyPlanRequest(message){
   return /شنو\s+(?:أسوي|اسوي|أشتغل|اشتغل|أعمل|اعمل)\s+(?:هسه|اليوم)|ماذا\s+(?:أفعل|افعل|أعمل|اعمل)\s+(?:الآن|اليوم)|شنو\s+الخطوة\s+(?:الجايه|الجاية|القادمة)|ماذا\s+أفعل\s+الآن/.test(s);
 }
 
+function selectRelevantAgentTools(message,cognitiveState,currentSession){
+  const s=String(message||'').toLowerCase();
+  const names=new Set();
+  const add=(...xs)=>xs.forEach(x=>names.add(x));
+
+  const teamRequest=isTeamIntelligenceRequest(message);
+  const dailyRequest=isDailyPlanRequest(message);
+  const completion=hasExplicitTaskCompletionEvidence(message);
+
+  if(teamRequest){
+    add('get_member_sponsor_link','get_dxn_team_intelligence','search_dxn_team_members','get_member_summary');
+  }else if(dailyRequest){
+    add('get_daily_coaching_plan','get_member_progress','get_member_assessment_performance','get_available_tasks','complete_daily_coaching_task');
+  }else if(
+    currentSession?.active ||
+    /تدريب|التدريبات|اختبار|الاختبارات|تقدم|المشاهدة|شاهدت|نسبة|إكمال|اكتمال|جلسة تدريب/i.test(s)
+  ){
+    add('get_member_progress','get_training_status','get_member_assessment_performance','get_available_tasks','get_member_summary','complete_daily_coaching_task');
+  }else if(completion){
+    add('complete_daily_coaching_task','get_daily_coaching_plan');
+  }else if(/عضويتي|رقم العضوية|ملخص العضو|بياناتي|تقدمي/i.test(s)){
+    add('get_member_summary','get_member_progress');
+  }
+
+  const defs=Array.isArray(AGENT_TOOL_DEFINITIONS)?AGENT_TOOL_DEFINITIONS:[];
+  return defs.filter(x=>names.has(x.name));
+}
+
+function backgroundMemoryValueLikely(message,cognitiveState,currentSession,conversationState,causalMemory){
+  if(isLowInformationChatMessage(message)) return false;
+  if(currentSession?.active) return true;
+  if(hasExplicitTaskCompletionEvidence(message)) return true;
+  if(conversationState?.pending_question||conversationState?.pending_member_action||conversationState?.open_loop) return true;
+
+  const intent=String(cognitiveState?.user_intent||'').toLowerCase();
+  if(['report_obstacle','report_attempt','report_task_completion'].includes(intent)) return true;
+
+  if(profileUpdateLikely(message)) return true;
+  if(durableLearningLikely(message,'member')) return true;
+  if(causalMemoryLikely(message,cognitiveState,causalMemory)) return true;
+
+  const s=String(message||'').trim();
+  return s.length>=100 && /(?:أنا|اني|عندي|هدفي|تجربتي|واجهت|مشكلة|أتعلم|اتعلم|أريد|اريد|أحتاج|احتاج|نجحت|فشلت|رفض|وافق)/i.test(s);
+}
+
+
 async function loadDailyState(token){
   const today=new Date().toISOString().slice(0,10);
   try{
@@ -1118,19 +1164,19 @@ async function extractBackgroundMemoryBundle({
     'حالة الحوار السابقة:',
     JSON.stringify(conversationState||{}),
     'آخر سجل تدريبي:',
-    JSON.stringify((Array.isArray(recentTraining)?recentTraining.slice(0,12):[])),
+    JSON.stringify((Array.isArray(recentTraining)?recentTraining.slice(0,6):[])),
     'الحقائق الحالية:',
-    JSON.stringify((Array.isArray(learnedFacts)?learnedFacts.slice(0,30):[])),
+    JSON.stringify((Array.isArray(learnedFacts)?learnedFacts.slice(0,12):[])),
     'الذاكرة الدائمة الحالية:',
-    JSON.stringify((Array.isArray(permanentMemory)?permanentMemory.slice(0,30):[])),
+    JSON.stringify((Array.isArray(permanentMemory)?permanentMemory.slice(0,10):[])),
     'الخبرات السببية السابقة:',
-    JSON.stringify((Array.isArray(causalMemory)?causalMemory.slice(0,8):[])),
+    JSON.stringify((Array.isArray(causalMemory)?causalMemory.slice(0,4):[])),
     'دروس التعلم السابقة:',
-    JSON.stringify((Array.isArray(learningPatterns)?learningPatterns.slice(0,8):[])),
+    JSON.stringify((Array.isArray(learningPatterns)?learningPatterns.slice(0,4):[])),
     'رسالة العضو:',
-    String(message||'').slice(0,6000),
+    String(message||'').slice(0,3000),
     'رد المدرب:',
-    String(answer||'').slice(0,6000)
+    String(answer||'').slice(0,3000)
   ].join('\\n');
 
   try{
@@ -1138,7 +1184,7 @@ async function extractBackgroundMemoryBundle({
       model:OPENAI_HELPER_MODEL,
       instructions:'أنت محلل ذاكرة خلفي موحد. أعد JSON فقط. لا تخترع.',
       input:[{role:'user',content:prompt}],
-      max_output_tokens:1100
+      max_output_tokens:420
     });
     if(!r.ok)return null;
     const text=outputText(r.data);
@@ -2770,12 +2816,13 @@ module.exports=async function handler(req,res){
     enrichedContext.reflection_state=reflectionState;
     enrichedContext.long_term_personal_model=longTermPersonalModel;
     let input=baseInput;
-    const availableAgentTools=(directDailyCompletion||dailyCompletionDiagnostic)
-      ? AGENT_TOOL_DEFINITIONS.filter(x=>x.name!=='complete_daily_coaching_task')
-      : AGENT_TOOL_DEFINITIONS;
+    const availableAgentTools=selectRelevantAgentTools(message,cognitiveState,currentSession)
+      .filter(x=>!(directDailyCompletion||dailyCompletionDiagnostic) || x.name!=='complete_daily_coaching_task');
     requestStage='openai';
     let ai=null;
-    const maxToolRounds=3;
+    // Stage 11: at most one tool round per turn.
+    // Round 0 may call tools; round 1 is the final synthesis call with tools disabled.
+    const maxToolRounds=availableAgentTools.length ? 1 : 0;
 
     if(dailyCompletionDiagnostic){
       return res.status(200).json({
@@ -2791,19 +2838,19 @@ module.exports=async function handler(req,res){
 
     for(let round=0;round<=maxToolRounds;round++){
       requestStage='openai_round_'+round;
+      const roundCanUseTools=availableAgentTools.length>0 && round<maxToolRounds;
       ai=await openai({
         model:OPENAI_MODEL,
         instructions:instructions(enrichedContext),
         input,
-        tools:availableAgentTools,
-        tool_choice:'auto',
+        tools:roundCanUseTools?availableAgentTools:[],
+        tool_choice:roundCanUseTools?'auto':'none',
         max_output_tokens:adaptiveOutputTokenBudget(message,cognitiveState,currentSession)
       });
       if(!ai.ok)return res.status(502).json({error:(ai.data&&ai.data.error&&ai.data.error.message)||ai.text||'فشل الوكيل الذكي'});
 
       const calls=getFunctionCalls(ai.data);
       if(!calls.length)break;
-      if(round===maxToolRounds)throw new Error('تجاوز الوكيل الحد المسموح لاستدعاءات الأدوات');
 
       const outputs=[];
       let dailyTaskCompleted=false;
@@ -2896,12 +2943,21 @@ module.exports=async function handler(req,res){
       !conversationState?.pending_member_action &&
       !conversationState?.open_loop;
 
-    const causalRequested=causalMemoryLikely(message,cognitiveState,causalMemory);
-    const durableRequested=durableLearningLikely(message,context.role);
-    const personalRequested=context.role==='member' && !skipTurnAnalysis;
-    const conversationRequested=!skipTurnAnalysis;
+    const backgroundValue=backgroundMemoryValueLikely(
+      message,
+      cognitiveState,
+      currentSession,
+      conversationState,
+      causalMemory
+    );
+    const causalRequested=backgroundValue && causalMemoryLikely(message,cognitiveState,causalMemory);
+    const durableRequested=backgroundValue && durableLearningLikely(message,context.role);
+    const personalRequested=context.role==='member' && backgroundValue;
+    const conversationRequested=backgroundValue && !skipTurnAnalysis;
     const learningRequested=causalRequested && (Array.isArray(causalMemory)&&causalMemory.length>=1);
-    const needBackgroundAnalysis=personalRequested||durableRequested||conversationRequested||causalRequested;
+    const needBackgroundAnalysis=backgroundValue && (
+      personalRequested||durableRequested||conversationRequested||causalRequested
+    );
 
     let backgroundBundle=null;
     if(needBackgroundAnalysis){
