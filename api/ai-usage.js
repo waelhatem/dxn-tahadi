@@ -62,11 +62,8 @@ module.exports=async function handler(req,res){
     const role=String(boot.data?.role||'').toLowerCase();
     if(role!=='leader')return send(res,403,{error:'هذا المؤشر متاح للقائد فقط'});
 
-    let summary=await callSupabase('/rest/v1/rpc/get_ai_agent_usage_summary','POST',{p_days:days},bootKey);
-    // If the RPC is not exposed to the publishable role, retry with the server secret.
-    if(!summary.ok && bootKey!==SUPABASE_SECRET_KEY && SUPABASE_SECRET_KEY){
-      summary=await callSupabase('/rest/v1/rpc/get_ai_agent_usage_summary','POST',{p_days:days},SUPABASE_SECRET_KEY);
-    }
+    // Use a leader-authenticated RPC so usage data is never exposed to public/anon callers.
+    const summary=await callSupabase('/rest/v1/rpc/get_ai_agent_usage_summary_for_leader','POST',{p_token:token,p_days:days},bootKey);
     if(!summary.ok){
       return send(res,503,{
         error:'سجل استهلاك الذكاء الاصطناعي غير مفعّل في قاعدة البيانات بعد.',
