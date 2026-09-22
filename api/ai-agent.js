@@ -1516,12 +1516,12 @@ async function loadAllDurableKnowledge(role){
   return normalized;
 }
 
-async function searchDurableKnowledge(role,query,limit=80){
+async function searchDurableKnowledge(token,role,query,limit=80){
   const q=String(query||'').trim();
   if(!q||!SUPABASE_SECRET_KEY)return [];
   try{
     const r=await supabaseRpc('search_ai_agent_knowledge',{
-      p_token:null,
+      p_token:token,
       p_query:q,
       p_limit:Math.max(1,Math.min(Number(limit||80),80))
     });
@@ -1554,7 +1554,7 @@ async function loadAgentKnowledge(token,role='member',message=''){
     const queries=[String(message).trim()];
     if(aliases.length)queries.push(aliases.join(' '));
     const results=await Promise.all(
-      queries.slice(0,2).map(q=>searchDurableKnowledge(role,q,80))
+      queries.slice(0,2).map(q=>searchDurableKnowledge(token,role,q,80))
     );
     const seen=new Set();
     for(const rows of results){
