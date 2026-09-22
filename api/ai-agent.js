@@ -4,6 +4,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ryqpstkzppaifpvhezzn.s
 const SUPABASE_SECRET_KEY = String(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim().replace(/[\r\n]/g,'');
 const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY || '').trim().replace(/[\r\n]/g,'');
 const OPENAI_MODEL = process.env.AI_AGENT_MODEL || 'gpt-5.6-luna';
+const OPENAI_HELPER_MODEL = process.env.AI_AGENT_HELPER_MODEL || 'gpt-5-nano';
 
 const SUPABASE_URL_FIXED = 'https://ryqpstkzppaifpvhezzn.supabase.co';
 const { DXN_MARKETING_PLAN, isDxnMarketingPlanRequest } = require('./dxn-marketing-plan');
@@ -458,7 +459,7 @@ async function extractSessionUpdate(message,answer,currentSession){
   ].join('\\n');
   try{
     const r=await openai({
-      model:OPENAI_MODEL,
+      model:OPENAI_HELPER_MODEL,
       instructions:'أنت محلل حالة جلسة تدريبية. أعد JSON فقط.',
       input:[{role:'user',content:prompt}],
       max_output_tokens:180
@@ -531,7 +532,7 @@ async function extractProfileUpdate(message,answer,currentProfile){
   ].join('\\n');
   try{
     const r=await openai({
-      model:OPENAI_MODEL,
+      model:OPENAI_HELPER_MODEL,
       instructions:'أنت محلل ذاكرة تدريبية. لا تضف أي معلومة غير موجودة صراحة في النص. أعد JSON فقط.',
       input:[{role:'user',content:prompt}],
       max_output_tokens:450
@@ -632,7 +633,7 @@ async function extractConversationState(message,answer,currentState){
   ].join('\\n');
   try{
     const r=await openai({
-      model:OPENAI_MODEL,
+      model:OPENAI_HELPER_MODEL,
       instructions:'أنت محلل حالة حوار قصيرة. أعد JSON فقط ولا تضف معلومات غير موجودة.',
       input:[{role:'user',content:prompt}],
       max_output_tokens:320
@@ -751,7 +752,7 @@ async function extractLearningPattern(currentCausalMemory,currentLearningPattern
 
   try{
     const r=await openai({
-      model:OPENAI_MODEL,
+      model:OPENAI_HELPER_MODEL,
       instructions:'أنت محلل حلقة تعلم. أعد JSON فقط، ولا تحول فرضية إلى حقيقة.',
       input:[{role:'user',content:prompt}],
       max_output_tokens:520
@@ -848,7 +849,7 @@ async function extractCausalMemoryEvent(message,answer,currentCausalMemory){
 
   try{
     const r=await openai({
-      model:OPENAI_MODEL,
+      model:OPENAI_HELPER_MODEL,
       instructions:'أنت محلل تعلم من التجارب. أعد JSON فقط، ولا تخترع سببًا غير مذكور.',
       input:[{role:'user',content:prompt}],
       max_output_tokens:420
@@ -927,7 +928,7 @@ async function extractDurableLearnedFacts(message,answer,role,currentFacts,perma
 
   try{
     const r=await openai({
-      model:OPENAI_MODEL,
+      model:OPENAI_HELPER_MODEL,
       instructions:'أنت أمين ذاكرة للمدرب. لا تخترع معلومات. احفظ فقط ما يستحق الاستمرار.',
       input:[{role:'user',content:prompt}],
       max_output_tokens:500
@@ -1019,7 +1020,7 @@ async function extractPersonalTrainingMemory(message,answer,context,currentSessi
 
   try{
     const r=await openai({
-      model:OPENAI_MODEL,
+      model:OPENAI_HELPER_MODEL,
       instructions:'استخرج سجل تدريب شخصي دقيق. لا تخترع معلومات. JSON فقط.',
       input:[{role:'user',content:prompt}],
       max_output_tokens:700
