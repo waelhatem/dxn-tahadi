@@ -151,8 +151,8 @@ ${answer}
           }
         },
         max_output_tokens: 190
-      })
-    });
+      }
+    };
 
 
     let gradeRun=await runGrade(OPENAI_MODEL,gradePayload);
