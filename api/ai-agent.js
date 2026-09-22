@@ -1516,14 +1516,67 @@ async function loadAllDurableKnowledge(role){
   return normalized;
 }
 
-async function loadAgentKnowledge(token,role='member'){
-  const [durable,local]=await Promise.all([
+async function searchDurableKnowledge(role,query,limit=80){
+  const q=String(query||'').trim();
+  if(!q||!SUPABASE_SECRET_KEY)return [];
+  try{
+    const r=await supabaseRpc('search_ai_agent_knowledge',{
+      p_token:null,
+      p_query:q,
+      p_limit:Math.max(1,Math.min(Number(limit||80),80))
+    });
+    if(!r.ok||!Array.isArray(r.data))return [];
+    return r.data.map(x=>({
+      scope:x.scope||'global',
+      category:x.category||'platform',
+      title:x.title||null,
+      content:String(x.content||'').trim().slice(0,12000),
+      priority:Number(x.priority||0),
+      source:x.source||null,
+      updated_at:x.updated_at||null,
+      relevance:Number(x.relevance||0)
+    })).filter(x=>x.content);
+  }catch(_){return [];}
+}
+
+async function loadAgentKnowledge(token,role='member',message=''){
+  const [durableAll,local]=await Promise.all([
     loadAllDurableKnowledge(role),
     Promise.resolve(LOCAL_KNOWLEDGE_FLAT)
   ]);
+
+  // Retrieval must be query-driven, but the original source files remain
+  // authoritative. Search is an index over the existing knowledge; it does
+  // not create summaries or replace source content.
+  let retrieved=[];
+  if(String(message||'').trim()){
+    const aliases=memorySearchTerms(message);
+    const queries=[String(message).trim()];
+    if(aliases.length)queries.push(aliases.join(' '));
+    const results=await Promise.all(
+      queries.slice(0,2).map(q=>searchDurableKnowledge(role,q,80))
+    );
+    const seen=new Set();
+    for(const rows of results){
+      for(const row of rows){
+        const key=[row.source||'',row.title||'',String(row.content||'').slice(0,160)].join('|');
+        if(seen.has(key))continue;
+        seen.add(key);
+        retrieved.push(row);
+      }
+    }
+  }
+
+  const retrievedMap=new Map(
+    retrieved.map(x=>[
+      [String(x.source||''),String(x.title||''),String(x.content||'').slice(0,160)].join('|'),
+      x
+    ])
+  );
+
   const seen=new Set();
   const merged=[];
-  for(const item of [...local,...durable]){
+  for(const item of [...retrieved,...local,...durableAll]){
     const key=[
       String(item?.source||''),
       String(item?.page||''),
@@ -1532,9 +1585,18 @@ async function loadAgentKnowledge(token,role='member'){
     ].join('|');
     if(seen.has(key))continue;
     seen.add(key);
-    merged.push(item);
+    const hit=retrievedMap.get([
+      String(item?.source||''),String(item?.title||''),String(item?.content||'').slice(0,160)
+    ].join('|'));
+    merged.push(hit?{...item,relevance:Number(hit.relevance||0)}:item);
   }
-  return merged;
+
+  // Keep source rows available for the source-fidelity layer, while placing
+  // query-matched rows first for ordinary questions.
+  return merged.sort((a,b)=>
+    Number(b?.relevance||0)-Number(a?.relevance||0) ||
+    Number(b?.priority||0)-Number(a?.priority||0)
+  );
 }
 
 async function loadAgentMemory(token){
@@ -2528,7 +2590,10 @@ function buildCostOptimizedAgentContext({
   const compactKnowledge=[];
   let knowledgeChars=0;
   const knowledgeLimit=rankRequest?36:(sourceRequest?60:(knowledgeRequest?24:6));
-  const rankedKnowledge=chosenKnowledge.slice().sort((a,b)=>Number(b?.priority||0)-Number(a?.priority||0));
+  const rankedKnowledge=chosenKnowledge.slice().sort((a,b)=>
+    Number(b?.relevance||0)-Number(a?.relevance||0) ||
+    Number(b?.priority||0)-Number(a?.priority||0)
+  );
   for(const x of rankedKnowledge){
     const content=String(x?.content||'').trim();
     if(!content)continue;
@@ -3273,7 +3338,7 @@ module.exports=async function handler(req,res){
       loadAgentProfile(token),
       loadCausalMemory(token),
       loadLearningPatterns(token),
-      loadAgentKnowledge(token,context.role),
+      loadAgentKnowledge(token,context.role,message),
       loadPermanentAgentMemory(token),
       loadLearnedFacts(token),
       loadMemberTrainingMemory(token)
