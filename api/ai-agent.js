@@ -397,6 +397,12 @@ function detectTrainingConsent(message,conversationState){
   return trainingPending && (affirmative || affirmativeStart);
 }
 
+function isLowInformationChatMessage(message){
+  const s=String(message||'').trim().toLowerCase().replace(/[،,!.؟?]+$/,'').trim();
+  if(!s) return false;
+  return /^(?:هلا|هلا والله|هلا بيك|اهلا|أهلا|أهلًا|مرحبا|مرحبًا|السلام عليكم|السلام عليكم ورحمة الله|صباح الخير|مساء الخير|شلونك|شخبارك|كيفك|يعطيك العافية|يعافيك|شكرا|شكرًا|مشكور|مشكورة|ممتاز|تمام|زين|حلو|اوكي|أوكي|ok|thanks|thank you)$/i.test(s);
+}
+
 function detectSessionCommand(message){
   const s=String(message||'').trim().toLowerCase();
   if(/انهي|انهِ|أنهي|انتهت|خلصنا|وقف الجلسة|إنهاء الجلسة|انهاء الجلسة/.test(s))
@@ -2430,9 +2436,18 @@ module.exports=async function handler(req,res){
     await saveAgentMessage(token,'user',message).catch(()=>null);
     await saveAgentMessage(token,'assistant',answer).catch(()=>null);
 
-    // Every member conversation is also evaluated as a personal training turn.
+    // Low-information greetings/thanks do not need a second AI analysis call
+    // when there is no active training session or unresolved dialogue state.
+    const skipTurnAnalysis =
+      isLowInformationChatMessage(message) &&
+      !currentSession?.active &&
+      !conversationState?.pending_question &&
+      !conversationState?.pending_member_action &&
+      !conversationState?.open_loop;
+
+    // Every meaningful member conversation is evaluated as a personal training turn.
     // The structured journal is append-only and scoped to this member.
-    if(context.role==='member'){
+    if(context.role==='member' && !skipTurnAnalysis){
       const personalTraining=await extractPersonalTrainingMemory(
         message,
         answer,
@@ -2461,12 +2476,14 @@ module.exports=async function handler(req,res){
     // Keep the short-term dialogue state separate from durable memory.
     // This records unresolved questions/actions so Muhammad can resume the
     // member's actual topic instead of treating every return as a fresh start.
-    const updatedConversationState=await extractConversationState(
-      message,
-      answer,
-      conversationState
-    );
-    if(updatedConversationState){
+    const updatedConversationState = skipTurnAnalysis
+      ? conversationState
+      : await extractConversationState(
+          message,
+          answer,
+          conversationState
+        );
+    if(!skipTurnAnalysis && updatedConversationState){
       await saveConversationState(token,updatedConversationState);
     }
 
