@@ -58,6 +58,47 @@ function supabaseRpc(fn,args){
   },15000);
 }
 
+function estimateOpenAICost(model,usage){
+  const input=Number(usage?.input_tokens||0);
+  const cached=Number(usage?.input_tokens_details?.cached_tokens||0);
+  const output=Number(usage?.output_tokens||0);
+  const rates={
+    'gpt-5.6-luna':{input:0.20,cached:0.02,output:1.20},
+    'gpt-5-nano':{input:0.05,cached:0.005,output:0.40}
+  };
+  const rate=rates[String(model||'').toLowerCase()];
+  if(!rate) return 0;
+  const uncached=Math.max(input-cached,0);
+  return ((uncached*rate.input)+(cached*rate.cached)+(output*rate.output))/1000000;
+}
+
+async function recordOpenAIUsage(model,usage){
+  if(!usage||!model)return null;
+  const input=Number(usage.input_tokens||0);
+  const cached=Number(usage.input_tokens_details?.cached_tokens||0);
+  const output=Number(usage.output_tokens||0);
+  const total=Number(usage.total_tokens||input+output);
+  const estimatedCost=estimateOpenAICost(model,usage);
+  if(!input&&!output&&!total)return null;
+
+  const requestKind=String(model).toLowerCase()==='gpt-5.6-luna'?'main':'helper';
+  try{
+    return await supabaseRpc('log_ai_agent_usage',{
+      p_model:String(model),
+      p_input_tokens:input,
+      p_cached_input_tokens:cached,
+      p_output_tokens:output,
+      p_total_tokens:total,
+      p_estimated_cost_usd:estimatedCost,
+      p_request_kind:requestKind,
+      p_metadata:{source:'ai-agent'}
+    });
+  }catch(error){
+    console.error('[ai-agent] usage logging failed',String(error?.message||error));
+    return null;
+  }
+}
+
 function openai(payload){
   return new Promise((resolve,reject)=>{
     const model=String(payload?.model||'');
@@ -72,7 +113,15 @@ function openai(payload){
       : payload;
     const body=JSON.stringify(requestPayload);
     const req=https.request('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:`Bearer ${OPENAI_API_KEY}`,'Content-Type':'application/json','Content-Length':Buffer.byteLength(body)},timeout:45000},res=>{
-      let text='';res.setEncoding('utf8');res.on('data',c=>text+=c);res.on('end',()=>{let data=null;try{data=text?JSON.parse(text):null}catch(_){data=null}resolve({ok:res.statusCode>=200&&res.statusCode<300,status:res.statusCode||0,data,text})});
+      let text='';res.setEncoding('utf8');res.on('data',c=>text+=c);res.on('end',async()=>{
+        let data=null;
+        try{data=text?JSON.parse(text):null}catch(_){data=null}
+        const result={ok:res.statusCode>=200&&res.statusCode<300,status:res.statusCode||0,data,text};
+        if(result.ok&&data?.usage){
+          await recordOpenAIUsage(model,data.usage);
+        }
+        resolve(result);
+      });
     });
     req.on('timeout',()=>req.destroy(new Error('انتهت مهلة الاتصال بالذكاء الاصطناعي')));
     req.on('error',error=>resolve({ok:false,status:0,data:null,text:String(error?.message||error)}));
