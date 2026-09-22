@@ -14,7 +14,9 @@ function callSupabase(path,method='GET',body=null){
         Accept:'application/json',
         ...(raw?{'Content-Type':'application/json'}:{}),
         apikey:SUPABASE_SECRET_KEY,
-        Authorization:'Bearer '+SUPABASE_SECRET_KEY,
+        // Supabase's new sb_secret_* keys are API keys, not JWTs.
+        // Sending them as Authorization: Bearer causes PostgREST to reject the request.
+        ...(/^sb_secret_/i.test(SUPABASE_SECRET_KEY)?{}:{Authorization:'Bearer '+SUPABASE_SECRET_KEY}),
         ...(raw?{'Content-Length':Buffer.byteLength(raw)}:{})
       },
       timeout:12000
