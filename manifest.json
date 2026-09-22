@@ -3,7 +3,7 @@
   "name": "مجتمع الصحة والثراء",
   "short_name": "الصحة والثراء",
   "description": "منصة مجتمع الصحة والثراء للتدريب والمتابعة والتحديات.",
-  "start_url": "/app/index.html",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#eef5f1",
