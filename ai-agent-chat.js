@@ -413,14 +413,9 @@
   }
 
   async function openPersonalizedGreeting(){
-    const existing=document.querySelectorAll('#dxnAgentMessages .dxn-agent-ai');
-    if(existing.length)return;
-    const name=await waitForCommunityMemberName();
-    if(isCommunityMember() && name){
-      addMsg('هلا '+name+' 👋 أنا المدرب وائل حاتم، شلونك؟ خلّينا نحچي براحتنا، وإذا عندك سؤال أو شي تريد تشتغل عليه اليوم، آني وياك.','ai');
-      return;
-    }
-    addMsg('هلا والله 😄 أنا المدرب وائل حاتم، شلونك؟ خلّينا نحچي براحتنا، وإذا عندك سؤال أو شي تريد تشتغل عليه اليوم، آني وياك.','ai');
+    // لا نرسل رسالة افتتاحية تلقائية عند فتح المدرب.
+    // أول رد تحية يجب أن يكون بعد أن يكتب العضو رسالته، ويستخدم الاسم الأول فقط.
+    return;
   }
 
   function mount(){
