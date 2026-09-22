@@ -3,7 +3,7 @@ const https = require('https');
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ryqpstkzppaifpvhezzn.supabase.co';
 const SUPABASE_SECRET_KEY = String(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim().replace(/[\r\n]/g,'');
 const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY || '').trim().replace(/[\r\n]/g,'');
-const OPENAI_MODEL = process.env.AI_AGENT_MODEL || process.env.OPENAI_MODEL || 'gpt-5.6-terra';
+const OPENAI_MODEL = process.env.AI_AGENT_MODEL || 'gpt-5.6-luna';
 
 const SUPABASE_URL_FIXED = 'https://ryqpstkzppaifpvhezzn.supabase.co';
 const { DXN_MARKETING_PLAN, isDxnMarketingPlanRequest } = require('./dxn-marketing-plan');
