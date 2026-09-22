@@ -130,6 +130,9 @@ function openai(payload){
   });
 }
 
+let objectionsKnowledgeSeededAt=0;
+const OBJECTIONS_KNOWLEDGE_SEED_TTL_MS=30*60*1000;
+
 const OBJECTIONS_KNOWLEDGE_PACK=[
   {
     category:'objections_training',
@@ -204,6 +207,7 @@ const OBJECTIONS_KNOWLEDGE_PACK=[
 ];
 
 async function ensureObjectionsKnowledgePack(){
+  if(Date.now()-objectionsKnowledgeSeededAt<OBJECTIONS_KNOWLEDGE_SEED_TTL_MS)return;
   if(!SUPABASE_SECRET_KEY)return;
   try{
     for(const item of OBJECTIONS_KNOWLEDGE_PACK){
@@ -223,7 +227,8 @@ async function ensureObjectionsKnowledgePack(){
         scope:'global',category:item.category,title:item.title,content:item.content,priority:110,active:true,source:'pdf_objections_vision_mmahmoud'
       },{apikey:SUPABASE_SECRET_KEY,Authorization:'Bearer '+SUPABASE_SECRET_KEY,Prefer:'return=minimal'},15000);
     }
-  }catch(e){console.error('[ai-agent] objections knowledge seed failed',String(e.message||e));}
+  }catch(e){console.error('[ai-agent] objections knowledge seed failed',String(e.message||e));return;}
+  objectionsKnowledgeSeededAt=Date.now();
 }
 
 function outputText(data){
@@ -1184,6 +1189,7 @@ async function extractBackgroundMemoryBundle({
       model:OPENAI_HELPER_MODEL,
       instructions:'أنت محلل ذاكرة خلفي موحد. أعد JSON فقط. لا تخترع.',
       input:[{role:'user',content:prompt}],
+      reasoning:{effort:'none'},
       max_output_tokens:420
     });
     if(!r.ok)return null;
@@ -2174,6 +2180,15 @@ function buildDirectTrainingReply(context,kind,message){
 
   return null;
 }
+function adaptiveReasoningEffort(message,cognitiveState,currentSession){
+  const s=String(message||'').trim().toLowerCase();
+  const intent=String(cognitiveState?.user_intent||'general_conversation');
+  if(currentSession?.active)return 'low';
+  if(/حلل|تحليل|قارن|مقارنة|استراتيجية|بالتفصيل|اعتراضات|عمولات|نقاط|فريق|downline|الأجيال|roleplay|محاكاة|تمثيل|اختبار/.test(s))return 'low';
+  if(intent==='ask_question'||intent==='request_help')return 'none';
+  return 'none';
+}
+
 function adaptiveOutputTokenBudget(message,cognitiveState,currentSession){
   const s=String(message||'').trim().toLowerCase();
   const intent=String(cognitiveState?.user_intent||'general_conversation');
@@ -2586,6 +2601,19 @@ async function executeAgentTool(call,token,currentUserMessage){
   return await fn(token,args);
 }
 
+function dailyHelperInstructions({context,coachingProfile,session,plan,mode}){
+  return [
+    'أنت المدرب وائل حاتم.',
+    'اكتب باللهجة العراقية الطبيعية وباختصار شديد.',
+    'لا تذكر أنك نموذج أو نظام.',
+    mode==='kickoff'
+      ? 'ابدأ جلسة التدريب بشكل طبيعي، اذكر المهمة باختصار، ثم اطرح سؤالًا أو تمرينًا واحدًا فقط.'
+      : 'ذكّر العضو بالخطوة الحالية بلطف، واطلب استكمالها بسؤال أو تمرين واحد فقط.',
+    'لا تعرض قائمة مهام ولا تشرح الخطة ولا تضف معلومات غير موجودة.',
+    JSON.stringify({member:context.member,session,action:Array.isArray(plan?.actions)?plan.actions[0]||null:null,coaching_profile:coachingProfile||null})
+  ].join('\\n');
+}
+
 async function generateDailyKickoff(context,coachingProfile,session,plan){
   const action=Array.isArray(plan?.actions)?plan.actions[0]:null;
   if(!session?.active||!action) return null;
@@ -2616,18 +2644,11 @@ async function generateDailyKickoff(context,coachingProfile,session,plan){
   ].join('\\n');
 
   const r=await openai({
-    model:OPENAI_MODEL,
-    instructions:instructions({
-      role:context.role,
-      member:context.member,
-      lessons:context.lessons,
-      progress:context.progress,
-      coaching_profile:coachingProfile,
-      coaching_session:session,
-      daily_auto_plan:plan
-    }),
-    input:[{role:'user',content:kickoffPrompt}],
-    max_output_tokens:350
+    model:OPENAI_HELPER_MODEL,
+    instructions:dailyHelperInstructions({context,coachingProfile,session,plan,mode:'kickoff'}),
+    input:[{role:'user',content:kickoffPrompt.slice(0,3500)}],
+    reasoning:{effort:'none'},
+    max_output_tokens:220
   });
   if(!r.ok) throw new Error((r.data&&r.data.error&&r.data.error.message)||r.text||'تعذر بدء جلسة اليوم');
   return outputText(r.data);
@@ -2643,18 +2664,11 @@ async function generateDailyReminder(context,coachingProfile,session,plan){
     JSON.stringify({member:context.member,session,action,coaching_profile:coachingProfile||null})
   ].join('\\n');
   const r=await openai({
-    model:OPENAI_MODEL,
-    instructions:instructions({
-      role:context.role,
-      member:context.member,
-      lessons:context.lessons,
-      progress:context.progress,
-      coaching_profile:coachingProfile,
-      coaching_session:session,
-      daily_auto_plan:plan
-    }),
-    input:[{role:'user',content:prompt}],
-    max_output_tokens:220
+    model:OPENAI_HELPER_MODEL,
+    instructions:dailyHelperInstructions({context,coachingProfile,session,plan,mode:'reminder'}),
+    input:[{role:'user',content:prompt.slice(0,2200)}],
+    reasoning:{effort:'none'},
+    max_output_tokens:140
   });
   if(!r.ok)throw new Error((r.data&&r.data.error&&r.data.error.message)||r.text||'تعذر إنشاء التذكير');
   return outputText(r.data);
@@ -2949,6 +2963,7 @@ module.exports=async function handler(req,res){
         input,
         tools:roundCanUseTools?availableAgentTools:[],
         tool_choice:roundCanUseTools?'auto':'none',
+        reasoning:{effort:adaptiveReasoningEffort(message,cognitiveState,currentSession)},
         max_output_tokens:adaptiveOutputTokenBudget(message,cognitiveState,currentSession)
       });
       if(!ai.ok)return res.status(502).json({error:(ai.data&&ai.data.error&&ai.data.error.message)||ai.text||'فشل الوكيل الذكي'});
