@@ -1,0 +1,27 @@
+{
+  "id": "/",
+  "name": "مجتمع الصحة والثراء",
+  "short_name": "الصحة والثراء",
+  "description": "منصة مجتمع الصحة والثراء للتدريب والمتابعة والتحديات.",
+  "start_url": "/app/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#eef5f1",
+  "theme_color": "#0f513f",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "/community-icon.webp",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "/community-icon.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any"
+    }
+  ]
+}
