@@ -2569,8 +2569,17 @@ function buildCostOptimizedAgentContext({
   });
 
   const excludedKnowledge=new Set([...sourceRows,...rankRows]);
+  const sourceRelevantRows=rankMemoryByRelevance(
+    sourceRows,
+    message,
+    {
+      limit:(rankRequest||sourceRequest)?24:(knowledgeRequest?18:8),
+      textOf:x=>[x?.title,x?.category,x?.content].filter(Boolean).join(' ')
+    }
+  );
+
   const relevantRows=rankMemoryByRelevance(
-    knowledgeRows.filter(x=>!excludedKnowledge.has(x)),
+    knowledgeRows.filter(x=>!sourceRows.includes(x)&&!rankRows.includes(x)),
     message,
     {
       limit:(rankRequest||sourceRequest)?24:(knowledgeRequest?14:6),
@@ -2580,9 +2589,13 @@ function buildCostOptimizedAgentContext({
 
   let chosenKnowledge;
   if(rankRequest){
-    chosenKnowledge=[...rankRows,...rankSourcePages,...relevantRows];
+    chosenKnowledge=[...rankRows,...rankSourcePages,...sourceRelevantRows,...relevantRows];
   }else if(sourceRequest){
     chosenKnowledge=[...sourceRows,...relevantRows];
+  }else if(knowledgeRequest){
+    // Source files participate in ordinary knowledge questions too.
+    // Do not require a brittle keyword pattern to recognize a trained topic.
+    chosenKnowledge=[...sourceRelevantRows,...relevantRows];
   }else{
     chosenKnowledge=relevantRows;
   }
