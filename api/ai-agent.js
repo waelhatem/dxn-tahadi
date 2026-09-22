@@ -2011,6 +2011,194 @@ async function buildMemoryState(token,message,cognitiveState,currentSession,coac
   }
 }
 
+
+function firstMemberName(member){
+  const raw=String(member?.name||'').trim();
+  return raw?raw.split(/\s+/)[0]:'';
+}
+
+function buildDeterministicChatReply(message,member){
+  const s=String(message||'').trim().toLowerCase().replace(/[،,!.؟?]+$/,'').trim();
+  const first=firstMemberName(member);
+  const who=first?(' '+first):'';
+  if(/^(?:هلا|هلا والله|هلا بيك|اهلا|أهلا|أهلًا|مرحبا|مرحبًا|السلام عليكم|السلام عليكم ورحمة الله|صباح الخير|مساء الخير)$/i.test(s)){
+    return 'هلا'+who+' 🌷 شلون أگدر أساعدك هسه؟';
+  }
+  if(/^(?:شلونك|شخبارك|كيفك|يعطيك العافية|يعافيك)$/i.test(s)){
+    return 'تمام والحمد لله 🌷 شنو تحب نشتغل عليه هسه؟';
+  }
+  if(/^(?:شكرا|شكرًا|مشكور|مشكورة|thanks|thank you)$/i.test(s)){
+    return 'العفو 🌷 نكمل من النقطة اللي تريدها.';
+  }
+  if(/^(?:ممتاز|تمام|زين|حلو|اوكي|أوكي|ok)$/i.test(s)){
+    return 'زين 👍 خلينا نكمل. شنو تريد نشتغل عليه هسه؟';
+  }
+  return null;
+}
+
+function canUseDeterministicChatReply(message,currentSession,conversationState){
+  if(!isLowInformationChatMessage(message)) return false;
+  if(currentSession?.active) return false;
+  if(conversationState?.pending_question||conversationState?.pending_member_action||conversationState?.open_loop) return false;
+  return true;
+}
+
+function adaptiveOutputTokenBudget(message,cognitiveState,currentSession){
+  const s=String(message||'').trim().toLowerCase();
+  const intent=String(cognitiveState?.user_intent||'general_conversation');
+  const complex=/(حلل|تحليل|قارن|مقارنة|خطة|استراتيجية|اشرح بالتفصيل|بالتفصيل|أريد شرح|اريد شرح|اعتراض|عمولات|نقاط|فريق|downline|الأجيال|الخطوط|roleplay|محاكاة|تمثيل|اختبار|تدريب)/i.test(s);
+  if(currentSession?.active) return 680;
+  if(complex || intent==='report_obstacle' || intent==='report_attempt') return 680;
+  if(s.length<=90 && intent==='ask_question') return 380;
+  if(s.length<=180) return 460;
+  if(s.length<=450) return 560;
+  return 680;
+}
+
+function buildCostOptimizedAgentContext({
+  context,
+  message,
+  cognitiveState,
+  coachingProfile,
+  currentSession,
+  conversationState,
+  causalMemory,
+  learningPatterns,
+  knowledgeMemory,
+  permanentMemory,
+  learnedFacts,
+  memberTrainingMemory,
+  dailyAutoPlan,
+  directDailyCompletion,
+  dailyCompletionDiagnostic,
+  teamIntelligence,
+  marketingPlan
+}){
+  const s=String(message||'').toLowerCase();
+  const teamRequest=isTeamIntelligenceRequest(message);
+  const trainingRequest=!!currentSession?.active || /تدريب|التدريبات|اختبار|الاختبارات|تقدم|المشاهدة|شاهدت|نسبة|إكمال|اكتمال|جلسة تدريب/i.test(s);
+  const coachingRequest=trainingRequest || /عائق|محتار|متردد|جربت|طبقت|نفذت|رفض|ما نفع|نجح|فشل|نتيجة|خطوة|هدف/i.test(s);
+  const knowledgeRequest=trainingRequest || /dxn|ديكسن|اعتراض|اعتراضات|تسويق|بيع مباشر|عضوية|تسجيل|نقاط|pv|sv|عمولة|عمولات|منتج|منتجات|شرعي|حرام|خطة/i.test(s);
+
+  const lessons=Array.isArray(context.lessons)?context.lessons:[];
+  const progress=Array.isArray(context.progress)?context.progress:[];
+  const completed=progress.filter(x=>x?.completed).length;
+  const training={
+    summary:{
+      total:lessons.length,
+      completed,
+      remaining:Math.max(0,lessons.length-completed),
+      completion_percent:lessons.length?Math.round(completed/lessons.length*100):0
+    }
+  };
+  if(trainingRequest){
+    training.lessons=lessons.slice(0,10).map(x=>({
+      id:x.id||x.lesson_id,
+      lesson_no:x.lesson_no,
+      title:String(x.title||'').slice(0,220),
+      active:x.active!==false
+    }));
+    training.progress=progress.slice(0,10);
+  }
+
+  const compactKnowledge=(Array.isArray(knowledgeMemory)?knowledgeMemory:[])
+    .slice()
+    .sort((a,b)=>Number(b?.priority||0)-Number(a?.priority||0))
+    .slice(0,knowledgeRequest?10:4)
+    .map(x=>({
+      scope:x.scope||'global',
+      category:x.category||'platform',
+      title:x.title||null,
+      content:String(x.content||'').slice(0,900),
+      priority:Number(x.priority||0)
+    }));
+
+  const compactPermanent=(Array.isArray(permanentMemory)?permanentMemory:[])
+    .slice(0,coachingRequest?10:4)
+    .map(x=>({
+      role:x.role||null,
+      content:String(x.content||x.text||'').slice(0,900),
+      created_at:x.created_at||null
+    }))
+    .filter(x=>x.content);
+
+  const compactFacts=(Array.isArray(learnedFacts)?learnedFacts:[])
+    .slice(0,coachingRequest?12:6)
+    .map(x=>({
+      scope:x.scope||'member',
+      fact:String(x.fact||'').slice(0,700)
+    }))
+    .filter(x=>x.fact);
+
+  const compactCausal=coachingRequest
+    ? (Array.isArray(causalMemory)?causalMemory.slice(0,4):[])
+    : [];
+  const compactPatterns=coachingRequest
+    ? (Array.isArray(learningPatterns)?learningPatterns.slice(0,4):[])
+    : [];
+  const compactTrainingMemory=trainingRequest
+    ? (Array.isArray(memberTrainingMemory)?memberTrainingMemory.slice(0,6):[])
+    : [];
+
+  const compactProfile=coachingProfile?{
+    goal:coachingProfile.goal||null,
+    experience_level:coachingProfile.experience_level||'unknown',
+    focus_area:coachingProfile.focus_area||null,
+    strengths:Array.isArray(coachingProfile.strengths)?coachingProfile.strengths.slice(0,5):[],
+    gaps:Array.isArray(coachingProfile.gaps)?coachingProfile.gaps.slice(0,5):[],
+    current_next_step:coachingProfile.current_next_step||null
+  }:null;
+
+  return {
+    role:context.role,
+    member:context.member,
+    training,
+    coaching_profile:compactProfile,
+    coaching_session:currentSession,
+    conversation_state:conversationState,
+    interaction_signal:conversationState?.interaction_signal||null,
+    interaction_confidence:conversationState?.interaction_confidence==null?null:conversationState.interaction_confidence,
+    causal_memory:compactCausal,
+    learning_patterns:compactPatterns,
+    knowledge_memory:compactKnowledge,
+    permanent_memory:compactPermanent,
+    learned_facts:compactFacts,
+    member_training_memory:compactTrainingMemory,
+    personal_training_mode:context.role==='member',
+    contextual_coaching_state:{
+      ...(contextualCoachingStateForModel({
+        message,
+        currentSession,
+        conversationState,
+        coachingRequest
+      })||{})
+    },
+    cognitive_state:cognitiveState,
+    memory_state:undefined,
+    decision_state:undefined,
+    adaptive_dialogue_state:undefined,
+    reflection_state:undefined,
+    long_term_personal_model:undefined,
+    ...(dailyAutoPlan?{daily_auto_plan:dailyAutoPlan}: {}),
+    ...(directDailyCompletion?{daily_completion:{completed:true}}: {}),
+    ...(dailyCompletionDiagnostic?{daily_completion_error:dailyCompletionDiagnostic}: {}),
+    ...(teamIntelligence?{team_intelligence:teamIntelligence}: {}),
+    ...(marketingPlan?{marketing_plan:marketingPlan}: {})
+  };
+}
+
+function contextualCoachingStateForModel({message,currentSession,conversationState,coachingRequest}){
+  return {
+    current_focus:currentSession?.objective||null,
+    phase:currentSession?.phase||null,
+    open_loop:conversationState?.open_loop||null,
+    pending_question:conversationState?.pending_question||null,
+    pending_member_action:conversationState?.pending_member_action||null,
+    coaching_relevance:!!coachingRequest,
+    current_message:String(message||'').slice(0,500)
+  };
+}
+
 function instructions(context){
   return [
     'أنت المدرب وائل حاتم، المدرب الذكي في منصة مجتمع الصحة والثراء. لا تقدم نفسك كبرنامج أو روبوت إلا إذا سُئلت مباشرة عن طبيعتك.',
@@ -2426,6 +2614,18 @@ module.exports=async function handler(req,res){
     const sessionCommand=detectSessionCommand(message);
     let currentSession=await loadAgentSession(token);
     let conversationState=await loadConversationState(token);
+
+    // Stage 8: deterministic replies for low-information social messages.
+    // This preserves the member-first-name greeting rule without spending a model call.
+    if(!sessionCommand && canUseDeterministicChatReply(message,currentSession,conversationState)){
+      const deterministicAnswer=buildDeterministicChatReply(message,context.member);
+      if(deterministicAnswer){
+        await saveAgentMessage(token,'user',message).catch(()=>null);
+        await saveAgentMessage(token,'assistant',deterministicAnswer).catch(()=>null);
+        return res.status(200).json({ok:true,answer:deterministicAnswer,deterministic:true});
+      }
+    }
+
     let dailyAutoPlan=null;
     let directDailyCompletion=false;
     let teamIntelligence=null;
@@ -2504,7 +2704,7 @@ module.exports=async function handler(req,res){
     ]);
     const fallbackHistory=cleanHistory(body.history);
     const historySource=(persistentMemory.length?persistentMemory:fallbackHistory);
-    const history=historySource.slice(-80);
+    const history=historySource.slice(-12);
     const baseInput=[...history,{role:'user',content:message}];
     requestStage='build_state';
     const cognitiveState=buildCognitiveState({
@@ -2545,33 +2745,30 @@ module.exports=async function handler(req,res){
       currentSession
     });
 
-    let enrichedContext={
-      ...context,
-      coaching_profile:coachingProfile,
-      coaching_session:currentSession,
-      conversation_state:conversationState,
-      interaction_signal:conversationState?.interaction_signal||null,
-      interaction_confidence:conversationState?.interaction_confidence==null?null:conversationState.interaction_confidence,
-      causal_memory:causalMemory,
-      learning_patterns:learningPatterns,
-      knowledge_memory:knowledgeMemory,
-      permanent_memory:permanentMemory,
-      learned_facts:learnedFacts,
-      member_training_memory:memberTrainingMemory,
-      personal_training_mode:context.role==='member',
-      contextual_coaching_state:contextualCoachingState,
-      cognitive_state:cognitiveState,
-      memory_state:memoryState,
-      decision_state:decisionState,
-      adaptive_dialogue_state:adaptiveDialogueState,
-      reflection_state:reflectionState,
-      long_term_personal_model:longTermPersonalModel,
-      ...(dailyAutoPlan?{daily_auto_plan:dailyAutoPlan}: {}),
-      ...(directDailyCompletion?{daily_completion:{completed:true}}: {}),
-      ...(dailyCompletionDiagnostic?{daily_completion_error:dailyCompletionDiagnostic}: {}),
-      ...(teamIntelligence?{team_intelligence:teamIntelligence}: {}),
-      ...(marketingPlan?{marketing_plan:marketingPlan}: {})
-    };
+    let enrichedContext=buildCostOptimizedAgentContext({
+      context,
+      message,
+      cognitiveState,
+      coachingProfile,
+      currentSession,
+      conversationState,
+      causalMemory,
+      learningPatterns,
+      knowledgeMemory,
+      permanentMemory,
+      learnedFacts,
+      memberTrainingMemory,
+      dailyAutoPlan,
+      directDailyCompletion,
+      dailyCompletionDiagnostic,
+      teamIntelligence,
+      marketingPlan
+    });
+    enrichedContext.memory_state=memoryState;
+    enrichedContext.decision_state=decisionState;
+    enrichedContext.adaptive_dialogue_state=adaptiveDialogueState;
+    enrichedContext.reflection_state=reflectionState;
+    enrichedContext.long_term_personal_model=longTermPersonalModel;
     let input=baseInput;
     const availableAgentTools=(directDailyCompletion||dailyCompletionDiagnostic)
       ? AGENT_TOOL_DEFINITIONS.filter(x=>x.name!=='complete_daily_coaching_task')
@@ -2600,7 +2797,7 @@ module.exports=async function handler(req,res){
         input,
         tools:availableAgentTools,
         tool_choice:'auto',
-        max_output_tokens:900
+        max_output_tokens:adaptiveOutputTokenBudget(message,cognitiveState,currentSession)
       });
       if(!ai.ok)return res.status(502).json({error:(ai.data&&ai.data.error&&ai.data.error.message)||ai.text||'فشل الوكيل الذكي'});
 
@@ -2643,7 +2840,7 @@ module.exports=async function handler(req,res){
           input,
           tools:[],
           tool_choice:'none',
-          max_output_tokens:900
+          max_output_tokens:Math.max(420,Math.min(680,adaptiveOutputTokenBudget(message,cognitiveState,currentSession)))
         });
         if(!ai.ok)return res.status(502).json({error:(ai.data&&ai.data.error&&ai.data.error.message)||ai.text||'فشل الوكيل الذكي'});
         break;
