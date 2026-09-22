@@ -367,6 +367,12 @@
   }
 
   function getCommunityMemberName(){
+    try{
+      if(typeof me!=='undefined' && me && me.name){
+        const direct=String(me.name).replace(/\s+/g,' ').trim();
+        if(direct.length>=2)return direct;
+      }
+    }catch(_){}
     const selectors=[
       '.mobile-member-identity .mobile-member-text b',
       '.member-identity b',
@@ -407,7 +413,8 @@
   }
 
   async function openPersonalizedGreeting(){
-    if(document.querySelector('#dxnAgentMessages .dxn-agent-ai'))return;
+    const existing=document.querySelectorAll('#dxnAgentMessages .dxn-agent-ai');
+    if(existing.length)return;
     const name=await waitForCommunityMemberName();
     if(isCommunityMember() && name){
       addMsg('هلا '+name+' 👋 أنا المدرب وائل حاتم، شلونك؟ خلّينا نحچي براحتنا، وإذا عندك سؤال أو شي تريد تشتغل عليه اليوم، آني وياك.','ai');
