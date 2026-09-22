@@ -47,30 +47,45 @@ function removePrompt(){
   if(el) el.remove();
 }
 
+function isIOSSafari(){
+  return isIOS() &&
+    /safari/i.test(navigator.userAgent) &&
+    !/crios|fxios|edgios|opios|duckduckgo/i.test(navigator.userAgent);
+}
+
 function showInstallNotice(mode){
   if(installed() || document.getElementById('dxn-install-app')) return;
 
+  const ios=isIOSSafari();
   const wrap=document.createElement('div');
   wrap.id='dxn-install-app';
-  const ios=false;
-  const desktop=false;
+
+  const title=ios
+    ? 'ثبّت مجتمع الصحة والثراء على جهازك'
+    : 'ثبّت تطبيق مجتمع الصحة والثراء';
+
+  const text=ios
+    ? 'ثبّته على الشاشة الرئيسية للوصول إليه بسرعة في كل مرة.'
+    : 'ثبّت التطبيق على جهازك للوصول إليه بسرعة، بدون الحاجة لفتح المتصفح كل مرة.';
+
+  const action=ios
+    ? '<div class="dxn-ios-steps">'+
+        '<div class="dxn-ios-step"><b>١</b><span>اضغط زر <strong>المشاركة</strong> ⬆️ في Safari.</span></div>'+
+        '<div class="dxn-ios-step"><b>٢</b><span>اختر <strong>إضافة إلى الشاشة الرئيسية</strong>.</span></div>'+
+        '<div class="dxn-ios-step"><b>٣</b><span>اضغط <strong>إضافة</strong> لتثبيت التطبيق.</span></div>'+
+      '</div>'
+    : '<button class="dxn-install-main" type="button">📲 تثبيت التطبيق الآن</button>'+
+      '<div class="dxn-install-help">اضغط الزر أعلاه لبدء تثبيت التطبيق مباشرة.</div>';
 
   wrap.innerHTML=
     '<div class="dxn-install-backdrop"></div>'+
-    '<div class="dxn-install-card" role="dialog" aria-modal="true" aria-label="تثبيت تطبيق مجتمع الصحة والثراء">'+
+    '<div class="dxn-install-card" role="dialog" aria-modal="true" aria-label="'+title+'">'+
       '<button class="dxn-install-close" type="button" aria-label="إغلاق">×</button>'+
-      '<div class="dxn-install-icon">📲</div>'+
-      '<div class="dxn-install-title">ثبّت تطبيق مجتمع الصحة والثراء</div>'+
-      '<div class="dxn-install-text">'+
-        'ثبّت التطبيق على جهازك للوصول إليه بسرعة، بدون الحاجة لفتح المتصفح كل مرة.'+
-      '</div>'+
-      '<button class="dxn-install-main" type="button">'+
-        '📲 تثبيت التطبيق الآن'+
-      '</button>'+
-      '<div class="dxn-install-help">'+
-        'اضغط الزر أعلاه لبدء تثبيت التطبيق مباشرة.'+
-      '</div>'+
-      '<button class="dxn-install-later" type="button">ليس الآن</button>'+
+      '<div class="dxn-install-icon">'+(ios?'🍎':'📲')+'</div>'+
+      '<div class="dxn-install-title">'+title+'</div>'+
+      '<div class="dxn-install-text">'+text+'</div>'+
+      action+
+      '<button class="dxn-install-later" type="button">'+(ios?'فهمت':'ليس الآن')+'</button>'+
     '</div>';
 
   const style=document.createElement('style');
@@ -85,33 +100,34 @@ function showInstallNotice(mode){
     '#dxn-install-app .dxn-install-main{width:100%;border:0;border-radius:17px;padding:16px 20px;background:linear-gradient(135deg,#0f513f,#176b55);color:#fff;font-size:19px;font-weight:950;cursor:pointer;box-shadow:0 10px 24px rgba(15,81,63,.25);transition:.18s transform,.18s box-shadow}'+
     '#dxn-install-app .dxn-install-main:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(15,81,63,.30)}'+
     '#dxn-install-app .dxn-install-help{margin-top:12px;color:#687872;font-size:13px;line-height:1.7}'+
+    '#dxn-install-app .dxn-ios-steps{display:grid;gap:10px;text-align:right;margin:0 auto 8px;max-width:450px}'+
+    '#dxn-install-app .dxn-ios-step{display:flex;align-items:center;gap:11px;padding:12px 13px;border:1px solid #dcebe4;border-radius:15px;background:#f7fbf9;color:#294c41;font-size:15px;line-height:1.65}'+
+    '#dxn-install-app .dxn-ios-step b{width:31px;height:31px;flex:0 0 31px;border-radius:50%;display:grid;place-items:center;background:#0f513f;color:#fff;font-size:14px}'+
     '#dxn-install-app .dxn-install-later{margin-top:15px;border:0;background:transparent;color:#7a8581;font-size:14px;font-weight:750;cursor:pointer;padding:7px 14px}'+
     '#dxn-install-app .dxn-install-close{position:absolute;top:12px;left:14px;width:38px;height:38px;border:0;border-radius:50%;background:#eaf2ef;color:#476057;font-size:28px;line-height:1;cursor:pointer}'+
     '@keyframes dxnInstallPop{from{opacity:0;transform:translateY(15px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}'+
-    '@media(max-width:600px){#dxn-install-app{padding:14px}#dxn-install-app .dxn-install-card{padding:29px 20px 22px;border-radius:26px}#dxn-install-app .dxn-install-icon{width:72px;height:72px;font-size:36px;margin-bottom:13px}#dxn-install-app .dxn-install-title{font-size:22px}#dxn-install-app .dxn-install-text{font-size:15px;line-height:1.75}#dxn-install-app .dxn-install-main{font-size:17px;padding:15px 14px}}';
+    '@media(max-width:600px){#dxn-install-app{padding:14px}#dxn-install-app .dxn-install-card{padding:29px 20px 22px;border-radius:26px}#dxn-install-app .dxn-install-icon{width:72px;height:72px;font-size:36px;margin-bottom:13px}#dxn-install-app .dxn-install-title{font-size:22px}#dxn-install-app .dxn-install-text{font-size:15px;line-height:1.75}#dxn-install-app .dxn-install-main{font-size:17px;padding:15px 14px}#dxn-install-app .dxn-ios-step{font-size:14px}}';
 
-  document.head.appendChild(style);
+  if(!document.getElementById('dxn-install-style')) document.head.appendChild(style);
   document.body.appendChild(wrap);
 
   const close=function(){removePrompt()};
-
   wrap.querySelector('.dxn-install-close').addEventListener('click',close);
   wrap.querySelector('.dxn-install-later').addEventListener('click',close);
   wrap.querySelector('.dxn-install-backdrop').addEventListener('click',close);
 
-  wrap.querySelector('.dxn-install-main').addEventListener('click',async function(){
-    if(ios) return;
-    if(!deferredPrompt){
+  const main=wrap.querySelector('.dxn-install-main');
+  if(main){
+    main.addEventListener('click',async function(){
+      if(!deferredPrompt){ removePrompt(); return; }
+      try{
+        await deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+      }catch(e){}
+      deferredPrompt=null;
       removePrompt();
-      return;
-    }
-    try{
-      await deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
-    }catch(e){}
-    deferredPrompt=null;
-    removePrompt();
-  });
+    });
+  }
 }
 
 async function hasInstalledApp(){
