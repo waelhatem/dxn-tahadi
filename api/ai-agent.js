@@ -6,6 +6,16 @@ const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY || '').trim().replace(/
 const OPENAI_MODEL = process.env.AI_AGENT_MODEL || 'gpt-5.6-luna';
 const OPENAI_HELPER_MODEL = process.env.AI_AGENT_HELPER_MODEL || 'gpt-5-nano';
 
+const LOCAL_KNOWLEDGE_SOURCES=[
+  require('./knowledge/objections_mmahmoud.json'),
+  require('./knowledge/offer_fusha.json'),
+  require('./knowledge/dxn_financial_plan.json'),
+  require('./knowledge/direct_selling_dxn.json'),
+  require('./knowledge/build_effective_team.json'),
+  require('./knowledge/go_pro_arabic.json'),
+  require('./knowledge/training_bag_qna.json')
+];
+
 const SUPABASE_URL_FIXED = 'https://ryqpstkzppaifpvhezzn.supabase.co';
 
 
@@ -1387,7 +1397,7 @@ async function savePersonalTrainingFacts(token,memory){
 
 async function loadPermanentAgentMemory(token){
   try{
-    const r=await supabaseRpc('get_ai_agent_permanent_memory',{p_token:token,p_limit:160});
+    const r=await supabaseRpc('get_ai_agent_permanent_memory',{p_token:token,p_limit:500});
     if(!r.ok||!Array.isArray(r.data)) return [];
     let totalChars=0;
     const out=[];
@@ -1402,7 +1412,7 @@ async function loadPermanentAgentMemory(token){
         created_at:x.created_at||null
       };
       const itemChars=payloadText.length+120;
-      if(totalChars+itemChars>36000) break;
+      if(totalChars+itemChars>120000) break;
       out.push(item);
       totalChars+=itemChars;
     }
@@ -1410,18 +1420,121 @@ async function loadPermanentAgentMemory(token){
   }catch(_){return [];}
 }
 
-async function loadAgentKnowledge(token){
-  try{
-    const r=await supabaseRpc('get_ai_agent_knowledge',{p_token:token,p_limit:100});
-    if(!r.ok||!Array.isArray(r.data)) return [];
-    return r.data.map(x=>({
-      scope:x.scope||'global',
-      category:x.category||'platform',
-      title:x.title||null,
-      content:String(x.content||'').trim().slice(0,12000),
-      priority:Number(x.priority||0)
-    })).filter(x=>x.content);
-  }catch(_){return [];}
+const LOCAL_KNOWLEDGE_FLAT=(()=>{
+  const out=[];
+  for(const source of LOCAL_KNOWLEDGE_SOURCES){
+    const pages=Array.isArray(source?.pages)?source.pages:[];
+    for(const page of pages){
+      const text=String(page?.text||'').trim();
+      if(!text)continue;
+      out.push({
+        scope:'global',
+        category:'source_pdf',
+        title:String(source?.source||source?.slug||'')+' — الصفحة '+String(page?.page||''),
+        content:text,
+        priority:140,
+        source:String(source?.slug||source?.source||'local_pdf'),
+        page:Number(page?.page||0)
+      });
+    }
+  }
+  return out;
+})();
+
+const durableKnowledgeCache=new Map();
+const DURABLE_KNOWLEDGE_CACHE_TTL_MS=2*60*1000;
+
+function knowledgeRoleScope(role){
+  return String(role||'member').toLowerCase()==='leader'?'leader':'member';
+}
+
+function fetchKnowledgePage(role,from,to){
+  return new Promise(resolve=>{
+    if(!SUPABASE_SECRET_KEY)return resolve({ok:false,data:[],status:0});
+    const q=new URLSearchParams();
+    q.set('select','scope,category,title,content,priority,updated_at');
+    q.set('active','eq.true');
+    q.set('scope',`in.(global,${knowledgeRoleScope(role)})`);
+    q.set('order','priority.desc,updated_at.desc');
+    const target=new URL(`${SUPABASE_URL_FIXED}/rest/v1/ai_agent_knowledge?${q.toString()}`);
+    const req=https.request({
+      protocol:target.protocol,
+      hostname:target.hostname,
+      port:target.port||443,
+      method:'GET',
+      path:target.pathname+target.search,
+      headers:{
+        Accept:'application/json',
+        apikey:SUPABASE_SECRET_KEY,
+        Authorization:'Bearer '+SUPABASE_SECRET_KEY,
+        Range:`${from}-${to}`,
+        Prefer:'count=exact'
+      },
+      timeout:15000
+    },res=>{
+      let text='';
+      res.setEncoding('utf8');
+      res.on('data',x=>text+=x);
+      res.on('end',()=>{
+        let data=[];
+        try{data=text?JSON.parse(text):[]}catch(_){data=[]}
+        resolve({ok:res.statusCode>=200&&res.statusCode<300,data:Array.isArray(data)?data:[],status:res.statusCode||0});
+      });
+    });
+    req.on('timeout',()=>req.destroy());
+    req.on('error',()=>resolve({ok:false,data:[],status:0}));
+    req.end();
+  });
+}
+
+async function loadAllDurableKnowledge(role){
+  const key=knowledgeRoleScope(role);
+  const cached=durableKnowledgeCache.get(key);
+  if(cached&&Date.now()-cached.at<DURABLE_KNOWLEDGE_CACHE_TTL_MS)return cached.rows;
+
+  const rows=[];
+  const pageSize=250;
+  const maxRows=3000;
+  for(let from=0;from<maxRows;from+=pageSize){
+    const r=await fetchKnowledgePage(role,from,Math.min(from+pageSize-1,maxRows-1));
+    if(!r.ok||!r.data.length)break;
+    rows.push(...r.data);
+    if(r.data.length<pageSize)break;
+  }
+
+  const normalized=rows.map(x=>({
+    scope:x.scope||'global',
+    category:x.category||'platform',
+    title:x.title||null,
+    content:String(x.content||'').trim().slice(0,12000),
+    priority:Number(x.priority||0),
+    source:x.source||null,
+    updated_at:x.updated_at||null
+  })).filter(x=>x.content);
+
+  durableKnowledgeCache.set(key,{at:Date.now(),rows:normalized});
+  return normalized;
+}
+
+async function loadAgentKnowledge(token,role='member'){
+  const [durable,local]=await Promise.all([
+    loadAllDurableKnowledge(role),
+    Promise.resolve(LOCAL_KNOWLEDGE_FLAT)
+  ]);
+  const seen=new Set();
+  const merged=[];
+  for(const item of [...local,...durable]){
+    const key=[
+      String(item?.source||''),
+      String(item?.page||''),
+      String(item?.title||''),
+      String(item?.content||'').slice(0,120)
+    ].join('|');
+    if(seen.has(key))continue;
+    seen.add(key);
+    merged.push(item);
+  }
+  return merged;
 }
 
 async function loadAgentMemory(token){
@@ -2376,7 +2489,7 @@ function buildCostOptimizedAgentContext({
   const rankRequest=isRankKnowledgeRequest(message);
 
   const sourceRows=knowledgeRows
-    .filter(x=>/^(?:dxn_marketing_plan_full|dxn_pdf_source_exact)$/i.test(String(x?.category||'')))
+    .filter(x=>/^(?:dxn_marketing_plan_full|dxn_pdf_source_exact|source_pdf)$/i.test(String(x?.category||'')))
     .sort((a,b)=>{
       const pa=(String(a?.title||'').match(/(?:الصفحة|page)\s*([0-9]+)/i)||[])[1];
       const pb=(String(b?.title||'').match(/(?:الصفحة|page)\s*([0-9]+)/i)||[])[1];
@@ -2411,16 +2524,29 @@ function buildCostOptimizedAgentContext({
     chosenKnowledge=relevantRows;
   }
 
-  const compactKnowledge=chosenKnowledge
-    .slice(0,rankRequest?30:(sourceRequest?45:20))
-    .map(x=>({
-      scope:x.scope||'global',
-      category:x.category||'platform',
-      title:x.title||null,
-      content:String(x.content||'').slice(0,12000),
-      priority:Number(x.priority||0),
-      source:x.source||null
-    }));
+  const compactKnowledge=[];
+  let knowledgeChars=0;
+  const knowledgeLimit=rankRequest?30:(sourceRequest?45:(knowledgeRequest?24:6));
+  const rankedKnowledge=chosenKnowledge.slice().sort((a,b)=>Number(b?.priority||0)-Number(a?.priority||0));
+  for(const x of rankedKnowledge){
+    const content=String(x?.content||'').trim();
+    if(!content)continue;
+    const clipped=content.slice(0,4200);
+    const item={
+      scope:x?.scope||'global',
+      category:x?.category||'platform',
+      title:x?.title||null,
+      source:x?.source||null,
+      page:x?.page||null,
+      content:clipped,
+      priority:Number(x?.priority||0)
+    };
+    const chars=clipped.length+220;
+    if(knowledgeChars+chars>75000)break;
+    compactKnowledge.push(item);
+    knowledgeChars+=chars;
+    if(compactKnowledge.length>=knowledgeLimit)break;
+  }
 
   const permanentSource=Array.isArray(permanentMemory)?permanentMemory:[];
   const permanentAnchor=permanentSource.slice(0,3);
@@ -2543,6 +2669,7 @@ function buildCostOptimizedAgentContext({
     permanent_memory:compactPermanent,
     learned_facts:compactFacts,
     member_training_memory:compactTrainingMemory,
+    knowledge_source_policy:'المعرفة المصدرية الكاملة للملفات التدريبية هي المرجع الأول للمعلومة. الذاكرة الشخصية للعضو للترابط والتخصيص. الرسالة الحالية تحدد موضوع الرد.',
     memory_continuity:{
       always_on:true,
       permanent_anchor:compactPermanent.slice(0,3),
@@ -2621,9 +2748,9 @@ function instructions(context){
     'إذا كانت الحالة تشير إلى أن المدرب وائل حاتم سأل العضو إن كان يريد الانتقال إلى تدريب اليوم، فلا تعتبر الموافقة الضمنية أو الصمت كافيًا؛ الانتقال الفعلي يحدث فقط بعد موافقة واضحة.',
     'لديك طبقة حالة معرفية (cognitive_state) وطبقة ذاكرة (memory_state) في السياق. استخدمهما للحفاظ على استمرارية الحوار وتجنب إعادة الأسئلة التي تمت الإجابة عنها سابقًا.',
 
-    'لديك ذاكرة معرفة ثابتة ودائمة اسمها knowledge_memory. هذه هي المصدر المعرفي الأساسي لما تم تدريبه وتثبيته للمدرب، وليست محادثة مؤقتة. عند السؤال عن DXN أو الرتب أو الخطة أو التدريب أو المعلومات التي سبق تثبيتها من الملفات، ابحث أولًا في knowledge_memory واستخدمه قبل أي معرفة عامة. لا تستبدل المعرفة الدائمة بملخص قصير أو تخمين.',
+    'لديك ذاكرة معرفة ثابتة ودائمة اسمها knowledge_memory، ويجري بناؤها من قاعدة المعرفة ومن النصوص الكاملة للملفات التدريبية المعتمدة المضمّنة مع الموقع. هذه هي المرجعية الأولى للمعلومة. عند السؤال عن موضوع سبق تدريسه من ملف، استخدم النصوص ذات الصلة من المصدر قبل أي معرفة عامة، ولا تستبدل المصدر الكامل بملخص قصير أو تخمين.',
     'لديك أيضًا permanent_memory، وهي سجل طويل الأمد غير محدود زمنيًا يحفظ لقطات سابقة من المحادثة وإجابات واختبارات وتعلم العضو. استخدمه لاستعادة الاستمرارية عندما تكون المعلومة ذات صلة، وميّز دائمًا بين السجل الفعلي وبين الاستنتاج.',
-    'ممنوع استبدال المعرفة الدائمة بملخص مختصر عندما يكون السؤال عن حقيقة تفصيلية. إذا كان السؤال يحتاج قائمة أو شروطًا متعددة، استرجع كل الأجزاء ذات الصلة من knowledge_memory قبل الإجابة.',
+    'عندما يطلب العضو قائمة أو شروطًا أو خطوات من مادة تدريبية، أعد المعلومات المطلوبة كاملة بقدر ما طلبه، ولا تستبدل عبارة موجودة في المصدر بعبارة عامة مثل «ومستويات أعلى». إذا احتوى المصدر على جدول أو قائمة، اعتمد عناصره الأصلية ولا تحذف المراحل من عندك.',
     'عندما يكون personal_training_mode = true فأنت في مسار تدريب شخصي مستمر لهذا العضو. تعامل مع المحادثة الحالية كجزء من رحلة تدريبية تراكمية حتى لو كان السؤال مباشرًا: أجب عن السؤال أولًا، ثم اربطه بالتدريب فقط إذا كان ذلك طبيعيًا.',
     'لديك member_training_memory، وهو سجل تدريبي دائم خاص بهذا العضو فقط. استخدمه لمعرفة ما تدرب عليه، وما جربه، وما نجح أو لم ينجح، وما هو الدرس والخطوة التالية. لا تخلط بين ذاكرة عضو وعضو آخر.',
     'لديك memory_continuity، وهي طبقة استمرارية تُحمّل في كل طلب لتذكيرك بآخر الحقائق الثابتة والمواقف والتدريب السابق للعضو. استخدمها لمنع نسيان العضو أو تكرار موقف سبق التعامل معه، لكن لا تجعلها تغيّر موضوع السؤال الحالي. عند وجود تعارض، الرسالة الحالية والمعلومة الأحدث هما المرجع.',
@@ -3130,7 +3257,7 @@ module.exports=async function handler(req,res){
       loadAgentProfile(token),
       loadCausalMemory(token),
       loadLearningPatterns(token),
-      loadAgentKnowledge(token),
+      loadAgentKnowledge(token,context.role),
       loadPermanentAgentMemory(token),
       loadLearnedFacts(token),
       loadMemberTrainingMemory(token)
