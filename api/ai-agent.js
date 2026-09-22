@@ -2117,7 +2117,7 @@ function buildCostOptimizedAgentContext({
     .slice(0,coachingRequest?10:4)
     .map(x=>({
       role:x.role||null,
-      content:String(x.content||x.text||'').slice(0,900),
+      payload:String(x.payload||x.content||x.text||'').slice(0,1200),
       created_at:x.created_at||null
     }))
     .filter(x=>x.content);
@@ -2851,12 +2851,30 @@ module.exports=async function handler(req,res){
         if(advanced){
           currentSession=advanced.session;
           dailyAutoPlan=advanced.plan;
-          enrichedContext={
-            ...context,
-            coaching_profile:coachingProfile,
-            coaching_session:currentSession,
-            ...(dailyAutoPlan?{daily_auto_plan:dailyAutoPlan}: {})
-          };
+          enrichedContext=buildCostOptimizedAgentContext({
+            context,
+            message,
+            cognitiveState,
+            coachingProfile,
+            currentSession,
+            conversationState,
+            causalMemory,
+            learningPatterns,
+            knowledgeMemory,
+            permanentMemory,
+            learnedFacts,
+            memberTrainingMemory,
+            dailyAutoPlan,
+            directDailyCompletion,
+            dailyCompletionDiagnostic:null,
+            teamIntelligence,
+            marketingPlan
+          });
+          enrichedContext.memory_state=memoryState;
+          enrichedContext.decision_state=decisionState;
+          enrichedContext.adaptive_dialogue_state=adaptiveDialogueState;
+          enrichedContext.reflection_state=reflectionState;
+          enrichedContext.long_term_personal_model=longTermPersonalModel;
         }
       }
     }
