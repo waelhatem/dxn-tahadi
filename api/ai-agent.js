@@ -240,7 +240,7 @@ function outputText(data){
 
 function cleanHistory(history){
   if(!Array.isArray(history))return [];
-  return history.slice(-12).map(x=>{
+  return history.slice(-6).map(x=>{
     const role=String(x&&x.role||'user').toLowerCase()==='assistant'?'assistant':'user';
     const content=String(x&&x.content||'').trim().slice(0,5000);
     return content?{role,content}:null;
@@ -250,6 +250,39 @@ function cleanHistory(history){
 function isTeamIntelligenceRequest(message){
   const s=String(message||'').trim().toLowerCase();
   return /ملخص\s+(?:فريقي|الفريق)|فريقي\s+في\s+dxn|فريق\s+dxn|الـ?downline|downline|الاجيال|الأجيال|الخطوط\s+(?:المباشرة|التحتية)|توزيع\s+(?:الرتب|الأعضاء)|pv\s+(?:الفريق|فريقي)/i.test(s);
+}
+
+function selectRelevantMarketingPlan(message){
+  const source=DXN_MARKETING_PLAN||{};
+  const sections=Array.isArray(source.sections)?source.sections:[];
+  const s=String(message||'').toLowerCase();
+
+  const isRank=/(?:رتب|رتبة|سلم الرتب|مستويات الشركة|وكيل نجم|نجم ياقوتي|نجم ماسي|السفير|qsa|qsd|sa|sr|ترقية|شروط التأهل)/i.test(s);
+  const isPoints=/(?:pv|sv|ppv|psv|pgpv|pgsv|dgpv|dgsv|نقاط|عمولة|علاوة|حوافز)/i.test(s);
+  const isIncome=/(?:دخل|ربح|أرباح|مصادر الدخل|بيع التجزئة|خطة مالية|الخطة المالية)/i.test(s);
+  const isMarketing=/(?:اعتراض|اعتراضات|تسويق|بيع مباشر|بناء الفريق|التواصل)/i.test(s);
+
+  const wanted=[];
+  for(const section of sections){
+    const topic=String(section?.topic||'').toLowerCase();
+    const facts=Array.isArray(section?.facts)?section.facts.join(' '):'';
+    const blob=topic+' '+facts;
+
+    if(isRank && /المستويات|الرتب|qsa|qsd|علاوة القيادة/i.test(blob))wanted.push(section);
+    else if(isPoints && /pv|sv|pgpv|pgsv|dgpv|dgsv|علاوة المجموعة|qsa|qsd/i.test(blob))wanted.push(section);
+    else if(isIncome && /مصادر الدخل|العوائد|البيع بالتجزئة|العوائد والحوافز/i.test(blob))wanted.push(section);
+    else if(isMarketing && /فلسفة التسويق|العوائد|المستويات|بناء الفريق/i.test(blob))wanted.push(section);
+  }
+
+  const selected=wanted.length?wanted:sections.slice(0,3);
+
+  return {
+    source:source.source||null,
+    title:source.title||null,
+    scope:source.scope||null,
+    sections:selected.slice(0,4),
+    rules:Array.isArray(source.rules)?source.rules.slice(0,8):[]
+  };
 }
 
 function isRankKnowledgeRequest(message){
@@ -2013,10 +2046,10 @@ function buildDecisionState({message,cognitiveState,memoryState,currentSession,d
 async function buildMemoryState(token,message,cognitiveState,currentSession,coachingProfile=null){
   try{
     const rows=await loadAgentMemory(token);
-    const recent=Array.isArray(rows)?rows.slice(-12):[];
+    const recent=Array.isArray(rows)?rows.slice(-8):[];
 
-    // Personal memory is the durable coaching profile. Conversation memory
-    // remains recent so old dialogue is not confused with stable member facts.
+    // Personal memory is durable; conversation memory is used only when it
+    // matches the current request. This prevents old topics from hijacking replies.
     const personal_memory={
       goal:coachingProfile?.goal||null,
       experience_level:coachingProfile?.experience_level||'unknown',
@@ -2026,23 +2059,31 @@ async function buildMemoryState(token,message,cognitiveState,currentSession,coac
       current_next_step:coachingProfile?.current_next_step||null
     };
 
-    const relevant=recent.filter(item=>{
-      const text=String(item?.content||'').toLowerCase();
-      if(!text)return false;
-      if(cognitiveState?.current_task && text.includes(String(cognitiveState.current_task).toLowerCase().slice(0,60))) return true;
-      if(cognitiveState?.user_intent==='report_obstacle' && /ما أگدر|ما اكدر|صعب|محتار|متردد|رفض|ما رد/.test(text)) return true;
-      if(cognitiveState?.user_intent==='report_attempt' && /جربت|سويت|طبقت|نفذت|عملت/.test(text)) return true;
-      return true;
-    });
+    let relevant=rankMemoryByRelevance(
+      recent,
+      message,
+      {
+        limit:4,
+        textOf:item=>String(item?.content||'')
+      }
+    );
+
+    const shortFollowup=/^(?:طيب|زين|تمام|بس|وبعدين|واذا|إذا|ليش|شلون|شنو|وهسه|يعني|اوكي|أوكي|نعم|إي|اي)/i.test(String(message||'').trim());
+    if(!relevant.length&&shortFollowup){
+      relevant=recent.slice(-2);
+    }
 
     const facts=[];
     const seen=new Set();
-    for(const item of relevant.slice(-8)){
-      const content=String(item.content||'').trim().slice(0,700);
+    for(const item of relevant){
+      const content=String(item?.content||'').trim().slice(0,700);
       const key=content.toLowerCase();
       if(!content||seen.has(key))continue;
       seen.add(key);
-      facts.push({role:item.role==='assistant'?'assistant':'user',content});
+      facts.push({
+        role:item.role==='assistant'?'assistant':'user',
+        content
+      });
     }
 
     return {
@@ -2258,6 +2299,8 @@ function rankMemoryByRelevance(items,message,options={}){
     ? options.textOf
     : (x)=>JSON.stringify(x||{});
   const terms=memorySearchTerms(message);
+  if(!terms.length)return [];
+
   const ranked=list.map((item,index)=>{
     const text=String(textOf(item)||'').toLowerCase();
     let score=0;
@@ -2266,14 +2309,15 @@ function rankMemoryByRelevance(items,message,options={}){
       if(text===term)score+=10;
       if(text.includes(term))score+=3;
     }
-    if(index<3)score+=1.5;
     return {item,score,index};
   });
+
   ranked.sort((a,b)=>b.score-a.score||a.index-b.index);
-  const selected=ranked.slice(0,limit);
-  const useful=selected.filter(x=>x.score>0).map(x=>x.item);
-  if(useful.length>=Math.min(2,limit))return useful;
-  return selected.map(x=>x.item);
+
+  return ranked
+    .filter(x=>x.score>0)
+    .slice(0,limit)
+    .map(x=>x.item);
 }
 
 function adaptiveReasoningEffort(message,cognitiveState,currentSession){
@@ -2959,7 +3003,7 @@ module.exports=async function handler(req,res){
       teamIntelligence=await AGENT_TOOLS.get_dxn_team_intelligence(token,{mode:'summary',member_no:null,generation:null,limit:50});
     }
     if(isDxnMarketingPlanRequest(message) || isRankKnowledgeRequest(message)){
-      marketingPlan=DXN_MARKETING_PLAN;
+      marketingPlan=selectRelevantMarketingPlan(message);
     }
 
     // Completion of the daily task is a deterministic server-side action.
@@ -3029,7 +3073,7 @@ module.exports=async function handler(req,res){
     ]);
     const fallbackHistory=cleanHistory(body.history);
     const historySource=(persistentMemory.length?persistentMemory:fallbackHistory);
-    const history=historySource.slice(-12);
+    const history=historySource.slice(-6);
     const baseInput=[...history,{role:'user',content:message}];
     requestStage='build_state';
     const cognitiveState=buildCognitiveState({
