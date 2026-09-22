@@ -10,6 +10,23 @@ try{
 if(window.__DXN_PWA_INSTALL__) return;
 window.__DXN_PWA_INSTALL__=true;
 
+(function setCommunityFavicon(){
+  try{
+    var href='/community-icon.webp?v=20260922';
+    var old=document.querySelector('link[data-dxn-community-icon]');
+    if(old) old.href=href;
+    else{
+      var link=document.createElement('link');
+      link.rel='icon';
+      link.type='image/webp';
+      link.sizes='192x192';
+      link.href=href;
+      link.setAttribute('data-dxn-community-icon','true');
+      (document.head||document.documentElement).appendChild(link);
+    }
+  }catch(e){}
+})();
+
 function installed(){
   return (window.matchMedia && (
     window.matchMedia('(display-mode: standalone)').matches ||
