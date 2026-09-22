@@ -69,10 +69,14 @@ function showInstallNotice(mode){
     : 'ثبّت التطبيق على جهازك للوصول إليه بسرعة، بدون الحاجة لفتح المتصفح كل مرة.';
 
   const action=ios
-    ? '<div class="dxn-ios-steps">'+
-        '<div class="dxn-ios-step"><b>١</b><span>اضغط زر <strong>المشاركة</strong> ⬆️ في Safari.</span></div>'+
-        '<div class="dxn-ios-step"><b>٢</b><span>اختر <strong>إضافة إلى الشاشة الرئيسية</strong>.</span></div>'+
-        '<div class="dxn-ios-step"><b>٣</b><span>اضغط <strong>إضافة</strong> لتثبيت التطبيق.</span></div>'+
+    ? '<div class="dxn-ios-guide">'+
+        '<div class="dxn-ios-share-hint"><span class="dxn-ios-share-icon">⬆️</span><span>ابدأ بالضغط على زر <strong>المشاركة</strong> في أسفل Safari.</span></div>'+
+        '<div class="dxn-ios-steps">'+
+          '<div class="dxn-ios-step"><b>١</b><span>اضغط <strong>المشاركة ⬆️</strong>.</span></div>'+
+          '<div class="dxn-ios-step"><b>٢</b><span>مرّر القائمة واختر <strong>إضافة إلى الشاشة الرئيسية</strong>.</span></div>'+
+          '<div class="dxn-ios-step"><b>٣</b><span>اضغط <strong>إضافة</strong> في أعلى الشاشة.</span></div>'+
+        '</div>'+
+        '<div class="dxn-ios-note">ℹ️ في iPhone لا يمكن للموقع تنفيذ هذه الخطوة تلقائيًا، لذلك يجب إكمالها من قائمة المشاركة.</div>'+
       '</div>'
     : '<button class="dxn-install-main" type="button">📲 تثبيت التطبيق الآن</button>'+
       '<div class="dxn-install-help">اضغط الزر أعلاه لبدء تثبيت التطبيق مباشرة.</div>';
@@ -100,9 +104,13 @@ function showInstallNotice(mode){
     '#dxn-install-app .dxn-install-main{width:100%;border:0;border-radius:17px;padding:16px 20px;background:linear-gradient(135deg,#0f513f,#176b55);color:#fff;font-size:19px;font-weight:950;cursor:pointer;box-shadow:0 10px 24px rgba(15,81,63,.25);transition:.18s transform,.18s box-shadow}'+
     '#dxn-install-app .dxn-install-main:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(15,81,63,.30)}'+
     '#dxn-install-app .dxn-install-help{margin-top:12px;color:#687872;font-size:13px;line-height:1.7}'+
-    '#dxn-install-app .dxn-ios-steps{display:grid;gap:10px;text-align:right;margin:0 auto 8px;max-width:450px}'+
-    '#dxn-install-app .dxn-ios-step{display:flex;align-items:center;gap:11px;padding:12px 13px;border:1px solid #dcebe4;border-radius:15px;background:#f7fbf9;color:#294c41;font-size:15px;line-height:1.65}'+
+    '#dxn-install-app .dxn-ios-guide{display:grid;gap:11px;text-align:right;margin:0 auto 8px;max-width:450px}'+
+    '#dxn-install-app .dxn-ios-share-hint{display:flex;align-items:center;gap:10px;padding:13px 14px;border:2px solid #d99a18;border-radius:16px;background:#fff9e9;color:#5d4a16;font-size:15px;font-weight:800;line-height:1.65}'+
+    '#dxn-install-app .dxn-ios-share-icon{width:38px;height:38px;flex:0 0 38px;border-radius:12px;display:grid;place-items:center;background:#0f513f;color:#fff;font-size:20px}'+
+    '#dxn-install-app .dxn-ios-steps{display:grid;gap:9px}'+
+    '#dxn-install-app .dxn-ios-step{display:flex;align-items:center;gap:11px;padding:11px 12px;border:1px solid #dcebe4;border-radius:15px;background:#f7fbf9;color:#294c41;font-size:14px;line-height:1.6}'+
     '#dxn-install-app .dxn-ios-step b{width:31px;height:31px;flex:0 0 31px;border-radius:50%;display:grid;place-items:center;background:#0f513f;color:#fff;font-size:14px}'+
+    '#dxn-install-app .dxn-ios-note{padding:10px 12px;border-radius:13px;background:#eef5f1;color:#53645e;font-size:12px;line-height:1.7}'+
     '#dxn-install-app .dxn-install-later{margin-top:15px;border:0;background:transparent;color:#7a8581;font-size:14px;font-weight:750;cursor:pointer;padding:7px 14px}'+
     '#dxn-install-app .dxn-install-close{position:absolute;top:12px;left:14px;width:38px;height:38px;border:0;border-radius:50%;background:#eaf2ef;color:#476057;font-size:28px;line-height:1;cursor:pointer}'+
     '@keyframes dxnInstallPop{from{opacity:0;transform:translateY(15px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}'+
