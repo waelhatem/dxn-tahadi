@@ -2095,6 +2095,45 @@ function canUseDeterministicChatReply(message,currentSession,conversationState){
   return true;
 }
 
+function detectDirectAssessmentRequest(message){
+  const s=String(message||'').trim().toLowerCase();
+  if(!s)return null;
+  if(/(?:نتيج(?:تي|ة)|درجات(?:ي|ي بالاختبار|الاختبار)|أدائي|ادائي|متوسط درجتي|كم جبت|شكد جبت|كم اختبار.*(?:نجح|مكتمل)|شكد اختبار.*(?:نجح|مكتمل)).*?(?:اختبار|اختبارات)?/i.test(s)){
+    const m=s.match(/(?:الاختبار|اختبار|التدريب)\s*(?:رقم\s*)?(\d{1,2})/i);
+    return m?{kind:'lesson',lesson_no:Number(m[1])}:{kind:'summary',lesson_no:null};
+  }
+  if(/(?:اختبارات|الاختبار|درجاتي|نتيجة الاختبار|نتيجة الاختبارات).*(?:الثالث|الثاني|الأول|الاول|الرابع|الخامس|السادس|السابع|الثامن|\d{1,2})/i.test(s)){
+    const m=s.match(/(?:الاختبار|اختبار)\s*(?:رقم\s*)?(\d{1,2})/i);
+    if(m)return {kind:'lesson',lesson_no:Number(m[1])};
+  }
+  return null;
+}
+
+function buildDirectAssessmentReply(performance,request){
+  const p=performance||{};
+  const lessons=Array.isArray(p.lessons)?p.lessons:[];
+  if(!lessons.length){
+    if(request?.kind==='summary' && !Number(p.total_answered||0))return 'ماكو نتائج اختبارات مسجلة عندي حاليًا.';
+    return 'ماكو بيانات كافية عن الاختبارات حتى أعطيك نتيجة دقيقة.';
+  }
+  if(request.kind==='lesson'){
+    const row=lessons.find(x=>Number(x.lesson_no)===Number(request.lesson_no));
+    if(!row)return 'ما لقيت نتيجة مسجلة لهذا الاختبار حاليًا.';
+    return 'نتيجة اختبار التدريب '+row.lesson_no+':\\nالاختبار: '+String(row.lesson_title||'')+
+      '\\nعدد الإجابات: '+Number(row.answered||0)+
+      '\\nالمتوسط: '+Number(row.average_score||0)+'%'+
+      '\\nناجح: '+Number(row.approved||0)+
+      '\\nإعادة: '+Number(row.retry||0);
+  }
+  return 'ملخص اختباراتك:\\n'+
+    'الإجابات المقيمة: '+Number(p.total_answered||0)+
+    '\\nالمقبول: '+Number(p.approved||0)+
+    '\\nيحتاج إعادة: '+Number(p.retry||0)+
+    '\\nبانتظار التقييم: '+Number(p.pending||0)+
+    '\\nمتوسط الأداء: '+Number(p.average_score||0)+'%'+
+    (lessons.length?'\\n\\nحسب التدريب:\\n'+lessons.map(x=>String(x.lesson_no)+'. '+String(x.lesson_title||'')+' — '+Number(x.average_score||0)+'%').join('\\n'):'');
+}
+
 function detectDirectTrainingInfoRequest(message){
   const s=String(message||'').trim().toLowerCase();
   if(!s) return null;
@@ -2786,6 +2825,29 @@ module.exports=async function handler(req,res){
             deterministic:true,
             source:'training-data'
           });
+        }
+      }
+    }
+
+    // Stage 16: simple assessment result lookups bypass OpenAI completely.
+    if(!sessionCommand && !currentSession?.active && !conversationState?.pending_question && !conversationState?.pending_member_action && !conversationState?.open_loop){
+      const directAssessmentRequest=detectDirectAssessmentRequest(message);
+      if(directAssessmentRequest){
+        try{
+          const performance=await AGENT_TOOLS.get_member_assessment_performance(token);
+          const directAssessmentAnswer=buildDirectAssessmentReply(performance,directAssessmentRequest);
+          if(directAssessmentAnswer){
+            await saveAgentMessage(token,'user',message).catch(()=>null);
+            await saveAgentMessage(token,'assistant',directAssessmentAnswer).catch(()=>null);
+            return res.status(200).json({
+              ok:true,
+              answer:directAssessmentAnswer,
+              deterministic:true,
+              source:'assessment-data'
+            });
+          }
+        }catch(error){
+          console.error('[ai-agent] direct assessment lookup failed',String(error?.message||error));
         }
       }
     }
