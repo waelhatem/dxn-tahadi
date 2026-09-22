@@ -2413,34 +2413,58 @@ function buildCostOptimizedAgentContext({
       priority:Number(x.priority||0)
     }));
 
-  const compactPermanent=rankMemoryByRelevance(
-    Array.isArray(permanentMemory)?permanentMemory:[],
+  const permanentSource=Array.isArray(permanentMemory)?permanentMemory:[];
+  const permanentAnchor=permanentSource.slice(0,3);
+  const permanentRelevant=rankMemoryByRelevance(
+    permanentSource,
     message,
     {
-      limit:coachingRequest?10:4,
+      limit:coachingRequest?8:4,
       textOf:x=>String(x?.payload||x?.content||x?.text||'')
     }
-  ).map(x=>({
-      event_type:x.event_type||null,
-      entity_type:x.entity_type||null,
-      entity_id:x.entity_id||null,
-      payload:String(x.payload||x.content||x.text||'').slice(0,1200),
-      created_at:x.created_at||null
-    }))
-    .filter(x=>x.payload);
+  );
+  const compactPermanent=[];
+  const permanentSeen=new Set();
+  for(const x of [...permanentAnchor,...permanentRelevant]){
+    const key=String(x?.id||'')+'|'+String(x?.created_at||'')+'|'+String(x?.payload||x?.content||x?.text||'').slice(0,160);
+    if(permanentSeen.has(key))continue;
+    permanentSeen.add(key);
+    const payload=String(x?.payload||x?.content||x?.text||'').slice(0,1200);
+    if(!payload)continue;
+    compactPermanent.push({
+      event_type:x?.event_type||null,
+      entity_type:x?.entity_type||null,
+      entity_id:x?.entity_id||null,
+      payload,
+      created_at:x?.created_at||null
+    });
+    if(compactPermanent.length>Math.max(3,coachingRequest?10:5))break;
+  }
 
-  const compactFacts=rankMemoryByRelevance(
-    Array.isArray(learnedFacts)?learnedFacts:[],
+  const factsSource=Array.isArray(learnedFacts)?learnedFacts:[];
+  const factsAnchor=factsSource.slice(0,4);
+  const factsRelevant=rankMemoryByRelevance(
+    factsSource,
     message,
     {
-      limit:coachingRequest?12:6,
+      limit:coachingRequest?8:4,
       textOf:x=>String(x?.fact||'')
     }
-  ).map(x=>({
-      scope:x.scope||'member',
-      fact:String(x.fact||'').slice(0,700)
-  }))
-  .filter(x=>x.fact);
+  );
+  const compactFacts=[];
+  const factsSeen=new Set();
+  for(const x of [...factsAnchor,...factsRelevant]){
+    const key=String(x?.id||'')+'|'+String(x?.fact||'').slice(0,160);
+    if(factsSeen.has(key))continue;
+    factsSeen.add(key);
+    const fact=String(x?.fact||'').slice(0,700);
+    if(!fact)continue;
+    compactFacts.push({
+      scope:x?.scope||'member',
+      fact
+    });
+    if(compactFacts.length>Math.max(4,coachingRequest?12:6))break;
+  }
 
   const compactCausal=coachingRequest
     ? rankMemoryByRelevance(
@@ -2462,20 +2486,29 @@ function buildCostOptimizedAgentContext({
         }
       )
     : [];
-  const compactTrainingMemory=trainingRequest
-    ? rankMemoryByRelevance(
-        Array.isArray(memberTrainingMemory)?memberTrainingMemory:[],
-        message,
-        {
-          limit:6,
-          textOf:x=>[
-            x?.topic,x?.objective,x?.phase,x?.member_statement,
-            x?.coach_action,x?.outcome,x?.lesson,x?.next_step,
-            Array.isArray(x?.member_facts)?x.member_facts.join(' '):''
-          ].filter(Boolean).join(' ')
-        }
-      )
-    : [];
+  const trainingSource=Array.isArray(memberTrainingMemory)?memberTrainingMemory:[];
+  const trainingAnchor=trainingSource.slice(0,2);
+  const trainingRelevant=rankMemoryByRelevance(
+    trainingSource,
+    message,
+    {
+      limit:trainingRequest?6:3,
+      textOf:x=>[
+        x?.topic,x?.objective,x?.phase,x?.member_statement,
+        x?.coach_action,x?.outcome,x?.lesson,x?.next_step,
+        Array.isArray(x?.member_facts)?x.member_facts.join(' '):''
+      ].filter(Boolean).join(' ')
+    }
+  );
+  const compactTrainingMemory=[];
+  const trainingSeen=new Set();
+  for(const x of [...trainingAnchor,...trainingRelevant]){
+    const key=String(x?.id||'')+'|'+String(x?.created_at||'')+'|'+JSON.stringify(x).slice(0,140);
+    if(trainingSeen.has(key))continue;
+    trainingSeen.add(key);
+    compactTrainingMemory.push(x);
+    if(compactTrainingMemory.length>Math.max(2,trainingRequest?6:3))break;
+  }
 
   const compactProfile=coachingProfile?{
     goal:coachingProfile.goal||null,
@@ -2501,6 +2534,13 @@ function buildCostOptimizedAgentContext({
     permanent_memory:compactPermanent,
     learned_facts:compactFacts,
     member_training_memory:compactTrainingMemory,
+    memory_continuity:{
+      always_on:true,
+      permanent_anchor:compactPermanent.slice(0,3),
+      stable_facts_anchor:compactFacts.slice(0,4),
+      training_anchor:compactTrainingMemory.slice(0,2),
+      rule:'هذه الذاكرة لاستمرارية العضو والمواقف السابقة. لا تجعلها تغيّر موضوع السؤال الحالي، لكنها متاحة دائمًا لتجنب نسيان الشخص أو تكرار مواقف سابقة.'
+    },
     personal_training_mode:context.role==='member',
     contextual_coaching_state:{
       ...(contextualCoachingStateForModel({
@@ -2575,6 +2615,7 @@ function instructions(context){
     'لديك أيضًا permanent_memory، وهي سجل طويل الأمد غير محدود زمنيًا يحفظ لقطات سابقة من المحادثة وإجابات واختبارات وتعلم العضو. استخدمه لاستعادة الاستمرارية عندما تكون المعلومة ذات صلة، وميّز دائمًا بين السجل الفعلي وبين الاستنتاج.',
     'عندما يكون personal_training_mode = true فأنت في مسار تدريب شخصي مستمر لهذا العضو. تعامل مع المحادثة الحالية كجزء من رحلة تدريبية تراكمية حتى لو كان السؤال مباشرًا: أجب عن السؤال أولًا، ثم اربطه بالتدريب فقط إذا كان ذلك طبيعيًا.',
     'لديك member_training_memory، وهو سجل تدريبي دائم خاص بهذا العضو فقط. استخدمه لمعرفة ما تدرب عليه، وما جربه، وما نجح أو لم ينجح، وما هو الدرس والخطوة التالية. لا تخلط بين ذاكرة عضو وعضو آخر.',
+    'لديك memory_continuity، وهي طبقة استمرارية تُحمّل في كل طلب لتذكيرك بآخر الحقائق الثابتة والمواقف والتدريب السابق للعضو. استخدمها لمنع نسيان العضو أو تكرار موقف سبق التعامل معه، لكن لا تجعلها تغيّر موضوع السؤال الحالي. عند وجود تعارض، الرسالة الحالية والمعلومة الأحدث هما المرجع.',
     'لا تبدأ تدريب العضو من الصفر عند عودته. إذا وجدت سجلًا تدريبيًا سابقًا مرتبطًا بالموضوع، ابنِ عليه واسأل عن النتيجة أو التطبيق التالي بدل إعادة الدرس كاملًا.',
 
     'التخزين الدائم لا يعني عرض كل التاريخ للمستخدم. استخدم ما يلزم فقط للإجابة الحالية، ولا تكشف أسماء الجداول أو الحقول الداخلية.',
