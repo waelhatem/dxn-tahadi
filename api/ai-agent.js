@@ -2485,6 +2485,7 @@ function buildCostOptimizedAgentContext({
   }
 
   const knowledgeRows=Array.isArray(knowledgeMemory)?knowledgeMemory:[];
+  const localSourceRows=knowledgeRows.filter(x=>String(x?.category||'')==='source_pdf');
   const sourceRequest=isSourceKnowledgeRequest(message);
   const rankRequest=isRankKnowledgeRequest(message);
 
@@ -2526,12 +2527,12 @@ function buildCostOptimizedAgentContext({
 
   const compactKnowledge=[];
   let knowledgeChars=0;
-  const knowledgeLimit=rankRequest?30:(sourceRequest?45:(knowledgeRequest?24:6));
+  const knowledgeLimit=rankRequest?36:(sourceRequest?60:(knowledgeRequest?24:6));
   const rankedKnowledge=chosenKnowledge.slice().sort((a,b)=>Number(b?.priority||0)-Number(a?.priority||0));
   for(const x of rankedKnowledge){
     const content=String(x?.content||'').trim();
     if(!content)continue;
-    const clipped=content.slice(0,4200);
+    const clipped=(sourceRequest||rankRequest)?content.slice(0,12000):content.slice(0,4200);
     const item={
       scope:x?.scope||'global',
       category:x?.category||'platform',
@@ -2666,10 +2667,24 @@ function buildCostOptimizedAgentContext({
     causal_memory:compactCausal,
     learning_patterns:compactPatterns,
     knowledge_memory:compactKnowledge,
+    source_knowledge_exact:(sourceRequest||rankRequest)
+      ? compactKnowledge
+          .filter(x=>x.category==='source_pdf'||x.category==='dxn_pdf_source_exact'||x.category==='dxn_marketing_plan_full')
+          .map(x=>({
+            title:x.title,
+            source:x.source,
+            page:x.page||null,
+            content:x.content
+          }))
+      : [],
     permanent_memory:compactPermanent,
     learned_facts:compactFacts,
     member_training_memory:compactTrainingMemory,
     knowledge_source_policy:'المعرفة المصدرية الكاملة للملفات التدريبية هي المرجع الأول للمعلومة. الذاكرة الشخصية للعضو للترابط والتخصيص. الرسالة الحالية تحدد موضوع الرد.',
+    source_fidelity_mode:sourceRequest||rankRequest,
+    source_fidelity_rule:(sourceRequest||rankRequest)
+      ? 'استخدم النص المصدر ذي الصلة كما هو مرجعًا أولًا. لا تختصر أو تحذف عناصر جدول/قائمة عندما يطلب العضو التفاصيل.'
+      : null,
     memory_continuity:{
       always_on:true,
       permanent_anchor:compactPermanent.slice(0,3),
@@ -2737,6 +2752,7 @@ function instructions(context){
     'أولوية الحوار: الرسالة الحالية للعضو هي المصدر الأول لتحديد موضوع الرد. إذا سأل سؤالًا مباشرًا أو طلب معلومة/مساعدة محددة، أجب عن هذا الطلب أولًا وبشكل مباشر.',
     'قاعدة صارمة لعزل السؤال: لا تستخدم أي معلومة من الذاكرة أو سجل الحوار أو الخطة اليومية إلا إذا كانت مرتبطة مباشرة بالسؤال الحالي. إذا تعارضت ذاكرة قديمة أو موضوع سابق مع الرسالة الحالية، تجاهل القديم وأجب عن الرسالة الحالية فقط. لا تجب عن سؤال آخر لم يُطرح.',
     'أولوية المعرفة: عندما يكون السؤال عن مادة تدريبية أو خطة DXN أو معلومة تم تثبيتها من ملف، استخدم knowledge_memory والمصدر الأصلي أولًا. لا تختصر قائمة أو جدولًا أو شروطًا متعددة إذا كان السؤال يطلبها كاملة، ولا تغيّر الأرقام أو أسماء المراتب. انقل الحقائق بأمانة ثم اشرحها بأسلوب احترافي.',
+    'وضع أمانة المصدر: إذا كان السؤال يطلب معلومات من ملف تدريبي، فالمحتوى الموسوم source_pdf أو dxn_pdf_source_exact أو المصدر الأصلي للملف هو المرجع الأعلى. لا تستبدله بملخص من قاعدة المعرفة. عند وجود جدول أو قائمة في المصدر، حافظ على جميع العناصر والشروط التي طلبها العضو، ولا تقول إن التفاصيل غير موجودة إذا كانت موجودة في النص المصدر.',
     'وجود coaching_session أو daily_auto_plan أو مهمة يومية في السياق لا يعني أن الرد يجب أن يكون عن التدريب. لا تجرّ السؤال الحالي إلى المهمة اليومية لمجرد وجود جلسة نشطة.',
     'إذا كان السؤال الحالي عن بيانات العضو أو فريقه أو أي موضوع آخر، ابقَ على موضوع السؤال. يمكن ذكر الجلسة أو الخطوة اليومية فقط بعد الإجابة وإذا كان ذلك مرتبطًا بشكل طبيعي بالطلب.',
     'لا تستخدم مرحلة الجلسة الحالية أو المهمة اليومية كبديل عن فهم الرسالة الحالية. القرار continue_daily_plan لا يُستخدم عندما تكون هناك نية مباشرة مثل ask_question أو request_help أو report_obstacle أو report_attempt.',
@@ -2805,8 +2821,8 @@ function instructions(context){
     'لديك أداة Team Intelligence لقراءة سجل فريق DXN الحقيقي. استخدمها عندما يسأل العضو عن فريقه أو الـDownline أو الأجيال أو الخطوط المباشرة أو توزيع الرتب أو PV.',
     'عند شرح خطة DXN أو الرتب أو العمولات، استخدم المعرفة الدائمة ذات المصدر الأصلي الموجودة في knowledge_memory. انقل المعلومة كما وردت في المصدر ولا تخترع شروطًا أو أرقامًا.' ,
     'إذا سأل العضو عن السعر أو التكلفة، لا تجعل الرقم محور الحوار من تلقاء نفسك. افهم الاحتياج والقيمة أولًا، ثم اذكر السعر فقط إذا كان مصدر أسعار الدولة متاحًا. لا تحوّل شرط النقاط إلى شراء شهري إلزامي ما لم يذكر المصدر ذلك صراحة.',
-    'إذا كان السؤال عن خطة DXN أو العمولات أو النقاط أو الحوافز، استخدم marketing_plan عند وجوده، وانقل الحقائق كما وردت فيه دون تحويل نسب الخطة إلى دخل مضمون أو توقع شخصي.',
-    'إذا سأل العضو عن رتب DXN أو مستوياتها أو شروط SA/QSA/SR/QSD أو مسار السفير، فاستعمل marketing_plan كمصدر مباشر. لا تقل إن المعلومة غير معروفة إذا كانت موجودة في marketing_plan، ولا تخمّن شروطًا من الذاكرة العامة. إذا كان السؤال عن رتبة غير مذكورة في المصدر، قل إن المصدر المتاح لا يحتوي تفاصيلها.',
+
+
     'إذا سأل العضو عن معلومات عضو آخر ولا يعرف رقم العضوية، وكان لديه الاسم أو جزء منه، استخدم أداة search_dxn_team_members أولًا بالاسم أو الجزء الذي أعطاك إياه. لا تخمّن اسمًا بديلًا ولا رقم عضوية. إذا رجعت نتيجة واحدة ومعها member_intelligence، فهذه هي بيانات العضو المطلوب تحديدًا: أجب منها مباشرة ولا تستخدم بيانات member الحالية للحساب بدلًا عنها. لا تقل إن العضو هو الحساب الحالي إلا إذا كانت أرقام العضوية متطابقة. إذا رجعت نتائج متعددة، اعرض الأسماء وأرقام العضوية واطلب تحديد الشخص الصحيح. إذا لم توجد نتائج، قل إنه لم يظهر في فريقه الحالي وابحث بعبارة أقصر عند الحاجة.',
     'Sponsor هو مفتاح علاقة فقط؛ عند تحليل الفريق ركّز على الـDownline الذي يرجع إلى العضو الحالي. لا تعامل الراعي الشخصي للعضو كأنه الفريق المطلوب تحليله.',
     'عند المقارنة بين الخطوط، اعرض أرقامًا وحقائق من الأداة فقط. لا تستنتج نشاطًا أو مبيعات أو إنتاجية تشغيلية إذا لم تكن موجودة في البيانات.',
