@@ -2,8 +2,9 @@ const https=require('https');
 
 const SUPABASE_URL=process.env.SUPABASE_URL||'https://ryqpstkzppaifpvhezzn.supabase.co';
 const SUPABASE_SECRET_KEY=String(process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY||'').trim().replace(/[\\r\\n]/g,'');
+const SUPABASE_PUBLISHABLE_KEY=String(process.env.SUPABASE_PUBLISHABLE_KEY||process.env.SUPABASE_ANON_KEY||'').trim().replace(/[\\r\\n]/g,'');
 
-function callSupabase(path,method='GET',body=null){
+function callSupabase(path,method='GET',body=null,key=SUPABASE_SECRET_KEY){
   return new Promise((resolve,reject)=>{
     const base=new URL(SUPABASE_URL);
     const raw=body==null?'':JSON.stringify(body);
@@ -13,10 +14,10 @@ function callSupabase(path,method='GET',body=null){
       headers:{
         Accept:'application/json',
         ...(raw?{'Content-Type':'application/json'}:{}),
-        apikey:SUPABASE_SECRET_KEY,
-        // Supabase's new sb_secret_* keys are API keys, not JWTs.
-        // Sending them as Authorization: Bearer causes PostgREST to reject the request.
-        ...(/^sb_secret_/i.test(SUPABASE_SECRET_KEY)?{}:{Authorization:'Bearer '+SUPABASE_SECRET_KEY}),
+        apikey:key,
+        // Publishable/anon keys are JWTs and work with both headers.
+        // New sb_secret_* keys are API keys, so use only apikey for those.
+        ...(/^sb_secret_/i.test(key)?{}:{Authorization:'Bearer '+key}),
         ...(raw?{'Content-Length':Buffer.byteLength(raw)}:{})
       },
       timeout:12000
@@ -43,7 +44,7 @@ module.exports=async function handler(req,res){
   res.setHeader('Access-Control-Allow-Headers','Content-Type, Authorization');
   if(req.method==='OPTIONS')return res.status(200).end();
   if(req.method!=='POST')return send(res,405,{error:'Method not allowed'});
-  if(!SUPABASE_SECRET_KEY)return send(res,500,{error:'SUPABASE_SECRET_KEY غير مضبوط في Vercel'});
+  if(!SUPABASE_SECRET_KEY && !SUPABASE_PUBLISHABLE_KEY)return send(res,500,{error:'مفتاح Supabase غير مضبوط في Vercel'});
 
   try{
     const body=typeof req.body==='string'?JSON.parse(req.body||'{}'):(req.body||{});
@@ -51,14 +52,21 @@ module.exports=async function handler(req,res){
     const days=Math.max(1,Math.min(Number(body.days||30),90));
     if(!token)return send(res,400,{error:'جلسة القائد مطلوبة'});
 
-    const boot=await callSupabase('/rest/v1/rpc/bootstrap','POST',{p_token:token});
+    // Use the same publishable/anon authentication path as the working /api/rpc endpoint.
+    // The RPC validates the leader token itself, so no privileged key is needed for bootstrap.
+    const bootKey=SUPABASE_PUBLISHABLE_KEY||SUPABASE_SECRET_KEY;
+    const boot=await callSupabase('/rest/v1/rpc/bootstrap','POST',{p_token:token},bootKey);
     if(!boot.ok){
       return send(res,401,{error:(boot.data&&(boot.data.message||boot.data.error||boot.data.hint))||boot.text||'جلسة الدخول غير صالحة'});
     }
     const role=String(boot.data?.role||'').toLowerCase();
     if(role!=='leader')return send(res,403,{error:'هذا المؤشر متاح للقائد فقط'});
 
-    const summary=await callSupabase('/rest/v1/rpc/get_ai_agent_usage_summary','POST',{p_days:days});
+    let summary=await callSupabase('/rest/v1/rpc/get_ai_agent_usage_summary','POST',{p_days:days},bootKey);
+    // If the RPC is not exposed to the publishable role, retry with the server secret.
+    if(!summary.ok && bootKey!==SUPABASE_SECRET_KEY && SUPABASE_SECRET_KEY){
+      summary=await callSupabase('/rest/v1/rpc/get_ai_agent_usage_summary','POST',{p_days:days},SUPABASE_SECRET_KEY);
+    }
     if(!summary.ok){
       return send(res,503,{
         error:'سجل استهلاك الذكاء الاصطناعي غير مفعّل في قاعدة البيانات بعد.',
