@@ -4,7 +4,8 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ryqpstkzppaifpvhezzn.s
 const SUPABASE_KEY = String(process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || '').trim().replace(/[\r\n]/g,'');
 const SUPABASE_SECRET_KEY = String(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim().replace(/[\r\n]/g,'');
 const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY || '').trim().replace(/[\r\n]/g,'');
-const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-5.6-luna';
+const OPENAI_MODEL = process.env.AI_AGENT_TRAINING_MODEL || process.env.AI_AGENT_HELPER_MODEL || 'gpt-5-nano';
+const FALLBACK_MODEL = process.env.AI_AGENT_MODEL || 'gpt-5.6-luna';
 
 async function supabaseRpc(fn,args){
   const key=SUPABASE_KEY || SUPABASE_SECRET_KEY;
@@ -18,6 +19,34 @@ async function supabaseRpc(fn,args){
 function json(res,status,body){
   res.status(status).setHeader('Content-Type','application/json; charset=utf-8');
   return res.end(JSON.stringify(body));
+}
+
+async function logUsage(model,usage,requestKind){
+  if(!usage||!SUPABASE_SECRET_KEY)return;
+  const input=Number(usage.input_tokens||0);
+  const cached=Number(usage.input_tokens_details?.cached_tokens||0);
+  const output=Number(usage.output_tokens||0);
+  const total=Number(usage.total_tokens||input+output);
+  const key=String(model||'').toLowerCase();
+  const rates={
+    'gpt-5.6-luna':{input:0.20,cached:0.02,output:1.20},
+    'gpt-5-nano':{input:0.05,cached:0.005,output:0.40}
+  };
+  const rate=rates[key];
+  const uncached=Math.max(input-cached,0);
+  const cost=rate?((uncached*rate.input)+(cached*rate.cached)+(output*rate.output))/1000000:0;
+  try{
+    await supabaseRpc('log_ai_agent_usage',{
+      p_model:String(model),
+      p_input_tokens:input,
+      p_cached_input_tokens:cached,
+      p_output_tokens:output,
+      p_total_tokens:total,
+      p_estimated_cost_usd:cost,
+      p_request_kind:requestKind||'training_answer',
+      p_metadata:{source:'generate-training-answer'}
+    });
+  }catch(error){console.error('[generate-training-answer] usage logging failed',String(error?.message||error));}
 }
 
 function outputText(data){
@@ -49,7 +78,11 @@ function openaiResponses(payload){
       res.on('end',()=>{
         let data=null;
         try{data=text?JSON.parse(text):null}catch(_){data=null}
-        resolve({ok:res.statusCode>=200&&res.statusCode<300,status:res.statusCode||0,data,text});
+        const ok=res.statusCode>=200&&res.statusCode<300;
+        if(ok&&data?.usage){
+          logUsage(body?.model,data.usage,'training_answer').catch(()=>{});
+        }
+        resolve({ok,status:res.statusCode||0,data,text});
       });
     });
     req.on('timeout',()=>req.destroy(new Error('انتهت مهلة الاتصال بخدمة الذكاء الاصطناعي')));
@@ -86,7 +119,8 @@ module.exports=async function handler(req,res){
       ].join('\n'),
       input:`التدريب: ${q.lesson_no}\nالسؤال: ${q.question}\n\nمعيار التقييم الحالي:\n${q.rubric||''}`,
       text:{format:{type:'json_schema',name:'ideal_training_answer',strict:true,schema:{type:'object',properties:{model_answer:{type:'string',minLength:10,maxLength:1200}},required:['model_answer'],additionalProperties:false}}},
-      max_output_tokens:500
+      reasoning:{effort:'none'},
+      max_output_tokens:280
     };
 
     let ai;
@@ -94,7 +128,7 @@ module.exports=async function handler(req,res){
       ai=await openaiResponses(aiPayload);
     }catch(firstError){
       console.error('generate-training-answer OpenAI transport retry:',firstError);
-      try{ai=await openaiResponses({...aiPayload,model:'gpt-5.6'});}catch(secondError){
+      try{ai=await openaiResponses({...aiPayload,model:FALLBACK_MODEL,reasoning:{effort:'low'}});}catch(secondError){
         return json(res,502,{error:`تعذر الاتصال بخدمة الذكاء الاصطناعي: ${String(secondError&&secondError.message||secondError)}`});
       }
     }
