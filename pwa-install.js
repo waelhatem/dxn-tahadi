@@ -52,8 +52,8 @@ function showInstallNotice(mode){
 
   const wrap=document.createElement('div');
   wrap.id='dxn-install-app';
-  const ios=mode==='ios';
-  const desktop=mode==='desktop';
+  const ios=false;
+  const desktop=false;
 
   wrap.innerHTML=
     '<div class="dxn-install-backdrop"></div>'+
@@ -62,19 +62,13 @@ function showInstallNotice(mode){
       '<div class="dxn-install-icon">📲</div>'+
       '<div class="dxn-install-title">ثبّت تطبيق مجتمع الصحة والثراء</div>'+
       '<div class="dxn-install-text">'+
-        (ios
-          ? 'أضف التطبيق إلى الشاشة الرئيسية للوصول إليه بسرعة مثل أي تطبيق على هاتفك.'
-          : desktop
-            ? 'ثبّت مجتمع الصحة والثراء كتطبيق مستقل على الحاسوب للوصول إليه بسرعة من سطح المكتب.'
-            : 'ثبّت التطبيق على جهازك للوصول إليه بسرعة، بدون الحاجة لفتح المتصفح كل مرة.')+
+        'ثبّت التطبيق على جهازك للوصول إليه بسرعة، بدون الحاجة لفتح المتصفح كل مرة.'+
       '</div>'+
       '<button class="dxn-install-main" type="button">'+
-        (ios ? '📱 طريقة التثبيت' : '📲 تثبيت التطبيق الآن')+
+        '📲 تثبيت التطبيق الآن'+
       '</button>'+
       '<div class="dxn-install-help">'+
-        (ios
-          ? 'اضغط مشاركة ↗ ثم «إضافة إلى الشاشة الرئيسية».'
-          : 'اضغط الزر أعلاه لبدء تثبيت التطبيق مباشرة.')+
+        'اضغط الزر أعلاه لبدء تثبيت التطبيق مباشرة.'+
       '</div>'+
       '<button class="dxn-install-later" type="button">ليس الآن</button>'+
     '</div>';
@@ -106,12 +100,9 @@ function showInstallNotice(mode){
   wrap.querySelector('.dxn-install-backdrop').addEventListener('click',close);
 
   wrap.querySelector('.dxn-install-main').addEventListener('click',async function(){
-    if(ios){
-      wrap.querySelector('.dxn-install-help').textContent='اضغط زر المشاركة في المتصفح ↗ ثم اختر «إضافة إلى الشاشة الرئيسية».';
-      return;
-    }
+    if(ios) return;
     if(!deferredPrompt){
-      wrap.querySelector('.dxn-install-help').textContent='إذا لم يرسل المتصفح أمر التثبيت المباشر، سيظهر خيار التثبيت الأصلي من المتصفح.';
+      removePrompt();
       return;
     }
     try{
@@ -123,11 +114,20 @@ function showInstallNotice(mode){
   });
 }
 
-function maybeShow(){
-  if(installed()) return;
+async function hasInstalledApp(){
+  if(installed()) return true;
+  try{
+    if(typeof navigator.getInstalledRelatedApps==='function'){
+      const apps=await navigator.getInstalledRelatedApps();
+      if(Array.isArray(apps) && apps.length) return true;
+    }
+  }catch(_){}
+  return false;
+}
+
+async function maybeShow(){
+  if(await hasInstalledApp()) return;
   if(deferredPrompt) showInstallNotice('native');
-  else if(isIOS()) showInstallNotice('ios');
-  else showInstallNotice('desktop');
 }
 
 window.addEventListener('beforeinstallprompt',function(e){
@@ -146,8 +146,7 @@ window.addEventListener('appinstalled',function(){
   removePrompt();
 });
 
-if(installed()) removePrompt();
-else if(document.readyState==='loading'){
+if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded',function(){
     setTimeout(maybeShow,900);
   },{once:true});
