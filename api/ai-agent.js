@@ -7,7 +7,7 @@ const OPENAI_MODEL = process.env.AI_AGENT_MODEL || 'gpt-5.6-luna';
 const OPENAI_HELPER_MODEL = process.env.AI_AGENT_HELPER_MODEL || 'gpt-5-nano';
 
 const SUPABASE_URL_FIXED = 'https://ryqpstkzppaifpvhezzn.supabase.co';
-const { DXN_MARKETING_PLAN, isDxnMarketingPlanRequest } = require('./dxn-marketing-plan');
+
 
 function httpJson(url,body,headers,timeout){
   return new Promise((resolve,reject)=>{
@@ -250,39 +250,6 @@ function cleanHistory(history){
 function isTeamIntelligenceRequest(message){
   const s=String(message||'').trim().toLowerCase();
   return /ملخص\s+(?:فريقي|الفريق)|فريقي\s+في\s+dxn|فريق\s+dxn|الـ?downline|downline|الاجيال|الأجيال|الخطوط\s+(?:المباشرة|التحتية)|توزيع\s+(?:الرتب|الأعضاء)|pv\s+(?:الفريق|فريقي)/i.test(s);
-}
-
-function selectRelevantMarketingPlan(message){
-  const source=DXN_MARKETING_PLAN||{};
-  const sections=Array.isArray(source.sections)?source.sections:[];
-  const s=String(message||'').toLowerCase();
-
-  const isRank=/(?:رتب|رتبة|سلم الرتب|مستويات الشركة|وكيل نجم|نجم ياقوتي|نجم ماسي|السفير|qsa|qsd|sa|sr|ترقية|شروط التأهل)/i.test(s);
-  const isPoints=/(?:pv|sv|ppv|psv|pgpv|pgsv|dgpv|dgsv|نقاط|عمولة|علاوة|حوافز)/i.test(s);
-  const isIncome=/(?:دخل|ربح|أرباح|مصادر الدخل|بيع التجزئة|خطة مالية|الخطة المالية)/i.test(s);
-  const isMarketing=/(?:اعتراض|اعتراضات|تسويق|بيع مباشر|بناء الفريق|التواصل)/i.test(s);
-
-  const wanted=[];
-  for(const section of sections){
-    const topic=String(section?.topic||'').toLowerCase();
-    const facts=Array.isArray(section?.facts)?section.facts.join(' '):'';
-    const blob=topic+' '+facts;
-
-    if(isRank && /المستويات|الرتب|qsa|qsd|علاوة القيادة/i.test(blob))wanted.push(section);
-    else if(isPoints && /pv|sv|pgpv|pgsv|dgpv|dgsv|علاوة المجموعة|qsa|qsd/i.test(blob))wanted.push(section);
-    else if(isIncome && /مصادر الدخل|العوائد|البيع بالتجزئة|العوائد والحوافز/i.test(blob))wanted.push(section);
-    else if(isMarketing && /فلسفة التسويق|العوائد|المستويات|بناء الفريق/i.test(blob))wanted.push(section);
-  }
-
-  const selected=wanted.length?wanted:sections.slice(0,3);
-
-  return {
-    source:source.source||null,
-    title:source.title||null,
-    scope:source.scope||null,
-    sections:selected.slice(0,4),
-    rules:Array.isArray(source.rules)?source.rules.slice(0,8):[]
-  };
 }
 
 function isRankKnowledgeRequest(message){
@@ -1440,7 +1407,7 @@ async function loadPermanentAgentMemory(token){
 
 async function loadAgentKnowledge(token){
   try{
-    const r=await supabaseRpc('get_ai_agent_knowledge',{p_token:token,p_limit:60});
+    const r=await supabaseRpc('get_ai_agent_knowledge',{p_token:token,p_limit:100});
     if(!r.ok||!Array.isArray(r.data)) return [];
     return r.data.map(x=>({
       scope:x.scope||'global',
@@ -2279,7 +2246,7 @@ function memorySearchTerms(message){
     ['نجم ماسي','qsd','ماسي','diamond'],
     ['وكيل نجم','qsa','sa','star agent'],
     ['السفير','ambassador'],
-    ['رتب','رتبة','مستويات','ترقية'],
+    ['رتب','مراتب','رتبة','مستويات','ترقية'],
     ['تدريب','درس','اختبار','مشاهدة','تقدم'],
     ['فريق','downline','الاجيال','الخطوط','pv','sv'],
     ['اعتراض','اعتراضات','تواصل','بيع','تسويق'],
@@ -2374,7 +2341,7 @@ function buildCostOptimizedAgentContext({
   const teamRequest=isTeamIntelligenceRequest(message);
   const trainingRequest=!!currentSession?.active || /تدريب|التدريبات|اختبار|الاختبارات|تقدم|المشاهدة|شاهدت|نسبة|إكمال|اكتمال|جلسة تدريب/i.test(s);
   const coachingRequest=trainingRequest || /عائق|محتار|متردد|جربت|طبقت|نفذت|رفض|ما نفع|نجح|فشل|نتيجة|خطوة|هدف/i.test(s);
-  const knowledgeRequest=trainingRequest || /dxn|ديكسن|اعتراض|اعتراضات|تسويق|بيع مباشر|عضوية|تسجيل|نقاط|pv|sv|عمولة|عمولات|منتج|منتجات|شرعي|حرام|خطة/i.test(s);
+  const knowledgeRequest=trainingRequest || isRankKnowledgeRequest(message) || /dxn|ديكسن|اعتراض|اعتراضات|تسويق|بيع مباشر|عضوية|تسجيل|نقاط|pv|sv|عمولة|عمولات|منتج|منتجات|شرعي|حرام|خطة|مراتب|رتب|رتبة|مستويات/i.test(s);
 
   const lessons=Array.isArray(context.lessons)?context.lessons:[];
   const progress=Array.isArray(context.progress)?context.progress:[];
@@ -2401,7 +2368,7 @@ function buildCostOptimizedAgentContext({
     Array.isArray(knowledgeMemory)?knowledgeMemory:[],
     message,
     {
-      limit:knowledgeRequest?10:4,
+      limit:knowledgeRequest?14:4,
       textOf:x=>[x?.title,x?.category,x?.content].filter(Boolean).join(' ')
     }
   ).sort((a,b)=>Number(b?.priority||0)-Number(a?.priority||0))
@@ -2573,7 +2540,7 @@ function contextualCoachingStateForModel({message,currentSession,conversationSta
     pending_member_action:conversationState?.pending_member_action||null,
     coaching_relevance:!!coachingRequest,
     current_message:String(message||'').slice(0,1200),
-    instruction_priority:'أجب عن current_message أولًا. الذاكرة والسياق المساعد مرجعان فقط ولا يغيران موضوع السؤال.'
+    instruction_priority:'أجب عن current_message أولًا. knowledge_memory هو المصدر الدائم للمعلومات المثبتة، بينما الذاكرة الشخصية وسجل الحوار للترابط والتخصيص ولا يغيران موضوع السؤال.'
   };
 }
 
@@ -2611,8 +2578,9 @@ function instructions(context){
     'إذا كانت الحالة تشير إلى أن المدرب وائل حاتم سأل العضو إن كان يريد الانتقال إلى تدريب اليوم، فلا تعتبر الموافقة الضمنية أو الصمت كافيًا؛ الانتقال الفعلي يحدث فقط بعد موافقة واضحة.',
     'لديك طبقة حالة معرفية (cognitive_state) وطبقة ذاكرة (memory_state) في السياق. استخدمهما للحفاظ على استمرارية الحوار وتجنب إعادة الأسئلة التي تمت الإجابة عنها سابقًا.',
 
-    'لديك ذاكرة معرفة ثابتة اسمها knowledge_memory. هذه المعرفة المشتركة تخص المنصة وهوية المدرب وقواعدها المعتمدة، وليست محادثة مؤقتة. عندما تتحدث عن حقائق المنصة أو قواعد التسجيل أو التدريب، استخدم knowledge_memory كمرجع إضافي ثابت، ولا تدّعِ أنك نسيت معلوماتها كلما بدأت جلسة جديدة.',
+    'لديك ذاكرة معرفة ثابتة ودائمة اسمها knowledge_memory. هذه هي المصدر المعرفي الأساسي لما تم تدريبه وتثبيته للمدرب، وليست محادثة مؤقتة. عند السؤال عن DXN أو الرتب أو الخطة أو التدريب أو المعلومات التي سبق تثبيتها من الملفات، ابحث أولًا في knowledge_memory واستخدمه قبل أي معرفة عامة. لا تستبدل المعرفة الدائمة بملخص قصير أو تخمين.',
     'لديك أيضًا permanent_memory، وهي سجل طويل الأمد غير محدود زمنيًا يحفظ لقطات سابقة من المحادثة وإجابات واختبارات وتعلم العضو. استخدمه لاستعادة الاستمرارية عندما تكون المعلومة ذات صلة، وميّز دائمًا بين السجل الفعلي وبين الاستنتاج.',
+    'ممنوع استبدال المعرفة الدائمة بملخص مختصر عندما يكون السؤال عن حقيقة تفصيلية. إذا كان السؤال يحتاج قائمة أو شروطًا متعددة، استرجع كل الأجزاء ذات الصلة من knowledge_memory قبل الإجابة.',
     'عندما يكون personal_training_mode = true فأنت في مسار تدريب شخصي مستمر لهذا العضو. تعامل مع المحادثة الحالية كجزء من رحلة تدريبية تراكمية حتى لو كان السؤال مباشرًا: أجب عن السؤال أولًا، ثم اربطه بالتدريب فقط إذا كان ذلك طبيعيًا.',
     'لديك member_training_memory، وهو سجل تدريبي دائم خاص بهذا العضو فقط. استخدمه لمعرفة ما تدرب عليه، وما جربه، وما نجح أو لم ينجح، وما هو الدرس والخطوة التالية. لا تخلط بين ذاكرة عضو وعضو آخر.',
     'لديك memory_continuity، وهي طبقة استمرارية تُحمّل في كل طلب لتذكيرك بآخر الحقائق الثابتة والمواقف والتدريب السابق للعضو. استخدمها لمنع نسيان العضو أو تكرار موقف سبق التعامل معه، لكن لا تجعلها تغيّر موضوع السؤال الحالي. عند وجود تعارض، الرسالة الحالية والمعلومة الأحدث هما المرجع.',
@@ -2665,7 +2633,7 @@ function instructions(context){
     'في المتابعة: إذا كان العضو متقدمًا، انتقل من الشرح إلى التحدي والتطبيق. إذا كان جديدًا، استخدم شرحًا أبسط وأكثر تدرجًا.',
     'عند الحاجة إلى تحليل مستوى العضو أو نقاط قوته وضعفه في الاختبارات، استخدم أداة أداء الاختبارات بدل الاعتماد على الانطباع من المحادثة فقط.',
     'لديك أداة Team Intelligence لقراءة سجل فريق DXN الحقيقي. استخدمها عندما يسأل العضو عن فريقه أو الـDownline أو الأجيال أو الخطوط المباشرة أو توزيع الرتب أو PV.',
-    'لديك أيضًا مصدر معرفي مستقل لخطة DXN. إذا ظهر marketing_plan في السياق فهو المصدر المرجعي للمفاهيم والخطة والحوافز الواردة في الملف. حافظ على مصطلحات PV وSV وPPV وPSV وPGPV وPGSV وDGPV وDGSV، ولا تخترع أسعارًا أو رسومًا غير موجودة في المصدر.',
+    'عند شرح خطة DXN أو الرتب أو العمولات، استخدم المعرفة الدائمة ذات المصدر الأصلي الموجودة في knowledge_memory. انقل المعلومة كما وردت في المصدر ولا تخترع شروطًا أو أرقامًا.' ,
     'إذا سأل العضو عن السعر أو التكلفة، لا تجعل الرقم محور الحوار من تلقاء نفسك. افهم الاحتياج والقيمة أولًا، ثم اذكر السعر فقط إذا كان مصدر أسعار الدولة متاحًا. لا تحوّل شرط النقاط إلى شراء شهري إلزامي ما لم يذكر المصدر ذلك صراحة.',
     'إذا كان السؤال عن خطة DXN أو العمولات أو النقاط أو الحوافز، استخدم marketing_plan عند وجوده، وانقل الحقائق كما وردت فيه دون تحويل نسب الخطة إلى دخل مضمون أو توقع شخصي.',
     'إذا سأل العضو عن رتب DXN أو مستوياتها أو شروط SA/QSA/SR/QSD أو مسار السفير، فاستعمل marketing_plan كمصدر مباشر. لا تقل إن المعلومة غير معروفة إذا كانت موجودة في marketing_plan، ولا تخمّن شروطًا من الذاكرة العامة. إذا كان السؤال عن رتبة غير مذكورة في المصدر، قل إن المصدر المتاح لا يحتوي تفاصيلها.',
@@ -3053,10 +3021,10 @@ module.exports=async function handler(req,res){
     let teamIntelligence=null;
     let marketingPlan=null;
     if(isTeamIntelligenceRequest(message)){
-      teamIntelligence=await AGENT_TOOLS.get_dxn_team_intelligence(token,{mode:'summary',member_no:null,generation:null,limit:50});
-    }
-    if(isDxnMarketingPlanRequest(message) || isRankKnowledgeRequest(message)){
-      marketingPlan=selectRelevantMarketingPlan(message);
+      teamIntelligence=await AGENT_TOOLS.get_dxn_team_intelligence(
+        token,
+        {mode:'summary',member_no:null,generation:null,limit:50}
+      );
     }
 
     // Completion of the daily task is a deterministic server-side action.
