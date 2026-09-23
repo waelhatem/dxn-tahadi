@@ -372,7 +372,7 @@ module.exports = async function handler(req, res) {
     // only when the deployed RPC still uses it. The root member is resolved from
     // the authenticated session, so a caller cannot choose an unrelated root.
     if(fn === 'get_dxn_team_intelligence' && args.p_token && !args.p_root_member_no){
-      const current=await supabaseRpcRequest(fn,args,SUPABASE_SECRET_KEY,10000);
+      const current=await supabaseRpcRequest('get_dxn_team_intelligence_secure',args,SUPABASE_SECRET_KEY,10000);
       if(current.ok){
         return res.status(current.status||200).json(current.data||{});
       }
