@@ -101,6 +101,9 @@ body.mobile-mode .view-switch button{min-width:120px}
 .ragwan-step-section-item .num{width:27px;height:27px;border-radius:50%;background:#0f513f;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;flex:0 0 27px}
 .ragwan-step-section-item .text{font-weight:700;color:#263c35}
 @media(max-width:600px){.ragwan-step-section{padding:13px}.ragwan-step-section-item{padding:10px}}
+
+.ragwan-account-info-card{margin-top:16px;padding:18px;border:2px solid #d9e8df;border-radius:20px;background:linear-gradient(135deg,#f7fcf9,#fff);box-shadow:0 8px 22px rgba(15,81,63,.08)}
+.ragwan-account-info-card h3{margin:0 0 8px;color:#0f513f;font-size:20px}.ragwan-account-info-card p{margin:0 0 14px;color:#66756f;line-height:1.8;font-size:13px}.ragwan-account-field{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;margin-top:8px;border:1px solid #e1ebe6;border-radius:14px;background:#fff}.ragwan-account-field b{color:#123b30}.ragwan-account-field span,.ragwan-account-field a{direction:ltr;text-align:left;word-break:break-all;color:#31544a}.ragwan-account-field a{color:#0f6a54;font-weight:800}.ragwan-account-video{margin-top:12px;padding:14px;border-radius:16px;background:#eef8f2;border:1px solid #cfe4da;display:flex;justify-content:space-between;align-items:center;gap:10px}.ragwan-account-video b{color:#123b30}.ragwan-account-video a{background:#0f513f;color:#fff;padding:9px 12px;border-radius:11px;text-decoration:none;font-weight:900;white-space:nowrap}@media(max-width:600px){.ragwan-account-field,.ragwan-account-video{display:block}.ragwan-account-field span,.ragwan-account-field a,.ragwan-account-video a{display:block;margin-top:6px}.ragwan-account-video a{width:max-content}}
 </style></style>  <link rel="icon" type="image/png" href="logo.png">
 
 <style>
@@ -1862,7 +1865,15 @@ function ragwanRenderStepVideos(){
     '<div class="ragwan-step-video-list">'+videos.map((v,i)=>{
       const id=ragwanYoutubeId(v.url);
       return '<article class="ragwan-step-video-card"><div class="ragwan-step-video-title"><span>🎥</span><b>'+esc(v.title)+'</b></div>'+(id?'<div class="ragwan-step-video-frame"><iframe src="https://www.youtube.com/embed/'+esc(id)+'" title="'+esc(v.title)+'" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>':'<a href="'+esc(v.url)+'" target="_blank" rel="noopener">فتح الفيديو</a>')+'</article>';
-    }).join('')+'</div>';
+    }).join('')+'</div>'+
+    (ragwanCurrentStep===2?'<section class="ragwan-account-info-card">'+
+      '<h3>💎 معلومات الدخول إلى حسابك الشخصي في DXN</h3>'+\
+      '<p>يفضل بعد تسجيل العضو الجديد إرسال هذه المعلومات له لمعرفة كيفية فتح حسابه الشخصي في نظام DXN.</p>'+\
+      '<div class="ragwan-account-field"><b>🔢 رقم العضوية</b><span>......</span></div>'+\
+      '<div class="ragwan-account-field"><b>🔐 الرقم السري</b><span>......</span></div>'+\
+      '<div class="ragwan-account-field"><b>🌐 رابط الدخول للصفحة الشخصية</b><a href="https://eworld.dxn2u.com/index.php?r=site%2Findex" target="_blank" rel="noopener noreferrer">https://eworld.dxn2u.com/index.php?r=site%2Findex</a></div>'+\
+      '<div class="ragwan-account-video"><b>🎥 فيديو تعليمي: كيفية الدخول إلى حسابي الشخصي</b><a href="https://youtu.be/m7paRMpK0vU" target="_blank" rel="noopener noreferrer">▶️ مشاهدة الفيديو التعليمي</a></div>'+\
+    '</section>':'');
 }
 function ragwanStepTestPassed(step){
   const raw=localStorage.getItem('dxn_ragwan_test_v1_'+step);
