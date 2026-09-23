@@ -77,8 +77,8 @@
         '<div class="ragwan-book-title">'+
           '<span class="ragwan-book-num">1</span>'+title+
         '</div>'+
-        '<div class="ragwan-book">'+
-          '<div class="ragwan-book-pages"><div class="ragwan-page-lines"></div></div>'+
+        '<div class="ragwan-book-content-glow"></div><div class="ragwan-book">'+
+          '<div class="ragwan-book-pages"><div class="ragwan-book-inner-content"><span class="ragwan-book-inner-num">01</span><strong>'+title+'</strong><span>الخطوة الأولى</span></div><div class="ragwan-page-lines"></div></div>'+
           '<div class="ragwan-book-back"></div>'+
           '<div class="ragwan-book-cover">'+
             '<div class="ragwan-book-cover-inner">'+
@@ -106,7 +106,7 @@
         if(overlay) overlay.remove();
         overlay=null;
         busy=false;
-      },420);
+      },1950);
     }
 
     overlay.querySelector('.ragwan-book-close').onclick=finish;
@@ -121,7 +121,7 @@
       overlay.classList.add('revealing');
     },3000);
 
-    setTimeout(finish,5700);
+    setTimeout(function(){ if(!overlay || done) return; overlay.classList.add('fading'); setTimeout(finish,1900); },5700);
   }
 
   function injectBookCss(){
@@ -139,7 +139,7 @@
       '.ragwan-book{position:relative;width:300px;height:400px;transform:translateY(18px) rotateX(4deg) scale(.82);transform-style:preserve-3d;filter:drop-shadow(0 30px 28px rgba(0,0,0,.48));transition:transform 1.55s cubic-bezier(.2,.8,.2,1)}'+
       '.ragwan-book-overlay.opening .ragwan-book{transform:translateY(0) rotateX(2deg) scale(1.08)}'+
       '.ragwan-book-overlay.revealing .ragwan-book{transform:translateY(0) rotateX(0) scale(1.18)}'+
-      '.ragwan-book-pages,.ragwan-book-back,.ragwan-book-cover{position:absolute;inset:0;border-radius:8px 14px 14px 8px;transform-style:preserve-3d}'+
+      '.ragwan-book-pages,.ragwan-book-back,.ragwan-book-cover{position:absolute;inset:0;border-radius:8px 14px 14px 8px;transform-style:preserve-3d}'+'.ragwan-book-inner-content{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:36px 28px;gap:10px;color:#f7e5a4;opacity:0;transform:scale(.92);transition:opacity 1.6s ease,transform 1.6s ease}.ragwan-book-inner-content strong{font-size:24px;line-height:1.6;text-shadow:0 2px 12px #6d531866}.ragwan-book-inner-content span:last-child{font-size:11px;color:#9f8a56;letter-spacing:1px}.ragwan-book-inner-num{font-size:28px!important;font-weight:950;color:#b99235!important;letter-spacing:2px}.ragwan-book-overlay.opening .ragwan-book-inner-content{opacity:1;transform:scale(1)}.ragwan-book-overlay.revealing .ragwan-book-inner-content{opacity:0;transform:scale(1.04)}.ragwan-book-content-glow{position:absolute;width:310px;height:410px;border-radius:10px;background:radial-gradient(ellipse at center,rgba(247,223,136,.18),rgba(247,223,136,0) 68%);opacity:0;pointer-events:none;z-index:1;transition:opacity 1.8s ease;filter:blur(8px)}.ragwan-book-overlay.revealing .ragwan-book-content-glow{opacity:1}.ragwan-book-overlay.fading .ragwan-book{opacity:0;filter:drop-shadow(0 30px 28px rgba(0,0,0,0));transition:opacity 1.9s ease,filter 1.9s ease}.ragwan-book-overlay.fading .ragwan-book-title{opacity:0;transition:opacity 1.4s ease}'+
       '.ragwan-book-back{background:linear-gradient(100deg,#4e2614,#8a4a25 55%,#3a1c10);box-shadow:inset -12px 0 20px #0006,inset 5px 0 8px #fff1}'+
       '.ragwan-book-pages{right:10px;left:9px;top:10px;bottom:10px;background:repeating-linear-gradient(0deg,#f8f0da 0,#f8f0da 5px,#ded3b8 6px,#fff8e8 8px);box-shadow:inset 0 0 18px #8d775633,0 4px 7px #0005;transform:translateZ(8px);transition:opacity 1.4s ease,transform 1.4s ease}'+
       '.ragwan-book-overlay.revealing .ragwan-book-pages{opacity:.08;transform:translateZ(2px) scale(.98)}'+
