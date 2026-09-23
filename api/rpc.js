@@ -195,6 +195,30 @@ module.exports = async function handler(req, res) {
     }
 
     const privilegedTeamRpc = fn === 'get_dxn_team_intelligence' || fn === 'leader_sync_dxn_team_members';
+
+    // Team Intelligence has existed in two RPC signatures in deployed environments:
+    // newer deployments accept p_token; older deployments accept p_root_member_no.
+    // Keep the browser API stable (p_token) and translate to the legacy signature
+    // only when the deployed RPC still uses it. The root member is resolved from
+    // the authenticated session, so a caller cannot choose an unrelated root.
+    if(fn === 'get_dxn_team_intelligence' && args.p_token && !args.p_root_member_no){
+      const current=await supabaseRpcRequest(fn,args,SUPABASE_SECRET_KEY,10000);
+      if(current.ok){
+        return res.status(current.status||200).json(current.data||{});
+      }
+
+      const boot=await supabaseRpcRequest('bootstrap',{p_token:String(args.p_token)},SUPABASE_SECRET_KEY,10000);
+      const memberNo=String(boot.data?.members?.[0]?.member_no||'').trim();
+      if(!memberNo){
+        return res.status(current.status||500).json(current.data||{error:current.text||'تعذر التحقق من العضوية الحالية'});
+      }
+
+      const legacyArgs={...args,p_root_member_no:memberNo};
+      delete legacyArgs.p_token;
+      const legacy=await supabaseRpcRequest(fn,legacyArgs,SUPABASE_SECRET_KEY,10000);
+      return res.status(legacy.status||500).json(legacy.data||{error:legacy.text||current.text||'تعذر تحميل بيانات الفريق'});
+    }
+
     const response=await supabaseRpcRequest(fn,args,privilegedTeamRpc ? SUPABASE_SECRET_KEY : SUPABASE_KEY,10000);
     return res.status(response.status||500).json(response.data||{error:response.text||'Supabase request failed'});
 
