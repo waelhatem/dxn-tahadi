@@ -1883,6 +1883,41 @@ function ragwanRenderStepVideos(){
     '</section>':'');
 }
 let ragwanWelcomeGender='';
+function ragwanRenderWelcomeImage(name,no){
+  const canvas=document.getElementById('ragwanWelcomeCanvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  if(!ctx)return;
+  const img=new Image();
+  img.onload=()=>{
+    const w=img.naturalWidth||1254,h=img.naturalHeight||1254;
+    canvas.width=w;canvas.height=h;
+    ctx.clearRect(0,0,w,h);
+    ctx.drawImage(img,0,0,w,h);
+    const cx=Math.round(w/2);
+    ctx.fillStyle='#fff';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.direction='rtl';
+    ctx.font='900 46px "Segoe UI",Tahoma,Arial,sans-serif';
+    ctx.shadowColor='rgba(0,0,0,.55)';
+    ctx.shadowBlur=5;
+    ctx.fillText(String(name||'العضو الجديد').trim(),cx,766);
+    ctx.direction='ltr';
+    ctx.font='900 44px "Segoe UI",Tahoma,Arial,sans-serif';
+    ctx.fillText(String(no||'......').trim(),cx,904);
+    ctx.shadowColor='transparent';
+    ctx.shadowBlur=0;
+  };
+  img.onerror=()=>{
+    canvas.width=1254;canvas.height=1254;
+    ctx.clearRect(0,0,1254,1254);
+    ctx.fillStyle='#111';ctx.fillRect(0,0,1254,1254);
+    ctx.fillStyle='#f2bf4a';ctx.font='900 34px system-ui,sans-serif';ctx.textAlign='center';ctx.direction='rtl';
+    ctx.fillText('تعذر تحميل قالب الترحيب',627,627);
+  };
+  img.src='/ragwan-welcome-template.png?v=20260923-2';
+}
 function ragwanUpdateWelcomeContent(){
   const name=(document.getElementById('ragwanWelcomeName')||{}).value||'العضو الجديد';
   const no=(document.getElementById('ragwanWelcomeNo')||{}).value||'......';
