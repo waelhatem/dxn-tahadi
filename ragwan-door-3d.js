@@ -33,7 +33,7 @@
       '.ragwan3d{position:fixed;inset:0;z-index:99999;background:transparent;opacity:0;transition:opacity .35s ease;display:block}'+
       '.ragwan3d.show{opacity:1}'+
       '.ragwan3dbox{position:absolute;inset:0;width:100%;height:100%;overflow:hidden;background:transparent}'+
-      '.ragwan3dportal{position:absolute;left:50%;top:50%;width:16vw;height:45vh;transform:translate(-50%,-50%);z-index:2;background:transparent;box-shadow:0 0 0 100vmax rgba(4,15,13,.985);pointer-events:none}'+
+      '.ragwan3dportal{position:absolute;left:50%;top:50%;width:26vw;height:68vh;transform:translate(-50%,-50%);z-index:2;background:transparent;box-shadow:0 0 0 100vmax rgba(4,15,13,.985);pointer-events:none}'+
       '.ragwan3dtop{position:absolute;top:16px;left:20px;right:20px;z-index:4;display:flex;justify-content:space-between;align-items:center;direction:rtl;color:#fff;font-weight:900;pointer-events:none}'+
       '.ragwan3dnum{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:50%;margin-left:8px;background:linear-gradient(145deg,#f7df88,#b8861b);color:#2c2411}'+
       '.ragwan3dclose{pointer-events:auto;width:42px;height:42px;border:1px solid #ffffff44;border-radius:50%;background:#ffffff18;color:#fff;font-size:24px;cursor:pointer}'+
@@ -179,9 +179,9 @@
             status.textContent='✨ الدخول المستمر عبر الباب...';
 
             if(portal){
-              const reveal=Math.max(0,Math.min(1,(p-.28)/.72));
-              portal.style.width=(16+26*reveal)+'vw';
-              portal.style.height=(45+35*reveal)+'vh';
+              const reveal=Math.max(0,Math.min(1,(p-.45)/.55));
+              portal.style.width=(26+29*reveal)+'vw';
+              portal.style.height=(68+32*reveal)+'vh';
             }
           }
 
