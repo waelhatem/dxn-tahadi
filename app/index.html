@@ -3983,6 +3983,8 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     const n=document.getElementById('loginNo'),p=document.getElementById('pin'),b=document.getElementById('loginButton');
     const no=n?String(n.value||'').trim():'',pin=p?String(p.value||'').trim():'';
     if(!no||!pin){if(typeof toast==='function')toast('أدخل بيانات الدخول أولاً.');return}
+    localStorage.setItem('dxn_login_no',no);
+    localStorage.setItem('dxn_login_role',String(document.getElementById('role')?.value||'member'));
     if(b){b.disabled=true;b.textContent='⏳ جارٍ التحقق...'}
     try{
       const login=await proxyRpc('login',{p_login_no:no,p_pin:pin});
