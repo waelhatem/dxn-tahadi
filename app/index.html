@@ -1339,31 +1339,23 @@ function ragwanSuccessIntro(){
 .ragwan-journey-kicker{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;background:#0f513f;color:#fff;font-size:12px;font-weight:950;box-shadow:0 7px 20px rgba(15,81,63,.2)}
 .ragwan-journey-title{margin:10px 0 4px;font-size:clamp(25px,3.4vw,42px);font-weight:950;color:#102f27}
 .ragwan-journey-sub{color:#5d7169;font-weight:800;font-size:14px}
-.ragwan-door-gallery{position:relative;z-index:1;display:grid;grid-template-columns:repeat(5,minmax(130px,1fr));gap:14px;perspective:1600px;padding:12px 4px 24px}
-.ragwan-door{position:relative;height:245px;border:0;background:transparent;padding:0;cursor:pointer;perspective:900px;outline:none}
-.ragwan-door-frame{position:absolute;inset:0;border-radius:17px 17px 8px 8px;padding:7px;background:linear-gradient(145deg,#d8b65d,#8a6215 45%,#e5c873);box-shadow:0 14px 28px rgba(0,0,0,.18),inset 0 0 0 2px rgba(255,255,255,.42)}
-.ragwan-door-leaf{position:absolute;inset:9px;border-radius:11px 11px 5px 5px;transform-origin:right center;transform-style:preserve-3d;transition:transform .85s cubic-bezier(.2,.8,.2,1),filter .45s ease;box-shadow:inset 0 0 0 2px rgba(255,255,255,.18),8px 0 20px rgba(0,0,0,.18);overflow:hidden}
-.ragwan-door:nth-child(1) .ragwan-door-leaf{background:linear-gradient(145deg,#0b6caa,#073b70)}
-.ragwan-door:nth-child(2) .ragwan-door-leaf{background:linear-gradient(145deg,#55b83e,#218526)}
-.ragwan-door:nth-child(3) .ragwan-door-leaf{background:linear-gradient(145deg,#ff9c12,#df5d00)}
-.ragwan-door:nth-child(4) .ragwan-door-leaf{background:linear-gradient(145deg,#8b43cf,#4d2093)}
-.ragwan-door:nth-child(5) .ragwan-door-leaf{background:linear-gradient(145deg,#1ba4b3,#08707d)}
-.ragwan-door:nth-child(6) .ragwan-door-leaf{background:linear-gradient(145deg,#157fb0,#12517f)}
-.ragwan-door:nth-child(7) .ragwan-door-leaf{background:linear-gradient(145deg,#64bf40,#2d8d28)}
-.ragwan-door:nth-child(8) .ragwan-door-leaf{background:linear-gradient(145deg,#ff9b10,#e36500)}
-.ragwan-door:nth-child(9) .ragwan-door-leaf{background:linear-gradient(145deg,#8c45c9,#5b238f)}
-.ragwan-door:nth-child(10) .ragwan-door-leaf{background:linear-gradient(145deg,#18a6b6,#087581)}
-.ragwan-door.open .ragwan-door-leaf{transform:rotateY(-105deg);filter:brightness(.78)}
-.ragwan-door-glow{position:absolute;inset:0;border-radius:10px;background:radial-gradient(circle at 15% 50%,rgba(255,239,168,.95),rgba(255,255,255,.2) 38%,transparent 65%);opacity:0;transition:opacity .45s;pointer-events:none}
-.ragwan-door.open .ragwan-door-glow{opacity:1}
-.ragwan-door-content{position:absolute;inset:16px 13px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;color:#fff;text-align:center;z-index:2;pointer-events:none}
-.ragwan-door-num{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-size:24px;font-weight:950;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.45);box-shadow:0 7px 16px rgba(0,0,0,.16)}
-.ragwan-door-icon{font-size:34px;filter:drop-shadow(0 5px 8px rgba(0,0,0,.25))}
-.ragwan-door-label{font-size:14px;line-height:1.35;font-weight:950;text-shadow:0 2px 4px rgba(0,0,0,.3)}
-.ragwan-door-hint{font-size:10px;opacity:.9;font-weight:800}
-.ragwan-door-room{position:absolute;inset:20px 17px 18px 17px;border-radius:10px;background:linear-gradient(145deg,#fff7d2,#f5e2a3 50%,#fff);box-shadow:inset 0 0 35px rgba(221,166,30,.22);display:flex;align-items:center;justify-content:center;opacity:0;transform:translateX(8px) scale(.96);transition:opacity .6s .12s,transform .6s .12s;pointer-events:none}
-.ragwan-door.open .ragwan-door-room{opacity:1;transform:translateX(0) scale(1)}
-.ragwan-door-room:after{content:"";width:45%;height:62%;border-radius:7px 7px 2px 2px;background:linear-gradient(180deg,#fff,#d9eee4);box-shadow:0 0 35px rgba(255,211,73,.8);clip-path:polygon(50% 0,100% 16%,100% 100%,0 100%,0 16%)}
+.ragwan-door-gallery{position:relative;z-index:1;display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:16px;perspective:1600px;padding:14px 4px 28px}
+.ragwan-door{position:relative;height:285px;border:0;background:transparent;padding:0;cursor:pointer;outline:none;overflow:hidden;border-radius:18px;box-shadow:0 16px 34px rgba(12,42,34,.22);transition:transform .3s ease,box-shadow .3s ease;isolation:isolate}
+.ragwan-door-image-wrap{position:absolute;inset:0;display:block;overflow:hidden;border-radius:18px}
+.ragwan-door-image{display:block;width:100%;height:100%;object-fit:cover;object-position:center;transition:transform .55s ease,filter .45s ease}
+.ragwan-door-overlay{position:absolute;inset:0;border-radius:18px;background:linear-gradient(180deg,rgba(4,22,17,.12) 0%,rgba(4,22,17,0) 27%,rgba(4,22,17,.08) 64%,rgba(4,22,17,.62) 100%);pointer-events:none;z-index:1}
+.ragwan-door-content{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;color:#132d24;text-align:center;z-index:2;pointer-events:none}
+.ragwan-door-num{position:absolute;top:17px;left:50%;transform:translateX(-50%);width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-size:19px;font-weight:950;background:linear-gradient(145deg,#f7df88,#b8861b);color:#2c2411;border:2px solid rgba(255,249,210,.95);box-shadow:0 6px 15px rgba(0,0,0,.28)}
+.ragwan-door-icon{position:absolute;top:82px;font-size:25px;filter:drop-shadow(0 2px 2px rgba(255,255,255,.8))}
+.ragwan-door-label{position:absolute;top:125px;left:15%;right:15%;font-size:14px;line-height:1.35;font-weight:950;color:#1b241e;text-shadow:0 1px 0 rgba(255,255,255,.7);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.ragwan-door-status{position:absolute;bottom:30px;padding:5px 10px;border-radius:999px;background:rgba(7,48,38,.84);color:#fff;font-size:10px;font-weight:900;border:1px solid rgba(255,236,157,.55);box-shadow:0 5px 12px rgba(0,0,0,.22)}
+.ragwan-door:hover{transform:translateY(-5px);box-shadow:0 22px 42px rgba(12,42,34,.3)}
+.ragwan-door:hover .ragwan-door-image{transform:scale(1.035);filter:brightness(1.03)}
+.ragwan-door.open{box-shadow:0 0 0 3px rgba(240,199,88,.75),0 22px 45px rgba(12,42,34,.3)}
+.ragwan-door.completed{box-shadow:0 0 0 3px rgba(42,178,116,.65),0 18px 38px rgba(12,42,34,.25)}
+.ragwan-door.started{box-shadow:0 0 0 3px rgba(218,174,62,.65),0 18px 38px rgba(12,42,34,.25)}
+.ragwan-door.completed .ragwan-door-status{background:#08734f}
+.ragwan-door.started .ragwan-door-status{background:#866514}
 .ragwan-step-panel{position:relative;z-index:2;margin:0 auto;max-width:980px;min-height:280px;border-radius:28px;padding:26px;background:linear-gradient(135deg,rgba(7,42,36,.97),rgba(15,81,63,.94));color:#fff;box-shadow:0 24px 55px rgba(4,31,25,.25);overflow:hidden}
 .ragwan-step-panel:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 85% 15%,rgba(255,207,73,.18),transparent 30%),radial-gradient(circle at 10% 90%,rgba(63,191,154,.16),transparent 32%);pointer-events:none}
 .ragwan-step-inner{position:relative;display:grid;grid-template-columns:1fr 230px;gap:24px;align-items:center}
@@ -1388,8 +1380,8 @@ function ragwanSuccessIntro(){
 @keyframes ragwanDoorEntrance{from{opacity:0;transform:translateY(35px) rotateX(10deg)}to{opacity:1;transform:translateY(0) rotateX(0)}}
 .ragwan-door{animation:ragwanDoorEntrance .7s both}
 .ragwan-door:nth-child(1){animation-delay:.05s}.ragwan-door:nth-child(2){animation-delay:.1s}.ragwan-door:nth-child(3){animation-delay:.15s}.ragwan-door:nth-child(4){animation-delay:.2s}.ragwan-door:nth-child(5){animation-delay:.25s}.ragwan-door:nth-child(6){animation-delay:.3s}.ragwan-door:nth-child(7){animation-delay:.35s}.ragwan-door:nth-child(8){animation-delay:.4s}.ragwan-door:nth-child(9){animation-delay:.45s}.ragwan-door:nth-child(10){animation-delay:.5s}
-@media(max-width:900px){.ragwan-door-gallery{grid-template-columns:repeat(5,minmax(115px,1fr));overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:16px}.ragwan-door{min-width:125px;scroll-snap-align:center}.ragwan-step-inner{grid-template-columns:1fr 180px}}
-@media(max-width:650px){.ragwan-journey{padding:20px 10px;border-radius:22px}.ragwan-door-gallery{grid-template-columns:repeat(5,125px);gap:10px}.ragwan-door{height:225px}.ragwan-door-label{font-size:13px}.ragwan-step-inner{grid-template-columns:1fr}.ragwan-step-side{order:-1}.ragwan-step-panel{padding:20px;border-radius:22px}.ragwan-step-action{min-height:50px}}
+@media(max-width:900px){.ragwan-door-gallery{grid-template-columns:repeat(5,minmax(145px,1fr));overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:16px}.ragwan-door{min-width:145px;scroll-snap-align:center}.ragwan-step-inner{grid-template-columns:1fr 180px}}
+@media(max-width:650px){.ragwan-journey{padding:20px 10px;border-radius:22px}.ragwan-door-gallery{grid-template-columns:repeat(5,150px);gap:10px}.ragwan-door{height:250px}.ragwan-door-label{font-size:12px;left:12%;right:12%}.ragwan-door-icon{top:78px}.ragwan-door-label{top:118px}.ragwan-step-inner{grid-template-columns:1fr}.ragwan-step-side{order:-1}.ragwan-step-panel{padding:20px;border-radius:22px}.ragwan-step-action{min-height:50px}}
 @media(prefers-reduced-motion:reduce){.ragwan-door,.ragwan-journey:before{animation:none}.ragwan-door-leaf,.ragwan-door-room,.ragwan-step-progress span{transition:none}}
 @keyframes ragwanWordReveal{to{opacity:1;transform:translateY(0)}}
 
@@ -1604,19 +1596,19 @@ function ragwanDoorData(){
       check:'هل تم طرح فكرة العمل فعلًا، ومناقشة اعتراضات الشخص، وتحديد ما إذا كان سينتقل إلى التسجيل أو يحتاج إلى متابعة إضافية؟',
       win:'إنجاز الخطوة عند تنفيذ عرض فكرة العمل مع الشخص، ومتابعة نتيجة العرض وتحديد الإجراء التالي.',
       task:'تنفيذ عرض فكرة عمل واحد مع شخص مناسب، ثم توثيق نتيجة العرض والمتابعة المطلوبة.'},
-    {n:2,icon:'📝',title:'تسجيل عضوية جديدة',short:'تسجيل العضوية',text:'تسجيل عضوية جديدة بعد أن يبدي الشخص وقتًا وجهدًا واستعدادًا حقيقيًا للمشروع.',goal:'تحويل الاهتمام والاستعداد الحقيقي إلى خطوة تسجيل واضحة ومنظمة.',
-      learn:'تعلّم كيف تميّز بين الفضول وبين الشخص الذي أبدى استعدادًا حقيقيًا للبدء.',
-      apply:'تابع الشخص، اشرح له الخطوة التالية، وساعده على إتمام التسجيل بطريقة واضحة.',
-      check:'هل أصبح الشخص عضوًا بعد فهمه للخطوة والتزامه بها؟',
-      win:'إنجاز الخطوة عند إتمام التسجيل أو توثيق محاولة جادة مع شخص مؤهل.',
-      task:'تحويل اهتمام مؤهل إلى تسجيل.'},
-    {n:3,icon:'👨‍👩‍👧‍👦',title:'إضافة العضو إلى كروب الجدد المغلق',short:'كروب الجدد',text:'إضافة العضو الجديد إلى كروب واتساب مغلق مخصص للجدد، ليعيش أجواء التحفيز ويتابع المنشورات والفيديوهات التي تساعده على البداية الصحيحة.',
-      goal:'إبقاء العضو قريبًا من بيئة التحفيز والدعم في أيامه الأولى.',
-      learn:'تعرّف على دور كروب الجدد: مساحة واتساب مغلقة، يشارك فيها المشرفون فقط، بينما يستفيد العضو من متابعة المنشورات التحفيزية والفيديوهات والتوجيهات المنشورة.',
-      apply:'تتم إضافة العضو الجديد إلى الكروب من قبل المشرفين، وذلك بالتواصل مع مدربك أو الأستاذ رجوان لطلب الإضافة. بعد الإضافة، رحّب بالعضو ووجّهه إلى متابعة المنشورات التحفيزية والفيديوهات الموجودة فيه.',
-      check:'هل دخل العضو إلى الكروب وأصبح قادرًا على متابعة المحتوى التحفيزي ومعرفة الخطوة التالية؟',
-      win:'إنجاز الخطوة عند إضافة العضو إلى الكروب والتأكد من دخوله ومتابعته للمحتوى.',
-      task:'إضافة العضو الجديد إلى كروب الجدد المغلق وتهيئته نفسيًا وعمليًا للبداية.'},
+    {n:2,icon:'📝',title:'تسجيل العضوية وبدء رحلة العضو',short:'تسجيل العضوية',text:'بعد أن يقرر الشخص البدء، تقوده هنا لإتمام التسجيل بطريقة منظمة، ثم تتأكد من دخوله إلى حسابه وتسليمه نقطة الانطلاق التالية.',goal:'تحويل قرار الشخص إلى عضوية فعلية وبداية منظمة للرحلة، دون الخلط بين التسجيل وبين التدريب اللاحق.',
+      learn:'تعرّف على مسار التسجيل المعتمد، ومتى تستخدم رابط الرعاية، ومتى تجمع معلومات التسجيل بالطريقة الأخرى، وما الذي يجب التأكد منه بعد إتمام العضوية.',
+      apply:'نفّذ التسجيل مع الشخص أو وجّهه خلاله، ثم تحقّق من إتمام العضوية ووصول بيانات الدخول إليه، ووجّهه إلى الخطوة الثالثة دون إعادة شرح محتوى التدريب الموجود في الأقسام الأخرى.',
+      check:'هل أصبحت العضوية مكتملة؟ وهل حصل العضو على طريقة الدخول إلى حسابه وعرف بوضوح ما الذي سيفعله بعد التسجيل؟',
+      win:'إنجاز الخطوة عند إتمام العضوية والتحقق من وصول بيانات الدخول وتحديد الانتقال الصحيح للخطوة الثالثة.',
+      task:'إتمام تسجيل عضو جديد والتحقق من جاهزيته للانتقال إلى ما بعد التسجيل.'},
+    {n:3,icon:'👨‍👩‍👧‍👦',title:'تهيئة العضو داخل كروب الجدد',short:'كروب الجدد',text:'بعد إتمام العضوية، ينقل الراعي العضو إلى بيئة الجدد ويهيئه لمتابعة البداية الصحيحة دون إغراقه بالتفاصيل أو تحويل الكروب إلى بديل عن التدريب.',
+      goal:'تهيئة العضو نفسيًا وعمليًا للمرحلة التالية، وربطه ببيئة الدعم والمحتوى المخصص للجدد.',
+      learn:'تعرّف على دور كروب الجدد: بيئة مغلقة يشارك فيها المشرفون، يتابع فيها العضو المنشورات والفيديوهات والتوجيهات الأساسية، بينما يبقى التدريب التفصيلي داخل قسم الشروحات والتدريبات.',
+      apply:'اطلب إضافة العضو إلى الكروب من المشرف أو المدرب المعتمد، ثم تأكد من دخوله، رحّب به، ووجّهه إلى متابعة المحتوى المنشور فيه ومعرفة الخطوة التالية. لا تُحمّل العضو مواد تدريبية إضافية خارج المسار في هذه المرحلة.',
+      check:'هل دخل العضو إلى الكروب؟ وهل عرف وظيفة الكروب وما المطلوب منه في المرحلة الحالية ومن سيقوده في الخطوة التالية؟',
+      win:'إنجاز الخطوة عند دخول العضو إلى الكروب، واستقباله وتوجيهه بوضوح إلى المرحلة التالية.',
+      task:'إضافة العضو إلى كروب الجدد وتهيئته للانتقال المنظم إلى الخطوة الرابعة.'},
     {n:4,icon:'📋',title:'اختبار وإرساله للتدريب مع الأسئلة',short:'اختبار التدريب',text:'اختبار وإرساله للتدريب مع الأسئلة حتى يتحول التعلم إلى تطبيق فعلي.',goal:'التأكد من الفهم قبل الانتقال للخطوة التالية.',
       learn:'تعلّم لماذا الاختبار أداة لفهم الاحتياج، وليس مجرد إجراء شكلي.',
       apply:'أرسل الاختبار، وراجع الإجابات، وحدد التدريب الذي يحتاجه العضو.',
@@ -1711,8 +1703,14 @@ function ragwanDoorJourneyMarkup(){
   const doors=d.map(x=>{
     const status=ragwanStepStatus(x.n,state),locked=status==='locked';
     return '<button type="button" class="ragwan-door '+status+'" id="ragwanDoor'+x.n+'" '+(locked?'disabled':'')+' onclick="ragwanOpenDoor('+x.n+')" aria-label="'+esc(x.title)+'">'+
-      '<span class="ragwan-door-frame"></span><span class="ragwan-door-leaf"></span><span class="ragwan-door-glow"></span><span class="ragwan-door-room"></span>'+
-      '<span class="ragwan-door-content"><span class="ragwan-door-num">'+x.n+'</span><span class="ragwan-door-icon">'+x.icon+'</span><span class="ragwan-door-label">'+esc(x.short)+'</span><span class="ragwan-door-status">'+ragwanStatusLabel(status)+'</span><span class="ragwan-door-hint">'+(status==='completed'?'✓ تم الإنجاز':locked?'🔒 أكمل السابقة':'اضغط لفتح الخطوة')+'</span></span>'+
+      '<span class="ragwan-door-image-wrap"><img class="ragwan-door-image" src="/ragwan-door-locked.png" alt="'+esc(x.title)+'" loading="lazy"></span>'+
+      '<span class="ragwan-door-overlay"></span>'+
+      '<span class="ragwan-door-content">'+
+        '<span class="ragwan-door-num">'+x.n+'</span>'+
+        '<span class="ragwan-door-icon">'+x.icon+'</span>'+
+        '<span class="ragwan-door-label">'+esc(x.short)+'</span>'+
+        '<span class="ragwan-door-status">'+ragwanStatusLabel(status)+'</span>'+
+      '</span>'+
     '</button>';
   }).join('');
   const chips=d.map(x=>{
@@ -1727,7 +1725,6 @@ function ragwanDoorJourneyMarkup(){
       '<div class="ragwan-progress-stats"><div><b id="ragwanRealProgressDone">0</b><span>مكتملة</span></div><div><b id="ragwanRealProgressCurrent">'+current+'</b><span>الحالية</span></div><div><b id="ragwanRealProgressRemaining">10</b><span>متبقية</span></div><div><b>10</b><span>إجمالي الخطوات</span></div></div>'+
     '</div>'+
     '<div class="ragwan-door-gallery">'+doors+'</div>'+
-    '<div class="ragwan-reference-open"><div><div class="n" id="ragwanOpenDoorNumber">1</div><div class="i" id="ragwanOpenDoorIcon">👥</div><div class="t" id="ragwanOpenDoorLabel">عرض فكرة العمل مع رد الاعتراضات</div><small id="ragwanOpenDoorStatus">متاحة</small></div></div>'+
     '<div class="ragwan-step-panel" id="ragwanStepPanel">'+
       '<div class="ragwan-step-inner">'+
         '<div class="ragwan-step-main">'+
