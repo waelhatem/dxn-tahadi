@@ -1764,6 +1764,9 @@ const ragwanStepVideos={
     {title:'محاضرة رد الاعتراضات — م. فراس الجنابي 👑 — الجزء الأول',url:'https://www.youtube.com/watch?v=5f03-0VDRmw'},
     {title:'محاضرة رد الاعتراضات — م. فراس الجنابي 👑 — الجزء الثاني',url:'https://www.youtube.com/watch?v=cOraXbUmInw'},
     {title:'تدريب «سعرك غالي» — م. حسام علي 👑',url:'https://www.youtube.com/watch?v=QnyLC6AKb00'}
+  ],
+  2:[
+    {title:'🎥 شرح طريقة عمل العضوية',url:'https://youtu.be/SwUb4SC3kO4'}
   ]
 };
 function ragwanYoutubeId(url){
@@ -1850,7 +1853,9 @@ function ragwanRenderStepVideos(){
   const el=document.getElementById('ragwanStepVideos');if(!el)return;
   const videos=ragwanStepVideos[ragwanCurrentStep]||[];
   if(!videos.length){el.innerHTML='';return;}
-  el.innerHTML='<div class="ragwan-video-material-head"><div><b>🎥 فيديوهات الاعتراضات</b><small>هذه الفيديوهات مخصصة للخطوة الأولى وتأتي بعد ملفات طرح فكرة العمل.</small></div></div>'+
+  const headTitle=ragwanCurrentStep===2?'🎥 شرح طريقة عمل العضوية':'🎥 فيديوهات الاعتراضات';
+  const headNote=ragwanCurrentStep===2?'شاهد هذا الفيديو لفهم طريقة عمل العضوية قبل الانتقال إلى الخطوة التالية.':'هذه الفيديوهات مخصصة للخطوة الأولى وتأتي بعد ملفات طرح فكرة العمل.';
+  el.innerHTML='<div class="ragwan-video-material-head"><div><b>'+headTitle+'</b><small>'+headNote+'</small></div></div>'+
     '<div class="ragwan-step-video-list">'+videos.map((v,i)=>{
       const id=ragwanYoutubeId(v.url);
       return '<article class="ragwan-step-video-card"><div class="ragwan-step-video-title"><span>🎥</span><b>'+esc(v.title)+'</b></div>'+(id?'<div class="ragwan-step-video-frame"><iframe src="https://www.youtube.com/embed/'+esc(id)+'" title="'+esc(v.title)+'" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>':'<a href="'+esc(v.url)+'" target="_blank" rel="noopener">فتح الفيديو</a>')+'</article>';
