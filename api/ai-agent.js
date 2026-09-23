@@ -5,7 +5,7 @@ const SUPABASE_SECRET_KEY = String(process.env.SUPABASE_SECRET_KEY || process.en
 const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY || '').trim().replace(/[\r\n]/g,'');
 const OPENAI_MODEL = process.env.AI_AGENT_MODEL || 'gpt-5.6-luna';
 const OPENAI_HELPER_MODEL = process.env.AI_AGENT_HELPER_MODEL || 'gpt-5-nano';
-const {detectTrainingAssessmentQuestion}=require('./training-assessment-protection');
+const {detectTrainingAssessmentQuestion}=require('../training-assessment-protection');
 
 const LOCAL_KNOWLEDGE_SOURCES=[
   require('./knowledge/objections_mmahmoud.json'),
