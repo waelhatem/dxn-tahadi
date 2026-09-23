@@ -2199,17 +2199,17 @@ function ragwanOpenDoor(n){
   if(role!=='leader' && step>maxOpen){toast('🔒 هذه الخطوة مغلقة. أكمل الخطوة السابقة أولًا.');return;}
   const item=data[step-1],status=ragwanStepStatus(step,state);
   ragwanCurrentStep=step;
-  const pressedDoor=document.getElementById('ragwanDoor'+step);
-  if(pressedDoor){
-    pressedDoor.classList.add('press3d');
-    clearTimeout(window.ragwanDoorPressTimer);
-    window.ragwanDoorPressTimer=setTimeout(()=>pressedDoor.classList.remove('press3d'),650);
-  }
   data.forEach(x=>{
     const door=document.getElementById('ragwanDoor'+x.n),chip=document.getElementById('ragwanDoorChip'+x.n),s=ragwanStepStatus(x.n,state);
     if(door){door.classList.remove('open','active','completed','started','available','locked','press3d');door.classList.add(s);door.classList.toggle('open',x.n===step);}
     if(chip){chip.classList.remove('active','completed','started','available','locked');chip.classList.add(s);chip.classList.toggle('active',x.n===step);}
   });
+  const pressedDoor=document.getElementById('ragwanDoor'+step);
+  if(pressedDoor){
+    pressedDoor.classList.add('press3d');
+    clearTimeout(window.ragwanDoorPressTimer);
+    window.ragwanDoorPressTimer=setTimeout(()=>pressedDoor.classList.remove('press3d'),850);
+  }
   const title=document.getElementById('ragwanStepTitle'),text=document.getElementById('ragwanStepText'),goal=document.getElementById('ragwanStepGoal'),num=document.getElementById('ragwanStepNumber'),k=document.getElementById('ragwanStepKicker'),p=document.getElementById('ragwanStepProgress'),pl=document.getElementById('ragwanStepProgressLabel'),openNum=document.getElementById('ragwanOpenDoorNumber'),openIcon=document.getElementById('ragwanOpenDoorIcon'),openLabel=document.getElementById('ragwanOpenDoorLabel'),openStatus=document.getElementById('ragwanOpenDoorStatus');
   if(title)title.textContent=item.title;if(text)text.textContent=item.text;if(goal)goal.innerHTML='<b>🎯 الهدف</b> '+esc(item.goal);
   if(num)num.textContent=step;if(openNum)openNum.textContent=step;if(openIcon)openIcon.textContent=item.icon;if(openLabel)openLabel.textContent=item.title;if(openStatus)openStatus.textContent=ragwanStatusLabel(status);
