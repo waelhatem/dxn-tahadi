@@ -50,7 +50,111 @@
     return m?Number(m[1]):1;
   }
 
+  function openBook1(door){
+    if(busy) return;
+    busy=true;
+    injectBookCss();
+
+    const n=1;
+    if(typeof window.ragwanOpenDoor==='function'){
+      try{ window.ragwanOpenDoor(n); }catch(e){ console.error(e); }
+      const panel=document.getElementById('ragwanStepPanel');
+      if(panel){
+        const top=window.scrollY+panel.getBoundingClientRect().top-Math.max(90,window.innerWidth<=620?78:90);
+        window.scrollTo({top:Math.max(0,top),behavior:'auto'});
+      }
+    }
+
+    const label=door.querySelector('.ragwan-door-label');
+    const title=label?label.textContent.trim():'عرض فكرة العمل مع رد الاعتراضات';
+    const detail='عرض فكرة العمل على الشخص بطريقة واضحة، ثم التعامل مع اعتراضاته وتحديد الخطوة التالية معه.';
+
+    overlay=document.createElement('div');
+    overlay.className='ragwan-book-overlay';
+    overlay.innerHTML=
+      '<div class="ragwan-book-scene">'+
+        '<button class="ragwan-book-close" type="button" aria-label="إغلاق">×</button>'+
+        '<div class="ragwan-book-title">'+
+          '<span class="ragwan-book-num">1</span>'+title+
+        '</div>'+
+        '<div class="ragwan-book">'+
+          '<div class="ragwan-book-pages"><div class="ragwan-page-lines"></div></div>'+
+          '<div class="ragwan-book-back"></div>'+
+          '<div class="ragwan-book-cover">'+
+            '<div class="ragwan-book-cover-inner">'+
+              '<span class="ragwan-book-cover-num">1</span>'+
+              '<strong>'+title+'</strong>'+
+              '<span>'+detail+'</span>'+ 
+            '</div>'+ 
+          '</div>'+ 
+          '<div class="ragwan-book-spine"></div>'+ 
+        '</div>'+ 
+        '<div class="ragwan-book-hint">افتح الكتاب لتبدأ الخطوة</div>'+ 
+      '</div>';
+
+    document.body.appendChild(overlay);
+    document.body.style.overflow='hidden';
+    requestAnimationFrame(function(){overlay.classList.add('show');});
+
+    let done=false;
+    function finish(){
+      if(done) return;
+      done=true;
+      document.body.style.overflow='';
+      if(overlay) overlay.classList.remove('show');
+      setTimeout(function(){
+        if(overlay) overlay.remove();
+        overlay=null;
+        busy=false;
+      },420);
+    }
+
+    overlay.querySelector('.ragwan-book-close').onclick=finish;
+
+    setTimeout(function(){
+      if(!overlay || done) return;
+      overlay.classList.add('opening');
+    },550);
+
+    setTimeout(function(){
+      if(!overlay || done) return;
+      overlay.classList.add('revealing');
+    },1750);
+
+    setTimeout(finish,2550);
+  }
+
+  function injectBookCss(){
+    if(document.getElementById('ragwanBookCss')) return;
+    const style=document.createElement('style');
+    style.id='ragwanBookCss';
+    style.textContent=
+      '.ragwan-book-overlay{position:fixed;inset:0;z-index:100000;background:radial-gradient(circle at 50% 44%,rgba(29,82,67,.96),rgba(3,20,16,.995) 72%);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .38s ease;direction:rtl;overflow:hidden}'+
+      '.ragwan-book-overlay.show{opacity:1}'+
+      '.ragwan-book-scene{position:relative;width:min(92vw,760px);height:min(92vh,760px);display:flex;align-items:center;justify-content:center;perspective:1400px}'+
+      '.ragwan-book-title{position:absolute;top:18px;right:18px;left:18px;text-align:center;color:#fff;font-weight:950;font-size:clamp(15px,2.2vw,24px);text-shadow:0 3px 18px #0008;z-index:10}'+
+      '.ragwan-book-num{display:inline-grid;place-items:center;width:34px;height:34px;margin-left:8px;border-radius:50%;background:linear-gradient(145deg,#f7df88,#b8861b);color:#2c2411;vertical-align:middle}'+
+      '.ragwan-book-close{position:absolute;top:12px;left:12px;width:42px;height:42px;border-radius:50%;border:1px solid #ffffff44;background:#ffffff18;color:#fff;font-size:24px;z-index:20;cursor:pointer}'+
+      '.ragwan-book{position:relative;width:300px;height:400px;transform:translateY(18px) rotateX(4deg) scale(.82);transform-style:preserve-3d;filter:drop-shadow(0 30px 28px rgba(0,0,0,.48));transition:transform 1.1s cubic-bezier(.2,.8,.2,1)}'+
+      '.ragwan-book-overlay.opening .ragwan-book{transform:translateY(0) rotateX(2deg) scale(1.08)}'+
+      '.ragwan-book-overlay.revealing .ragwan-book{transform:translateY(0) rotateX(0) scale(1.34)}'+
+      '.ragwan-book-pages,.ragwan-book-back,.ragwan-book-cover{position:absolute;inset:0;border-radius:8px 14px 14px 8px;transform-style:preserve-3d}'+
+      '.ragwan-book-back{background:linear-gradient(100deg,#4e2614,#8a4a25 55%,#3a1c10);box-shadow:inset -12px 0 20px #0006,inset 5px 0 8px #fff1}'+
+      '.ragwan-book-pages{right:10px;left:9px;top:10px;bottom:10px;background:repeating-linear-gradient(0deg,#f8f0da 0,#f8f0da 5px,#ded3b8 6px,#fff8e8 8px);box-shadow:inset 0 0 18px #8d775633,0 4px 7px #0005;transform:translateZ(8px)}'+
+      '.ragwan-page-lines{position:absolute;inset:22px 20px;background:repeating-linear-gradient(180deg,transparent 0 20px,rgba(88,72,49,.16) 21px 22px);opacity:.7}'+
+      '.ragwan-book-cover{background:linear-gradient(135deg,#173e32,#0d2b22 58%,#082019);transform-origin:right center;transform:translateZ(14px) rotateY(0deg);transition:transform 1.35s cubic-bezier(.2,.75,.18,1);box-shadow:inset -8px 0 12px #0007,inset 5px 0 12px #ffffff0d}'+
+      '.ragwan-book-overlay.opening .ragwan-book-cover{transform:translateZ(14px) rotateY(-155deg)}'+
+      '.ragwan-book-cover-inner{position:absolute;inset:24px 20px;border:1px solid #d9b85d88;border-radius:5px;padding:34px 22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;color:#f9e8ad;backface-visibility:hidden;box-shadow:inset 0 0 25px #0003}'+
+      '.ragwan-book-cover-inner strong{font-size:25px;line-height:1.55}.ragwan-book-cover-inner>span:last-child{font-size:12px;line-height:1.8;color:#e8dfc7;opacity:.9}'+
+      '.ragwan-book-cover-num{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#f8df88,#a87516);color:#2d230d;font-size:25px;font-weight:950;box-shadow:0 8px 20px #0004}'+
+      '.ragwan-book-spine{position:absolute;top:0;right:-10px;width:18px;height:100%;border-radius:5px;background:linear-gradient(90deg,#35180d,#9a5229,#4a2413);transform:translateZ(2px);box-shadow:0 0 10px #0007}'+
+      '.ragwan-book-hint{position:absolute;bottom:30px;color:#dbece5;font-size:13px;opacity:.86;transition:opacity .3s}.ragwan-book-overlay.opening .ragwan-book-hint{opacity:0}'+
+      '@media(max-width:620px){.ragwan-book-scene{width:100vw;height:100vh}.ragwan-book{width:220px;height:300px;transform:translateY(18px) rotateX(4deg) scale(.76)}.ragwan-book-overlay.opening .ragwan-book{transform:translateY(0) rotateX(2deg) scale(.9)}.ragwan-book-overlay.revealing .ragwan-book{transform:translateY(0) rotateX(0) scale(1.12)}.ragwan-book-cover-inner{inset:16px 14px;padding:22px 12px;gap:11px}.ragwan-book-cover-inner strong{font-size:19px}.ragwan-book-cover-inner>span:last-child{font-size:10px;line-height:1.7}.ragwan-book-title{top:60px;right:48px;left:48px;font-size:14px}.ragwan-book-num{width:28px;height:28px;font-size:12px}.ragwan-book-close{top:12px;left:12px}.ragwan-book-hint{bottom:34px;font-size:11px}}';
+    document.head.appendChild(style);
+  }
+
   function open3d(door){
+    if(getStepNumber(door)===1){ openBook1(door); return; }
     if(busy) return;
     busy=true;
     injectCss();
