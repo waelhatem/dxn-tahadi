@@ -1883,13 +1883,13 @@ function ragwanRenderStepWelcome(){
   if(!el)return;
   if(ragwanCurrentStep!==3){el.innerHTML='';return;}
   el.innerHTML='<section class="ragwan-welcome-card">'+
-    '<div class="ragwan-welcome-head"><span>🎉</span><div><h3>رسالة الترحيب بالعضو الجديد</h3><p>بعد إضافة العضو إلى كروب الجدد، استخدم هذا النموذج لإرسال رسالة ترحيبية مناسبة له.</p></div></div>'+\
-    '<div class="ragwan-welcome-fields">'+\
-      '<label>اسم العضو<input id="ragwanWelcomeName" type="text" placeholder="اكتب اسم العضو الجديد"></label>'+\
-      '<label>رقم العضوية<input id="ragwanWelcomeNo" type="text" inputmode="numeric" placeholder="اكتب رقم العضوية"></label>'+\
-    '</div>'+\
-    '<div class="ragwan-welcome-message" id="ragwanWelcomeMessage"></div>'+\
-    '<button type="button" class="ragwan-welcome-copy" onclick="ragwanCopyWelcomeMessage()">📋 نسخ رسالة الترحيب</button>'+\
+    '<div class="ragwan-welcome-head"><span>🎉</span><div><h3>رسالة الترحيب بالعضو الجديد</h3><p>بعد إضافة العضو إلى كروب الجدد، استخدم هذا النموذج لإرسال رسالة ترحيبية مناسبة له.</p></div></div>'+
+    '<div class="ragwan-welcome-fields">'+
+      '<label>اسم العضو<input id="ragwanWelcomeName" type="text" placeholder="اكتب اسم العضو الجديد"></label>'+
+      '<label>رقم العضوية<input id="ragwanWelcomeNo" type="text" inputmode="numeric" placeholder="اكتب رقم العضوية"></label>'+
+    '</div>'+
+    '<div class="ragwan-welcome-message" id="ragwanWelcomeMessage"></div>'+
+    '<button type="button" class="ragwan-welcome-copy" onclick="ragwanCopyWelcomeMessage()">📋 نسخ رسالة الترحيب</button>'+
   '</section>';
   const update=()=>{
     const name=(document.getElementById('ragwanWelcomeName')||{}).value||'العضو الجديد';
