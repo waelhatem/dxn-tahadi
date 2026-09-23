@@ -104,6 +104,9 @@ body.mobile-mode .view-switch button{min-width:120px}
 
 .ragwan-account-info-card{margin-top:16px;padding:18px;border:2px solid #d9e8df;border-radius:20px;background:linear-gradient(135deg,#f7fcf9,#fff);box-shadow:0 8px 22px rgba(15,81,63,.08)}
 .ragwan-account-info-card h3{margin:0 0 8px;color:#0f513f;font-size:20px}.ragwan-account-info-card p{margin:0 0 14px;color:#66756f;line-height:1.8;font-size:13px}.ragwan-account-field{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;margin-top:8px;border:1px solid #e1ebe6;border-radius:14px;background:#fff}.ragwan-account-field b{color:#123b30}.ragwan-account-field span,.ragwan-account-field a{direction:ltr;text-align:left;word-break:break-all;color:#31544a}.ragwan-account-field a{color:#0f6a54;font-weight:800}.ragwan-account-video{margin-top:12px;padding:14px;border-radius:16px;background:#eef8f2;border:1px solid #cfe4da;display:flex;justify-content:space-between;align-items:center;gap:10px}.ragwan-account-video b{color:#123b30}.ragwan-account-video a{background:#0f513f;color:#fff;padding:9px 12px;border-radius:11px;text-decoration:none;font-weight:900;white-space:nowrap}@media(max-width:600px){.ragwan-account-field,.ragwan-account-video{display:block}.ragwan-account-field span,.ragwan-account-field a,.ragwan-account-video a{display:block;margin-top:6px}.ragwan-account-video a{width:max-content}}
+
+.ragwan-welcome-card{margin-top:16px;padding:18px;border:2px solid #eadcb0;border-radius:20px;background:linear-gradient(135deg,#fffaf0,#fff);box-shadow:0 8px 22px rgba(121,83,0,.08)}
+.ragwan-welcome-head{display:flex;gap:12px;align-items:flex-start}.ragwan-welcome-head>span{font-size:30px}.ragwan-welcome-head h3{margin:0;color:#795900;font-size:20px}.ragwan-welcome-head p{margin:5px 0 0;color:#66756f;line-height:1.8;font-size:13px}.ragwan-welcome-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.ragwan-welcome-fields label{font-weight:900;color:#123b30}.ragwan-welcome-fields input{margin-top:6px}.ragwan-welcome-message{white-space:pre-wrap;line-height:1.9;margin-top:12px;padding:15px;border:1px solid #e6dfc9;border-radius:16px;background:#fff;color:#26352f;font-size:14px}.ragwan-welcome-copy{margin-top:10px;background:#0f513f;color:#fff;width:100%}@media(max-width:600px){.ragwan-welcome-fields{grid-template-columns:1fr}}
 </style></style>  <link rel="icon" type="image/png" href="logo.png">
 
 <style>
@@ -1729,7 +1732,7 @@ function ragwanDoorJourneyMarkup(){
           '</div>'+
           '<div class="ragwan-task-box"><span>🎯 المطلوب الآن</span><b id="ragwanStepTask"></b></div>'+
           '<div class="ragwan-step-resources" id="ragwanStepResources"></div>'+
-          '<div class="ragwan-step-videos" id="ragwanStepVideos"></div>'+
+          '<div class="ragwan-step-videos" id="ragwanStepVideos"></div><div id="ragwanStepWelcome"></div>'+
           '<div class="ragwan-step-test" id="ragwanStepTest"></div>'+
           '<div class="ragwan-evidence-box" id="ragwanEvidenceBox"></div>'+
         '</div>'+
@@ -1874,6 +1877,37 @@ function ragwanRenderStepVideos(){
       '<div class="ragwan-account-field"><b>🌐 رابط الدخول للصفحة الشخصية</b><a href="https://eworld.dxn2u.com/index.php?r=site%2Findex" target="_blank" rel="noopener noreferrer">https://eworld.dxn2u.com/index.php?r=site%2Findex</a></div>'+
       '<div class="ragwan-account-video"><b>🎥 فيديو تعليمي: كيفية الدخول إلى حسابي الشخصي</b><a href="https://youtu.be/m7paRMpK0vU" target="_blank" rel="noopener noreferrer">▶️ مشاهدة الفيديو التعليمي</a></div>'+
     '</section>':'');
+}
+function ragwanRenderStepWelcome(){
+  const el=document.getElementById('ragwanStepWelcome');
+  if(!el)return;
+  if(ragwanCurrentStep!==3){el.innerHTML='';return;}
+  el.innerHTML='<section class="ragwan-welcome-card">'+
+    '<div class="ragwan-welcome-head"><span>🎉</span><div><h3>رسالة الترحيب بالعضو الجديد</h3><p>بعد إضافة العضو إلى كروب الجدد، استخدم هذا النموذج لإرسال رسالة ترحيبية مناسبة له.</p></div></div>'+\
+    '<div class="ragwan-welcome-fields">'+\
+      '<label>اسم العضو<input id="ragwanWelcomeName" type="text" placeholder="اكتب اسم العضو الجديد"></label>'+\
+      '<label>رقم العضوية<input id="ragwanWelcomeNo" type="text" inputmode="numeric" placeholder="اكتب رقم العضوية"></label>'+\
+    '</div>'+\
+    '<div class="ragwan-welcome-message" id="ragwanWelcomeMessage"></div>'+\
+    '<button type="button" class="ragwan-welcome-copy" onclick="ragwanCopyWelcomeMessage()">📋 نسخ رسالة الترحيب</button>'+\
+  '</section>';
+  const update=()=>{
+    const name=(document.getElementById('ragwanWelcomeName')||{}).value||'العضو الجديد';
+    const no=(document.getElementById('ragwanWelcomeNo')||{}).value||'......';
+    const msg='🎉👑 نبارك للأخت/الأخ '+name+' 👑🎉\\n\\nانضمامه رسمياً إلى عائلة DXN العالمية وحصوله على العضوية رقم ('+no+') 💎\\n\\nإنها ليست مجرد عضوية، بل خطوة نحو عالم من الفرص والتطوير والنمو الشخصي والمالي، وبداية رحلة جديدة مليئة بالتعلم والإنجاز وبناء العلاقات الناجحة. 🚀\\n\\nكل التهاني والتبريكات لك، ونسأل الله أن يجعل هذه البداية فاتحة خير وبركة ونجاح، وأن تحقق من خلالها أهدافك وطموحاتك الكبيرة. 🌟\\n\\n🌟 أهلاً وسهلاً بك بين أفراد فريق الأمل الريادي، ويسعدنا أن تكون جزءاً من هذه العائلة الطموحة التي تؤمن بالنجاح والعمل الجماعي وصناعة المستقبل.\\n\\nمع خالص الأمنيات لك بالتوفيق والتميز والإنجاز. 🌹';
+    const box=document.getElementById('ragwanWelcomeMessage');if(box)box.textContent=msg;
+  };
+  ['ragwanWelcomeName','ragwanWelcomeNo'].forEach(id=>{const input=document.getElementById(id);if(input)input.addEventListener('input',update)});
+  update();
+}
+function ragwanCopyWelcomeMessage(){
+  const box=document.getElementById('ragwanWelcomeMessage');
+  if(!box)return;
+  navigator.clipboard.writeText(box.textContent).then(()=>{
+    if(typeof ragwanToast==='function')ragwanToast('تم نسخ رسالة الترحيب بنجاح.');
+  }).catch(()=>{
+    const range=document.createRange();range.selectNodeContents(box);const sel=window.getSelection();sel.removeAllRanges();sel.addRange(range);document.execCommand('copy');sel.removeAllRanges();
+  });
 }
 function ragwanStepTestPassed(step){
   const raw=localStorage.getItem('dxn_ragwan_test_v1_'+step);
@@ -2073,6 +2107,7 @@ function ragwanOpenDoor(n){
   ids.forEach(([id,value])=>{const el=document.getElementById(id);if(el)el.textContent=value;});
   ragwanRenderStepSection();
   ragwanRenderStepVideos();
+  ragwanRenderStepWelcome();
   ragwanRenderStepTest();
   ragwanLoadStepResources().then(()=>{
     const heading=document.getElementById('ragwanStepTitle');
