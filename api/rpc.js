@@ -213,8 +213,13 @@ module.exports = async function handler(req, res) {
         return res.status(current.status||500).json(current.data||{error:current.text||'تعذر التحقق من العضوية الحالية'});
       }
 
-      const legacyArgs={...args,p_root_member_no:memberNo};
-      delete legacyArgs.p_token;
+      const legacyArgs={
+        p_root_member_no:memberNo,
+        p_mode:args.p_mode||'summary',
+        p_member_no:args.p_member_no||null,
+        p_generation:args.p_generation??null,
+        p_limit:args.p_limit??50
+      };
       const legacy=await supabaseRpcRequest(fn,legacyArgs,SUPABASE_SECRET_KEY,10000);
       return res.status(legacy.status||500).json(legacy.data||{error:legacy.text||current.text||'تعذر تحميل بيانات الفريق'});
     }
