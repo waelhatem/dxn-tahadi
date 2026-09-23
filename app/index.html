@@ -1867,12 +1867,12 @@ function ragwanRenderStepVideos(){
       return '<article class="ragwan-step-video-card"><div class="ragwan-step-video-title"><span>🎥</span><b>'+esc(v.title)+'</b></div>'+(id?'<div class="ragwan-step-video-frame"><iframe src="https://www.youtube.com/embed/'+esc(id)+'" title="'+esc(v.title)+'" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>':'<a href="'+esc(v.url)+'" target="_blank" rel="noopener">فتح الفيديو</a>')+'</article>';
     }).join('')+'</div>'+
     (ragwanCurrentStep===2?'<section class="ragwan-account-info-card">'+
-      '<h3>💎 معلومات الدخول إلى حسابك الشخصي في DXN</h3>'+\
-      '<p>يفضل بعد تسجيل العضو الجديد إرسال هذه المعلومات له لمعرفة كيفية فتح حسابه الشخصي في نظام DXN.</p>'+\
-      '<div class="ragwan-account-field"><b>🔢 رقم العضوية</b><span>......</span></div>'+\
-      '<div class="ragwan-account-field"><b>🔐 الرقم السري</b><span>......</span></div>'+\
-      '<div class="ragwan-account-field"><b>🌐 رابط الدخول للصفحة الشخصية</b><a href="https://eworld.dxn2u.com/index.php?r=site%2Findex" target="_blank" rel="noopener noreferrer">https://eworld.dxn2u.com/index.php?r=site%2Findex</a></div>'+\
-      '<div class="ragwan-account-video"><b>🎥 فيديو تعليمي: كيفية الدخول إلى حسابي الشخصي</b><a href="https://youtu.be/m7paRMpK0vU" target="_blank" rel="noopener noreferrer">▶️ مشاهدة الفيديو التعليمي</a></div>'+\
+      '<h3>💎 معلومات الدخول إلى حسابك الشخصي في DXN</h3>'+
+      '<p>يفضل بعد تسجيل العضو الجديد إرسال هذه المعلومات له لمعرفة كيفية فتح حسابه الشخصي في نظام DXN.</p>'+
+      '<div class="ragwan-account-field"><b>🔢 رقم العضوية</b><span>......</span></div>'+
+      '<div class="ragwan-account-field"><b>🔐 الرقم السري</b><span>......</span></div>'+
+      '<div class="ragwan-account-field"><b>🌐 رابط الدخول للصفحة الشخصية</b><a href="https://eworld.dxn2u.com/index.php?r=site%2Findex" target="_blank" rel="noopener noreferrer">https://eworld.dxn2u.com/index.php?r=site%2Findex</a></div>'+
+      '<div class="ragwan-account-video"><b>🎥 فيديو تعليمي: كيفية الدخول إلى حسابي الشخصي</b><a href="https://youtu.be/m7paRMpK0vU" target="_blank" rel="noopener noreferrer">▶️ مشاهدة الفيديو التعليمي</a></div>'+
     '</section>':'');
 }
 function ragwanStepTestPassed(step){
