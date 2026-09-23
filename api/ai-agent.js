@@ -5,6 +5,7 @@ const SUPABASE_SECRET_KEY = String(process.env.SUPABASE_SECRET_KEY || process.en
 const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY || '').trim().replace(/[\r\n]/g,'');
 const OPENAI_MODEL = process.env.AI_AGENT_MODEL || 'gpt-5.6-luna';
 const OPENAI_HELPER_MODEL = process.env.AI_AGENT_HELPER_MODEL || 'gpt-5-nano';
+const {detectTrainingAssessmentQuestion}=require('./training-assessment-protection');
 
 const LOCAL_KNOWLEDGE_SOURCES=[
   require('./knowledge/objections_mmahmoud.json'),
@@ -3208,6 +3209,16 @@ module.exports=async function handler(req,res){
     const message=String(body.message||'').trim();
     if(!message)return res.status(400).json({error:'الرسالة مطلوبة'});
     if(message.length>6000)return res.status(400).json({error:'الرسالة طويلة جدًا'});
+
+    // HARD ASSESSMENT PROTECTION: never provide the answer to any of the 80 approved training questions.
+    // This gate runs before memory, knowledge retrieval, tools, or OpenAI so the model cannot bypass it.
+    const assessmentQuestion=detectTrainingAssessmentQuestion(message);
+    if(assessmentQuestion){
+      const protectionAnswer='هذا السؤال من أسئلة الاختبار المعتمدة للتدريب '+assessmentQuestion.lesson+'، لذلك ما راح أعطيك إجابته أو ألمّح لها.\n\nإذا تريد تتأكد من فهمك، جاوب عليه بأسلوبك أنت، وأنا أگدر أراجع لك إجابتك بعد الإرسال وفق معيار التدريب.';
+      await saveAgentMessage(token,'user',message).catch(()=>null);
+      await saveAgentMessage(token,'assistant',protectionAnswer).catch(()=>null);
+      return res.status(200).json({ok:true,answer:protectionAnswer,protected_assessment:true,lesson_no:assessmentQuestion.lesson});
+    }
     const context=await loadContext(token);
     // Save a durable snapshot of the member/training state on every coaching request.
     // This preserves watch progress and other training context across time.
