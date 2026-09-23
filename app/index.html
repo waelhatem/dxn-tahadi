@@ -1351,6 +1351,10 @@ function ragwanSuccessIntro(){
 .ragwan-door-status{position:absolute;bottom:30px;padding:5px 10px;border-radius:999px;background:rgba(7,48,38,.84);color:#fff;font-size:10px;font-weight:900;border:1px solid rgba(255,236,157,.55);box-shadow:0 5px 12px rgba(0,0,0,.22)}
 .ragwan-door:hover{transform:translateY(-5px);box-shadow:0 22px 42px rgba(12,42,34,.3)}
 .ragwan-door:hover .ragwan-door-image{transform:scale(1.035);filter:brightness(1.03)}
+/* المرحلة الأولى من حركة الباب: اقتراب ثلاثي الأبعاد عند الضغط */
+.ragwan-door.press3d{transform:translateY(-8px) translateZ(34px) scale(1.045) rotateX(1.2deg);box-shadow:0 28px 52px rgba(7,42,36,.38),0 0 0 3px rgba(240,199,88,.72);z-index:8}
+.ragwan-door.press3d .ragwan-door-image{transform:scale(1.025);filter:brightness(1.06) saturate(1.04)}
+.ragwan-door.press3d .ragwan-door-overlay{background:linear-gradient(180deg,rgba(4,22,17,.05) 0%,rgba(4,22,17,0) 35%,rgba(4,22,17,.48) 100%)}
 .ragwan-door.open{box-shadow:0 0 0 3px rgba(240,199,88,.75),0 22px 45px rgba(12,42,34,.3)}
 .ragwan-door.completed{box-shadow:0 0 0 3px rgba(42,178,116,.65),0 18px 38px rgba(12,42,34,.25)}
 .ragwan-door.started{box-shadow:0 0 0 3px rgba(218,174,62,.65),0 18px 38px rgba(12,42,34,.25)}
@@ -2195,9 +2199,15 @@ function ragwanOpenDoor(n){
   if(role!=='leader' && step>maxOpen){toast('🔒 هذه الخطوة مغلقة. أكمل الخطوة السابقة أولًا.');return;}
   const item=data[step-1],status=ragwanStepStatus(step,state);
   ragwanCurrentStep=step;
+  const pressedDoor=document.getElementById('ragwanDoor'+step);
+  if(pressedDoor){
+    pressedDoor.classList.add('press3d');
+    clearTimeout(window.ragwanDoorPressTimer);
+    window.ragwanDoorPressTimer=setTimeout(()=>pressedDoor.classList.remove('press3d'),650);
+  }
   data.forEach(x=>{
     const door=document.getElementById('ragwanDoor'+x.n),chip=document.getElementById('ragwanDoorChip'+x.n),s=ragwanStepStatus(x.n,state);
-    if(door){door.classList.remove('open','active','completed','started','available','locked');door.classList.add(s);door.classList.toggle('open',x.n===step);}
+    if(door){door.classList.remove('open','active','completed','started','available','locked','press3d');door.classList.add(s);door.classList.toggle('open',x.n===step);}
     if(chip){chip.classList.remove('active','completed','started','available','locked');chip.classList.add(s);chip.classList.toggle('active',x.n===step);}
   });
   const title=document.getElementById('ragwanStepTitle'),text=document.getElementById('ragwanStepText'),goal=document.getElementById('ragwanStepGoal'),num=document.getElementById('ragwanStepNumber'),k=document.getElementById('ragwanStepKicker'),p=document.getElementById('ragwanStepProgress'),pl=document.getElementById('ragwanStepProgressLabel'),openNum=document.getElementById('ragwanOpenDoorNumber'),openIcon=document.getElementById('ragwanOpenDoorIcon'),openLabel=document.getElementById('ragwanOpenDoorLabel'),openStatus=document.getElementById('ragwanOpenDoorStatus');
