@@ -580,6 +580,12 @@ function renderLogin(){
   const app=document.getElementById('app');
   if(app && app.parentNode) app.parentNode.insertBefore(sw,app);
   renderViewSwitch();
+  const loginNoInput=document.getElementById('loginNo'), roleInput=document.getElementById('role');
+  if(loginNoInput&&roleInput){
+    const syncLoginRole=()=>{const v=String(loginNoInput.value||'').trim().toUpperCase();if(/^LEADER[A-Z0-9_-]*$/.test(v))roleInput.value='leader';};
+    loginNoInput.addEventListener('input',syncLoginRole);
+    syncLoginRole();
+  }
 }
 
 async function renderRegister(){
