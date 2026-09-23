@@ -1907,7 +1907,7 @@ function ragwanRenderStepResources(files){
         '<div><b>'+name+'</b><small>'+ragwanFormatSize(f.size)+'</small></div>'+
         (url?'<a class="ragwan-resource-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">📖 فتح الملف</a>':'')+
       '</div>';
-    }).join(''):'<div class="ragwan-resource-empty">'+(role==='leader'?'أضف ملف عرض الفكرة وملف رد الاعتراضات هنا.':'لم تتم إضافة مواد لهذه الخطوة بعد.')+'</div>')+'</div>';
+    }).join(''):'<div class="ragwan-resource-empty">لم تتم إضافة مواد لهذه الخطوة بعد.</div>')+'</div>';
 }
 async function ragwanFocusFirstMaterial(){
   if(role!=='member')return;
