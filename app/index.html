@@ -1787,6 +1787,9 @@ const ragwanStepVideos={
     {title:'🎥 كيف تسجل عضويتك مع DXN من الحاسوب',url:'https://youtu.be/IezThhDghtw'},
     {title:'🎥 كيف تسجل عضويتك مع DXN من الموبايل',url:'https://youtu.be/PpRX6CSsRfM'},
     {title:'🎥 إعادة إرسال رسالة التفعيل عند عدم وصولها أو وجود خطأ في البريد الإلكتروني',url:'https://youtu.be/qHu8vE6VWLg'}
+  ],
+  4:[
+    {title:'🎥 الحقيبة التدريبية المختصرة لأعضاء شركة DXN العالمية مع أ. رجوان نجاح',url:'https://youtu.be/5lPaQPmjHu8?si=tWKnpNcxp448QCi-'}
   ]
 };
 function ragwanYoutubeId(url){
@@ -1873,8 +1876,8 @@ function ragwanRenderStepVideos(){
   const el=document.getElementById('ragwanStepVideos');if(!el)return;
   const videos=ragwanStepVideos[ragwanCurrentStep]||[];
   if(!videos.length){el.innerHTML='';return;}
-  const headTitle=ragwanCurrentStep===2?'🎥 شرح طريقة عمل العضوية':'🎥 فيديوهات الاعتراضات';
-  const headNote=ragwanCurrentStep===2?'شاهد هذا الفيديو لفهم طريقة عمل العضوية قبل الانتقال إلى الخطوة التالية.':'هذه الفيديوهات مخصصة للخطوة الأولى وتأتي بعد ملفات طرح فكرة العمل.';
+  const headTitle=ragwanCurrentStep===2?'🎥 شرح طريقة عمل العضوية':ragwanCurrentStep===4?'🎥 الحقيبة التدريبية المختصرة':'🎥 فيديوهات الاعتراضات';
+  const headNote=ragwanCurrentStep===2?'شاهد هذه الفيديوهات لفهم طريقة التسجيل والدخول إلى حسابك قبل الانتقال إلى الخطوة التالية.':ragwanCurrentStep===4?'ابدأ بهذه الحقيبة التدريبية المختصرة قبل تنفيذ اختبار الخطوة الرابعة وتحديد التدريب المناسب للعضو.':'هذه الفيديوهات مخصصة للخطوة الأولى وتأتي بعد ملفات طرح فكرة العمل.';
   el.innerHTML='<div class="ragwan-video-material-head"><div><b>'+headTitle+'</b><small>'+headNote+'</small></div></div>'+
     '<div class="ragwan-step-video-list">'+videos.map((v,i)=>{
       const id=ragwanYoutubeId(v.url);
