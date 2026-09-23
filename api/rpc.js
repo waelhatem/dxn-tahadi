@@ -378,7 +378,13 @@ module.exports = async function handler(req, res) {
       }
 
       const boot=await supabaseRpcRequest('bootstrap',{p_token:String(args.p_token)},SUPABASE_SECRET_KEY,10000);
-      const memberNo=String(boot.data?.members?.[0]?.member_no||'').trim();
+      const bootRole=String(boot.data?.role||'').trim().toLowerCase();
+      const sessionMemberNo=String(boot.data?.members?.[0]?.member_no||'').trim();
+      const requestedMemberNo=String(args.p_member_no||'').trim();
+
+      // Leaders may inspect the member number they entered in "فريقي".
+      // Regular members are anchored to their own authenticated membership.
+      const memberNo=bootRole==='leader' ? requestedMemberNo : sessionMemberNo;
       if(!memberNo){
         return res.status(current.status||500).json(current.data||{error:current.text||'تعذر التحقق من العضوية الحالية'});
       }
