@@ -110,6 +110,7 @@ body.mobile-mode .view-switch button{min-width:120px}
 
 .ragwan-welcome-output{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}.ragwan-welcome-message-wrap,.ragwan-welcome-image-wrap{border:1px solid #dfe9e5;border-radius:18px;padding:12px;background:#fbfdfc}.ragwan-welcome-message-wrap>b,.ragwan-welcome-image-wrap>b{display:block;margin-bottom:9px;color:#123b30}.ragwan-welcome-canvas-box{background:#111;border-radius:14px;overflow:hidden;border:1px solid #d8e2de}.ragwan-welcome-canvas-box canvas{display:block;width:100%;height:auto}.ragwan-welcome-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.ragwan-welcome-actions button{flex:1;min-width:150px;background:#0f513f;color:#fff}.ragwan-welcome-note{margin-top:10px;padding:10px 12px;border-radius:12px;background:#fff8e5;border:1px solid #ead9a7;color:#6f5300;font-size:12px;line-height:1.7}.ragwan-welcome-message{white-space:pre-wrap;line-height:1.85;background:#fff;border:1px solid #e4ece8;border-radius:14px;padding:12px;min-height:260px}@media(max-width:700px){.ragwan-welcome-output{grid-template-columns:1fr}.ragwan-welcome-message{min-height:0}.ragwan-welcome-actions button{width:100%}}
 .ragwan-gender-fallback{margin-top:10px}.ragwan-gender-fallback label{display:block;font-weight:900;color:#123b30}.ragwan-gender-fallback select{max-width:260px;margin-top:6px}.ragwan-gender-ok{display:inline-block;padding:8px 11px;border-radius:12px;background:#edf8f1;border:1px solid #c7e5d1;color:#17663f;font-weight:900;font-size:12px}
+.ragwan-gender-fallback{margin-top:10px}.ragwan-gender-fallback label{display:block;font-weight:900;color:#123b30}.ragwan-gender-fallback select{max-width:260px;margin-top:6px}.ragwan-gender-ok{display:inline-block;padding:8px 11px;border-radius:12px;background:#edf8f1;border:1px solid #c7e5d1;color:#17663f;font-weight:900;font-size:12px}
 </style></style>  <link rel="icon" type="image/png" href="logo.png">
 
 <style>
@@ -1882,37 +1883,6 @@ function ragwanRenderStepVideos(){
     '</section>':'');
 }
 let ragwanWelcomeGender='';
-function ragwanNormalizeGender(v){
-  const x=String(v||'').trim().toLowerCase();
-  if(['female','f','woman','w','أنثى','انثى','امرأة','بنت','اخت','أخت'].includes(x))return'female';
-  if(['male','m','man','ذكر','رجل','ولد','اخ','أخ'].includes(x))return'male';
-  return'';
-}
-async function ragwanLookupWelcomeMember(no){
-  const clean=String(no||'').replace(/\D/g,'').trim();
-  if(clean.length!==9)return'';
-  try{
-    const r=await rpc('verify_team_member',{p_member_no:clean});
-    const direct=ragwanNormalizeGender(r&&(r.gender??r.sex??r.member_gender??r.gender_name));
-    if(direct)return direct;
-    const rows=(typeof teamRegistryRows!=='undefined'&&Array.isArray(teamRegistryRows))?teamRegistryRows:[];
-    const hit=rows.find(m=>String(m.member_no??m.memberNo??m.membership_no??m.membership_number??'').trim()===clean);
-    const fromRegistry=ragwanNormalizeGender(hit&&(hit.gender??hit.sex??hit.member_gender??hit.gender_name));
-    if(fromRegistry)return fromRegistry;
-  }catch(_){}
-  return'';
-}
-function ragwanWelcomeGenderFallback(){
-  const box=document.getElementById('ragwanWelcomeGenderFallback');
-  if(!box)return;
-  if(ragwanWelcomeGender){
-    box.innerHTML='<span class="ragwan-gender-ok">✓ تم تحديد الجنس تلقائيًا: '+(ragwanWelcomeGender==='female'?'أنثى':'ذكر')+'</span>';
-    return;
-  }
-  box.innerHTML='<label>تعذر تحديد الجنس تلقائيًا<select id="ragwanWelcomeGenderSelect"><option value="">اختر الجنس</option><option value="male">👨 ذكر</option><option value="female">👩 أنثى</option></select></label>';
-  const select=document.getElementById('ragwanWelcomeGenderSelect');
-  if(select)select.addEventListener('change',()=>{ragwanWelcomeGender=select.value;ragwanWelcomeGenderFallback();ragwanUpdateWelcomeContent();});
-}
 function ragwanUpdateWelcomeContent(){
   const name=(document.getElementById('ragwanWelcomeName')||{}).value||'العضو الجديد';
   const no=(document.getElementById('ragwanWelcomeNo')||{}).value||'......';
@@ -1928,12 +1898,12 @@ function ragwanRenderStepWelcome(){
   if(ragwanCurrentStep!==3){el.innerHTML='';return;}
   ragwanWelcomeGender='';
   el.innerHTML='<section class="ragwan-welcome-card">'+
-    '<div class="ragwan-welcome-head"><span>🎉</span><div><h3>رسالة وصورة الترحيب بالعضو الجديد</h3><p>أدخل رقم العضوية والاسم. سيحاول النظام تحديد جنس العضو تلقائيًا من بيانات العضوية.</p></div></div>'+
+    '<div class="ragwan-welcome-head"><span>🎉</span><div><h3>رسالة وصورة الترحيب بالعضو الجديد</h3><p>أدخل اسم العضو ورقم العضوية، ثم اختر الجنس لتوليد الصيغة المناسبة تلقائيًا.</p></div></div>'+
     '<div class="ragwan-welcome-fields">'+
       '<label>اسم العضو<input id="ragwanWelcomeName" type="text" placeholder="اكتب اسم العضو الجديد"></label>'+
       '<label>رقم العضوية<input id="ragwanWelcomeNo" type="text" inputmode="numeric" maxlength="9" placeholder="اكتب رقم العضوية المكون من 9 أرقام"></label>'+
     '</div>'+
-    '<div id="ragwanWelcomeGenderFallback" class="ragwan-gender-fallback"></div>'+
+    '<div class="ragwan-gender-fallback"><label>جنس العضو<select id="ragwanWelcomeGenderSelect"><option value="">اختر الجنس</option><option value="male">👨 ذكر</option><option value="female">👩 أنثى</option></select></label></div>'+
     '<div class="ragwan-welcome-output">'+
       '<div class="ragwan-welcome-message-wrap"><b>💬 رسالة الترحيب</b><div class="ragwan-welcome-message" id="ragwanWelcomeMessage"></div></div>'+
       '<div class="ragwan-welcome-image-wrap"><b>🖼️ صورة الترحيب</b><div class="ragwan-welcome-canvas-box"><canvas id="ragwanWelcomeCanvas" width="1254" height="1254"></canvas></div></div>'+
@@ -1943,24 +1913,14 @@ function ragwanRenderStepWelcome(){
       '<button type="button" class="ragwan-welcome-copy" onclick="ragwanCopyWelcomeImage()">🖼️ نسخ الصورة</button>'+
       '<button type="button" class="ragwan-welcome-copy" onclick="ragwanSaveWelcomeImage()">⬇️ حفظ الصورة</button>'+
     '</div>'+
-    '<div class="ragwan-welcome-note">💡 الاسم ورقم العضوية يدخلان في الصورة تلقائيًا، والجنس يُحدد من بيانات العضوية عند توفره.</div>'+
+    '<div class="ragwan-welcome-note">💡 لا يتم البحث في قاعدة البيانات. اختر جنس العضو مباشرة، وسيتم توليد الرسالة والصورة وفقًا للاختيار.</div>'+
   '</section>';
   const nameInput=document.getElementById('ragwanWelcomeName');
   const noInput=document.getElementById('ragwanWelcomeNo');
+  const genderInput=document.getElementById('ragwanWelcomeGenderSelect');
   if(nameInput)nameInput.addEventListener('input',ragwanUpdateWelcomeContent);
-  if(noInput)noInput.addEventListener('input',async()=>{
-    ragwanWelcomeGender='';
-    ragwanWelcomeGenderFallback();
-    ragwanUpdateWelcomeContent();
-    const clean=String(noInput.value||'').replace(/\D/g,'').slice(0,9);
-    if(clean.length===9){
-      const g=await ragwanLookupWelcomeMember(clean);
-      if(g)ragwanWelcomeGender=g;
-      ragwanWelcomeGenderFallback();
-      ragwanUpdateWelcomeContent();
-    }
-  });
-  ragwanWelcomeGenderFallback();
+  if(noInput)noInput.addEventListener('input',ragwanUpdateWelcomeContent);
+  if(genderInput)genderInput.addEventListener('change',()=>{ragwanWelcomeGender=genderInput.value;ragwanUpdateWelcomeContent();});
   ragwanUpdateWelcomeContent();
 }
 function ragwanGetWelcomeBlob(){
