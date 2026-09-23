@@ -22,19 +22,47 @@ declare
   max_rows integer := greatest(1, least(coalesce(p_limit, 50), 200));
   result jsonb;
 begin
-  select m.member_no
+  /* Resolve the logged-in user from the application's real schema.
+     Leaders may inspect the member number requested by the UI.
+     Members are restricted to their own member number. */
+  select
+    case
+      when u.role='leader' then target_no
+      else m.member_no
+    end
     into root_no
   from public.sessions s
   join public.app_users u on u.id=s.user_id
-  join public.dxn_team_members m on m.member_no=u.member_no
+  left join public.members m on m.id=u.member_id
   where s.token=p_token
     and s.expires_at>now()
     and u.active=true
-    and u.role in ('leader','member')
   limit 1;
 
-  if root_no is null then
-    raise exception 'جلسة الدخول غير صالحة أو العضوية غير موجودة';
+  if root_no is null or trim(root_no)='' then
+    raise exception 'جلسة الدخول غير صالحة أو رقم العضوية المطلوب غير موجود';
+  end if;
+
+  if not exists (
+    select 1 from public.dxn_team_members m where m.member_no=root_no
+  ) then
+    raise exception 'العضو المطلوب غير موجود في سجل DXN';
+  end if;
+
+  if exists (
+    select 1
+    from public.sessions s
+    join public.app_users u on u.id=s.user_id
+    where s.token=p_token and u.role='member'
+  ) and target_no is not null then
+    if not exists (
+      select 1
+      from public.app_users u
+      join public.members m on m.id=u.member_id
+      where u.active=true and m.member_no=root_no
+    ) then
+      raise exception 'لا يمكن للعضو اختيار عضو آخر كجذر للفريق';
+    end if;
   end if;
 
   if mode_name not in ('summary','member','downline','generation','line_summary') then
