@@ -1922,8 +1922,16 @@ function ragwanUpdateWelcomeContent(){
   const name=(document.getElementById('ragwanWelcomeName')||{}).value||'العضو الجديد';
   const no=(document.getElementById('ragwanWelcomeNo')||{}).value||'......';
   const salutation=ragwanWelcomeGender==='female'?'الأخت':ragwanWelcomeGender==='male'?'الأخ':'الأخت/الأخ';
-  const verb=ragwanWelcomeGender==='female'?'تحققي':'تحقق';
-  const msg='🎉👑 نبارك لـ'+salutation+' '+name+' 👑🎉\\n\\nانضمامك رسميًا إلى عائلة DXN العالمية وحصولك على العضوية رقم ('+no+') 💎\\n\\nإنها ليست مجرد عضوية، بل خطوة نحو عالم من الفرص والتطوير والنمو الشخصي والمالي، وبداية رحلة جديدة مليئة بالتعلم والإنجاز وبناء العلاقات الناجحة. 🚀\\n\\nكل التهاني والتبريكات لك، ونسأل الله أن يجعل هذه البداية فاتحة خير وبركة ونجاح، وأن '+(ragwanWelcomeGender==='female'?'تحققي':'تحقق')+' من خلالها أهدافك وطموحاتك الكبيرة. 🌟\\n\\n🌟 أهلاً وسهلاً بك بين أفراد فريق الأمل الريادي، ويسعدنا أن تكون جزءاً من هذه العائلة الطموحة التي تؤمن بالنجاح والعمل الجماعي وصناعة المستقبل.\\n\\nمع خالص الأمنيات لك بالتوفيق والتميز والإنجاز. 🌹';
+  const greeting=salutation==='الأخت/الأخ'?'نبارك لـ'+salutation+' '+name+' 👑🎉':'نبارك لـ'+salutation+' '+name+' 👑🎉';
+  const paragraphs=[
+    '🎉👑 '+greeting,
+    'انضمامك رسميًا إلى عائلة DXN العالمية، وحصولك على العضوية رقم ('+no+') 💎',
+    'هذه ليست مجرد عضوية، بل بداية لرحلة جديدة نحو التعلم والتطور والنمو الشخصي والمالي، وبناء علاقات ناجحة وتحقيق الإنجازات. 🚀',
+    'نهنئك بهذه البداية المباركة، ونسأل الله أن يجعلها فاتحة خير وبركة ونجاح، وأن '+(ragwanWelcomeGender==='female'?'تحققي':'تحقق')+' من خلالها أهدافك وطموحاتك. 🌟',
+    '🌟 أهلاً وسهلاً بك في فريق الأمل الريادي، ويسعدنا أن تكون جزءًا من هذه العائلة الطموحة التي تؤمن بالنجاح والعمل الجماعي وصناعة المستقبل.',
+    'نتمنى لك التوفيق والتميز والإنجاز. 🌹'
+  ];
+  const msg=paragraphs.join('\n\n');
   const box=document.getElementById('ragwanWelcomeMessage');if(box)box.textContent=msg;
   ragwanRenderWelcomeImage(name,no);
 }
