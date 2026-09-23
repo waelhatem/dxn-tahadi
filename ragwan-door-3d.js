@@ -32,6 +32,15 @@ function open3d(d){
   if(busy) return;
   busy=true; css();
   var n=step(d);
+  var prepare=window.ragwanOpenDoor;
+  if(prepare){
+    try{prepare(n)}catch(e){console.error(e)}
+    var panel=document.getElementById('ragwanStepPanel');
+    if(panel){
+      var top=window.scrollY+panel.getBoundingClientRect().top-Math.max(90,window.innerWidth<=620?78:90);
+      window.scrollTo({top:Math.max(0,top),behavior:'auto'});
+    }
+  }
   var title=(d.querySelector('.ragwan-door-label')||{}).textContent||'الخطوة';
 
   overlay=document.createElement('div');
@@ -96,7 +105,7 @@ function open3d(d){
           if(!opened){
             opened=true;
             st.textContent='🚪 الباب يفتح...';
-            try{v.play()}catch(x){}
+            try{v.play({repetitions:1})}catch(x){}
           }
           p=Math.min(1,(elapsed-approachEnd)/(entryEnd-approachEnd));
           e=p*p*(3-2*p);
@@ -109,8 +118,6 @@ function open3d(d){
         if(elapsed<entryEnd){
           requestAnimationFrame(dolly);
         }else{
-          var fn=window.ragwanOpenDoor;
-          if(fn){try{fn(n)}catch(x){console.error(x)}}
           setTimeout(finish,250);
         }
       }
