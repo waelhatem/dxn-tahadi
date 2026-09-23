@@ -1781,7 +1781,7 @@ function ragwanBuildDxnSponsorAction(){
   '<section class="ragwan-dxn-sponsor-box" style="margin-top:16px">'+
     '<div class="ragwan-dxn-sponsor-head"><span class="icon">📋</span><div><b>الطريقة الثانية: إرسال معلومات التسجيل</b><div class="muted">إذا فضّل الشخص أن ترسل له المعلومات المطلوبة، استخدم الصورة التالية.</div></div></div>'+
     '<div style="margin:14px auto;max-width:520px;border:1px solid #dcebe5;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 8px 24px rgba(15,81,63,.08)">'+
-      '<img src="/membership-registration-requirements.png" alt="المعلومات المطلوبة لتسجيل عضوية جديدة" style="display:block;width:100%;height:auto">'+
+      '<img src="/app/membership-registration-requirements.png" alt="المعلومات المطلوبة لتسجيل عضوية جديدة" style="display:block;width:100%;height:auto">'+
     '</div>'+
     '<button type="button" class="ragwan-dxn-sponsor-btn" onclick="ragwanCopyMembershipRequirementsImage()">📋 نسخ صورة معلومات التسجيل</button>'+
     '<div id="ragwanMembershipImageStatus" class="ragwan-dxn-sponsor-status" aria-live="polite"></div>'+
@@ -1814,7 +1814,7 @@ async function ragwanCopyDxnSponsorLink(){
   toast('✅ تم نسخ رابط الرعاية الخاص بك');
 }
 async function ragwanCopyMembershipRequirementsImage(){
-  const url='/membership-registration-requirements.png';
+  const url='/app/membership-registration-requirements.png';
   const status=document.getElementById('ragwanMembershipImageStatus');
   try{
     const response=await fetch(url,{cache:'no-store'});
