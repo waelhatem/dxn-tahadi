@@ -1889,7 +1889,7 @@ function ragwanNormalizeGender(v){
   return'';
 }
 async function ragwanLookupWelcomeMember(no){
-  const clean=String(no||'').replace(/\\D/g,'').trim();
+  const clean=String(no||'').replace(/\D/g,'').trim();
   if(clean.length!==9)return'';
   try{
     const r=await rpc('verify_team_member',{p_member_no:clean});
@@ -1952,7 +1952,7 @@ function ragwanRenderStepWelcome(){
     ragwanWelcomeGender='';
     ragwanWelcomeGenderFallback();
     ragwanUpdateWelcomeContent();
-    const clean=String(noInput.value||'').replace(/\\D/g,'').slice(0,9);
+    const clean=String(noInput.value||'').replace(/\D/g,'').slice(0,9);
     if(clean.length===9){
       const g=await ragwanLookupWelcomeMember(clean);
       if(g)ragwanWelcomeGender=g;
