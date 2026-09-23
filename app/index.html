@@ -1773,10 +1773,18 @@ function ragwanYoutubeId(url){
 function ragwanBuildDxnSponsorAction(){
   if(ragwanCurrentStep!==2) return '';
   return '<section class="ragwan-dxn-sponsor-box">'+
-    '<div class="ragwan-dxn-sponsor-head"><span class="icon">🔗</span><div><b>التسجيل الذاتي</b><div class="muted">أرسل رابط الرعاية الخاص بك للشخص المهتم ليُكمل التسجيل بنفسه.</div></div></div>'+
+    '<div class="ragwan-dxn-sponsor-head"><span class="icon">🔗</span><div><b>الطريقة الأولى: التسجيل الذاتي</b><div class="muted">أرسل رابط الرعاية الخاص بك للشخص المهتم ليُكمل التسجيل بنفسه.</div></div></div>'+
     '<p class="ragwan-dxn-sponsor-note">رابط DXN ثابت، ورقم عضويتك يُضاف تلقائيًا في نهايته. لا تحتاج إلى إدخال الرقم يدويًا.</p>'+
     '<button type="button" class="ragwan-dxn-sponsor-btn" onclick="ragwanCopyDxnSponsorLink()">🔗 نسخ رابط الرعاية الخاص بي</button>'+
     '<div id="ragwanDxnSponsorStatus" class="ragwan-dxn-sponsor-status" aria-live="polite"></div>'+
+  '</section>'+
+  '<section class="ragwan-dxn-sponsor-box" style="margin-top:16px">'+
+    '<div class="ragwan-dxn-sponsor-head"><span class="icon">📋</span><div><b>الطريقة الثانية: إرسال معلومات التسجيل</b><div class="muted">إذا فضّل الشخص أن ترسل له المعلومات المطلوبة، استخدم الصورة التالية.</div></div></div>'+
+    '<div style="margin:14px auto;max-width:520px;border:1px solid #dcebe5;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 8px 24px rgba(15,81,63,.08)">'+
+      '<img src="/membership-registration-requirements.png" alt="المعلومات المطلوبة لتسجيل عضوية جديدة" style="display:block;width:100%;height:auto">'+
+    '</div>'+
+    '<button type="button" class="ragwan-dxn-sponsor-btn" onclick="ragwanCopyMembershipRequirementsImage()">📋 نسخ صورة معلومات التسجيل</button>'+
+    '<div id="ragwanMembershipImageStatus" class="ragwan-dxn-sponsor-status" aria-live="polite"></div>'+
   '</section>';
 }
 async function ragwanCopyDxnSponsorLink(){
@@ -1804,6 +1812,25 @@ async function ragwanCopyDxnSponsorLink(){
   const status=document.getElementById('ragwanDxnSponsorStatus');
   if(status) status.textContent='✅ تم نسخ رابط الرعاية الخاص بك';
   toast('✅ تم نسخ رابط الرعاية الخاص بك');
+}
+async function ragwanCopyMembershipRequirementsImage(){
+  const url='/membership-registration-requirements.png';
+  const status=document.getElementById('ragwanMembershipImageStatus');
+  try{
+    const response=await fetch(url,{cache:'no-store'});
+    if(!response.ok) throw new Error('image_fetch_failed');
+    const blob=await response.blob();
+    if(!navigator.clipboard||!window.ClipboardItem) throw new Error('image_clipboard_unsupported');
+    const item=new ClipboardItem({[blob.type||'image/png']:blob});
+    await navigator.clipboard.write([item]);
+    if(status) status.textContent='✅ تم نسخ الصورة. يمكنك الآن لصقها وإرسالها للمستقطب.';
+    toast('✅ تم نسخ صورة معلومات التسجيل');
+  }catch(e){
+    if(status) status.textContent='ℹ️ متصفحك لا يدعم نسخ الصور مباشرة. افتح الصورة ثم انسخها أو شاركها.';
+    toast('ℹ️ افتح الصورة من هنا ثم انسخها أو شاركها مع المستقطب.');
+    const w=window.open(url,'_blank','noopener,noreferrer');
+    if(!w) location.href=url;
+  }
 }
 function ragwanRenderStepSection(){
   const el=document.getElementById('ragwanStepSection');if(!el)return;
