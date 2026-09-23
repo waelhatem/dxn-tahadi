@@ -200,12 +200,21 @@ async function directTeamIntelligenceFromTable(args){
   }
 
   if(mode==='downline'){
-    const targetChildren=reachable.filter(m=>{
-      const sponsor=String(m.sponsor_member_no||'').trim();
-      return sponsor===targetNo;
-    });
+    const targetMembers=[];
+    const q=(children.get(targetNo)||[]).map(m=>({member:m,depth:1}));
+    const localSeen=new Set([targetNo]);
+    while(q.length){
+      const {member,depth}=q.shift();
+      const no=String(member.member_no||'').trim();
+      if(!no || localSeen.has(no)) continue;
+      localSeen.add(no);
+      targetMembers.push({...member,depth_from_target:depth});
+      if(depth<20){
+        for(const child of (children.get(no)||[])) q.push({member:child,depth:depth+1});
+      }
+    }
     const limit=Math.max(1,Math.min(Number(args.p_limit)||50,200));
-    return {mode:'downline',root_member_no:targetNo,count:targetChildren.length,members:targetChildren.slice(0,limit)};
+    return {mode:'downline',root_member_no:targetNo,count:targetMembers.length,members:targetMembers.slice(0,limit)};
   }
 
   if(mode==='generation'){
