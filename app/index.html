@@ -1352,9 +1352,26 @@ function ragwanSuccessIntro(){
 .ragwan-door:hover{transform:translateY(-5px);box-shadow:0 22px 42px rgba(12,42,34,.3)}
 .ragwan-door:hover .ragwan-door-image{transform:scale(1.035);filter:brightness(1.03)}
 /* المرحلة الأولى من حركة الباب: اقتراب ثلاثي الأبعاد عند الضغط */
-.ragwan-door.press3d{transform:translateY(-8px) translateZ(34px) scale(1.045) rotateX(1.2deg);box-shadow:0 28px 52px rgba(7,42,36,.38),0 0 0 3px rgba(240,199,88,.72);z-index:8}
-.ragwan-door.press3d .ragwan-door-image{transform:scale(1.025);filter:brightness(1.06) saturate(1.04)}
-.ragwan-door.press3d .ragwan-door-overlay{background:linear-gradient(180deg,rgba(4,22,17,.05) 0%,rgba(4,22,17,0) 35%,rgba(4,22,17,.48) 100%)}
+@keyframes ragwanDoorPress3D{
+  0%{transform:translateY(0) translateZ(0) scale(1) rotateX(0)}
+  18%{transform:translateY(-10px) translateZ(22px) scale(1.045) rotateX(1deg)}
+  45%{transform:translateY(-15px) translateZ(52px) scale(1.075) rotateX(1.8deg)}
+  70%{transform:translateY(-11px) translateZ(38px) scale(1.055) rotateX(1.2deg)}
+  100%{transform:translateY(0) translateZ(0) scale(1) rotateX(0)}
+}
+.ragwan-door.press3d{
+  animation:ragwanDoorPress3D .85s cubic-bezier(.2,.8,.25,1) both;
+  box-shadow:0 30px 58px rgba(7,42,36,.48),0 0 0 3px rgba(240,199,88,.88),0 0 28px rgba(240,199,88,.38);
+  z-index:50;
+  transform-origin:center bottom;
+}
+.ragwan-door.press3d .ragwan-door-image{
+  transform:scale(1.055)!important;
+  filter:brightness(1.10) saturate(1.08);
+}
+.ragwan-door.press3d .ragwan-door-overlay{
+  background:linear-gradient(180deg,rgba(4,22,17,.02) 0%,rgba(4,22,17,0) 35%,rgba(4,22,17,.38) 100%);
+}
 .ragwan-door.open{box-shadow:0 0 0 3px rgba(240,199,88,.75),0 22px 45px rgba(12,42,34,.3)}
 .ragwan-door.completed{box-shadow:0 0 0 3px rgba(42,178,116,.65),0 18px 38px rgba(12,42,34,.25)}
 .ragwan-door.started{box-shadow:0 0 0 3px rgba(218,174,62,.65),0 18px 38px rgba(12,42,34,.25)}
