@@ -19,7 +19,7 @@ function css(){
   if(document.getElementById('ragwan3dcss')) return;
   var s=document.createElement('style');
   s.id='ragwan3dcss';
-  s.textContent='.ragwan3d{position:fixed;inset:0;z-index:99999;background:transparent;opacity:0;transition:opacity .9s ease;display:block}.ragwan3d.show{opacity:1}.ragwan3dbox{position:absolute;inset:0;width:100%;height:100%;overflow:hidden;background:transparent;box-shadow:none;transform:none!important}.ragwan3dtop{position:absolute;top:16px;left:20px;right:20px;z-index:3;display:flex;justify-content:space-between;align-items:center;direction:rtl;color:#fff;font-weight:900;pointer-events:none}.ragwan3dnum{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:50%;margin-left:8px;background:linear-gradient(145deg,#f7df88,#b8861b);color:#2c2411}.ragwan3dclose{pointer-events:auto;width:42px;height:42px;border:1px solid #ffffff44;border-radius:50%;background:#ffffff18;color:#fff;font-size:24px}.ragwan3dviewer{position:absolute;inset:0;width:100%;height:100%;background:transparent;--poster-color:transparent;--progress-bar-color:#f2cc58}.ragwan3dbottom{position:absolute;bottom:18px;left:0;right:0;z-index:3;text-align:center;direction:rtl;pointer-events:none}.ragwan3dstatus{display:inline-block;padding:8px 15px;border-radius:999px;background:#ffffff10;border:1px solid #ffffff18;color:#eaf7f2;font-size:12px}@media(max-width:620px){.ragwan3dtop{top:10px;left:10px;right:10px}}';
+  s.textContent='.ragwan3d{position:fixed;inset:0;z-index:99999;background:transparent;opacity:0;transition:opacity .9s ease;display:block}.ragwan3d.show{opacity:1}.ragwan3dbox{position:absolute;inset:0;width:100%;height:100%;overflow:hidden;background:transparent;box-shadow:none;transform:none!important}.ragwan3dportal{position:absolute;left:50%;top:50%;width:30vw;height:68vh;transform:translate(-50%,-50%);z-index:1;background:transparent;box-shadow:0 0 0 100vmax rgba(4,15,13,.985);pointer-events:none;}.ragwan3dtop{position:absolute;top:16px;left:20px;right:20px;z-index:3;display:flex;justify-content:space-between;align-items:center;direction:rtl;color:#fff;font-weight:900;pointer-events:none}.ragwan3dnum{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:50%;margin-left:8px;background:linear-gradient(145deg,#f7df88,#b8861b);color:#2c2411}.ragwan3dclose{pointer-events:auto;width:42px;height:42px;border:1px solid #ffffff44;border-radius:50%;background:#ffffff18;color:#fff;font-size:24px}.ragwan3dviewer{position:absolute;inset:0;width:100%;height:100%;background:transparent;--poster-color:transparent;--progress-bar-color:#f2cc58}.ragwan3dbottom{position:absolute;bottom:18px;left:0;right:0;z-index:3;text-align:center;direction:rtl;pointer-events:none}.ragwan3dstatus{display:inline-block;padding:8px 15px;border-radius:999px;background:#ffffff10;border:1px solid #ffffff18;color:#eaf7f2;font-size:12px}@media(max-width:620px){.ragwan3dtop{top:10px;left:10px;right:10px}}';
   document.head.appendChild(s);
 }
 
@@ -52,6 +52,7 @@ function open3d(d){
   requestAnimationFrame(function(){overlay.classList.add('show')});
 
   var v=overlay.querySelector('model-viewer');
+  var portal=overlay.querySelector('.ragwan3dportal');
   var st=overlay.querySelector('.ragwan3dstatus');
   var done=false,timer;
 
@@ -84,39 +85,26 @@ function open3d(d){
       v.animationName=name;
       v.currentTime=0;
       v.timeScale=.82;
+      try{var vr=v.getBoundingClientRect(),seen=[];[[vr.left+vr.width*.38,vr.top+vr.height*.50],[vr.left+vr.width*.62,vr.top+vr.height*.50],[vr.left+vr.width*.50,vr.top+vr.height*.20]].forEach(function(pt){var mat=v.materialFromPoint(pt[0],pt[1]);if(mat&&seen.indexOf(mat)<0){seen.push(mat);mat.setAlphaMode('BLEND');mat.pbrMetallicRoughness.setBaseColorFactor([1,1,1,0]);}})}catch(x){}
 
-      var start=performance.now();
-      var approachEnd=5200;
-      var entryEnd=15500;
-      var fromR=8.2;
-      var doorR=5.1;
-      var insideR=0.02;
-      var opened=false;
-
+      var start=performance.now(),approachEnd=5200,entryEnd=19000,fromR=8.2,doorR=5.1,nearR=.22,opened=false;
       function dolly(now){
-        var elapsed=now-start,p,e,r;
-
+        var elapsed=now-start,p,e,r,targetZ=0;
         if(elapsed<approachEnd){
-          p=elapsed/approachEnd;
-          e=p*p*(3-2*p);
-          r=fromR+(doorR-fromR)*e;
+          p=elapsed/approachEnd;e=p*p*(3-2*p);r=fromR+(doorR-fromR)*e;
           st.textContent='اقترب ببطء من الباب...';
         }else{
-          if(!opened){
-            opened=true;
-            st.textContent='🚪 الباب يفتح...';
-            try{v.play({repetitions:1})}catch(x){}
-          }
-          p=Math.min(1,(elapsed-approachEnd)/(entryEnd-approachEnd));
-          e=p*p*(3-2*p);
-          r=doorR+(insideR-doorR)*e;
-          st.textContent='✨ الدخول عبر الباب...';
+          if(!opened){opened=true;st.textContent='🚪 الباب يفتح...';try{v.play({repetitions:1})}catch(x){}}
+          p=Math.min(1,(elapsed-approachEnd)/(entryEnd-approachEnd));e=p*p*(3-2*p);
+          r=doorR+(nearR-doorR)*e;
+          var pass=Math.max(0,Math.min(1,(p-.28)/.72));
+          targetZ=-3.2*(pass*pass*(3-2*pass));
+          st.textContent='✨ الدخول المستمر عبر الباب...';
+          if(portal){var reveal=Math.max(0,Math.min(1,(p-.58)/.42));portal.style.width=(30+70*reveal)+'vw';portal.style.height=(68+32*reveal)+'vh';}
         }
-
-        try{v.cameraOrbit='0deg 76deg '+r.toFixed(3)+'m'}catch(x){}
-
-        if(elapsed<entryEnd){
-          requestAnimationFrame(dolly);
+        try{v.cameraOrbit='0deg 76deg '+r.toFixed(3)+'m';v.cameraTarget='0m 1.3m '+targetZ.toFixed(3)+'m'}catch(x){}
+        if(elapsed<entryEnd)requestAnimationFrame(dolly);else setTimeout(finish,180);
+      }
         }else{
           setTimeout(finish,250);
         }
