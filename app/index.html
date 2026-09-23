@@ -1895,7 +1895,7 @@ async function ragwanLookupWelcomeMember(no){
     const r=await rpc('verify_team_member',{p_member_no:clean});
     const direct=ragwanNormalizeGender(r&&(r.gender??r.sex??r.member_gender??r.gender_name));
     if(direct)return direct;
-    const rows=Array.isArray(window.teamRegistryRows)?window.teamRegistryRows:[];
+    const rows=(typeof teamRegistryRows!=='undefined'&&Array.isArray(teamRegistryRows))?teamRegistryRows:[];
     const hit=rows.find(m=>String(m.member_no??m.memberNo??m.membership_no??m.membership_number??'').trim()===clean);
     const fromRegistry=ragwanNormalizeGender(hit&&(hit.gender??hit.sex??hit.member_gender??hit.gender_name));
     if(fromRegistry)return fromRegistry;
