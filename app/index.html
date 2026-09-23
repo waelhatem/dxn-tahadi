@@ -107,6 +107,8 @@ body.mobile-mode .view-switch button{min-width:120px}
 
 .ragwan-welcome-card{margin-top:16px;padding:18px;border:2px solid #eadcb0;border-radius:20px;background:linear-gradient(135deg,#fffaf0,#fff);box-shadow:0 8px 22px rgba(121,83,0,.08)}
 .ragwan-welcome-head{display:flex;gap:12px;align-items:flex-start}.ragwan-welcome-head>span{font-size:30px}.ragwan-welcome-head h3{margin:0;color:#795900;font-size:20px}.ragwan-welcome-head p{margin:5px 0 0;color:#66756f;line-height:1.8;font-size:13px}.ragwan-welcome-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.ragwan-welcome-fields label{font-weight:900;color:#123b30}.ragwan-welcome-fields input{margin-top:6px}.ragwan-welcome-message{white-space:pre-wrap;line-height:1.9;margin-top:12px;padding:15px;border:1px solid #e6dfc9;border-radius:16px;background:#fff;color:#26352f;font-size:14px}.ragwan-welcome-copy{margin-top:10px;background:#0f513f;color:#fff;width:100%}@media(max-width:600px){.ragwan-welcome-fields{grid-template-columns:1fr}}
+
+.ragwan-welcome-output{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}.ragwan-welcome-message-wrap,.ragwan-welcome-image-wrap{border:1px solid #dfe9e5;border-radius:18px;padding:12px;background:#fbfdfc}.ragwan-welcome-message-wrap>b,.ragwan-welcome-image-wrap>b{display:block;margin-bottom:9px;color:#123b30}.ragwan-welcome-canvas-box{background:#111;border-radius:14px;overflow:hidden;border:1px solid #d8e2de}.ragwan-welcome-canvas-box canvas{display:block;width:100%;height:auto}.ragwan-welcome-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.ragwan-welcome-actions button{flex:1;min-width:150px;background:#0f513f;color:#fff}.ragwan-welcome-note{margin-top:10px;padding:10px 12px;border-radius:12px;background:#fff8e5;border:1px solid #ead9a7;color:#6f5300;font-size:12px;line-height:1.7}.ragwan-welcome-message{white-space:pre-wrap;line-height:1.85;background:#fff;border:1px solid #e4ece8;border-radius:14px;padding:12px;min-height:260px}@media(max-width:700px){.ragwan-welcome-output{grid-template-columns:1fr}.ragwan-welcome-message{min-height:0}.ragwan-welcome-actions button{width:100%}}
 </style></style>  <link rel="icon" type="image/png" href="logo.png">
 
 <style>
@@ -1883,22 +1885,97 @@ function ragwanRenderStepWelcome(){
   if(!el)return;
   if(ragwanCurrentStep!==3){el.innerHTML='';return;}
   el.innerHTML='<section class="ragwan-welcome-card">'+
-    '<div class="ragwan-welcome-head"><span>🎉</span><div><h3>رسالة الترحيب بالعضو الجديد</h3><p>بعد إضافة العضو إلى كروب الجدد، استخدم هذا النموذج لإرسال رسالة ترحيبية مناسبة له.</p></div></div>'+
+    '<div class="ragwan-welcome-head"><span>🎉</span><div><h3>رسالة وصورة الترحيب بالعضو الجديد</h3><p>بعد إضافة العضو إلى كروب الجدد، أدخل الاسم ورقم العضوية لتحصل على الرسالة والصورة جاهزتين للإرسال.</p></div></div>'+
     '<div class="ragwan-welcome-fields">'+
       '<label>اسم العضو<input id="ragwanWelcomeName" type="text" placeholder="اكتب اسم العضو الجديد"></label>'+
-      '<label>رقم العضوية<input id="ragwanWelcomeNo" type="text" inputmode="numeric" placeholder="اكتب رقم العضوية"></label>'+
+      '<label>رقم العضوية<input id="ragwanWelcomeNo" type="text" inputmode="numeric" maxlength="20" placeholder="اكتب رقم العضوية"></label>'+
     '</div>'+
-    '<div class="ragwan-welcome-message" id="ragwanWelcomeMessage"></div>'+
-    '<button type="button" class="ragwan-welcome-copy" onclick="ragwanCopyWelcomeMessage()">📋 نسخ رسالة الترحيب</button>'+
+    '<div class="ragwan-welcome-output">'+
+      '<div class="ragwan-welcome-message-wrap"><b>💬 رسالة الترحيب</b><div class="ragwan-welcome-message" id="ragwanWelcomeMessage"></div></div>'+
+      '<div class="ragwan-welcome-image-wrap"><b>🖼️ صورة الترحيب</b><div class="ragwan-welcome-canvas-box"><canvas id="ragwanWelcomeCanvas" width="1254" height="1254"></canvas></div></div>'+
+    '</div>'+
+    '<div class="ragwan-welcome-actions">'+
+      '<button type="button" class="ragwan-welcome-copy" onclick="ragwanCopyWelcomeMessage()">📋 نسخ الرسالة</button>'+
+      '<button type="button" class="ragwan-welcome-copy" onclick="ragwanCopyWelcomeImage()">🖼️ نسخ الصورة</button>'+
+      '<button type="button" class="ragwan-welcome-copy" onclick="ragwanSaveWelcomeImage()">⬇️ حفظ الصورة</button>'+
+    '</div>'+
+    '<div class="ragwan-welcome-note">💡 الصورة تُنشأ من قالب ثابت داخل الموقع، ويتم تغيير الاسم ورقم العضوية تلقائيًا.</div>'+
   '</section>';
   const update=()=>{
     const name=(document.getElementById('ragwanWelcomeName')||{}).value||'العضو الجديد';
     const no=(document.getElementById('ragwanWelcomeNo')||{}).value||'......';
     const msg='🎉👑 نبارك للأخت/الأخ '+name+' 👑🎉\\n\\nانضمامه رسمياً إلى عائلة DXN العالمية وحصوله على العضوية رقم ('+no+') 💎\\n\\nإنها ليست مجرد عضوية، بل خطوة نحو عالم من الفرص والتطوير والنمو الشخصي والمالي، وبداية رحلة جديدة مليئة بالتعلم والإنجاز وبناء العلاقات الناجحة. 🚀\\n\\nكل التهاني والتبريكات لك، ونسأل الله أن يجعل هذه البداية فاتحة خير وبركة ونجاح، وأن تحقق من خلالها أهدافك وطموحاتك الكبيرة. 🌟\\n\\n🌟 أهلاً وسهلاً بك بين أفراد فريق الأمل الريادي، ويسعدنا أن تكون جزءاً من هذه العائلة الطموحة التي تؤمن بالنجاح والعمل الجماعي وصناعة المستقبل.\\n\\nمع خالص الأمنيات لك بالتوفيق والتميز والإنجاز. 🌹';
     const box=document.getElementById('ragwanWelcomeMessage');if(box)box.textContent=msg;
+    ragwanRenderWelcomeImage(name,no);
   };
   ['ragwanWelcomeName','ragwanWelcomeNo'].forEach(id=>{const input=document.getElementById(id);if(input)input.addEventListener('input',update)});
   update();
+}
+function ragwanRenderWelcomeImage(name,no){
+  const canvas=document.getElementById('ragwanWelcomeCanvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const template=new Image();
+  template.onload=()=>{
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(template,0,0,canvas.width,canvas.height);
+    ctx.save();
+    ctx.fillStyle='#fff';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.direction='rtl';
+    const fit=(text,maxWidth,start,min)=>{
+      let size=start;
+      while(size>min){
+        ctx.font='900 '+size+'px Tahoma, Arial, sans-serif';
+        if(ctx.measureText(text).width<=maxWidth)break;
+        size-=1;
+      }
+      return size;
+    };
+    const safeName=String(name||'العضو الجديد').trim()||'العضو الجديد';
+    const safeNo=String(no||'......').trim()||'......';
+    fit(safeName,300,54,24);
+    ctx.font='900 '+fit(safeName,300,54,24)+'px Tahoma, Arial, sans-serif';
+    ctx.fillText(safeName,625,766);
+    ctx.font='900 '+fit(safeNo,300,48,28)+'px Arial, sans-serif';
+    ctx.direction='ltr';
+    ctx.fillText(safeNo,625,904);
+    ctx.restore();
+  };
+  template.onerror=()=>{
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#111';ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#d9a018';ctx.font='bold 34px Tahoma,Arial';ctx.textAlign='center';ctx.direction='rtl';
+    ctx.fillText('قالب صورة الترحيب غير متاح حاليًا',625,610);
+    ctx.fillStyle='#fff';ctx.font='24px Tahoma,Arial';ctx.fillText('سيظهر تلقائيًا بعد رفع القالب إلى GitHub.',625,660);
+  };
+  template.src='/ragwan-welcome-template.jpg?v=20260923-1';
+}
+function ragwanGetWelcomeBlob(){
+  return new Promise((resolve,reject)=>{
+    const canvas=document.getElementById('ragwanWelcomeCanvas');
+    if(!canvas){reject(new Error('canvas not found'));return;}
+    canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('image conversion failed')),'image/png');
+  });
+}
+function ragwanCopyWelcomeImage(){
+  ragwanGetWelcomeBlob().then(async blob=>{
+    if(navigator.clipboard&&window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+      if(typeof ragwanToast==='function')ragwanToast('تم نسخ صورة الترحيب بنجاح.');
+    }else{
+      ragwanSaveWelcomeImage();
+      if(typeof ragwanToast==='function')ragwanToast('المتصفح لا يدعم نسخ الصور مباشرة؛ تم تجهيز حفظ الصورة.');
+    }
+  }).catch(()=>{if(typeof ragwanToast==='function')ragwanToast('تعذر نسخ الصورة حاليًا.');});
+}
+function ragwanSaveWelcomeImage(){
+  ragwanGetWelcomeBlob().then(blob=>{
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download='ترحيب-DXN.png';a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+  }).catch(()=>{if(typeof ragwanToast==='function')ragwanToast('تعذر حفظ الصورة حاليًا.');});
 }
 function ragwanCopyWelcomeMessage(){
   const box=document.getElementById('ragwanWelcomeMessage');
