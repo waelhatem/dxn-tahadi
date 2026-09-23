@@ -1,6 +1,6 @@
-/* V86.11 — Detailed member training profile + reliable live button handling. Loaded by config.js after the main app script. */
+/* V86.12 — Detailed member training profile + reliable live button handling. Loaded by config.js after the main app script. */
 (function(){
-  if(window.__DXN_MEMBER_TRAINING_PROFILE_V8610__) return;
+  if(window.__DXN_MEMBER_TRAINING_PROFILE_V8612__) return;
   window.__DXN_MEMBER_TRAINING_PROFILE_V8610__=true;
   function install(){
     try{
@@ -8,12 +8,12 @@
       if(window.openMemberProfile.__dxnV8610) return true;
       var original=window.openMemberProfile;
       function detailedMemberProfile(id){
-        var members=(window.data&&Array.isArray(window.data.members))?window.data.members:[]; var m=members.find(function(x){return String(x.id)===String(id)}); if(!m)return;
+        var appData=(typeof data!=='undefined'&&data)?data:(window.data||{}); var members=Array.isArray(appData.members)?appData.members:[]; var m=members.find(function(x){return String(x.id)===String(id)}); if(!m)return;
         var activity=(typeof memberActivitySnapshot==='function')?memberActivitySnapshot():members; var snap=activity.find(function(x){return String(x.id)===String(id)})||m;
-        var subs=(data.my_submissions||[]).filter(function(x){return String(x.member_id||x.memberId)===String(id)});
+        var subs=(appData.my_submissions||[]).filter(function(x){return String(x.member_id||x.memberId)===String(id)});
         var approved=subs.filter(function(x){return x.status==='approved'}).length;
-        var lessons=((window.trainingData&&Array.isArray(window.trainingData.lessons))?window.trainingData.lessons:[]).filter(function(x){return x.active!==false}).sort(function(a,b){return Number(a.lesson_no)-Number(b.lesson_no)});
-        var allProgress=((window.trainingData&&Array.isArray(window.trainingData.my_progress))?window.trainingData.my_progress:[]).filter(function(x){return String(x.member_id||x.memberId)===String(id)});
+        var td=(typeof trainingData!=='undefined'&&trainingData)?trainingData:(window.trainingData||{}); var lessons=(Array.isArray(td.lessons)?td.lessons:[]).filter(function(x){return x.active!==false}).sort(function(a,b){return Number(a.lesson_no)-Number(b.lesson_no)});
+        var allProgress=(Array.isArray(td.my_progress)?td.my_progress:[]).filter(function(x){return String(x.member_id||x.memberId)===String(id)});
         var byLesson=new Map(allProgress.map(function(x){return [String(x.lesson_id),x]}));
         var pctOf=function(p){return Math.max(0,Math.min(100,Number(p&&p.completed===true?100:(p&&p.watch_percent||0))))};
         var watched=function(p){return !!p&&(p.completed===true||Number(p.watch_percent||0)>0||Number(p.watched_seconds||0)>0)};
@@ -22,7 +22,7 @@
         var avgPct=lessons.length?Math.round(lessons.reduce(function(a,l){return a+pctOf(byLesson.get(String(l.id)))},0)/lessons.length):0;
         var target=Math.max(0,100-snap._pts);
         var badgeCount=(typeof getBadges==='function'?(function(){var old=window.me;window.me=m;var n=getBadges().filter(function(b){return b.earned}).length;window.me=old;return n})():0);
-        var trainingError=(window.trainingData&&window.trainingData.error)||'';
+        var trainingError=td.error||'';
         var lessonRows=lessons.map(function(l){
           var p=byLesson.get(String(l.id)), pct=pctOf(p), was=watched(p);
           var status=p&&p.completed===true?'✅ مكتمل فعليًا':was?'▶️ تمت مشاهدة '+Math.round(pct)+'%':'⚪ لم يُشاهد';
