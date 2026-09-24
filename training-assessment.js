@@ -49,6 +49,12 @@
     return null;
   }
   function renderMember(force){
+    if(!token()){
+      var stale=document.getElementById('dxn-training-assessment');
+      if(stale)stale.remove();
+      state.role='';
+      return;
+    }
     if(state.role!=='member')return;
     var root=document.getElementById('dxn-training-assessment');
     if(root&&!force)return;
@@ -111,7 +117,17 @@
     wrap.innerHTML=html;box.appendChild(wrap);
   }
   async function load(force){
-    var t=token();if(!t)return false;
+    var t=token();
+    if(!t){
+      state.loaded=false;
+      state.role='';
+      state.questions=[];
+      state.my_answers=[];
+      state.all_answers=[];
+      var stale=document.getElementById('dxn-training-assessment');
+      if(stale)stale.remove();
+      return false;
+    }
     try{
       var d=await rpc('training_assessment_bootstrap',{p_token:t});
       state.role=d&&d.role||state.role;
@@ -156,7 +172,14 @@
     var initialRole='';try{initialRole=String(localStorage.getItem('dxn_role')||'').toLowerCase()}catch(e){}
     if(initialRole==='leader')return;
     var tries=0,t=setInterval(function(){if(token()){load(true);clearInterval(t)}else if(++tries>300)clearInterval(t)},100);
-    var mo=new MutationObserver(function(){if(state.loaded){if(state.role==='member')renderMember(false);if(state.role==='leader')renderLeader(false)}});
+    var mo=new MutationObserver(function(){
+      if(!token()){
+        var stale=document.getElementById('dxn-training-assessment');
+        if(stale)stale.remove();
+        return;
+      }
+      if(state.loaded){if(state.role==='member')renderMember(false);if(state.role==='leader')renderLeader(false)}
+    });
     mo.observe(document.body,{childList:true,subtree:true});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
