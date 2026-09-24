@@ -157,6 +157,7 @@
     var label=result==='approved'?'✅ ناجح':result==='retry'?'🔁 إعادة المحاولة':'⏳ قيد المعالجة';
     return '<div class="row" style="border:1px solid #d9e7e1;border-radius:14px;margin-top:8px;padding:12px 14px;background:#fff;align-items:center">'
       +'<div style="flex:1;min-width:0"><b>'+esc(row.member_name||'عضو غير معروف')+'</b></div>'
+      +'<div style="min-width:120px;text-align:center"><b>'+esc(row.membership_number||'—')+'</b></div>'
       +'<div style="min-width:90px;text-align:center"><b>'+Number(row.score||0)+'/100</b></div>'
       +'<div style="min-width:125px;text-align:center"><b>'+label+'</b></div>'
       +'</div>';
@@ -174,7 +175,7 @@
     box.style.cssText='margin:14px 0;border:2px solid #d7e7df;background:linear-gradient(135deg,#fbfffd,#fff);direction:rtl;text-align:right';
     var html='<div class="row" style="border:0;align-items:center"><div><div class="title">📋 سجل اختبارات الأعضاء الجدد</div><div class="muted" style="margin-top:4px">اسم العضو — رقم العضوية — الدرجة — النتيجة.</div></div><button type="button" id="dxnLeaderAssessmentRefresh">🔄 تحديث</button></div>'
       +'<div class="row" style="border:0;background:#f4f8f6;font-weight:900;margin-top:10px;border-radius:12px;padding:10px 14px">'
-      +'<div style="flex:1">اسم العضو</div><div style="min-width:90px;text-align:center">الدرجة</div><div style="min-width:125px;text-align:center">النتيجة</div></div>';
+      +'<div style="flex:1">اسم العضو</div><div style="min-width:120px;text-align:center">رقم العضوية</div><div style="min-width:90px;text-align:center">الدرجة</div><div style="min-width:125px;text-align:center">النتيجة</div></div>';
     if(!Array.isArray(rows)||!rows.length){
       html+='<div class="empty" style="margin-top:10px">لا توجد اختبارات محفوظة حتى الآن.</div>';
     }else{
