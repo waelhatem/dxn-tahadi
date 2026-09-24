@@ -152,6 +152,55 @@
     }
   }
 
+  function leaderSummaryRow(row){
+    var result=String(row.result||'retry');
+    var label=result==='approved'?'✅ ناجح':result==='retry'?'🔁 إعادة المحاولة':'⏳ قيد المعالجة';
+    return '<div class="row" style="border:1px solid #d9e7e1;border-radius:14px;margin-top:8px;padding:12px 14px;background:#fff;align-items:center">'
+      +'<div style="flex:1;min-width:0"><b>'+esc(row.member_name||'عضو غير معروف')+'</b></div>'
+      +'<div style="min-width:90px;text-align:center"><b>'+Number(row.score||0)+'/100</b></div>'
+      +'<div style="min-width:125px;text-align:center"><b>'+label+'</b></div>'
+      +'</div>';
+  }
+
+  function renderLeaderSummary(rows){
+    if(typeof role!=='undefined'&&role!=='leader')return;
+    var root=document.getElementById('app');
+    if(!root)return;
+    var old=document.getElementById('dxn-external-assessment-summary');
+    if(old)old.remove();
+    var box=document.createElement('section');
+    box.id='dxn-external-assessment-summary';
+    box.className='card';
+    box.style.cssText='margin:14px 0;border:2px solid #d7e7df;background:linear-gradient(135deg,#fbfffd,#fff);direction:rtl;text-align:right';
+    var html='<div class="row" style="border:0;align-items:center"><div><div class="title">📋 سجل اختبارات الأعضاء الجدد</div><div class="muted" style="margin-top:4px">اسم العضو — الدرجة — النتيجة فقط.</div></div><button type="button" id="dxnLeaderAssessmentRefresh">🔄 تحديث</button></div>'
+      +'<div class="row" style="border:0;background:#f4f8f6;font-weight:900;margin-top:10px;border-radius:12px;padding:10px 14px">'
+      +'<div style="flex:1">اسم العضو</div><div style="min-width:90px;text-align:center">الدرجة</div><div style="min-width:125px;text-align:center">النتيجة</div></div>';
+    if(!Array.isArray(rows)||!rows.length){
+      html+='<div class="empty" style="margin-top:10px">لا توجد اختبارات محفوظة حتى الآن.</div>';
+    }else{
+      rows.forEach(function(row){html+=leaderSummaryRow(row);});
+    }
+    box.innerHTML=html;
+    var tabs=root.querySelector('.tabs');
+    if(tabs&&tabs.parentNode)tabs.parentNode.insertBefore(box,tabs.nextSibling);
+    else if(root.firstChild)root.insertBefore(box,root.firstChild);
+    else root.appendChild(box);
+    var btn=document.getElementById('dxnLeaderAssessmentRefresh');
+    if(btn)btn.onclick=function(){loadLeaderSummary();};
+  }
+
+  async function loadLeaderSummary(){
+    if(typeof role!=='undefined'&&role!=='leader')return;
+    var t=token();
+    if(!t)return;
+    try{
+      var data=await rpc('get_external_training_assessment_summary',{p_token:t});
+      renderLeaderSummary(Array.isArray(data)?data:[]);
+    }catch(e){
+      console.error('DXN leader external assessment summary',e);
+    }
+  }
+
   function getModalMembershipNumber(){
     var modal=document.getElementById('memberProfileModal');
     if(!modal)return '';
@@ -216,7 +265,10 @@
   var mo=new MutationObserver(function(){
     try{
       if(typeof role!=='undefined'&&role==='member')scanMember();
-      if(typeof role!=='undefined'&&role==='leader')scanLeaderModal();
+      if(typeof role!=='undefined'&&role==='leader'){
+        scanLeaderModal();
+        if(!document.getElementById('dxn-external-assessment-summary'))loadLeaderSummary();
+      }
     }catch(e){}
   });
 
@@ -225,7 +277,10 @@
     setTimeout(function(){
       try{
         if(typeof role!=='undefined'&&role==='member')scanMember();
-        if(typeof role!=='undefined'&&role==='leader')scanLeaderModal();
+        if(typeof role!=='undefined'&&role==='leader'){
+          scanLeaderModal();
+          loadLeaderSummary();
+        }
       }catch(e){}
     },600);
   }
