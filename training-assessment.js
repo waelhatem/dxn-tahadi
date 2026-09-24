@@ -59,7 +59,13 @@
       root.style.cssText='margin:16px 0;border:2px solid #cfe4da;background:linear-gradient(135deg,#f8fcfa,#fff);direction:rtl;text-align:right';
       var anchor=anchorForMember();
       if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(root,anchor.nextSibling);
-      else document.body.appendChild(root);
+      else {
+        var host=document.querySelector('#app .app')||document.getElementById('app')||document.body;
+        host.appendChild(root);
+      }
+      root.style.setProperty('width','100%','important');
+      root.style.setProperty('max-width','none','important');
+      root.style.setProperty('box-sizing','border-box','important');
     }
     var lessons=lessonList(), byLesson={};
     state.questions.forEach(function(q){(byLesson[q.lesson_no]||(byLesson[q.lesson_no]=[])).push(q)});
