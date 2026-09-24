@@ -7,7 +7,7 @@
 }
 body{
   background-color:var(--bg);
-  background-attachment:fixed;
+  background-attachment:scroll;
 }
 .app{
   position:relative;
