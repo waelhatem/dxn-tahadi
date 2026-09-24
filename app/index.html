@@ -395,7 +395,375 @@ body:has(.login-header-top)::before{
 .ragwan-door{animation:none!important}
 .ragwan-door:nth-child(1),.ragwan-door:nth-child(2),.ragwan-door:nth-child(3),.ragwan-door:nth-child(4),.ragwan-door:nth-child(5),.ragwan-door:nth-child(6),.ragwan-door:nth-child(7),.ragwan-door:nth-child(8),.ragwan-door:nth-child(9),.ragwan-door:nth-child(10){animation:none!important}
 .ragwan-journey:before{animation:none!important;opacity:0!important}
-</style>\n<style id="dxn-nav-no-scroll-v1">html,body,#app{overflow-anchor:none!important}</style></head><body>
+</style>\n<style id="dxn-nav-no-scroll-v1">html,body,#app{overflow-anchor:none!important}</style><style id="ragwan-step5-mobile-ui-v1">
+/* V89 — Mobile-first refinement for Door 5 only. Visual/layout layer; no data or actions removed. */
+@media (max-width: 650px){
+  .ragwan-journey.ragwan-step-5-active{
+    margin:14px 0 8px!important;
+    padding:12px 8px 20px!important;
+    border-radius:20px!important;
+  }
+
+  .ragwan-step-5-active .ragwan-journey-head{
+    margin-bottom:14px!important;
+  }
+  .ragwan-step-5-active .ragwan-journey-kicker{
+    font-size:10px!important;
+    padding:6px 10px!important;
+  }
+  .ragwan-step-5-active .ragwan-journey-title{
+    font-size:23px!important;
+    line-height:1.35!important;
+    margin:8px 0 3px!important;
+  }
+  .ragwan-step-5-active .ragwan-journey-sub{
+    font-size:11px!important;
+    line-height:1.65!important;
+  }
+
+  /* Keep the ten doors available, but make their navigation compact. */
+  .ragwan-step-5-active .ragwan-door-gallery{
+    grid-template-columns:repeat(10,118px)!important;
+    gap:8px!important;
+    padding:4px 2px 12px!important;
+    margin:0!important;
+    scroll-padding-inline:10px!important;
+  }
+  .ragwan-step-5-active .ragwan-door{
+    min-width:118px!important;
+    height:178px!important;
+    border-radius:15px!important;
+  }
+  .ragwan-step-5-active .ragwan-door-image-wrap,
+  .ragwan-step-5-active .ragwan-door-leaf,
+  .ragwan-step-5-active .ragwan-door-overlay{
+    border-radius:15px!important;
+  }
+  .ragwan-step-5-active .ragwan-door-num{
+    top:10px!important;
+    width:30px!important;
+    height:30px!important;
+    font-size:14px!important;
+  }
+  .ragwan-step-5-active .ragwan-door-icon{
+    top:50px!important;
+    font-size:20px!important;
+  }
+  .ragwan-step-5-active .ragwan-door-label{
+    top:83px!important;
+    left:8%!important;
+    right:8%!important;
+    font-size:11px!important;
+    line-height:1.35!important;
+    -webkit-line-clamp:3!important;
+  }
+  .ragwan-step-5-active .ragwan-door-status{
+    bottom:12px!important;
+    font-size:9px!important;
+    padding:4px 8px!important;
+  }
+  .ragwan-step-5-active .ragwan-door-detail{
+    display:none!important;
+  }
+
+  /* Step information becomes a clean mobile stack. */
+  .ragwan-step-5-active .ragwan-step-panel{
+    margin-top:4px!important;
+    padding:12px!important;
+    border-radius:20px!important;
+    background:linear-gradient(180deg,#0a4035,#0f513f)!important;
+    box-shadow:0 16px 34px rgba(4,31,25,.20)!important;
+  }
+  .ragwan-step-5-active .ragwan-step-inner{
+    display:flex!important;
+    flex-direction:column!important;
+    gap:10px!important;
+  }
+
+  /* Compact status/action header instead of a large side column. */
+  .ragwan-step-5-active .ragwan-step-side{
+    order:-1!important;
+    width:100%!important;
+    display:grid!important;
+    grid-template-columns:48px 1fr!important;
+    grid-template-areas:
+      "number state"
+      "number progress"
+      "number label"
+      "action action"
+      "complete complete"
+      "next next"!important;
+    gap:6px 9px!important;
+    align-items:center!important;
+    padding:10px!important;
+    border-radius:16px!important;
+    background:rgba(255,255,255,.08)!important;
+    border:1px solid rgba(255,255,255,.13)!important;
+  }
+  .ragwan-step-5-active .ragwan-step-big-number{
+    grid-area:number!important;
+    width:48px!important;
+    height:48px!important;
+    border-radius:14px!important;
+    font-size:23px!important;
+  }
+  .ragwan-step-5-active .ragwan-step-state-pill{
+    grid-area:state!important;
+    margin:0!important;
+    justify-self:start!important;
+    padding:4px 8px!important;
+  }
+  .ragwan-step-5-active .ragwan-step-progress{
+    grid-area:progress!important;
+    width:100%!important;
+    height:8px!important;
+  }
+  .ragwan-step-5-active .ragwan-step-progress-label{
+    grid-area:label!important;
+    font-size:10px!important;
+    text-align:right!important;
+  }
+  .ragwan-step-5-active .ragwan-step-action{
+    grid-area:action!important;
+    min-height:46px!important;
+    margin-top:3px!important;
+  }
+  .ragwan-step-5-active .ragwan-step-complete{
+    grid-area:complete!important;
+    width:100%!important;
+    min-height:46px!important;
+  }
+  .ragwan-step-5-active .ragwan-step-next{
+    grid-area:next!important;
+    width:100%!important;
+    min-height:44px!important;
+  }
+
+  .ragwan-step-5-active .ragwan-step-main{
+    width:100%!important;
+    min-width:0!important;
+  }
+  .ragwan-step-5-active .ragwan-step-kicker{
+    font-size:11px!important;
+    margin-top:2px!important;
+  }
+  .ragwan-step-5-active .ragwan-step-title{
+    font-size:22px!important;
+    line-height:1.4!important;
+    margin:5px 0 8px!important;
+  }
+  .ragwan-step-5-active .ragwan-step-text{
+    font-size:13px!important;
+    line-height:1.8!important;
+  }
+  .ragwan-step-5-active .ragwan-step-goal{
+    margin-top:10px!important;
+    padding:11px!important;
+    font-size:12px!important;
+    line-height:1.7!important;
+  }
+
+  /* Learning cards: compact 2-column mobile grid. */
+  .ragwan-step-5-active .ragwan-training-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:7px!important;
+    margin-top:10px!important;
+  }
+  .ragwan-step-5-active .ragwan-training-card{
+    padding:10px!important;
+    border-radius:14px!important;
+  }
+  .ragwan-step-5-active .ragwan-training-card>span{
+    font-size:20px!important;
+  }
+  .ragwan-step-5-active .ragwan-training-card>b{
+    font-size:12px!important;
+  }
+  .ragwan-step-5-active .ragwan-training-card p{
+    font-size:10px!important;
+    line-height:1.55!important;
+    margin-top:4px!important;
+  }
+
+  .ragwan-step-5-active .ragwan-task-box{
+    margin-top:9px!important;
+    padding:11px!important;
+    border-radius:14px!important;
+    font-size:12px!important;
+    line-height:1.7!important;
+  }
+
+  /* Resources become visually separated cards with actions below the file. */
+  .ragwan-step-5-active .ragwan-step-resources,
+  .ragwan-step-5-active .ragwan-step-videos,
+  .ragwan-step-5-active .ragwan-evidence-box{
+    margin-top:9px!important;
+    padding:11px!important;
+    border-radius:16px!important;
+  }
+  .ragwan-step-5-active .ragwan-resource-head,
+  .ragwan-step-5-active .ragwan-video-material-head,
+  .ragwan-step-5-active .ragwan-evidence-head{
+    gap:8px!important;
+  }
+  .ragwan-step-5-active .ragwan-resource-head b,
+  .ragwan-step-5-active .ragwan-video-material-head b,
+  .ragwan-step-5-active .ragwan-evidence-head b{
+    font-size:14px!important;
+  }
+  .ragwan-step-5-active .ragwan-resource-head small,
+  .ragwan-step-5-active .ragwan-video-material-head small,
+  .ragwan-step-5-active .ragwan-evidence-head small{
+    font-size:10px!important;
+    line-height:1.55!important;
+  }
+
+  .ragwan-step-5-active .ragwan-resource-list{
+    gap:7px!important;
+    margin-top:9px!important;
+  }
+  .ragwan-step-5-active .ragwan-resource-item{
+    display:grid!important;
+    grid-template-columns:34px minmax(0,1fr)!important;
+    gap:7px!important;
+    align-items:center!important;
+    padding:9px!important;
+    border-radius:13px!important;
+  }
+  .ragwan-step-5-active .ragwan-resource-icon{
+    font-size:21px!important;
+    width:34px!important;
+    text-align:center!important;
+  }
+  .ragwan-step-5-active .ragwan-resource-item b{
+    font-size:12px!important;
+    line-height:1.45!important;
+  }
+  .ragwan-step-5-active .ragwan-resource-item small{
+    font-size:9px!important;
+  }
+  .ragwan-step-5-active .ragwan-resource-actions{
+    grid-column:1/-1!important;
+    width:100%!important;
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:6px!important;
+    margin-top:2px!important;
+  }
+  .ragwan-step-5-active .ragwan-resource-actions a,
+  .ragwan-step-5-active .ragwan-resource-actions button{
+    width:100%!important;
+    min-width:0!important;
+    min-height:40px!important;
+    padding:7px 6px!important;
+    font-size:11px!important;
+  }
+
+  /* Uploaded video preview: phone-friendly player and title. */
+  .ragwan-step-5-active .ragwan-step5-video-section{
+    margin-top:9px!important;
+    padding:11px!important;
+    border:1px solid #d9e8e1!important;
+    border-radius:16px!important;
+    background:#f8fcfa!important;
+  }
+  .ragwan-step-5-active .ragwan-step5-video-section video{
+    display:block!important;
+    width:100%!important;
+    max-height:none!important;
+    aspect-ratio:16/9!important;
+    object-fit:contain!important;
+    border-radius:13px!important;
+    margin-top:8px!important;
+  }
+  .ragwan-step-5-active .ragwan-step-video-card{
+    padding:8px!important;
+    border-radius:13px!important;
+  }
+  .ragwan-step-5-active .ragwan-step-video-title{
+    font-size:12px!important;
+    line-height:1.5!important;
+  }
+
+  /* Voice proof: two equal controls, status and preview stacked cleanly. */
+  .ragwan-step-5-active .ragwan-voice-controls{
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    gap:7px!important;
+  }
+  .ragwan-step-5-active .ragwan-voice-controls button{
+    width:100%!important;
+    min-width:0!important;
+    min-height:44px!important;
+    padding:8px!important;
+    font-size:11px!important;
+  }
+  .ragwan-step-5-active .ragwan-voice-controls>span{
+    grid-column:1/-1!important;
+    justify-self:center!important;
+  }
+  .ragwan-step-5-active .ragwan-voice-status{
+    font-size:10px!important;
+    line-height:1.65!important;
+  }
+  .ragwan-step-5-active #ragwanVoicePreview audio,
+  .ragwan-step-5-active .ragwan-my-evidence audio{
+    width:100%!important;
+  }
+
+  /* Bottom navigation: compact, ordered and thumb-friendly. */
+  .ragwan-step-5-active .ragwan-door-controls{
+    display:grid!important;
+    grid-template-columns:44px repeat(5,minmax(0,1fr)) 44px!important;
+    gap:5px!important;
+    margin-top:10px!important;
+  }
+  .ragwan-step-5-active .ragwan-door-controls .ragwan-door-chip:nth-of-type(n+6):nth-of-type(-n+10){
+    display:none!important;
+  }
+  .ragwan-step-5-active .ragwan-door-controls .ragwan-door-chip{
+    min-width:0!important;
+    min-height:38px!important;
+    padding:6px 2px!important;
+    font-size:11px!important;
+  }
+  .ragwan-step-5-active .ragwan-door-nav{
+    min-width:44px!important;
+    min-height:38px!important;
+    padding:5px!important;
+  }
+  .ragwan-step-5-active .ragwan-journey-note{
+    font-size:10px!important;
+    margin-top:10px!important;
+  }
+}
+</style><script id="ragwan-step5-mobile-state-v1">
+(function(){
+  if(window.__RAGWAN_STEP5_MOBILE_STATE_V1__) return;
+  window.__RAGWAN_STEP5_MOBILE_STATE_V1__=true;
+  function sync(){
+    const journey=document.getElementById('ragwanJourney');
+    const panel=document.getElementById('ragwanStepPanel');
+    const n=document.getElementById('ragwanStepNumber');
+    if(!journey||!panel||!n)return;
+    const step=Number(String(n.textContent||'').trim());
+    const active=step===5;
+    journey.classList.toggle('ragwan-step-5-active',active);
+    panel.classList.toggle('ragwan-step-5-active',active);
+  }
+  function init(){
+    sync();
+    const root=document.getElementById('ragwanJourney');
+    if(!root)return;
+    const observer=new MutationObserver(sync);
+    const n=document.getElementById('ragwanStepNumber');
+    if(n)observer.observe(n,{childList:true,characterData:true,subtree:true});
+    window.addEventListener('resize',sync,{passive:true});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
+  else init();
+})();
+</script></head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
   <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
   <div class="pwa-install-actions"><button id="pwaInstallBtn" class="primary" type="button">تثبيت</button><button id="pwaInstallClose" class="pwa-install-close" type="button">لاحقًا</button></div>
