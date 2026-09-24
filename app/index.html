@@ -169,7 +169,9 @@ button[disabled]:focus-visible{outline-color:#667085!important}
 .ragwan-step4-answer-item{padding:13px 14px;margin-top:9px;border:1px solid #dce8e2;border-radius:14px;background:#f8fcfa;line-height:1.85}
 .ragwan-step4-answer-item b{display:block;color:#173c31;margin-bottom:5px}
 .ragwan-step4-answer-close{width:100%;margin-top:14px;min-height:46px;border:0;border-radius:13px;background:#0f513f;color:#fff;font-weight:950}
-@media(max-width:620px){.ragwan-step4-actions{grid-template-columns:1fr}.ragwan-step4-assessment-box{padding:14px}.ragwan-step4-answer-modal{padding:10px}.ragwan-step4-answer-card{max-height:92vh;padding:15px}}.ragwan-step-complete{width:100%;margin-top:8px;background:#176b55;color:#fff}.ragwan-step-next{width:100%;margin-top:8px;background:#eef6f2;color:#0f513f}.ragwan-step-action{width:100%}.ragwan-step-side button:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:620px){.ragwan-step4-actions{grid-template-columns:1fr}.ragwan-step4-assessment-box{padding:14px}.ragwan-step4-answer-modal{padding:10px}.ragwan-step4-answer-card{max-height:92vh;padding:15px}}
+.ragwan-step4-video-copy{width:100%;min-height:48px;margin-top:10px;border:0;border-radius:13px;background:linear-gradient(135deg,#0f513f,#176b55);color:#fff;font-weight:950;cursor:pointer;box-shadow:0 8px 20px rgba(15,81,63,.14)}
+.ragwan-step4-video-status{margin-top:7px;text-align:center;color:#176b55;font-size:12px;font-weight:900;min-height:18px}.ragwan-step-complete{width:100%;margin-top:8px;background:#176b55;color:#fff}.ragwan-step-next{width:100%;margin-top:8px;background:#eef6f2;color:#0f513f}.ragwan-step-action{width:100%}.ragwan-step-side button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:700px){.ragwan-progress-stats{grid-template-columns:repeat(2,1fr)}.ragwan-training-grid{grid-template-columns:1fr}.ragwan-progress-top{align-items:flex-start}}
 </style><style id="ragwanVoiceEvidenceStyles">
 .ragwan-evidence-box{margin-top:13px;padding:14px;border:1px solid #d9e8e1;border-radius:18px;background:#f8fcfa}
@@ -1952,7 +1954,7 @@ function ragwanYoutubeId(url){
 }
 function ragwanBuildDxnSponsorAction(){
   if(ragwanCurrentStep===4){
-    return ragwanBuildStep4AssessmentAction();
+    return '';
   }
   if(ragwanCurrentStep!==2) return '';
   return '<section class="ragwan-dxn-sponsor-box">'+
@@ -2009,6 +2011,19 @@ function ragwanStep4SyncEmail(){
     const status=document.getElementById('ragwanStep4Status');
     if(status)status.textContent='🔒 أكمل الاختبار في Google Form حتى تظهر النتيجة ثم أكد ظهورها هنا.';
   });
+}
+async function ragwanCopyStep4VideoLink(){
+  const videos=ragwanStepVideos[4]||[];
+  const url=videos[0]&&videos[0].url?String(videos[0].url):'';
+  if(!url){toast('⚠️ رابط الفيديو غير متاح حاليًا.');return}
+  try{await navigator.clipboard.writeText(url)}catch(_){
+    const ta=document.createElement('textarea');
+    ta.value=url;ta.setAttribute('readonly','');ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();
+  }
+  const status=document.getElementById('ragwanStep4VideoStatus');
+  if(status)status.textContent='✅ تم نسخ رابط فيديو الحقيبة التدريبية المختصرة.';
+  toast('✅ تم نسخ رابط الفيديو');
 }
 async function ragwanCopyStep4FormLink(){
   const input=document.getElementById('ragwanStep4SponsorEmail');
@@ -2146,20 +2161,28 @@ function ragwanRenderStepVideos(){
   const videos=ragwanStepVideos[ragwanCurrentStep]||[];
   if(!videos.length){el.innerHTML='';return;}
   const headTitle=ragwanCurrentStep===2?'🎥 شرح طريقة عمل العضوية':ragwanCurrentStep===4?'🎥 الحقيبة التدريبية المختصرة':'🎥 فيديوهات الاعتراضات';
-  const headNote=ragwanCurrentStep===2?'شاهد هذه الفيديوهات لفهم طريقة التسجيل والدخول إلى حسابك قبل الانتقال إلى الخطوة التالية.':ragwanCurrentStep===4?'ابدأ بهذه الحقيبة التدريبية المختصرة قبل تنفيذ اختبار الخطوة الرابعة وتحديد التدريب المناسب للعضو.':'هذه الفيديوهات مخصصة للخطوة الأولى وتأتي بعد ملفات طرح فكرة العمل.';
-  el.innerHTML='<div class="ragwan-video-material-head"><div><b>'+headTitle+'</b><small>'+headNote+'</small></div></div>'+
+  const headNote=ragwanCurrentStep===2?'شاهد هذه الفيديوهات لفهم طريقة التسجيل والدخول إلى حسابك قبل الانتقال إلى الخطوة التالية.':ragwanCurrentStep===4?'ابدأ بمشاهدة الحقيبة التدريبية المختصرة كاملة، ثم استخدم الاختبار أدناه للتحقق من الفهم.':'هذه الفيديوهات مخصصة للخطوة الأولى وتأتي بعد ملفات طرح فكرة العمل.';
+  let html='<div class="ragwan-video-material-head"><div><b>'+headTitle+'</b><small>'+headNote+'</small></div></div>'+
     '<div class="ragwan-step-video-list">'+videos.map((v,i)=>{
       const id=ragwanYoutubeId(v.url);
       return '<article class="ragwan-step-video-card"><div class="ragwan-step-video-title"><span>🎥</span><b>'+esc(v.title)+'</b></div>'+(id?'<div class="ragwan-step-video-frame"><iframe src="https://www.youtube.com/embed/'+esc(id)+'" title="'+esc(v.title)+'" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>':'<a href="'+esc(v.url)+'" target="_blank" rel="noopener">فتح الفيديو</a>')+'</article>';
-    }).join('')+'</div>'+
-    (ragwanCurrentStep===2?'<section class="ragwan-account-info-card">'+
+    }).join('')+'</div>';
+  if(ragwanCurrentStep===4){
+    html+='<button type="button" class="ragwan-step4-video-copy" onclick="ragwanCopyStep4VideoLink()">📋 نسخ رابط فيديو الحقيبة التدريبية</button>'+
+      '<div id="ragwanStep4VideoStatus" class="ragwan-step4-video-status" aria-live="polite"></div>'+
+      ragwanBuildStep4AssessmentAction();
+  }
+  if(ragwanCurrentStep===2){
+    html+='<section class="ragwan-account-info-card">'+
       '<h3>💎 معلومات الدخول إلى حسابك الشخصي في DXN</h3>'+
       '<p>يفضل بعد تسجيل العضو الجديد إرسال هذه المعلومات له لمعرفة كيفية فتح حسابه الشخصي في نظام DXN.</p>'+
       '<div class="ragwan-account-field"><b>🔢 رقم العضوية</b><span>......</span></div>'+
       '<div class="ragwan-account-field"><b>🔐 الرقم السري</b><span>......</span></div>'+
       '<div class="ragwan-account-field"><b>🌐 رابط الدخول للصفحة الشخصية</b><a href="https://eworld.dxn2u.com/index.php?r=site%2Findex" target="_blank" rel="noopener noreferrer">https://eworld.dxn2u.com/index.php?r=site%2Findex</a></div>'+
       '<div class="ragwan-account-video"><b>🎥 فيديو تعليمي: كيفية الدخول إلى حسابي الشخصي</b><a href="https://youtu.be/m7paRMpK0vU" target="_blank" rel="noopener noreferrer">▶️ مشاهدة الفيديو التعليمي</a></div>'+
-    '</section>':'');
+    '</section>';
+  }
+  el.innerHTML=html;
 }
 let ragwanWelcomeGender='';
 function ragwanRenderWelcomeImage(name,no){
@@ -2494,6 +2517,14 @@ function ragwanOpenDoor(n){
   ids.forEach(([id,value])=>{const el=document.getElementById(id);if(el)el.textContent=value;});
   ragwanRenderStepSection();
   ragwanRenderStepVideos();
+  if(step===4){
+    const videoBox=document.getElementById('ragwanStepVideos');
+    const titleEl=document.getElementById('ragwanStepTitle');
+    const goalEl=document.getElementById('ragwanStepGoal');
+    if(videoBox && titleEl && goalEl){
+      titleEl.parentNode.insertBefore(videoBox,goalEl.nextSibling);
+    }
+  }
   ragwanRenderStepWelcome();
   ragwanRenderStepTest();
   ragwanLoadStepResources().then(()=>{
