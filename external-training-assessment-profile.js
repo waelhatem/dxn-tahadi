@@ -209,7 +209,7 @@
     var nodes=modal.querySelectorAll('.muted');
     for(var i=0;i<nodes.length;i++){
       var txt=String(nodes[i].textContent||'').trim();
-      var m=txt.match(/🪪s*([^·s]+)/);
+      var m=txt.match(/🪪\s*([^·\s]+)/);
       if(m&&m[1])return m[1].trim();
     }
     return '';
@@ -276,6 +276,28 @@
 
   function start(){
     if(document.body)mo.observe(document.body,{childList:true,subtree:true});
+
+    // Re-read the server-side history whenever the leader returns to the app
+    // so a just-submitted Google Form result is not hidden by stale UI state.
+    document.addEventListener('visibilitychange',function(){
+      if(document.visibilityState!=='visible')return;
+      try{
+        if(typeof role!=='undefined'&&role==='leader'){
+          loadLeaderSummary();
+          scanLeaderModal();
+        }else if(typeof role!=='undefined'&&role==='member'){
+          scanMember();
+        }
+      }catch(e){}
+    });
+
+    window.addEventListener('focus',function(){
+      try{
+        if(typeof role!=='undefined'&&role==='leader')loadLeaderSummary();
+        if(typeof role!=='undefined'&&role==='member')scanMember();
+      }catch(e){}
+    });
+
     setTimeout(function(){
       try{
         if(typeof role!=='undefined'&&role==='member')scanMember();
