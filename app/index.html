@@ -2707,24 +2707,53 @@ function ragwanRenderStepResources(files){
   const el=document.getElementById('ragwanStepResources');if(!el)return;
   const step=ragwanCurrentStep,arr=files||[];
   const leaderUpload=role==='leader'?'<div class="ragwan-resource-upload"><label for="ragwanStepResourceInput">➕ إضافة ملفات هذه الخطوة</label><input id="ragwanStepResourceInput" type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" onchange="ragwanUploadStepResources(this.files)"></div>':'';
+
+  const images=arr.filter(f=>{
+    const n=String(f?.name||''),m=String(f?.mime||'').toLowerCase();
+    return m.startsWith('image/')||/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(n);
+  });
+  const videos=arr.filter(f=>{
+    const n=String(f?.name||''),m=String(f?.mime||'').toLowerCase();
+    return m.startsWith('video/')||/\.(mp4|webm|mov|m4v|ogg)$/i.test(n);
+  });
+  const others=arr.filter(f=>!images.includes(f)&&!videos.includes(f));
+  const ordered=step===5?[...images,...others,...videos]:arr;
+
   el.innerHTML='<div class="ragwan-resource-head"><div><b>📚 مواد الخطوة '+step+'</b><small>اطلع على الملفات أولًا ثم انتقل إلى اختبار الفهم.</small></div>'+leaderUpload+'</div>'+
-    '<div class="ragwan-resource-list">'+(arr.length?arr.map((f,index)=>{
+    '<div class="ragwan-resource-list">'+(ordered.length?ordered.map((f,index)=>{
       const url=String(f.url||'').trim(),name=esc(f.name),path=String(f.path||'').trim();
-      const isImage=String(f.mime||'').toLowerCase().startsWith('image/')||/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(String(f.name||''));
+      const isImage=images.includes(f);
+      const isVideo=videos.includes(f);
       const resourceActions=isImage
         ? '<button type="button" class="ragwan-resource-open" onclick=\'event.stopPropagation();ragwanCopyStepResourceImage('+JSON.stringify(String(f.url||'')).replace(/'/g,"&#39;")+','+JSON.stringify(String(f.name||'الصورة')).replace(/'/g,"&#39;")+')\'>📋 نسخ الصورة</button>'
         : (url?'<a class="ragwan-resource-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.preventDefault();event.stopPropagation();ragwanOpenResource(this.href)">📖 فتح الملف</a>':'');
       const leaderActions=role==='leader'
         ? '<div class="ragwan-resource-actions">'+resourceActions+
-            '<button type="button" class="ragwan-resource-copy" onclick=\'event.stopPropagation();ragwanCopyStepResourceInfo('+JSON.stringify(f).replace(/'/g,"&#39;")+','+index+')\'>📋 نسخ المعلومات</button>'+            '<button type="button" class="ragwan-resource-delete" onclick=\'event.stopPropagation();ragwanDeleteStepResource('+JSON.stringify(path)+')\'>🗑️ حذف</button>'+          '</div>'
+            '<button type="button" class="ragwan-resource-copy" onclick=\'event.stopPropagation();ragwanCopyStepResourceInfo('+JSON.stringify(f).replace(/'/g,"&#39;")+','+index+')\'>📋 نسخ المعلومات</button>'+
+            '<button type="button" class="ragwan-resource-delete" onclick=\'event.stopPropagation();ragwanDeleteStepResource('+JSON.stringify(path)+')\'>🗑️ حذف</button>'+
+          '</div>'
         : '<div class="ragwan-resource-actions">'+resourceActions+'</div>';
-      const rowOpen='';
-      return '<div class="ragwan-resource-item" '+rowOpen+'>'+
+
+      if(isVideo&&url){
+        return '<div class="ragwan-resource-item ragwan-video-material-item">'+
+          '<div style="width:100%">'+
+            '<div class="ragwan-resource-video-title">🎥 <b>'+name+'</b></div>'+
+            '<video controls playsinline preload="metadata" style="width:100%;max-height:520px;border-radius:16px;background:#071a14;margin-top:8px" src="'+esc(url)+'"></video>'+
+            leaderActions+
+          '</div>'+
+        '</div>';
+      }
+
+      return '<div class="ragwan-resource-item">'+
         '<span class="ragwan-resource-icon">'+ragwanFileIcon(f)+'</span>'+
         '<div><b>'+name+'</b><small>'+ragwanFormatSize(f.size)+'</small></div>'+
         leaderActions+
       '</div>';
     }).join(''):'<div class="ragwan-resource-empty">لم تتم إضافة مواد لهذه الخطوة بعد.</div>')+'</div>';
+
+  if(step===5&&videos.length){
+    /* Videos are intentionally rendered after the step's image/file materials. */
+  }
 }
 async function ragwanFocusFirstMaterial(){
   if(role!=='member'||dxnNavScrollLocked())return;
