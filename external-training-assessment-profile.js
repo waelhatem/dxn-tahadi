@@ -62,6 +62,7 @@
     var report=row&&row.report||{};
     return '<div class="row" style="border:1px solid #d9e7e1;border-radius:14px;margin-top:8px;padding:12px 14px;background:#fff;align-items:center">'
       +'<div style="flex:1;min-width:0"><b>'+esc(row.member_name||'عضو غير معروف')+'</b></div>'
+      +'<div style="min-width:120px;text-align:center"><b>'+esc(row.membership_number||'—')+'</b></div>'
       +'<div style="min-width:90px;text-align:center"><b>'+scoreOf(row)+'/100</b></div>'
       +'<div style="min-width:125px;text-align:center"><b>'+resultLabel(report)+'</b></div>'
       +'</div>';
@@ -85,7 +86,7 @@
     var compact=compactRows(rows);
     var html='<div style="overflow:auto"><div style="min-width:520px">'
       +'<div class="row" style="border:0;background:#f4f8f6;font-weight:900;margin-top:10px;border-radius:12px;padding:10px 14px">'
-      +'<div style="flex:1">اسم العضو</div><div style="min-width:90px;text-align:center">الدرجة</div><div style="min-width:125px;text-align:center">النتيجة</div>'
+      +'<div style="flex:1">اسم العضو</div><div style="min-width:120px;text-align:center">رقم العضوية</div><div style="min-width:90px;text-align:center">الدرجة</div><div style="min-width:125px;text-align:center">النتيجة</div>'
       +'</div>';
     if(!compact.length) html+='<div class="empty" style="margin-top:10px">'+esc(emptyText)+'</div>';
     else compact.forEach(function(row){html+=simpleRow(row);});
