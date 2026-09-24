@@ -369,7 +369,7 @@ body:has(.login-header-top)::before{
 </style>
 <style id="ragwan-mobile-file-open-v1">
 .ragwan-resource-item[role="button"]{cursor:pointer;max-width:100%;min-width:0;box-sizing:border-box}
-.ragwan-resource-open{display:inline-flex!important;align-items:center;justify-content:center;flex:0 1 auto!important;min-width:0!important;width:auto!important;max-width:100%!important;min-height:40px;padding:8px 13px;border-radius:11px;background:#0f513f!important;color:#fff!important;font-weight:900;text-decoration:none!important;white-space:nowrap;box-sizing:border-box;overflow:hidden}
+.ragwan-resource-open{display:inline-flex!important;align-items:center;justify-content:center;flex:0 1 auto!important;min-width:0!important;width:auto!important;max-width:100%!important;min-height:40px;padding:8px 13px;border-radius:11px;background:#0f513f!important;color:#fff!important;font-weight:900;text-decoration:none!important;white-space:nowrap;box-sizing:border-box;overflow:hidden}.ragwan-resource-delete{border:1px solid #e5bcbc;background:#fff4f4;color:#a22626;border-radius:10px;padding:7px 10px;font-weight:900;cursor:pointer;white-space:nowrap}
 @media(max-width:620px){
   .ragwan-resource-item{
     display:grid!important;
@@ -2503,6 +2503,7 @@ function ragwanRenderStepResources(files){
         '<span class="ragwan-resource-icon">'+ragwanFileIcon(f)+'</span>'+
         '<div><b>'+name+'</b><small>'+ragwanFormatSize(f.size)+'</small></div>'+
         (url?'<a class="ragwan-resource-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">📖 فتح الملف</a>':'')+
+        (role==='leader'?'<button type="button" class="ragwan-resource-delete" onclick="event.stopPropagation();ragwanDeleteStepResource(\\''+esc(f.path)+\\'\\')">🗑️ حذف</button>':'')+
       '</div>';
     }).join(''):'<div class="ragwan-resource-empty">لم تتم إضافة مواد لهذه الخطوة بعد.</div>')+'</div>';
 }
@@ -2516,6 +2517,16 @@ async function ragwanFocusFirstMaterial(){
   target.style.outline='3px solid #f0bd38';
   target.style.outlineOffset='4px';
   setTimeout(()=>{target.style.outline='';target.style.outlineOffset='';},1800);
+}
+async function ragwanDeleteStepResource(path){
+  if(role!=='leader')return;
+  if(!path)return;
+  if(!confirm('هل تريد حذف هذه المادة من الخطوة؟'))return;
+  try{
+    await ragwanPlanApi('delete_step_resource',{path});
+    toast('🗑️ تم حذف المادة.');
+    await ragwanLoadStepResources();
+  }catch(e){toast(e.message||'تعذر حذف المادة.');}
 }
 async function ragwanLoadStepResources(){
   try{const out=await ragwanPlanApi('step_resource_list',{step:ragwanCurrentStep});ragwanRenderStepResources(out.files||[]);}
@@ -2780,11 +2791,9 @@ function ragwanRenderFiles(files){
   const el=document.getElementById('ragwanFilesList');if(!el)return;
   if(!files.length){el.innerHTML='<div class="muted">لا توجد ملفات مضافة حتى الآن.</div>';return;}
   const ordered=[...files].sort((a,b)=>{
-    const an=String(a?.name||'').match(/(?:^|\\D)(\\d+)(?:\\D|$)/);
-    const bn=String(b?.name||'').match(/(?:^|\\D)(\\d+)(?:\\D|$)/);
-    if(an&&bn)return Number(an[1])-Number(bn[1]);
-    if(an)return -1;
-    if(bn)return 1;
+    const getNo=v=>{const m=String(v?.name||'').match(/(\\d+)(?=\\.[^.]+$)/);return m?Number(m[1]):Number.POSITIVE_INFINITY;};
+    const an=getNo(a),bn=getNo(b);
+    if(an!==bn)return an-bn;
     return String(a?.name||'').localeCompare(String(b?.name||''),'ar',{numeric:true});
   });
   el.innerHTML=ordered.map(f=>{
