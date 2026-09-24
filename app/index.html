@@ -1356,7 +1356,7 @@ function ragwanSuccessIntro(){
 .ragwan-door-leaf{transform:none!important;transform-style:flat!important;backface-visibility:visible!important}
 .ragwan-door.opening3d,.ragwan-door.opening3d .ragwan-door-leaf{animation:none!important;transform:none!important}
 .ragwan-door.opening3d:after{display:none!important}
-.ragwan-door-video-overlay{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;background:rgba(3,20,16,.94);opacity:0;transition:opacity .45s ease;direction:rtl;overflow:hidden}
+.ragwan-door-video-overlay{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;background:rgba(3,20,16,.72);opacity:0;transition:opacity .6s ease;direction:rtl;overflow:hidden}
 .ragwan-door-video-overlay.show{opacity:1}
 .ragwan-door-video-scene{position:relative;width:min(92vw,620px);height:min(92vh,820px);display:flex;align-items:center;justify-content:center}
 .ragwan-door-video-reveal{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(46vw,300px);height:min(34vw,220px);min-width:220px;min-height:155px;border-radius:24px;padding:22px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:linear-gradient(145deg,#f8fff9,#e7f5ee);border:2px solid rgba(217,154,24,.7);box-shadow:0 18px 50px rgba(0,0,0,.28);color:#123b30;z-index:1;overflow:hidden}
@@ -1364,11 +1364,11 @@ function ragwanSuccessIntro(){
 .ragwan-door-video-num{font-size:30px;font-weight:950;color:#b8861b;line-height:1}
 .ragwan-door-video-title{margin-top:8px;font-size:clamp(17px,2.2vw,24px);font-weight:950;line-height:1.5}
 .ragwan-door-video-text{margin-top:7px;font-size:11px;line-height:1.7;color:#587067;max-width:250px}
-.ragwan-door-video-image{position:relative;z-index:2;width:min(72vw,420px);height:auto;max-height:88vh;object-fit:contain;image-rendering:auto;filter:drop-shadow(0 28px 35px rgba(0,0,0,.42));pointer-events:none}
-.ragwan-door-video-overlay.fade{opacity:0;transition:opacity .8s ease}
+.ragwan-door-video-image{position:relative;z-index:4;display:block!important;visibility:visible!important;opacity:1!important;width:min(78vw,520px);height:auto;max-height:90vh;object-fit:contain;image-rendering:auto;filter:drop-shadow(0 28px 35px rgba(0,0,0,.48));pointer-events:none;will-change:transform,opacity}
+.ragwan-door-video-overlay.fade{opacity:0;transition:opacity 1.2s ease}
 @media(max-width:620px){
   .ragwan-door-video-scene{width:100vw;height:100vh}
-  .ragwan-door-video-image{width:min(88vw,360px);max-height:82vh}
+  .ragwan-door-video-image{width:min(94vw,430px);max-height:86vh}
   .ragwan-door-video-reveal{width:56vw;height:34vw;min-width:175px;min-height:125px;padding:15px 12px;border-radius:18px}
   .ragwan-door-video-title{font-size:15px}
   .ragwan-door-video-text{font-size:9px;max-width:180px}
@@ -2292,7 +2292,7 @@ function ragwanDoorVideoReveal(item){
         '<div class="ragwan-door-video-title">'+esc(item.title)+'</div>'+
         '<div class="ragwan-door-video-text">'+esc(item.text)+'</div>'+
       '</div>'+
-      '<img class="ragwan-door-video-image" src="/ragwan-door-open-1-alpha.webp" alt="" aria-hidden="true">'+
+      '<img class="ragwan-door-video-image" src="/ragwan-door-open-1-alpha.webp?v=door1" alt="حركة فتح الباب" aria-hidden="true" onerror="this.style.display=\'none\';">'+
     '</div>';
   document.body.appendChild(overlay);
   requestAnimationFrame(()=>overlay.classList.add('show'));
@@ -2300,7 +2300,7 @@ function ragwanDoorVideoReveal(item){
     overlay.classList.add('fade');
     setTimeout(()=>overlay.remove(),850);
   };
-  setTimeout(finish,1250);
+  setTimeout(finish,2800);
 }
 
 function ragwanStartStep(){
