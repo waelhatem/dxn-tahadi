@@ -327,6 +327,35 @@ body:has(.login-header-top)::before{
   animation:none!important;
   transition:none!important;
 }
+</style><style id="dxn-desktop-background-stability-v1">
+/* V88.7 — تثبيت الخلفية على الحاسوب فقط.
+   لا نغيّر سلوك الموبايل لأنه مستقر بالفعل. */
+@media (min-width:800px){
+  body:has(.login-header-top){
+    background-attachment:fixed!important;
+    overflow-x:hidden!important;
+  }
+  body:has(.login-header-top)::before{
+    position:fixed!important;
+    top:0!important;
+    right:0!important;
+    bottom:0!important;
+    left:0!important;
+    width:100vw!important;
+    height:100vh!important;
+    background-position:center center!important;
+    background-size:cover!important;
+    background-attachment:fixed!important;
+    transform:translateZ(0)!important;
+    animation:none!important;
+    transition:none!important;
+    will-change:auto!important;
+  }
+  body:has(.login-header-top) .app{
+    transform:none!important;
+    animation:none!important;
+  }
+}
 </style></style><link rel="stylesheet" href="./transparency-v1.css?v=1">
 <style id="mobileLayoutStabilityV1">
 /* Mobile layout stability: prevent viewport reflow/zoom-like jumping while browser chrome changes size. */
