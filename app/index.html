@@ -1777,6 +1777,13 @@ function ragwanDoorJourneyMarkup(){
   const doors=d.map(x=>{
     const status=ragwanStepStatus(x.n,state),locked=status==='locked';
     return '<button type="button" class="ragwan-door '+status+'" id="ragwanDoor'+x.n+'" '+(locked?'disabled':'')+' onclick="ragwanOpenDoor('+x.n+')" aria-label="'+esc(x.title)+'">'+
+      '<span class="ragwan-door-back">'+
+        '<span class="ragwan-door-back-num">'+x.n+'</span>'+
+        '<span class="ragwan-door-back-icon">'+x.icon+'</span>'+
+        '<span class="ragwan-door-back-title">'+esc(x.title)+'</span>'+
+        '<span class="ragwan-door-back-text">'+esc(x.text)+'</span>'+
+        '<span class="ragwan-door-back-goal">🎯 '+esc(x.goal)+'</span>'+
+      '</span>'+
       '<span class="ragwan-door-leaf">'+
         '<span class="ragwan-door-image-wrap"><img class="ragwan-door-image" src="/ragwan-door-locked.png" alt="'+esc(x.title)+'" loading="lazy"></span>'+
         '<span class="ragwan-door-overlay"></span>'+
