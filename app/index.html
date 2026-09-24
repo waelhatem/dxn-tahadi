@@ -2725,6 +2725,63 @@ function ragwanRenderStepResources(files){
         leaderActions+
       '</div>';
     }).join(''):'<div class="ragwan-resource-empty">لم تتم إضافة مواد لهذه الخطوة بعد.</div>')+'</div>';
+  if(Number(ragwanCurrentStep)===5){
+    const videoFiles=arr.filter(function(f){
+      const name=String(f&&f.name||'').toLowerCase();
+      const mime=String(f&&f.mime||'').toLowerCase();
+      return mime.indexOf('video/')===0 || /\\.(mp4|webm|mov|m4v|ogg)$/i.test(name);
+    });
+    if(videoFiles.length){
+      videoFiles.forEach(function(f,index){
+        const name=String(f&&f.name||('فيديو '+(index+1)));
+        el.querySelectorAll('.ragwan-resource-item').forEach(function(row){
+          const b=row.querySelector('div>b');
+          if(b&&b.textContent===name)row.style.display='none';
+        });
+      });
+      const section=document.createElement('section');
+      section.className='ragwan-step5-video-section';
+      section.style.marginTop='12px';
+      const head=document.createElement('div');
+      head.className='ragwan-video-material-head';
+      const headWrap=document.createElement('div');
+      const title=document.createElement('b');
+      title.textContent='🎥 فيديو الباب الخامس';
+      const note=document.createElement('small');
+      note.textContent='شاهد الفيديو بعد الاطلاع على الصور والمواد.';
+      headWrap.appendChild(title);
+      headWrap.appendChild(note);
+      head.appendChild(headWrap);
+      section.appendChild(head);
+      videoFiles.forEach(function(f,index){
+        const card=document.createElement('article');
+        card.className='ragwan-step-video-card';
+        card.style.marginTop='10px';
+        const titleRow=document.createElement('div');
+        titleRow.className='ragwan-step-video-title';
+        const icon=document.createElement('span');
+        icon.textContent='🎥';
+        const label=document.createElement('b');
+        label.textContent=String(f&&f.name||('فيديو '+(index+1)));
+        titleRow.appendChild(icon);
+        titleRow.appendChild(label);
+        card.appendChild(titleRow);
+        const video=document.createElement('video');
+        video.controls=true;
+        video.playsInline=true;
+        video.preload='metadata';
+        video.style.width='100%';
+        video.style.maxHeight='520px';
+        video.style.borderRadius='16px';
+        video.style.background='#071a14';
+        video.style.marginTop='8px';
+        video.src=String(f&&f.url||'');
+        card.appendChild(video);
+        section.appendChild(card);
+      });
+      el.appendChild(section);
+    }
+  }
 }
 async function ragwanFocusFirstMaterial(){
   if(role!=='member'||dxnNavScrollLocked())return;
