@@ -190,7 +190,7 @@ button[disabled]:focus-visible{outline-color:#667085!important}
 .ragwan-step-resources,.ragwan-step-test{margin-top:13px;padding:14px;border:1px solid #d9e8e1;border-radius:18px;background:#f8fcfa}
 .ragwan-resource-head,.ragwan-test-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.ragwan-resource-head b,.ragwan-test-head b{display:block;color:#123b30}.ragwan-resource-head small,.ragwan-test-head small{display:block;color:#71817a;margin-top:4px}
 .ragwan-resource-upload label{display:inline-flex;padding:9px 13px;border-radius:11px;background:#0f513f;color:#fff;font-weight:900;cursor:pointer}.ragwan-resource-upload input{display:none}
-.ragwan-resource-list{display:grid;gap:8px;margin-top:11px}.ragwan-resource-item{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #dfe9e5;border-radius:13px;background:#fff}.ragwan-resource-item>div{flex:1}.ragwan-resource-item b{display:block}.ragwan-resource-item small{display:block;color:#71817a;margin-top:2px}.ragwan-resource-item a{font-weight:900;color:#0f513f}.ragwan-resource-icon{font-size:24px}.ragwan-resource-empty{padding:12px;text-align:center;color:#71817a;background:#fff;border-radius:12px}
+.ragwan-resource-list{display:grid;gap:8px;margin-top:11px}.ragwan-resource-item{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #dfe9e5;border-radius:13px;background:#fff}.ragwan-resource-item>div:not(.ragwan-resource-actions){flex:1;min-width:0}.ragwan-resource-item b{display:block;overflow-wrap:anywhere}.ragwan-resource-item small{display:block;color:#71817a;margin-top:2px}.ragwan-resource-item a{font-weight:900;color:#0f513f}.ragwan-resource-icon{font-size:24px;flex:0 0 auto}.ragwan-resource-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end;flex:0 0 auto}.ragwan-resource-actions button,.ragwan-resource-actions a{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:8px 11px;border:0;border-radius:10px;text-decoration:none;font-weight:900;cursor:pointer;white-space:nowrap}.ragwan-resource-open{background:#0f513f;color:#fff!important}.ragwan-resource-copy{background:#eef6f2;color:#0f513f;border:1px solid #cfe3d9!important}.ragwan-resource-delete{background:#fff1f0;color:#b42318;border:1px solid #f2c8c4!important}.ragwan-resource-empty{padding:12px;text-align:center;color:#71817a;background:#fff;border-radius:12px}@media(max-width:650px){.ragwan-resource-item{align-items:flex-start}.ragwan-resource-actions{width:100%;margin-top:5px;justify-content:flex-start}.ragwan-resource-actions button,.ragwan-resource-actions a{flex:1;min-width:105px}.ragwan-resource-item>div:not(.ragwan-resource-actions){min-width:0}}
 .ragwan-test-head>span{font-weight:900;color:#0f513f}.ragwan-test-questions{display:grid;gap:12px;margin-top:12px}.ragwan-test-q{padding:12px;border:1px solid #e0e9e5;border-radius:13px;background:#fff}.ragwan-test-q>b{display:block;margin-bottom:8px}.ragwan-test-q label{display:block;padding:6px 4px;cursor:pointer}.ragwan-test-submit{margin-top:12px;background:#0f513f;color:#fff;border:0;border-radius:11px;padding:10px 15px;font-weight:900;cursor:pointer}.ragwan-test-status{margin-top:8px;font-weight:800}.ragwan-test-card.passed{display:flex;align-items:center;justify-content:space-between;background:#edf8f2;border-color:#bfe2cf}.ragwan-test-card.passed span{font-size:24px;color:#16704e}
 </style><style>
 .ragwan-step-videos{margin-top:13px;padding:14px;border:1px solid #d9e8e1;border-radius:18px;background:#f8fcfa}
@@ -2492,30 +2492,37 @@ function ragwanOpenResource(url){
   const w=window.open(u,'_blank','noopener,noreferrer');
   if(!w)location.href=u;
 }
-function ragwanRenderStepResources(files){
-  const el=document.getElementById('ragwanStepResources');if(!el)return;
-  const step=ragwanCurrentStep,arr=files||[];
-  const leaderUpload=role==='leader'?'<div class="ragwan-resource-upload"><label for="ragwanStepResourceInput">➕ إضافة ملفات هذه الخطوة</label><input id="ragwanStepResourceInput" type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" onchange="ragwanUploadStepResources(this.files)"></div>':'';
-  el.innerHTML='<div class="ragwan-resource-head"><div><b>📚 مواد الخطوة '+step+'</b><small>اطلع على الملفات أولًا ثم انتقل إلى اختبار الفهم.</small></div>'+leaderUpload+'</div>'+
-    '<div class="ragwan-resource-list">'+(arr.length?arr.map(f=>{
-      const url=String(f.url||'').trim(),name=esc(f.name);
-      return '<div class="ragwan-resource-item" '+(url?'role="button" tabindex="0" onclick="ragwanOpenResource(\''+esc(url)+'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \')ragwanOpenResource(\''+esc(url)+'\')"':'')+'>'+
-        '<span class="ragwan-resource-icon">'+ragwanFileIcon(f)+'</span>'+
-        '<div><b>'+name+'</b><small>'+ragwanFormatSize(f.size)+'</small></div>'+
-        (url?'<a class="ragwan-resource-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">📖 فتح الملف</a>':'')+
-      '</div>';
-    }).join(''):'<div class="ragwan-resource-empty">لم تتم إضافة مواد لهذه الخطوة بعد.</div>')+'</div>';
+function ragwanCopyStepResourceInfo(f){
+  const step=Number(f?.step||ragwanCurrentStep)||ragwanCurrentStep;
+  const name=String(f?.name||'الملف').trim();
+  const size=ragwanFormatSize(f?.size);
+  const mime=String(f?.mime||'غير محدد').trim();
+  const created=f?.created_at?new Date(f.created_at).toLocaleString('ar-IQ'):'غير متوفر';
+  const url=String(f?.url||'').trim();
+  const lines=[
+    '📚 مادة الخطوة '+step,
+    '📄 اسم الملف: '+name,
+    '📦 الحجم: '+size,
+    '🗂️ النوع: '+mime,
+    '🕒 تاريخ الإضافة: '+created
+  ];
+  if(url)lines.push('🔗 رابط الملف: '+url);
+  const text=lines.join('\n');
+  const done=()=>toast('✅ تم نسخ معلومات الملف.');
+  if(navigator.clipboard?.writeText)navigator.clipboard.writeText(text).then(done).catch(()=>ragwanCopyPrizeFallback(text,done));
+  else ragwanCopyPrizeFallback(text,done);
 }
-async function ragwanFocusFirstMaterial(){
-  if(role!=='member'||dxnNavScrollLocked())return;
-  const firstFile=document.querySelector('#ragwanStepResources .ragwan-resource-item');
-  const firstVideo=document.querySelector('#ragwanStepVideos .ragwan-step-video-card');
-  const target=firstFile||firstVideo;
-  if(!target)return;
-  target.scrollIntoView({behavior:'smooth',block:'center'});
-  target.style.outline='3px solid #f0bd38';
-  target.style.outlineOffset='4px';
-  setTimeout(()=>{target.style.outline='';target.style.outlineOffset='';},1800);
+async function ragwanDeleteStepResource(path){
+  const p=String(path||'').trim();
+  if(!p)return;
+  if(!confirm('هل تريد حذف هذا الملف من مواد الخطوة؟'))return;
+  try{
+    await ragwanPlanApi('delete_step_resource',{path:p});
+    toast('✅ تم حذف الملف.');
+    await ragwanLoadStepResources();
+  }catch(e){
+    toast('⚠️ '+String(e.message||'تعذر حذف الملف.'));
+  }
 }
 async function ragwanLoadStepResources(){
   try{const out=await ragwanPlanApi('step_resource_list',{step:ragwanCurrentStep});ragwanRenderStepResources(out.files||[]);}
