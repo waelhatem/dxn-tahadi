@@ -1991,7 +1991,7 @@ function ragwanBuildStep4AssessmentAction(){
   const email=ragwanStep4Email();
   const unlocked=ragwanStep4ResultSeen();
   return '<section class="ragwan-step4-assessment-box" id="ragwanStep4AssessmentBox">'+
-    '<div class="ragwan-step4-assessment-head"><span class="icon">📝</span><div><b>اختبار الخطوة الرابعة — Google Form</b><small>أدخل بريد الراعي لتحديد النموذج المرتبط به، ثم انسخ الرابط وأرسله للعضو الجديد. داخل Google Form يكتب العضو اسمه ورقم عضويته هو، بينما يبقى ربط النموذج بالـSponsor محفوظًا داخليًا.</small></div></div>'+
+    '<div class="ragwan-step4-assessment-head"><span class="icon">📝</span><div><b>اختبار الخطوة الرابعة — Google Form</b><small>أدخل بريد الراعي لتحديد النموذج المرتبط به. عند إنشاء الرابط من حساب العضو، يُعبّأ اسم العضو ورقم عضويته تلقائيًا في النموذج، بينما يبقى ربط النموذج بالـSponsor محفوظًا داخليًا.</small></div></div>'+
     '<label class="ragwan-step4-email-label" for="ragwanStep4SponsorEmail"><span>📧 البريد الإلكتروني للراعي <strong style="color:#b42318">*</strong></span>'+
       '<div class="ragwan-step4-email-row">'+
         '<input id="ragwanStep4SponsorEmail" class="ragwan-step4-email" type="email" autocomplete="email" placeholder="sponsor@example.com" value="'+esc(email)+'">'+
@@ -2046,17 +2046,33 @@ async function ragwanApproveStep4Email(){
   const status=document.getElementById('ragwanStep4Status');
   const approved=document.getElementById('ragwanStep4ApprovedStatus');
   const email=String((input&&input.value)||'').trim();
+  const memberNo=String(me&&me.member_no||'').trim();
+  const memberName=String(me&&(me.name||me.member_name)||'').trim();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
     toast('⚠️ أدخل بريد الراعي الصحيح أولًا.');
     if(input)input.focus();
     return;
   }
+  if(role==='member'&&(!/^\d{9}$/.test(memberNo)||!memberName)){
+    toast('⚠️ تعذر إنشاء رابط الاختبار: بيانات عضويتك غير مكتملة.');
+    if(status)status.textContent='⚠️ يجب أن يكون رقم العضوية والاسم متوفرين في حسابك.';
+    return;
+  }
   if(button){button.disabled=true;button.textContent='⏳ جارٍ الاعتماد...';}
   try{
+    const memberNo=String(me&&me.member_no||'').trim();
+    const memberName=String(me&&(me.name||me.member_name)||'').trim();
+    if(role==='member'&&(!/^\d{9}$/.test(memberNo)||!memberName)){
+      throw new Error('بيانات عضويتك غير مكتملة في الحساب.');
+    }
     const res=await fetch('/api/google-form-prefill',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({sponsorEmail:email}),
+      body:JSON.stringify({
+        sponsorEmail:email,
+        memberName:role==='member'?memberName:'',
+        membershipNumber:role==='member'?memberNo:''
+      }),
       cache:'no-store'
     });
     const data=await res.json().catch(()=>null);
@@ -2067,7 +2083,7 @@ async function ragwanApproveStep4Email(){
     localStorage.removeItem(ragwanStep4StorageKey('form_copied'));
     localStorage.removeItem(ragwanStep4StorageKey('result_seen'));
     if(approved)approved.style.display='block';
-    if(status)status.textContent='✅ تم اعتماد البريد. هذا النموذج مرتبط بهذا الـSponsor داخليًا، والعضو الجديد سيكتب اسمه ورقم عضويته هو داخل الاختبار.';
+    if(status)status.textContent='✅ تم اعتماد البريد. النموذج مرتبط بهذا الـSponsor داخليًا، وسيظهر اسمك ورقم عضويتك تلقائيًا في رابط الاختبار.';
     toast('✅ تم اعتماد بريد الراعي');
   }catch(err){
     if(status)status.textContent='❌ '+String(err?.message||err);
@@ -2095,7 +2111,7 @@ async function ragwanCopyStep4FormLink(){
   }
   const status=document.getElementById('ragwanStep4Status');
   try{localStorage.setItem(ragwanStep4StorageKey('form_copied'),'1')}catch(_){}
-  if(status)status.textContent='✅ تم نسخ رابط الاختبار. النموذج مرتبط بالـSponsor داخليًا، والعضو الجديد يكتب اسمه ورقم عضويته هو داخل Google Form.';
+  if(status)status.textContent='✅ تم نسخ رابط الاختبار. الرابط يحمل اسمك ورقم عضويتك تلقائيًا، والنموذج مرتبط بالـSponsor داخليًا.';
   toast('✅ تم نسخ رابط الاختبار');
 }
 function ragwanConfirmStep4Result(){
