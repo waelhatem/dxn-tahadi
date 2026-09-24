@@ -2561,11 +2561,9 @@ function ragwanCopyStepResourceInfo(f){
 
   const key=name.toLowerCase();
   const description=curated[key];
-  const lines=description
-    ? [description,'','📎 بيانات الملف:','📄 اسم الملف: '+name,'📦 الحجم: '+size,'🗂️ النوع: '+mime,'🕒 تاريخ الإضافة: '+created]
-    : ['📚 مادة الخطوة '+step,'📄 اسم الملف: '+name,'📦 الحجم: '+size,'🗂️ النوع: '+mime,'🕒 تاريخ الإضافة: '+created];
-  if(url)lines.push('🔗 رابط الملف: '+url);
-  const text=lines.join('\\n');
+  // زر النسخ مخصص لنسخ النص الجاهز لإرساله للعضو، وليس بيانات الملف أو رابطه.
+  // إذا تمت صياغة محتوى الصورة، ننسخ المحتوى المصاغ فقط.
+  const text=description||'لم تتم صياغة معلومات هذه الصورة بعد.';
   const done=()=>toast('✅ تم نسخ معلومات الملف.');
   if(navigator.clipboard?.writeText)navigator.clipboard.writeText(text).then(done).catch(()=>ragwanCopyPrizeFallback(text,done));
   else ragwanCopyPrizeFallback(text,done);
