@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>نتيجة اختبار الحقيبة التدريبية</title>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--text:#172033;--muted:#687386;--line:#e6eaf0;--accent:#166534;--accent2:#0f766e;--danger:#b42318;--success:#166534}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#eef7f3 0,#f7f9fc 48%,#f4f6fa 100%);font-family:Tahoma,Arial,sans-serif;color:var(--text)}
+.wrap{max-width:980px;margin:0 auto;padding:24px 16px 50px}.top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}.brand{font-weight:800;font-size:20px}.back{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 14px;text-decoration:none;color:var(--text)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:0 12px 35px rgba(20,40,70,.08);padding:24px;margin-bottom:16px}
+h1{margin:0 0 8px;font-size:28px}.sub{color:var(--muted);line-height:1.8;margin:0}.identity{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:20px}.info{background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:14px}.label{font-size:12px;color:var(--muted);margin-bottom:5px}.value{font-weight:800}
+.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}.metric{border:1px solid var(--line);border-radius:16px;padding:16px;background:#fff}.metric .n{font-size:28px;font-weight:900}.metric .l{font-size:12px;color:var(--muted);margin-top:4px}
+.status{display:inline-flex;align-items:center;gap:8px;padding:9px 13px;border-radius:999px;font-weight:800;margin-top:14px}.approved{background:#ecfdf3;color:var(--success)}.retry{background:#fff4ed;color:#9a3412}.loading{padding:32px;text-align:center;color:var(--muted)}
+.progress{height:12px;background:#e9eef4;border-radius:999px;overflow:hidden;margin-top:14px}.progress>span{display:block;height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:inherit}
+.rows{display:grid;gap:12px}.q{border:1px solid var(--line);border-radius:16px;padding:16px;background:#fff}.qhead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.qtitle{font-weight:800;line-height:1.7}.badge{white-space:nowrap;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800}.b-ok{background:#ecfdf3;color:#166534}.b-retry{background:#fff4ed;color:#9a3412}.note{margin-top:9px;color:var(--muted);line-height:1.8}.error{color:var(--danger);background:#fff5f4;border:1px solid #f3c7c3;border-radius:14px;padding:14px;line-height:1.8}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.btn{border:0;border-radius:12px;padding:11px 16px;font-weight:800;cursor:pointer;text-decoration:none}.primary{background:var(--accent);color:#fff}.secondary{background:#eef2f7;color:var(--text)}
+@media(max-width:700px){.summary{grid-template-columns:repeat(2,minmax(0,1fr))}.identity{grid-template-columns:1fr}h1{font-size:23px}.card{padding:18px}.qhead{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">DXN — نظام التدريب</div>
+    <a class="back" href="/">العودة إلى النظام</a>
+  </div>
+
+  <section class="card" id="mainCard">
+    <h1>نتيجة اختبار الحقيبة التدريبية</h1>
+    <p class="sub" id="intro">جاري التحقق من جلسة العضو وتجهيز آخر نتيجة...</p>
+    <div id="content"><div class="loading">⏳ جاري تحميل النتيجة...</div></div>
+  </section>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  const session = String(localStorage.getItem('dxn_session') || '').trim();
+
+  function esc(v){
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function(ch){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[ch];
+    });
+  }
+
+  async function rpc(fn,args){
+    const r = await fetch('/api/rpc',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({fn:fn,args:args || {}}),
+      cache:'no-store'
+    });
+    const text = await r.text();
+    let data = null;
+    try{ data = text ? JSON.parse(text) : null; }catch(_){}
+    if(!r.ok) throw new Error((data && (data.message || data.error)) || text || ('HTTP '+r.status));
+    return data;
+  }
+
+  function showError(message){
+    document.getElementById('intro').textContent = 'تعذر تحميل النتيجة.';
+    document.getElementById('content').innerHTML =
+      '<div class="error">'+esc(message)+'</div>'+
+      '<div class="actions"><a class="btn secondary" href="/">العودة إلى النظام</a></div>';
+  }
+
+  function getRows(data){
+    if(Array.isArray(data)) return data;
+    if(Array.isArray(data && data.rows)) return data.rows;
+    if(Array.isArray(data && data.submissions)) return data.submissions;
+    return [];
+  }
+
+  function render(row){
+    const report = row && row.report ? row.report : {};
+    const results = Array.isArray(report.results) ? report.results : [];
+    const score = Number(report.totalScore || 0);
+    const total = Number(report.totalQuestions || results.length || 12);
+    const approved = Number(report.approvedCount || 0);
+    const retry = Number(report.retryCount || Math.max(0,total-approved));
+    const isApproved = String(report.overallStatus || '') === 'approved';
+    const statusText = isApproved ? 'اجتاز الاختبار' : 'يحتاج إلى إعادة المحاولة';
+    const pct = Math.max(0,Math.min(100,score));
+
+    let html = '';
+    html += '<div class="identity">';
+    html += '<div class="info"><div class="label">اسم العضو</div><div class="value">'+esc(row.member_name || report.identity?.memberName || '')+'</div></div>';
+    html += '<div class="info"><div class="label">رقم العضوية</div><div class="value">'+esc(row.membership_number || report.identity?.membershipNumber || '')+'</div></div>';
+    html += '</div>';
+
+    html += '<div class="status '+(isApproved?'approved':'retry')+'">'+(isApproved?'✓':'↻')+' '+statusText+'</div>';
+    html += '<div class="progress"><span style="width:'+pct+'%"></span></div>';
+
+    html += '<div class="summary">';
+    html += '<div class="metric"><div class="n">'+score+'</div><div class="l">الدرجة من 100</div></div>';
+    html += '<div class="metric"><div class="n">'+total+'</div><div class="l">إجمالي الأسئلة</div></div>';
+    html += '<div class="metric"><div class="n">'+approved+'</div><div class="l">أسئلة معتمدة</div></div>';
+    html += '<div class="metric"><div class="n">'+retry+'</div><div class="l">تحتاج إعادة</div></div>';
+    html += '</div>';
+
+    if(results.length){
+      html += '<div style="margin-top:24px"><h2 style="font-size:20px;margin:0 0 12px">تفاصيل الأسئلة</h2><div class="rows">';
+      results.forEach(function(item){
+        const ok = String(item.status || '') === 'approved';
+        html += '<div class="q">';
+        html += '<div class="qhead"><div class="qtitle">'+esc(item.questionNo ? ('السؤال '+item.questionNo+' — ') : '')+esc(item.question || '')+'</div>';
+        html += '<span class="badge '+(ok?'b-ok':'b-retry')+'">'+(ok?'معتمد':'يحتاج مراجعة')+' · '+Number(item.score||0)+'/100</span></div>';
+        if(item.note) html += '<div class="note">'+esc(item.note)+'</div>';
+        html += '</div>';
+      });
+      html += '</div></div>';
+    }
+
+    const submitted = row.submitted_at || row.created_at || '';
+    if(submitted){
+      const d = new Date(submitted);
+      if(!isNaN(d.getTime())) html += '<p class="sub" style="margin-top:18px">تاريخ الإرسال: '+esc(d.toLocaleString('ar-IQ'))+'</p>';
+    }
+
+    html += '<div class="actions"><a class="btn primary" href="/">العودة إلى نظام التدريب</a><button class="btn secondary" id="refreshBtn" type="button">تحديث النتيجة</button></div>';
+
+    document.getElementById('intro').textContent = 'تم تجهيز نتيجة آخر اختبار مسجل لهذا العضو.';
+    document.getElementById('content').innerHTML = html;
+    document.getElementById('refreshBtn').addEventListener('click', load);
+  }
+
+  let tries = 0;
+  async function load(){
+    if(!session){
+      showError('انتهت جلسة الدخول أو لم يتم تسجيل الدخول. سجّل الدخول إلى النظام ثم افتح صفحة النتيجة مرة أخرى.');
+      return;
+    }
+
+    document.getElementById('intro').textContent = 'جاري تحميل نتيجة آخر اختبار...';
+
+    try{
+      const boot = await rpc('bootstrap',{p_token:session});
+      const member = boot && Array.isArray(boot.members) ? boot.members[0] : null;
+      const memberNo = String(member && (member.member_no || member.login_no) || '').trim();
+      if(!memberNo) throw new Error('تعذر تحديد رقم عضوية الجلسة الحالية.');
+
+      const data = await rpc('get_external_training_assessment_submissions',{
+        p_token:session,
+        p_membership_number:memberNo
+      });
+
+      const rows = getRows(data).sort(function(a,b){
+        return (new Date(b.submitted_at || b.created_at || 0).getTime()||0) -
+               (new Date(a.submitted_at || a.created_at || 0).getTime()||0);
+      });
+
+      if(!rows.length){
+        tries++;
+        document.getElementById('intro').textContent = 'تم استلام الاختبار، لكن النتيجة لم تُحفظ بعد.';
+        document.getElementById('content').innerHTML =
+          '<div class="loading">⏳ جارٍ تجهيز التقييم آليًا...<br><small>ستتحدث الصفحة تلقائيًا.</small></div>';
+        if(tries < 12) setTimeout(load,5000);
+        return;
+      }
+
+      render(rows[0]);
+    }catch(e){
+      showError(e && e.message ? e.message : 'حدث خطأ غير متوقع.');
+    }
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>
