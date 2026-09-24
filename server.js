@@ -9,7 +9,8 @@ const HOST = '0.0.0.0';
 const handlerPaths = {
   '/api/rpc': './api/rpc',
   '/api/rpc-health': './api/rpc-health',
-  '/api/grade-training': './api/grade-training'
+  '/api/grade-training': './api/grade-training',
+  '/api/google-form-submit': './api/google-form-submit'
 };
 
 const MIME = {
