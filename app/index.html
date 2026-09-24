@@ -2705,53 +2705,28 @@ async function ragwanCopyStepResourceImage(url,name){
 }
 function ragwanRenderStepResources(files){
   const el=document.getElementById('ragwanStepResources');if(!el)return;
-  const step=ragwanCurrentStep,arr=Array.isArray(files)?files:[];
-  const leaderUpload=role==='leader'
-    ? '<div class="ragwan-resource-upload"><label for="ragwanStepResourceInput">➕ إضافة ملفات هذه الخطوة</label><input id="ragwanStepResourceInput" type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" onchange="ragwanUploadStepResources(this.files)"></div>'
-    : '';
-
-  const images=[],videos=[],others=[];
-  arr.forEach((f,index)=>{
-    const n=String(f?.name||'');
-    const m=String(f?.mime||'').toLowerCase();
-    const item={f,index};
-    if(m.startsWith('image/')||/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(n))images.push(item);
-    else if(m.startsWith('video/')||/\.(mp4|webm|mov|m4v|ogg)$/i.test(n))videos.push(item);
-    else others.push(item);
-  });
-
-  const ordered=step===5?[...images,...others]:[...images,...others,...videos];
-
-  const resourceHtml=ordered.length?ordered.map((item,index)=>{
-    const f=item.f;
-    const sourceIndex=item.index;
-    const url=String(f?.url||'').trim();
-    const name=esc(f?.name||'الملف');
-    const path=String(f?.path||'').trim();
-    const isImage=images.some(x=>x.index===sourceIndex);
-    const actions=isImage
-      ? '<button type="button" class="ragwan-resource-open ragwan-copy-image-btn" data-resource-index="'+sourceIndex+'">📋 نسخ الصورة</button>'
-      : (url?'<a class="ragwan-resource-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">📖 فتح الملف</a>':'');
-    const adminActions=role==='leader'
-      ? '<button type="button" class="ragwan-resource-copy" data-resource-index="'+sourceIndex+'">📋 نسخ المعلومات</button><button type="button" class="ragwan-resource-delete" data-resource-path="'+esc(path)+'">🗑️ حذف</button>'
-      : '';
-    return '<div class="ragwan-resource-item">'+
-      '<span class="ragwan-resource-icon">'+ragwanFileIcon(f)+'</span>'+
-      '<div><b>'+name+'</b><small>'+ragwanFormatSize(f?.size)+'</small></div>'+
-      '<div class="ragwan-resource-actions">'+actions+adminActions+'</div>'+
-    '</div>';
-  }).join(''):'<div class="ragwan-resource-empty">لم تتم إضافة مواد لهذه الخطوة بعد.</div>';
-
-  el.innerHTML=
-    '<div class="ragwan-resource-head"><div><b>📚 مواد الخطوة '+step+'</b><small>اطلع على الملفات أولًا ثم انتقل إلى اختبار الفهم.</small></div>'+leaderUpload+'</div>'+
-    '<div class="ragwan-resource-list">'+resourceHtml+'</div>';
-
-  el.querySelectorAll('.ragwan-copy-image-btn').forEach(btn=>{
-    btn.addEventListener('click',event=>{
-      event.stopPropagation();
-      const idx=Number(btn.dataset.resourceIndex);
-      const f=arr[idx]||{};
-      ragwanCopyStepResourceImage(String(f.url||''),String(f.name||'الصورة'));
+  const step=ragwanCurrentStep,arr=files||[];
+  const leaderUpload=role==='leader'?'<div class="ragwan-resource-upload"><label for="ragwanStepResourceInput">➕ إضافة ملفات هذه الخطوة</label><input id="ragwanStepResourceInput" type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" onchange="ragwanUploadStepResources(this.files)"></div>':'';
+  el.innerHTML='<div class="ragwan-resource-head"><div><b>📚 مواد الخطوة '+step+'</b><small>اطلع على الملفات أولًا ثم انتقل إلى اختبار الفهم.</small></div>'+leaderUpload+'</div>'+
+    '<div class="ragwan-resource-list">'+(arr.length?arr.map((f,index)=>{
+      const url=String(f.url||'').trim(),name=esc(f.name),path=String(f.path||'').trim();
+      const isImage=String(f.mime||'').toLowerCase().startsWith('image/')||/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(String(f.name||''));
+      const resourceActions=isImage
+        ? '<button type="button" class="ragwan-resource-open" onclick=\'event.stopPropagation();ragwanCopyStepResourceImage('+JSON.stringify(String(f.url||'')).replace(/'/g,"&#39;")+','+JSON.stringify(String(f.name||'الصورة')).replace(/'/g,"&#39;")+')\'>📋 نسخ الصورة</button>'
+        : (url?'<a class="ragwan-resource-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.preventDefault();event.stopPropagation();ragwanOpenResource(this.href)">📖 فتح الملف</a>':'');
+      const leaderActions=role==='leader'
+        ? '<div class="ragwan-resource-actions">'+resourceActions+
+            '<button type="button" class="ragwan-resource-copy" onclick=\'event.stopPropagation();ragwanCopyStepResourceInfo('+JSON.stringify(f).replace(/'/g,"&#39;")+','+index+')\'>📋 نسخ المعلومات</button>'+            '<button type="button" class="ragwan-resource-delete" onclick=\'event.stopPropagation();ragwanDeleteStepResource('+JSON.stringify(path)+')\'>🗑️ حذف</button>'+          '</div>'
+        : '<div class="ragwan-resource-actions">'+resourceActions+'</div>';
+      const rowOpen='';
+      return '<div class="ragwan-resource-item" '+rowOpen+'>'+
+        '<span class="ragwan-resource-icon">'+ragwanFileIcon(f)+'</span>'+
+        '<div><b>'+name+'</b><small>'+ragwanFormatSize(f.size)+'</small></div>'+
+        leaderActions+
+      '</div>';
+    }).join(''):'<div class="ragwan-resource-empty">لم تتم إضافة مواد لهذه الخطوة بعد.</div>')+'</div>';
+}
+agwanCopyStepResourceImage(String(f.url||''),String(f.name||'الصورة'));
     });
   });
 
@@ -2814,7 +2789,7 @@ async function ragwanFocusFirstMaterial(){
   setTimeout(()=>{target.style.outline='';target.style.outlineOffset='';},1800);
 }
 async function ragwanLoadStepResources(){
-  try{const out=await ragwanPlanApi('step_resource_list',{step:ragwanCurrentStep});ragwanRenderStepResources(out.files||[]);}
+  try{const out=await ragwanPlanApi('step_resource_list',{step:ragwanCurrentStep});const files=out.files||[];ragwanRenderStepResources(files);ragwanRenderStep5UploadedVideos(files);}
   catch(e){const el=document.getElementById('ragwanStepResources');if(el)el.innerHTML='<div class="ragwan-resource-empty">⚠️ '+esc(e.message||'تعذر تحميل مواد الخطوة.')+'</div>';}
 }
 async function ragwanUploadStepResources(files){
