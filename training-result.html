@@ -16,6 +16,28 @@ h1{margin:0 0 8px;font-size:28px}.sub{color:var(--muted);line-height:1.8;margin:
 .rows{display:grid;gap:12px}.q{border:1px solid var(--line);border-radius:16px;padding:16px;background:#fff}.qhead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.qtitle{font-weight:800;line-height:1.7}.badge{white-space:nowrap;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800}.b-ok{background:#ecfdf3;color:#166534}.b-retry{background:#fff4ed;color:#9a3412}.note{margin-top:9px;color:var(--muted);line-height:1.8}.error{color:var(--danger);background:#fff5f4;border:1px solid #f3c7c3;border-radius:14px;padding:14px;line-height:1.8}
 .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.btn{border:0;border-radius:12px;padding:11px 16px;font-weight:800;cursor:pointer;text-decoration:none}.primary{background:var(--accent);color:#fff}.secondary{background:#eef2f7;color:var(--text)}
 @media(max-width:700px){.summary{grid-template-columns:repeat(2,minmax(0,1fr))}.identity{grid-template-columns:1fr}h1{font-size:23px}.card{padding:18px}.qhead{flex-direction:column}}
+
+/* ===== 90+ ACHIEVEMENT CELEBRATION ===== */
+.achievement-overlay{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;background:rgba(5,24,18,.72);backdrop-filter:blur(7px);overflow:hidden}
+.achievement-overlay.show{display:flex;animation:achFade .35s ease both}
+.achievement-stage{position:relative;width:min(720px,92vw);min-height:470px;border-radius:30px;padding:42px 28px 34px;text-align:center;background:radial-gradient(circle at 50% 18%,#fffdf2 0,#ffffff 36%,#eef8f3 100%);border:2px solid rgba(214,170,55,.55);box-shadow:0 28px 80px rgba(0,0,0,.28);overflow:hidden;transform:scale(.82);animation:achPop .55s cubic-bezier(.17,.89,.32,1.28) .08s forwards}
+.achievement-crown{font-size:28px;line-height:1;margin-bottom:4px;filter:drop-shadow(0 5px 8px rgba(160,120,0,.2))}
+.achievement-trophy{font-size:112px;line-height:1;display:block;margin:0 auto 8px;filter:drop-shadow(0 14px 10px rgba(151,105,0,.22));animation:trophyFloat 1.8s ease-in-out infinite}
+.achievement-title{margin:0;color:#145c46;font-size:32px;font-weight:900}
+.achievement-score{margin:10px 0 4px;font-size:48px;font-weight:1000;color:#a16f00;text-shadow:0 3px 0 #fff}
+.achievement-sub{margin:0;color:#64756e;font-size:16px;font-weight:700}
+.achievement-crowd{position:absolute;left:0;right:0;bottom:0;height:105px;opacity:.14;background:radial-gradient(ellipse at 8% 100%,#123f33 0 22px,transparent 23px),radial-gradient(ellipse at 20% 100%,#123f33 0 28px,transparent 29px),radial-gradient(ellipse at 34% 100%,#123f33 0 24px,transparent 25px),radial-gradient(ellipse at 50% 100%,#123f33 0 31px,transparent 32px),radial-gradient(ellipse at 66% 100%,#123f33 0 25px,transparent 26px),radial-gradient(ellipse at 80% 100%,#123f33 0 29px,transparent 30px),radial-gradient(ellipse at 94% 100%,#123f33 0 23px,transparent 24px)}
+.achievement-close,.achievement-sound{position:relative;z-index:3;border:0;border-radius:999px;padding:11px 18px;font-weight:900;cursor:pointer}
+.achievement-close{margin-top:22px;background:#145c46;color:#fff;box-shadow:0 8px 20px rgba(20,92,70,.2)}
+.achievement-sound{display:none;margin-top:10px;background:#fff3c4;color:#8a6200;border:1px solid #e7c96b}
+.achievement-sound.show{display:inline-block}
+.confetti-piece{position:absolute;top:-24px;width:10px;height:18px;border-radius:2px;opacity:0;animation:confettiFall 2.8s linear forwards}
+@keyframes achFade{from{opacity:0}to{opacity:1}}
+@keyframes achPop{to{transform:scale(1)}}
+@keyframes trophyFloat{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-12px) rotate(2deg)}}
+@keyframes confettiFall{0%{opacity:1;transform:translate3d(0,-20px,0) rotate(0deg)}100%{opacity:0;transform:translate3d(var(--dx),520px,0) rotate(760deg)}}
+@media(max-width:700px){.achievement-stage{min-height:420px;padding:32px 18px 28px}.achievement-trophy{font-size:88px}.achievement-title{font-size:25px}.achievement-score{font-size:40px}.achievement-sub{font-size:14px}}
+
 </style>
 </head>
 <body>
@@ -32,6 +54,23 @@ h1{margin:0 0 8px;font-size:28px}.sub{color:var(--muted);line-height:1.8;margin:
   </section>
 </div>
 
+
+<!-- 90+ achievement celebration -->
+<div class="achievement-overlay" id="achievementOverlay" aria-hidden="true">
+  <div class="achievement-stage" id="achievementStage">
+    <div class="achievement-crown">✨ 🏆 ✨</div>
+    <div class="achievement-trophy" aria-hidden="true">🏆</div>
+    <h2 class="achievement-title">🎉 مبروك! اجتزت الاختبار بتميز 🎉</h2>
+    <div class="achievement-score" id="achievementScore">90+</div>
+    <p class="achievement-sub">هذا الإنجاز يستحق الاحتفال 👏</p>
+    <button class="achievement-sound" id="achievementSound" type="button">🔊 تشغيل صوت الاحتفال</button>
+    <br>
+    <button class="achievement-close" id="achievementClose" type="button">متابعة عرض النتيجة</button>
+    <div class="achievement-crowd" aria-hidden="true"></div>
+  </div>
+</div>
+
+<script src="/dxn-achievement-crowd-audio.js"></script>
 <script>
 (function(){
   'use strict';
@@ -70,6 +109,63 @@ h1{margin:0 0 8px;font-size:28px}.sub{color:var(--muted);line-height:1.8;margin:
     if(Array.isArray(data && data.rows)) return data.rows;
     if(Array.isArray(data && data.submissions)) return data.submissions;
     return [];
+  }
+
+
+
+  function launchAchievementCelebration(score, row){
+    if(Number(score) < 90) return;
+    var overlay = document.getElementById('achievementOverlay');
+    var stage = document.getElementById('achievementStage');
+    var scoreEl = document.getElementById('achievementScore');
+    var soundBtn = document.getElementById('achievementSound');
+    var closeBtn = document.getElementById('achievementClose');
+    if(!overlay || !stage) return;
+
+    var resultKey = 'dxn_achievement_' + String((row && (row.submitted_at || row.created_at)) || score);
+    try{
+      if(sessionStorage.getItem(resultKey) === '1') return;
+      sessionStorage.setItem(resultKey,'1');
+    }catch(_){ }
+
+    scoreEl.textContent = String(score) + ' / 100';
+    for(var i=0;i<90;i++){
+      var piece = document.createElement('span');
+      piece.className = 'confetti-piece';
+      piece.style.left = (Math.random()*100) + '%';
+      piece.style.setProperty('--dx', ((Math.random()-.5)*260) + 'px');
+      piece.style.animationDelay = (Math.random()*0.9) + 's';
+      piece.style.transform = 'rotate(' + (Math.random()*180) + 'deg)';
+      piece.style.background = ['#d4af37','#0f766e','#166534','#eab308','#ef4444','#3b82f6'][i%6];
+      stage.appendChild(piece);
+    }
+
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden','false');
+
+    var played = false;
+    try{
+      if(typeof window.playDXNAchievementCrowd === 'function'){
+        window.playDXNAchievementCrowd();
+        played = true;
+      }
+    }catch(_){ }
+    if(!played && soundBtn) soundBtn.classList.add('show');
+
+    if(soundBtn){
+      soundBtn.addEventListener('click',function(){
+        try{
+          if(typeof window.playDXNAchievementCrowd === 'function') window.playDXNAchievementCrowd();
+          soundBtn.classList.remove('show');
+        }catch(_){ }
+      },{once:false});
+    }
+    if(closeBtn){
+      closeBtn.addEventListener('click',function(){
+        overlay.classList.remove('show');
+        overlay.setAttribute('aria-hidden','true');
+      },{once:true});
+    }
   }
 
   function render(row){
@@ -123,6 +219,7 @@ h1{margin:0 0 8px;font-size:28px}.sub{color:var(--muted);line-height:1.8;margin:
     document.getElementById('intro').textContent = 'تم تجهيز نتيجة آخر اختبار مسجل لهذا العضو.';
     document.getElementById('content').innerHTML = html;
     document.getElementById('refreshBtn').addEventListener('click', load);
+    if(isApproved && score >= 90) setTimeout(function(){ launchAchievementCelebration(score,row); }, 450);
   }
 
   let tries = 0;
