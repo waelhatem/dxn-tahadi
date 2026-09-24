@@ -151,7 +151,7 @@
   function createUI(){
     var style=document.createElement('style');
     style.textContent=
-      '.dxn-search-fab{position:fixed;left:18px;top:18px;z-index:70;background:#0f513f;color:#fff;border:0;border-radius:999px;padding:11px 16px;font-weight:950;box-shadow:0 8px 24px rgba(15,81,63,.22);cursor:pointer}'+
+      '.dxn-search-fab{position:fixed;left:18px;top:72px;z-index:9998;background:#0f513f;color:#fff;border:0;border-radius:999px;padding:11px 16px;font-weight:950;box-shadow:0 8px 24px rgba(15,81,63,.22);cursor:pointer}'+
       '.dxn-search-backdrop{position:fixed;inset:0;background:rgba(10,30,24,.55);z-index:90;display:none;align-items:flex-start;justify-content:center;padding:8vh 14px}'+
       '.dxn-search-backdrop.open{display:flex}'+
       '.dxn-search-box{width:min(760px,96vw);max-height:82vh;background:#fff;border-radius:24px;box-shadow:0 24px 70px #0005;overflow:hidden;direction:rtl}'+
@@ -167,7 +167,7 @@
       '.dxn-search-result-icon{width:38px;height:38px;border-radius:11px;background:#edf7f1;display:grid;place-items:center;font-size:20px;flex:0 0 38px}'+
       '.dxn-search-result-body{flex:1;min-width:0}.dxn-search-result-body b{display:block;color:#182234;font-size:14px;line-height:1.55}.dxn-search-result-body small{display:block;color:#667085;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dxn-search-result-arrow{color:#0f513f;font-size:20px}'+
       '.dxn-search-empty{text-align:center;padding:30px;color:#667085}.dxn-search-section{font-size:12px;color:#0f513f;font-weight:950;padding:7px 4px 2px}'+
-      '@media(max-width:700px){.dxn-search-fab{left:10px;top:10px;padding:10px 13px;font-size:12px}.dxn-search-backdrop{padding:3vh 8px}.dxn-search-box{max-height:92vh;border-radius:20px}.dxn-search-results{max-height:66vh}}';
+      '@media(max-width:700px){.dxn-search-fab{left:10px;top:64px;padding:10px 13px;font-size:12px}.dxn-search-backdrop{padding:3vh 8px}.dxn-search-box{max-height:92vh;border-radius:20px}.dxn-search-results{max-height:66vh}}';
     document.head.appendChild(style);
 
     var fab=document.createElement('button');
