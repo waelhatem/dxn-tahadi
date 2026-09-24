@@ -1991,7 +1991,7 @@ function ragwanBuildStep4AssessmentAction(){
   const email=ragwanStep4Email();
   const unlocked=ragwanStep4ResultSeen();
   return '<section class="ragwan-step4-assessment-box" id="ragwanStep4AssessmentBox">'+
-    '<div class="ragwan-step4-assessment-head"><span class="icon">📝</span><div><b>اختبار الخطوة الرابعة — Google Form</b><small>أدخل بريد الراعي أولًا ثم انسخ رابط الاختبار وأرسله للعضو. نتيجة الاختبار تظهر داخل Google Form نفسه بعد الإرسال.</small></div></div>'+
+    '<div class="ragwan-step4-assessment-head"><span class="icon">📝</span><div><b>اختبار الخطوة الرابعة — Google Form</b><small>أدخل بريد الراعي لتحديد النموذج المرتبط به، ثم انسخ الرابط وأرسله للعضو الجديد. داخل Google Form يكتب العضو اسمه ورقم عضويته هو، بينما يبقى ربط النموذج بالـSponsor محفوظًا داخليًا.</small></div></div>'+
     '<label class="ragwan-step4-email-label" for="ragwanStep4SponsorEmail"><span>📧 البريد الإلكتروني للراعي <strong style="color:#b42318">*</strong></span>'+
       '<div class="ragwan-step4-email-row">'+
         '<input id="ragwanStep4SponsorEmail" class="ragwan-step4-email" type="email" autocomplete="email" placeholder="sponsor@example.com" value="'+esc(email)+'">'+
@@ -2014,6 +2014,7 @@ function ragwanStep4SyncEmail(){
       localStorage.setItem(ragwanStep4StorageKey('sponsor_email'),String(input.value||'').trim());
       localStorage.removeItem(ragwanStep4StorageKey('result_seen'));
       localStorage.removeItem(ragwanStep4StorageKey('form_copied'));
+      localStorage.removeItem(ragwanStep4StorageKey('form_id'));
       localStorage.removeItem(ragwanStep4StorageKey('form_url'));
     }catch(_){}
     const approved=document.getElementById('ragwanStep4ApprovedStatus');
@@ -2061,11 +2062,12 @@ async function ragwanApproveStep4Email(){
     const data=await res.json().catch(()=>null);
     if(!res.ok||!data?.prefilledUrl) throw new Error(String(data?.error||'تعذر إنشاء رابط الاختبار المعبّأ مسبقًا.'));
     localStorage.setItem(ragwanStep4StorageKey('sponsor_email'),email);
+    localStorage.setItem(ragwanStep4StorageKey('form_id'),String(data.formId||''));
     localStorage.setItem(ragwanStep4StorageKey('form_url'),String(data.prefilledUrl));
     localStorage.removeItem(ragwanStep4StorageKey('form_copied'));
     localStorage.removeItem(ragwanStep4StorageKey('result_seen'));
     if(approved)approved.style.display='block';
-    if(status)status.textContent='✅ تم اعتماد البريد. أصبح رابط الاختبار الآن مرتبطًا بهذا البريد تلقائيًا.';
+    if(status)status.textContent='✅ تم اعتماد البريد. هذا النموذج مرتبط بهذا الـSponsor داخليًا، والعضو الجديد سيكتب اسمه ورقم عضويته هو داخل الاختبار.';
     toast('✅ تم اعتماد بريد الراعي');
   }catch(err){
     if(status)status.textContent='❌ '+String(err?.message||err);
@@ -2093,7 +2095,7 @@ async function ragwanCopyStep4FormLink(){
   }
   const status=document.getElementById('ragwanStep4Status');
   try{localStorage.setItem(ragwanStep4StorageKey('form_copied'),'1')}catch(_){}
-  if(status)status.textContent='✅ تم نسخ رابط الاختبار المعبّأ مسبقًا. عند فتحه سيظهر بريد الراعي تلقائيًا داخل Google Form.';
+  if(status)status.textContent='✅ تم نسخ رابط الاختبار. النموذج مرتبط بالـSponsor داخليًا، والعضو الجديد يكتب اسمه ورقم عضويته هو داخل Google Form.';
   toast('✅ تم نسخ رابط الاختبار');
 }
 function ragwanConfirmStep4Result(){
