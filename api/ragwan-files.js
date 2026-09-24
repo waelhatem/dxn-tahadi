@@ -153,7 +153,7 @@ async function ragwanPlanFiles(args){
   if(action==='delete_step_resource'){
     if(role!=='leader')throw new Error('حذف مواد الخطوات متاح للقائد فقط.');
     const path=String(args.path||'').trim();
-    if(!/^step-resources\/step-[1-9]|step-resources\/step-10\//.test(path))throw new Error('مسار مادة الخطوة غير صالح.');
+    if(!/^step-resources\/step-(?:[1-9]|10)\//.test(path))throw new Error('مسار مادة الخطوة غير صالح.');
     const d=await supabaseStorageRequest('/storage/v1/object/'+bucket,'DELETE',SUPABASE_SECRET_KEY,{prefixes:[path]},15000);
     if(!d.ok)throw new Error((d.data&&(d.data.message||d.data.error))||d.text||'تعذر حذف مادة الخطوة.');
     return {deleted:true};
