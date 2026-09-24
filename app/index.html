@@ -200,6 +200,17 @@ button[disabled]:focus-visible{outline-color:#667085!important}
 .ragwan-step-video-title{display:flex;gap:8px;align-items:flex-start;line-height:1.65;margin-bottom:9px}
 .ragwan-step-video-frame{position:relative;width:100%;padding-top:56.25%;border-radius:12px;overflow:hidden;background:#000}
 .ragwan-step-video-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+
+/* V87.6 — Step 5 mobile video cleanup: avoid duplicate/oversized previews. */
+@media(max-width:799px){
+  .ragwan-step5-video-section{margin-top:12px!important}
+  .ragwan-step5-video-section .ragwan-step-video-card{padding:10px!important;margin-top:8px!important}
+  .ragwan-step5-video-section .ragwan-step-video-title{margin-bottom:7px!important;font-size:14px!important}
+  .ragwan-step5-video-section video{display:block!important;width:100%!important;height:auto!important;aspect-ratio:16/9!important;max-height:none!important;object-fit:contain!important;border-radius:12px!important;margin-top:6px!important;background:#071a14!important}
+}
+/* Keep generic file previews compact; Step 5 has its dedicated video player below. */
+.ragwan-file-media:has(video){min-height:0!important;height:auto!important}
+.ragwan-file-media:has(video) video{max-height:220px!important;height:auto!important;aspect-ratio:16/9;object-fit:contain}
 </style><style id="dxn-universal-glow-buttons-v1">
 /* V87.5 — Universal luminous buttons across the entire application.
    Visual-only enhancement: existing colors, actions, permissions and click handlers remain unchanged. */
