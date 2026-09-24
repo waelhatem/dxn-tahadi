@@ -2737,8 +2737,80 @@ async function ragwanFocusFirstMaterial(){
   target.style.outlineOffset='4px';
   setTimeout(()=>{target.style.outline='';target.style.outlineOffset='';},1800);
 }
+function ragwanRenderStep5VideoPreview(files){
+  if(Number(ragwanCurrentStep)!==5)return;
+  const root=document.getElementById('ragwanStepResources');
+  if(!root)return;
+
+  const videos=(Array.isArray(files)?files:[]).filter(function(f){
+    const name=String(f&&f.name||'').toLowerCase();
+    const mime=String(f&&f.mime||'').toLowerCase();
+    return mime.indexOf('video/')===0 || /\.(mp4|webm|mov|m4v|ogg)$/i.test(name);
+  });
+  if(!videos.length)return;
+
+  const section=document.createElement('section');
+  section.className='ragwan-step5-video-section';
+  section.style.marginTop='14px';
+
+  const head=document.createElement('div');
+  head.className='ragwan-video-material-head';
+
+  const wrap=document.createElement('div');
+  const title=document.createElement('b');
+  title.textContent='🎥 فيديو الباب الخامس';
+  const note=document.createElement('small');
+  note.textContent='شاهد الفيديو بعد الاطلاع على الصور والمواد.';
+  wrap.appendChild(title);
+  wrap.appendChild(note);
+  head.appendChild(wrap);
+  section.appendChild(head);
+
+  videos.forEach(function(f,index){
+    const card=document.createElement('article');
+    card.className='ragwan-step-video-card';
+    card.style.marginTop='10px';
+
+    const titleRow=document.createElement('div');
+    titleRow.className='ragwan-step-video-title';
+
+    const icon=document.createElement('span');
+    icon.textContent='🎥';
+    const label=document.createElement('b');
+    label.textContent=String(f&&f.name||('فيديو '+(index+1)));
+
+    titleRow.appendChild(icon);
+    titleRow.appendChild(label);
+    card.appendChild(titleRow);
+
+    const video=document.createElement('video');
+    video.controls=true;
+    video.playsInline=true;
+    video.preload='metadata';
+    video.style.width='100%';
+    video.style.maxHeight='520px';
+    video.style.borderRadius='16px';
+    video.style.background='#071a14';
+    video.style.marginTop='8px';
+    video.src=String(f&&f.url||'');
+    card.appendChild(video);
+
+    section.appendChild(card);
+
+    const rows=root.querySelectorAll('.ragwan-resource-item');
+    rows.forEach(function(row){
+      const nameEl=row.querySelector('div > b');
+      if(nameEl && String(nameEl.textContent||'')===String(f&&f.name||'')){
+        row.style.display='none';
+      }
+    });
+  });
+
+  root.appendChild(section);
+}
+
 async function ragwanLoadStepResources(){
-  try{const out=await ragwanPlanApi('step_resource_list',{step:ragwanCurrentStep});ragwanRenderStepResources(out.files||[]);}
+  try{const out=await ragwanPlanApi('step_resource_list',{step:ragwanCurrentStep});const files=out.files||[];ragwanRenderStepResources(files);ragwanRenderStep5VideoPreview(files);}
   catch(e){const el=document.getElementById('ragwanStepResources');if(el)el.innerHTML='<div class="ragwan-resource-empty">⚠️ '+esc(e.message||'تعذر تحميل مواد الخطوة.')+'</div>';}
 }
 async function ragwanUploadStepResources(files){
