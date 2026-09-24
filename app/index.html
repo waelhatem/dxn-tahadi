@@ -807,50 +807,31 @@ function dxnNavPush(target){
 }
 function dxnNavLockScroll(){
   const x=window.scrollX||0,y=window.scrollY||0;
-  const html=document.documentElement,body=document.body;
+  const html=document.documentElement;
   const lock={
-    x,y,until:performance.now()+1600,
-    htmlOverflow:html.style.overflow,
-    bodyOverflow:body.style.overflow,
-    bodyPosition:body.style.position,
-    bodyTop:body.style.top,
-    bodyWidth:body.style.width
+    x,y,until:performance.now()+3500,
+    htmlScrollBehavior:html.style.scrollBehavior
   };
   window.__DXN_NAV_SCROLL_LOCK__=lock;
-  /* Freeze the document itself while render() replaces the page.
-     This prevents the browser from moving the visual background. */
-  html.style.overflow='hidden';
-  body.style.overflow='hidden';
-  body.style.position='fixed';
-  body.style.top=(-y)+'px';
-  body.style.left=(-x)+'px';
-  body.style.width='100%';
-  const release=()=>{
-    if(window.__DXN_NAV_SCROLL_LOCK__!==lock)return;
-    html.style.overflow=lock.htmlOverflow;
-    body.style.overflow=lock.bodyOverflow;
-    body.style.position=lock.bodyPosition;
-    body.style.top=lock.bodyTop;
-    body.style.left='';
-    body.style.width=lock.bodyWidth;
-    try{window.scrollTo({left:x,top:y,behavior:'auto'});}catch(_){}
-    window.__DXN_NAV_SCROLL_LOCK__=null;
-  };
+  /* V88.5 — freeze the scroll position without changing body positioning.
+     The previous position:fixed approach could itself create a visual jump. */
+  html.style.scrollBehavior='auto';
   const restore=()=>{
     if(window.__DXN_NAV_SCROLL_LOCK__!==lock)return;
-    if(performance.now()>=lock.until){release();return;}
-    try{
-      html.style.overflow='hidden';
-      body.style.overflow='hidden';
-      body.style.position='fixed';
-      body.style.top=(-y)+'px';
-      body.style.left=(-x)+'px';
-      body.style.width='100%';
+    if(performance.now()>=lock.until){
+      html.style.scrollBehavior=lock.htmlScrollBehavior;
       window.scrollTo({left:x,top:y,behavior:'auto'});
-    }catch(_){}
+      window.__DXN_NAV_SCROLL_LOCK__=null;
+      return;
+    }
+    try{window.scrollTo({left:x,top:y,behavior:'auto'});}catch(_){}
     requestAnimationFrame(restore);
   };
   requestAnimationFrame(restore);
+}
+function dxnNavScrollLocked(){
+  const lock=window.__DXN_NAV_SCROLL_LOCK__;
+  return !!(lock&&performance.now()<lock.until);
 }
 function dxnNavGoBack(){
   if(!dxnNav.back.length)return;
@@ -2456,7 +2437,7 @@ function ragwanRenderStepResources(files){
     }).join(''):'<div class="ragwan-resource-empty">لم تتم إضافة مواد لهذه الخطوة بعد.</div>')+'</div>';
 }
 async function ragwanFocusFirstMaterial(){
-  if(role!=='member')return;
+  if(role!=='member'||dxnNavScrollLocked())return;
   const firstFile=document.querySelector('#ragwanStepResources .ragwan-resource-item');
   const firstVideo=document.querySelector('#ragwanStepVideos .ragwan-step-video-card');
   const target=firstFile||firstVideo;
@@ -2637,8 +2618,7 @@ function ragwanOpenDoor(n){
     const heading=document.getElementById('ragwanStepTitle');
     if(heading) setTimeout(()=>{
       /* Do not auto-scroll when the user reached this tab through رجوع/تقدم. */
-      const lock=window.__DXN_NAV_SCROLL_LOCK__;
-      if(lock && performance.now()<lock.until)return;
+      if(dxnNavScrollLocked())return;
       const top=window.scrollY+heading.getBoundingClientRect().top-Math.max(90,window.innerWidth<=620?78:90);
       window.scrollTo({top:Math.max(0,top),behavior:'smooth'});
       document.documentElement.scrollLeft=0;
@@ -2658,6 +2638,7 @@ function ragwanOpenDoor(n){
   const panel=document.getElementById('ragwanStepPanel');if(panel){
     panel.animate([{opacity:.55,transform:'translateY(12px) scale(.985)'},{opacity:1,transform:'translateY(0) scale(1)'}],{duration:420,easing:'cubic-bezier(.2,.8,.2,1)'});
     setTimeout(()=>{
+      if(dxnNavScrollLocked())return;
       const top=window.scrollY+panel.getBoundingClientRect().top-Math.max(90,window.innerWidth<=620?78:90);
       window.scrollTo({top:Math.max(0,top),behavior:'smooth'});
       document.documentElement.scrollLeft=0;
