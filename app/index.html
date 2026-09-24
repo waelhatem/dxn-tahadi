@@ -1441,6 +1441,8 @@ function ragwanSuccessIntro(){
 .ragwan-file-actions{display:flex;gap:7px;flex-wrap:wrap}
 .ragwan-file-actions a,.ragwan-file-actions button{border:1px solid #d8e4df;background:#f8fbfa;color:#0f513f;border-radius:10px;padding:7px 10px;font-weight:800;text-decoration:none;cursor:pointer}
 .ragwan-file-actions a:first-child{background:#eef8f2}
+.ragwan-file-actions button{background:#eef8f2!important}
+@media(max-width:650px){.ragwan-file-actions{gap:8px}.ragwan-file-actions a,.ragwan-file-actions button{min-height:44px;display:inline-flex;align-items:center;justify-content:center;font-size:14px}}
 @media(max-width:650px){
   .ragwan-files-list{grid-template-columns:1fr}
   .ragwan-file-card{align-items:stretch}
@@ -2787,10 +2789,27 @@ function ragwanRenderFiles(files){
     }else{
       media=`<div class="ragwan-file-media"><div class="ragwan-file-icon">${ragwanFileIcon(f)}</div></div>`;
     }
-    return `<div class="ragwan-file-card">${media}<div class="ragwan-file-info"><div class="ragwan-file-name">${esc(f.name)}</div><div class="ragwan-file-meta">${esc(ragwanFormatSize(f.size))}</div></div><div class="ragwan-file-actions">${url?`<a href="${esc(url)}" target="_blank" rel="noopener">فتح</a><a href="${esc(url)}" download>تنزيل</a>`:''}${role==='leader'?`<button type="button" onclick="ragwanDeleteFile('${esc(f.path)}')">🗑️ حذف</button>`:''}</div></div>`;
+    return `<div class="ragwan-file-card">${media}<div class="ragwan-file-info"><div class="ragwan-file-name">${esc(f.name)}</div><div class="ragwan-file-meta">${esc(ragwanFormatSize(f.size))}</div></div><div class="ragwan-file-actions">${url?`<a href="${esc(url)}" target="_blank" rel="noopener">فتح</a><button type="button" onclick='ragwanCopyPrizeInfo(${JSON.stringify(f).replace(/'/g,"&#39;")})'>📋 نسخ</button><a href="${esc(url)}" download>تنزيل</a>`:''}${role==='leader'?`<button type="button" onclick="ragwanDeleteFile('${esc(f.path)}')">🗑️ حذف</button>`:''}</div></div>`;
   }).join('');
 }
-async function ragwanLoadFiles(){
+async function ragwanCopyPrizeInfo(f){
+  const name=String(f?.prize_name||f?.name||'الجائزة').trim();
+  const condition=String(f?.prize_condition||'').trim();
+  const extra=String(f?.prize_details||'').trim();
+  const lines=['🎁 الجائزة: '+name];
+  if(condition)lines.push('🎯 شرط الحصول عليها: '+condition);
+  if(extra)lines.push('📌 التفاصيل: '+extra);
+  if(f?.url)lines.push('🔗 رابط الصورة: '+String(f.url));
+  const text=lines.join('\n');
+  const done=()=>toast('✅ تم نسخ معلومات الجائزة.');
+  if(navigator.clipboard?.writeText)navigator.clipboard.writeText(text).then(done).catch(()=>ragwanCopyPrizeFallback(text,done));
+  else ragwanCopyPrizeFallback(text,done);
+}
+function ragwanCopyPrizeFallback(text,done){
+  const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);
+  ta.select();try{document.execCommand('copy');done();}catch(e){toast('⚠️ تعذر نسخ المعلومات تلقائيًا.');}ta.remove();
+}
+function ragwanLoadFiles(){
   try{const out=await ragwanPlanApi('list');ragwanRenderFiles(out.files||[]);}
   catch(e){const el=document.getElementById('ragwanFilesList');if(el)el.innerHTML='<div class="muted">⚠️ '+esc(e.message||'تعذر تحميل الملفات.')+'</div>';}
 }
