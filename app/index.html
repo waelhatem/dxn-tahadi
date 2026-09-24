@@ -2499,15 +2499,42 @@ function ragwanCopyStepResourceInfo(f){
   const mime=String(f?.mime||'غير محدد').trim();
   const created=f?.created_at?new Date(f.created_at).toLocaleString('ar-IQ'):'غير متوفر';
   const url=String(f?.url||'').trim();
-  const lines=[
-    '📚 مادة الخطوة '+step,
-    '📄 اسم الملف: '+name,
-    '📦 الحجم: '+size,
-    '🗂️ النوع: '+mime,
-    '🕒 تاريخ الإضافة: '+created
-  ];
+
+  const curated={
+    'jpg.1':[
+      '🎁 هدايا فريق الأمل للأعضاء المتميزين',
+      '',
+      '🏆 الهدايا الرئيسية:',
+      '1. الهدية الأولى: سيارة MG5.',
+      '2. الهدية الثانية: سيارة MG RX5.',
+      '',
+      '✨ أهداف ومزايا التكريم:',
+      '• بناء فريق قوي واستدامة النجاح.',
+      '• تحفيز مستمر للنمو والتطور.',
+      '• تقدير جهودك وإنجازاتك.',
+      '• مكافآت كبرى تليق بطموحاتك.',
+      '',
+      '🎁 جوائز أخرى مميزة:',
+      '• موبايل.',
+      '• تابلت.',
+      '• لابتوب.',
+      '• قلادة ذهب.',
+      '• خاتم ذهب.',
+      '• قطعة أرض.',
+      '• عمرة.',
+      '',
+      '🌟 الرسالة:',
+      'معًا نصنع القادة.. ونحقق الأحلام.'
+    ].join('\\n')
+  };
+
+  const key=name.toLowerCase();
+  const description=curated[key];
+  const lines=description
+    ? [description,'','📎 بيانات الملف:','📄 اسم الملف: '+name,'📦 الحجم: '+size,'🗂️ النوع: '+mime,'🕒 تاريخ الإضافة: '+created]
+    : ['📚 مادة الخطوة '+step,'📄 اسم الملف: '+name,'📦 الحجم: '+size,'🗂️ النوع: '+mime,'🕒 تاريخ الإضافة: '+created];
   if(url)lines.push('🔗 رابط الملف: '+url);
-  const text=lines.join('\n');
+  const text=lines.join('\\n');
   const done=()=>toast('✅ تم نسخ معلومات الملف.');
   if(navigator.clipboard?.writeText)navigator.clipboard.writeText(text).then(done).catch(()=>ragwanCopyPrizeFallback(text,done));
   else ragwanCopyPrizeFallback(text,done);
