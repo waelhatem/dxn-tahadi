@@ -287,3 +287,26 @@ button.danger{
     background-position:center!important;
   }
 }
+
+
+/* Mobile-first: Step 4 sponsor email field must be comfortable to type on phones. */
+@media (max-width:620px){
+  .ragwan-step4-email-row{
+    grid-template-columns:1fr!important;
+    gap:10px!important;
+  }
+  .ragwan-step4-email{
+    width:100%!important;
+    min-width:0!important;
+    min-height:54px!important;
+    padding:12px 14px!important;
+    font-size:16px!important;
+    border-radius:14px!important;
+  }
+  .ragwan-step4-approve{
+    width:100%!important;
+    min-height:54px!important;
+    border-radius:14px!important;
+    font-size:16px!important;
+  }
+}
