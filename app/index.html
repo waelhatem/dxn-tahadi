@@ -2791,13 +2791,16 @@ function ragwanRenderFiles(files){
   const el=document.getElementById('ragwanFilesList');if(!el)return;
   if(!files.length){el.innerHTML='<div class="muted">لا توجد ملفات مضافة حتى الآن.</div>';return;}
   const ordered=[...files].sort((a,b)=>{
-    const getNo=v=>{
-      const nums=String(v?.name||'').match(/\d+/g);
-      return nums&&nums.length?Number(nums[nums.length-1]):Number.POSITIVE_INFINITY;
-    };
-    const an=getNo(a),bn=getNo(b);
-    if(an!==bn)return an-bn;
-    return String(a?.name||'').localeCompare(String(b?.name||''),'ar',{numeric:true});
+    const an=String(a?.name||'').trim();
+    const bn=String(b?.name||'').trim();
+    const am=an.match(/(\d+)(?:\.[^.]+)?$/);
+    const bm=bn.match(/(\d+)(?:\.[^.]+)?$/);
+    if(am&&bm){
+      const diff=Number(am[1])-Number(bm[1]);
+      if(diff!==0)return diff;
+    }else if(am)return -1;
+    else if(bm)return 1;
+    return an.localeCompare(bn,undefined,{numeric:true,sensitivity:'base'});
   });
   el.innerHTML=ordered.map(f=>{
     const mime=String(f.mime||'').toLowerCase(),url=String(f.url||'');
