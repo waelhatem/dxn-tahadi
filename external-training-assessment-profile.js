@@ -166,17 +166,29 @@
 
   function renderLeaderSummary(rows,errorMessage){
     if(typeof role!=='undefined'&&role!=='leader')return;
+
+    // V3 — سجل اختبارات الأعضاء الجدد يظهر داخل «المركز الذكي» فقط،
+    // وليس في الصفحة الرئيسية لحساب القائد.
+    var currentTab=typeof tab!=='undefined'?String(tab||''):'';
+    if(currentTab!=='advanced')return;
+
     var root=document.getElementById('app');
     if(!root)return;
+
     var old=document.getElementById('dxn-external-assessment-summary');
     if(old)old.remove();
+
     var box=document.createElement('section');
     box.id='dxn-external-assessment-summary';
-    box.className='card';
+    box.className='card smart-external-assessment-card';
     box.style.cssText='margin:14px 0;border:2px solid #d7e7df;background:linear-gradient(135deg,#fbfffd,#fff);direction:rtl;text-align:right';
-    var html='<div class="row" style="border:0;align-items:center"><div><div class="title">📋 سجل اختبارات الأعضاء الجدد</div><div class="muted" style="margin-top:4px">اسم العضو — رقم العضوية — الدرجة — النتيجة.</div></div><button type="button" id="dxnLeaderAssessmentRefresh">🔄 تحديث</button></div>'
+
+    var html='<div class="row" style="border:0;align-items:center">'
+      +'<div><div class="title">📋 سجل اختبارات الأعضاء الجدد</div><div class="muted" style="margin-top:4px">اسم العضو — رقم العضوية — الدرجة — النتيجة.</div></div>'
+      +'<button type="button" id="dxnLeaderAssessmentRefresh">🔄 تحديث</button></div>'
       +'<div class="row" style="border:0;background:#f4f8f6;font-weight:900;margin-top:10px;border-radius:12px;padding:10px 14px">'
       +'<div style="flex:1">اسم العضو</div><div style="min-width:120px;text-align:center">رقم العضوية</div><div style="min-width:90px;text-align:center">الدرجة</div><div style="min-width:125px;text-align:center">النتيجة</div></div>';
+
     if(errorMessage){
       html+='<div class="challenge" style="margin-top:10px;border-color:#f0b7b2;background:#fff7f6"><b>⚠️ تعذر تحميل سجل الاختبارات</b><div class="muted" style="margin-top:5px;white-space:pre-wrap">'+esc(errorMessage)+'</div><div class="muted" style="margin-top:5px">جرّب زر «🔄 تحديث» بعد التأكد من اتصال الموقع بقاعدة البيانات.</div></div>';
     }else if(!Array.isArray(rows)||!rows.length){
@@ -184,15 +196,25 @@
     }else{
       rows.forEach(function(row){html+=leaderSummaryRow(row);});
     }
+
     box.innerHTML=html;
-    var tabs=root.querySelector('.tabs');
-    if(tabs&&tabs.parentNode)tabs.parentNode.insertBefore(box,tabs.nextSibling);
-    else if(root.firstChild)root.insertBefore(box,root.firstChild);
-    else root.appendChild(box);
+
+    // وضع السجل داخل أول بطاقة من «المركز الذكي» بعد بطاقة التعريف بالمركز.
+    var smartCards=root.querySelectorAll('.leaderbox,.card');
+    var anchor=null;
+    for(var i=0;i<smartCards.length;i++){
+      var title=smartCards[i].querySelector('.title');
+      if(title&&/مركز القيادة الذكي/.test(title.textContent||'')){anchor=smartCards[i];break;}
+    }
+    if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(box,anchor.nextSibling);
+    else{
+      var app=root.querySelector('#app')||root;
+      app.appendChild(box);
+    }
+
     var btn=document.getElementById('dxnLeaderAssessmentRefresh');
     if(btn)btn.onclick=function(){loadLeaderSummary();};
   }
-
   async function loadLeaderSummary(){
     if(typeof role!=='undefined'&&role!=='leader')return;
     var t=token();
