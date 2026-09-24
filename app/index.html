@@ -2779,7 +2779,15 @@ function ragwanFormatSize(n){
 function ragwanRenderFiles(files){
   const el=document.getElementById('ragwanFilesList');if(!el)return;
   if(!files.length){el.innerHTML='<div class="muted">لا توجد ملفات مضافة حتى الآن.</div>';return;}
-  el.innerHTML=files.map(f=>{
+  const ordered=[...files].sort((a,b)=>{
+    const an=String(a?.name||'').match(/(?:^|\\D)(\\d+)(?:\\D|$)/);
+    const bn=String(b?.name||'').match(/(?:^|\\D)(\\d+)(?:\\D|$)/);
+    if(an&&bn)return Number(an[1])-Number(bn[1]);
+    if(an)return -1;
+    if(bn)return 1;
+    return String(a?.name||'').localeCompare(String(b?.name||''),'ar',{numeric:true});
+  });
+  el.innerHTML=ordered.map(f=>{
     const mime=String(f.mime||'').toLowerCase(),url=String(f.url||'');
     let media='';
     if(url&&mime.startsWith('image/')){
@@ -2792,7 +2800,7 @@ function ragwanRenderFiles(files){
     return `<div class="ragwan-file-card">${media}<div class="ragwan-file-info"><div class="ragwan-file-name">${esc(f.name)}</div><div class="ragwan-file-meta">${esc(ragwanFormatSize(f.size))}</div></div><div class="ragwan-file-actions">${url?`<a href="${esc(url)}" target="_blank" rel="noopener">فتح</a><button type="button" onclick='ragwanCopyPrizeInfo(${JSON.stringify(f).replace(/'/g,"&#39;")})'>📋 نسخ</button><a href="${esc(url)}" download>تنزيل</a>`:''}${role==='leader'?`<button type="button" onclick="ragwanDeleteFile('${esc(f.path)}')">🗑️ حذف</button>`:''}</div></div>`;
   }).join('');
 }
-async const RAGWAN_GENERAL_PRIZES_TEXT=`🎁 هدايا وجوائز فريق الأمل الريادي للأعضاء المتميزين
+const RAGWAN_GENERAL_PRIZES_TEXT=`🎁 هدايا وجوائز فريق الأمل الريادي للأعضاء المتميزين
 
 تقدر تميزك .. ونكافئك بأفضل الهدايا.
 
