@@ -57,6 +57,7 @@ module.exports = async function handler(req, res) {
     return json(res, 200, {
       ok: true,
       sponsorEmail,
+      formId: String(data.formId || ''),
       prefilledUrl: data.memberUrl
     });
   } catch (error) {
