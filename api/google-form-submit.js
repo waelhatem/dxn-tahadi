@@ -1,7 +1,7 @@
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ryqpstkzppaifpvhezzn.supabase.co';
 const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
-const OPENAI_MODEL = process.env.AI_AGENT_GRADING_MODEL || process.env.AI_AGENT_HELPER_MODEL || 'gpt-5-nano';
+const OPENAI_MODEL = process.env.AI_AGENT_GRADING_MODEL || process.env.AI_AGENT_HELPER_MODEL || 'gpt-5.6-luna';
 const WEBHOOK_SECRET = String(process.env.GOOGLE_FORM_WEBHOOK_SECRET || '').trim();
 
 const REFERENCE_ANSWERS = [
@@ -110,15 +110,25 @@ ${item.answer}`,
           }
         }
       },
-      max_output_tokens: 220
+      reasoning: { effort: 'low' },
+      max_output_tokens: 800
     })
   });
   const text = await response.text();
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch (_) {}
   if (!response.ok) throw new Error(data?.error?.message || text || `OpenAI HTTP ${response.status}`);
+  if (data?.status === 'incomplete') {
+    const reason = data?.incomplete_details?.reason || 'unknown';
+    throw new Error(`لم يكتمل رد التقييم من OpenAI. السبب: ${reason}`);
+  }
   const out = extractOutputText(data);
-  if (!out) throw new Error('لم يرجع التقييم نصًا');
+  if (!out) {
+    const outputTypes = Array.isArray(data?.output)
+      ? data.output.map((item) => ({ type: item?.type, contentTypes: Array.isArray(item?.content) ? item.content.map((part) => part?.type) : [] }))
+      : [];
+    throw new Error('لم يرجع التقييم نصًا. outputTypes=' + JSON.stringify(outputTypes));
+  }
   const grade = JSON.parse(out);
   const score = Math.max(0, Math.min(100, Number(grade.score || 0)));
   return { score, status: score >= 60 ? 'approved' : 'retry', note: String(grade.note || '').trim() };
