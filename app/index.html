@@ -809,18 +809,31 @@ function dxnNavGoBack(){
   if(!dxnNav.back.length)return;
   const target=dxnNav.back.pop();
   if(dxnNav.current)dxnNav.forward.push(dxnNav.current);
-  dxnNav.current=target;dxnNavRestore(target);
+  dxnNav.current=target;dxnNavRestore(target,window.scrollY||0);
 }
 function dxnNavGoForward(){
   if(!dxnNav.forward.length)return;
   const target=dxnNav.forward.pop();
   if(dxnNav.current)dxnNav.back.push(dxnNav.current);
-  dxnNav.current=target;dxnNavRestore(target);
+  dxnNav.current=target;dxnNavRestore(target,window.scrollY||0);
 }
-function dxnNavRestore(target){
+function dxnNavRestore(target,keepScrollY){
   dxnNav.restoring=true;
   try{
-    if(target.startsWith('tab:')){const t=target.slice(4);if(t==='training'&&!canAccessTraining())return;tab=t;render();requestAnimationFrame(()=>{window.scrollTo({top:0,left:0,behavior:'auto'});});recordSiteVisit(role||'visitor',t);}
+    if(target.startsWith('tab:')){
+      const t=target.slice(4);
+      if(t==='training'&&!canAccessTraining())return;
+      tab=t;
+      render();
+      const y=Math.max(0,Number(keepScrollY)||0);
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        try{
+          window.scrollTo({top:y,left:window.scrollX||0,behavior:'auto'});
+          if(document.activeElement&&typeof document.activeElement.blur==='function')document.activeElement.blur();
+        }catch(e){}
+      }));
+      recordSiteVisit(role||'visitor',t);
+    }
     else if(target.startsWith('idea:')){ideaStep(Number(target.slice(5))||0);}
     else if(target==='public:login'){renderLogin();}
   }finally{dxnNav.restoring=false;renderInAppNav();}
