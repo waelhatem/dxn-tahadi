@@ -14,9 +14,19 @@ module.exports = async function handler(req, res) {
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
     const sponsorEmail = String(body.sponsorEmail || '').trim();
+    const memberName = String(body.memberName || '').trim();
+    const membershipNumber = String(body.membershipNumber || '').trim().replace(/[\s-]+/g, '');
 
     if (!validEmail(sponsorEmail)) {
       return json(res, 400, { error: 'بريد الراعي غير صالح' });
+    }
+
+    if ((memberName && !membershipNumber) || (!memberName && membershipNumber)) {
+      return json(res, 400, { error: 'بيانات العضو غير مكتملة.' });
+    }
+
+    if (membershipNumber && !/^\d{9}$/.test(membershipNumber)) {
+      return json(res, 400, { error: 'رقم العضوية يجب أن يكون 9 أرقام.' });
     }
 
     if (!APPS_SCRIPT_URL) {
@@ -29,7 +39,11 @@ module.exports = async function handler(req, res) {
     const target = APPS_SCRIPT_URL +
       separator +
       'action=sponsor_form&email=' +
-      encodeURIComponent(sponsorEmail);
+      encodeURIComponent(sponsorEmail) +
+      (memberName && membershipNumber
+        ? '&memberName=' + encodeURIComponent(memberName) +
+          '&membershipNumber=' + encodeURIComponent(membershipNumber)
+        : '');
 
     const response = await fetch(target, {
       method: 'GET',
@@ -58,7 +72,8 @@ module.exports = async function handler(req, res) {
       ok: true,
       sponsorEmail,
       formId: String(data.formId || ''),
-      prefilledUrl: data.memberUrl
+      prefilledUrl: data.memberUrl,
+      prefilledMember: Boolean(data.prefilledMember)
     });
   } catch (error) {
     console.error('google-form-prefill proxy error:', error);
