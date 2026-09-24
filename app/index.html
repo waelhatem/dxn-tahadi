@@ -3700,73 +3700,7 @@ function printProspectLog(){
     'body{font-family:Arial,Tahoma,sans-serif;padding:28px;color:#173b32}h1{text-align:center;margin:0 0 8px;font-size:24px}p{text-align:center;color:#66756f;margin:0 0 22px}.print-table{width:100%;border-collapse:collapse;font-size:14px}.print-table th{background:#eef4f1;font-weight:900}.print-table th,.print-table td{border:1px solid #bfcfc8;padding:12px 14px;text-align:right;vertical-align:middle}.print-status{font-weight:900}.print-status-ok{color:#15803d}.print-status-no{color:#b91c1c}.print-status-wait{color:#b77900}@media print{body{padding:10px}button{display:none}}'+
     '</style></head><body><h1>📋 سجل طلبات التواصل</h1><p>مجتمع الصحة والثراء — جميع طلبات التواصل</p>'+
     clone.outerHTML.replace('class="prospect-log-table"','class="print-table"')+
-    '<!-- stable deployment refresh 2026-09-21 --><script>
-(function(){
-  if(window.__DXN_STEP5_VIDEO_INSERT_V1__)return;
-  window.__DXN_STEP5_VIDEO_INSERT_V1__=true;
-
-  function inject(){
-    try{
-      if(typeof window.ragwanCurrentStep!=='undefined' && Number(window.ragwanCurrentStep)!==5)return;
-      var box=document.getElementById('ragwanStepResources');
-      if(!box)return;
-      if(box.querySelector('.ragwan-step5-uploaded-video'))return;
-
-      var list=box.querySelector('.ragwan-resource-list');
-      if(!list)return;
-
-      var found=null;
-      list.querySelectorAll('.ragwan-resource-item').forEach(function(row){
-        if(found)return;
-        var nameEl=row.querySelector('b');
-        var link=row.querySelector('a.ragwan-resource-open[href]');
-        var name=nameEl?String(nameEl.textContent||'').trim():'';
-        var href=link?String(link.href||'').trim():'';
-        if(/\.(mp4|webm|mov|m4v|ogg)(?:$|[?#])/i.test(name)||/\.(mp4|webm|mov|m4v|ogg)(?:$|[?#])/i.test(href)){
-          found={name:name||'فيديو الباب الخامس',href:href};
-        }
-      });
-
-      if(!found||!found.href)return;
-
-      var section=document.createElement('section');
-      section.className='ragwan-step5-uploaded-video';
-      section.style.cssText='margin-top:14px;border:1px solid #dfe9e5;border-radius:20px;background:#fff;padding:14px';
-
-      var title=document.createElement('div');
-      title.style.cssText='font-weight:950;color:#0f513f;font-size:18px;margin-bottom:8px';
-      title.textContent='🎥 فيديو الباب الخامس';
-      section.appendChild(title);
-
-      var note=document.createElement('div');
-      note.style.cssText='color:#66756f;font-size:12px;margin-bottom:10px';
-      note.textContent='شاهد الفيديو بعد الاطلاع على الصور والمواد.';
-      section.appendChild(note);
-
-      var video=document.createElement('video');
-      video.controls=true;
-      video.playsInline=true;
-      video.preload='metadata';
-      video.src=found.href;
-      video.style.cssText='display:block;width:100%;max-height:620px;border-radius:16px;background:#071a14';
-      section.appendChild(video);
-
-      box.appendChild(section);
-    }catch(_){}
-  }
-
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',function(){setTimeout(inject,250)});
-  }else{
-    setTimeout(inject,250);
-  }
-
-  var root=document.getElementById('app')||document.body;
-  if(root){
-    new MutationObserver(function(){setTimeout(inject,50)}).observe(root,{childList:true,subtree:true});
-  }
-})();
-</script></body></html>');
+    '<!-- stable deployment refresh 2026-09-21 --></body></html>');
   w.document.close();
   setTimeout(function(){w.print();},300);
 }
