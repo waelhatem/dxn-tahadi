@@ -805,17 +805,31 @@ function dxnNavPush(target){
   if(dxnNav.current!==target){dxnNav.back.push(dxnNav.current);if(dxnNav.back.length>30)dxnNav.back.shift();dxnNav.forward=[];dxnNav.current=target;}
   renderInAppNav();
 }
+function dxnNavLockScroll(){
+  const x=window.scrollX||0,y=window.scrollY||0;
+  const lock={x,y,until:performance.now()+1400};
+  window.__DXN_NAV_SCROLL_LOCK__=lock;
+  const restore=()=>{
+    if(window.__DXN_NAV_SCROLL_LOCK__!==lock)return;
+    if(performance.now()>=lock.until){window.__DXN_NAV_SCROLL_LOCK__=null;return;}
+    try{window.scrollTo({left:lock.x,top:lock.y,behavior:'auto'});}catch(_){}
+    requestAnimationFrame(restore);
+  };
+  requestAnimationFrame(restore);
+}
 function dxnNavGoBack(){
   if(!dxnNav.back.length)return;
+  dxnNavLockScroll();
   const target=dxnNav.back.pop();
   if(dxnNav.current)dxnNav.forward.push(dxnNav.current);
-  dxnNav.current=target;dxnNavRestore(target,window.scrollY||0);
+  dxnNav.current=target;dxnNavRestore(target);
 }
 function dxnNavGoForward(){
   if(!dxnNav.forward.length)return;
+  dxnNavLockScroll();
   const target=dxnNav.forward.pop();
   if(dxnNav.current)dxnNav.back.push(dxnNav.current);
-  dxnNav.current=target;dxnNavRestore(target,window.scrollY||0);
+  dxnNav.current=target;dxnNavRestore(target);
 }
 function dxnNavRestore(target){
   dxnNav.restoring=true;
@@ -834,7 +848,7 @@ function dxnNavRestore(target){
 function renderInAppNav(){
   let el=document.getElementById('dxnInAppNav');
   if(!el){el=document.createElement('nav');el.id='dxnInAppNav';el.className='dxn-inapp-nav';el.setAttribute('aria-label','التنقل بين الصفحات');document.body.appendChild(el);}
-  el.innerHTML=`<button type="button" class="dxn-nav-btn" ${dxnNav.back.length?'':'disabled'} onclick="dxnNavGoBack()" aria-label="الرجوع للصفحة السابقة" title="الرجوع للصفحة السابقة">◀️ <span>رجوع</span></button><button type="button" class="dxn-nav-btn" ${dxnNav.forward.length?'':'disabled'} onclick="dxnNavGoForward()" aria-label="التقدم إلى الصفحة التالية" title="التقدم إلى الصفحة التالية"><span>تقدم</span> ▶️</button>`;
+  el.innerHTML=`<button type="button" class="dxn-nav-btn" ${dxnNav.back.length?'':'disabled'} onclick="event.preventDefault();this.blur();dxnNavGoBack()" aria-label="الرجوع للصفحة السابقة" title="الرجوع للصفحة السابقة">◀️ <span>رجوع</span></button><button type="button" class="dxn-nav-btn" ${dxnNav.forward.length?'':'disabled'} onclick="event.preventDefault();this.blur();dxnNavGoForward()" aria-label="التقدم إلى الصفحة التالية" title="التقدم إلى الصفحة التالية"><span>تقدم</span> ▶️</button>`;
 }
 function scrollToTabContent(){return;}
 function switchTab(next){if(next==='training'&&!canAccessTraining())return;if(next==='training')trainingSubtab='home';tab=next;try{render();dxnNavPush(`tab:${next}`);recordSiteVisit(role||'visitor',next)}catch(e){console.error(e);toast('تعذر فتح القسم: '+(e.message||e))}}
@@ -2587,6 +2601,9 @@ function ragwanOpenDoor(n){
   ragwanLoadStepResources().then(()=>{
     const heading=document.getElementById('ragwanStepTitle');
     if(heading) setTimeout(()=>{
+      /* Do not auto-scroll when the user reached this tab through رجوع/تقدم. */
+      const lock=window.__DXN_NAV_SCROLL_LOCK__;
+      if(lock && performance.now()<lock.until)return;
       const top=window.scrollY+heading.getBoundingClientRect().top-Math.max(90,window.innerWidth<=620?78:90);
       window.scrollTo({top:Math.max(0,top),behavior:'smooth'});
       document.documentElement.scrollLeft=0;
