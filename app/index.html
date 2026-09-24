@@ -209,8 +209,9 @@ button[disabled]:focus-visible{outline-color:#667085!important}
   .ragwan-step5-video-section video{display:block!important;width:100%!important;height:auto!important;aspect-ratio:16/9!important;max-height:none!important;object-fit:contain!important;border-radius:12px!important;margin-top:6px!important;background:#071a14!important}
 }
 /* Keep generic file previews compact; Step 5 has its dedicated video player below. */
-.ragwan-file-media:has(video){min-height:0!important;height:auto!important}
-.ragwan-file-media:has(video) video{max-height:220px!important;height:auto!important;aspect-ratio:16/9;object-fit:contain}
+/* V87.7 — Uploaded video files are represented by the dedicated player below; do not reserve preview space here. */
+.ragwan-file-media:has(video){display:none!important}
+.ragwan-file-media video{display:none!important}
 </style><style id="dxn-universal-glow-buttons-v1">
 /* V87.5 — Universal luminous buttons across the entire application.
    Visual-only enhancement: existing colors, actions, permissions and click handlers remain unchanged. */
