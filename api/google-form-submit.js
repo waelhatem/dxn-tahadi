@@ -2,7 +2,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ryqpstkzppaifpvhezzn.s
 const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const OPENAI_MODEL = process.env.AI_AGENT_GRADING_MODEL || process.env.AI_AGENT_HELPER_MODEL || 'gpt-5-nano';
-const WEBHOOK_SECRET = process.env.GOOGLE_FORM_WEBHOOK_SECRET || '';
+const WEBHOOK_SECRET = String(process.env.GOOGLE_FORM_WEBHOOK_SECRET || '').trim();
 
 const REFERENCE_ANSWERS = [
   {
@@ -157,7 +157,7 @@ module.exports = async function handler(req, res) {
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
-    const secret = String(req.headers['x-google-form-secret'] || body.webhookSecret || '');
+    const secret = String(req.headers['x-google-form-secret'] || body.webhookSecret || '').trim();
     if (secret !== WEBHOOK_SECRET) return json(res, 401, { error: 'Unauthorized' });
 
     const formId = String(body.formId || '').trim();
