@@ -2038,7 +2038,8 @@ function ragwanConfirmStep4Result(){
 }
 function ragwanOpenStep4Answers(){
   if(!ragwanStep4ResultSeen()){toast('🔒 يجب أن تظهر نتيجة الاختبار في Google Form أولًا.');return}
-  const old=document.getElementById('ragwanStep4AnswerModal');if(old)old.remove();
+  const old=document.getElementById('ragwanStep4AnswerModal');
+  if(old)old.remove();
   const answers=[
     ['1. ماهي ال4 نصائح للاستفادة القصوى من الحقيبة التدريبية ؟','التدرج في سماع المادة بحسب التسلسل، المادة مختصرة للعضو الجديد مع شروحات مفصلة للاستزادة، الرجوع إلى الشخص الذي سجّل العضو عند صعوبة الفهم، والجلوس في مكان هادئ بعيدًا عن المشتتات.'],
     ['2. ماهي المشاريع الذكية وماهي صفاتها ؟','مشاريع تعتمد على فكرة ذكية، وبعضها قد لا يحتاج إلى رأس مال، وتتيح تحديد الوقت والمكان المناسبين، ويمكن أن تحقق دخلًا أثناء عدم العمل، وتدار من الهاتف ولا تتعارض مع الالتزامات الأخرى ولا تتطلب اشتراطات معقدة.'],
@@ -2053,8 +2054,25 @@ function ragwanOpenStep4Answers(){
     ['11. كيف تصل في الدي اكس ان الى مرتبة النجم ثم الياقوتي ثم الماسي ؟','وفق المادة: بلوغ 4500 نقطة تراكمية للوكيل النجم، ثم ثلاثة أعضاء في خطوط أفقية مختلفة للنجمة الياقوتية، ثم ستة أعضاء للنجمة الماسية.'],
     ['12. ماهي خطوات العمل الاحترافي للنجاح مع دي اكس ان ؟','العضوية وتفعيلها، استخدام المنتجات، التعلم، قائمة المعارف وتصنيفها، خطة الاستقطاب، عرض العمل باحتراف، تسجيل الراغبين، المتابعة، الاستنساخ والمضاعفة، ثم تدريب الفريق على الخطوات السابقة.']
   ];
-  const modal=document.createElement('div');modal.id='ragwanStep4AnswerModal';modal.className='ragwan-step4-answer-modal';
-  modal.innerHTML='<div class="ragwan-step4-answer-card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><h2>📖 الإجابات النموذجية للاختبار</h2><button type="button" onclick="document.getElementById(\'ragwanStep4AnswerModal\')?.remove()">✖️</button></div><p class="muted" style="line-height:1.8">هذه الإجابات للمراجعة بعد ظهور نتيجة الاختبار في Google Form.</p>'+answers.map(function(a){return '<div class="ragwan-step4-answer-item"><b>'+esc(a[0])+'</b><span>'+esc(a[1])+'</span></div>}).join('')+'<button type="button" class="ragwan-step4-answer-close" onclick="document.getElementById(\'ragwanStep4AnswerModal\')?.remove()">إغلاق</button></div>';
+  const modal=document.createElement('div');
+  modal.id='ragwanStep4AnswerModal';
+  modal.className='ragwan-step4-answer-modal';
+
+  const items=answers.map(function(a){
+    return '<div class="ragwan-step4-answer-item"><b>'+esc(a[0])+'</b><span>'+esc(a[1])+'</span></div>';
+  }).join('');
+
+  modal.innerHTML=
+    '<div class="ragwan-step4-answer-card">'+
+      '<div style="display:flex;justify-content:space-between;gap:10px;align-items:center">'+
+        '<h2>📖 الإجابات النموذجية للاختبار</h2>'+
+        '<button type="button" onclick="document.getElementById(\'ragwanStep4AnswerModal\').remove()">✖️</button>'+
+      '</div>'+
+      '<p class="muted" style="line-height:1.8">هذه الإجابات للمراجعة بعد ظهور نتيجة الاختبار في Google Form.</p>'+
+      items+
+      '<button type="button" class="ragwan-step4-answer-close" onclick="document.getElementById(\'ragwanStep4AnswerModal\').remove()">إغلاق</button>'+
+    '</div>';
+
   document.body.appendChild(modal);
 }
 async function ragwanCopyDxnSponsorLink(){
