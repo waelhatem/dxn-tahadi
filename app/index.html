@@ -268,18 +268,25 @@ button[disabled]:focus-visible{outline-color:#667085!important}
 <style id="communityDashboardBackgroundV1">
 /* COMMUNITY DASHBOARD BACKGROUND V1
    Background only: no changes to existing login header, tabs, data, actions, or permissions. */
-@media (min-width:800px){
-  body:has(.login-header-top){
-    background:
-      linear-gradient(rgba(238,245,241,.16),rgba(238,245,241,.16)),
-      url("/community-dashboard-bg.png") center center / cover fixed no-repeat;
-  }
+body:has(.login-header-top){
+  position:relative;
+  background:var(--bg)!important;
+}
+body:has(.login-header-top)::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  background:
+    linear-gradient(rgba(238,245,241,.16),rgba(238,245,241,.16)),
+    url("/community-dashboard-bg.png") center center / cover no-repeat;
 }
 @media (max-width:799px){
-  body:has(.login-header-top){
+  body:has(.login-header-top)::before{
     background:
       linear-gradient(rgba(238,245,241,.20),rgba(238,245,241,.20)),
-      url("/community-dashboard-bg.png") center center / cover fixed no-repeat;
+      url("/community-dashboard-bg.png") center center / cover no-repeat;
   }
 }
 body:has(.login-header-top) .app{
