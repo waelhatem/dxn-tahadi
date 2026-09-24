@@ -2059,7 +2059,7 @@ async function ragwanApproveStep4Email(){
       cache:'no-store'
     });
     const data=await res.json().catch(()=>null);
-    if(!res.ok||!data?.prefilledUrl) throw new Error(data?.error||'تعذر إنشاء رابط الاختبار المعبّأ مسبقًا.');
+    if(!res.ok||!data?.prefilledUrl) throw new Error(String(data?.error||'تعذر إنشاء رابط الاختبار المعبّأ مسبقًا.'));
     localStorage.setItem(ragwanStep4StorageKey('sponsor_email'),email);
     localStorage.setItem(ragwanStep4StorageKey('form_url'),String(data.prefilledUrl));
     localStorage.removeItem(ragwanStep4StorageKey('form_copied'));
