@@ -2792,16 +2792,46 @@ function ragwanRenderFiles(files){
     return `<div class="ragwan-file-card">${media}<div class="ragwan-file-info"><div class="ragwan-file-name">${esc(f.name)}</div><div class="ragwan-file-meta">${esc(ragwanFormatSize(f.size))}</div></div><div class="ragwan-file-actions">${url?`<a href="${esc(url)}" target="_blank" rel="noopener">فتح</a><button type="button" onclick='ragwanCopyPrizeInfo(${JSON.stringify(f).replace(/'/g,"&#39;")})'>📋 نسخ</button><a href="${esc(url)}" download>تنزيل</a>`:''}${role==='leader'?`<button type="button" onclick="ragwanDeleteFile('${esc(f.path)}')">🗑️ حذف</button>`:''}</div></div>`;
   }).join('');
 }
-async function ragwanCopyPrizeInfo(f){
+async const RAGWAN_GENERAL_PRIZES_TEXT=`🎁 هدايا وجوائز فريق الأمل الريادي للأعضاء المتميزين
+
+تقدر تميزك .. ونكافئك بأفضل الهدايا.
+
+🏆 الجوائز:
+1️⃣ الجائزة الأولى: سيارة MG5.
+2️⃣ الجائزة الثانية: سيارة MGRX5.
+3️⃣ خاتم ذهب.
+4️⃣ قلادة ذهب.
+5️⃣ لابتوب.
+6️⃣ تابلت.
+7️⃣ موبايل.
+8️⃣ قطعة أرض.
+9️⃣ عمرة.
+
+✨ العبارات الواردة في الصورة:
+• بناء فريق قوي واستدامة النجاح.
+• تحفيز مستمر للنمو والتطور.
+• تقدير لجهودك وإنجازاتك.
+• مكافآت كبرى تليق بطموحاتك.
+
+📌 ملاحظة: الصورة العامة لا تذكر شروط الفوز التفصيلية لكل جائزة؛ ستتم إضافة شروط كل جائزة عند تزويدنا بصورها أو تفاصيلها.`;
+
+function ragwanIsGeneralPrizeFile(f){
+  const n=String(f?.name||'').toLowerCase();
+  return /هدايا|جوائز|فريق.?الأمل|mg5|mgrx5|prize|gift/.test(n);
+}
+function ragwanCopyPrizeInfo(f){
+  const general=ragwanIsGeneralPrizeFile(f);
   const name=String(f?.prize_name||f?.name||'الجائزة').trim();
   const condition=String(f?.prize_condition||'').trim();
   const extra=String(f?.prize_details||'').trim();
-  const lines=['🎁 الجائزة: '+name];
-  if(condition)lines.push('🎯 شرط الحصول عليها: '+condition);
-  if(extra)lines.push('📌 التفاصيل: '+extra);
+  const lines=general?[RAGWAN_GENERAL_PRIZES_TEXT]:['🎁 الجائزة: '+name];
+  if(!general){
+    if(condition)lines.push('🎯 شرط الحصول عليها: '+condition);
+    if(extra)lines.push('📌 التفاصيل: '+extra);
+  }
   if(f?.url)lines.push('🔗 رابط الصورة: '+String(f.url));
   const text=lines.join('\n');
-  const done=()=>toast('✅ تم نسخ معلومات الجائزة.');
+  const done=()=>toast('✅ تم نسخ معلومات الجوائز.');
   if(navigator.clipboard?.writeText)navigator.clipboard.writeText(text).then(done).catch(()=>ragwanCopyPrizeFallback(text,done));
   else ragwanCopyPrizeFallback(text,done);
 }
@@ -2809,7 +2839,7 @@ function ragwanCopyPrizeFallback(text,done){
   const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);
   ta.select();try{document.execCommand('copy');done();}catch(e){toast('⚠️ تعذر نسخ المعلومات تلقائيًا.');}ta.remove();
 }
-function ragwanLoadFiles(){
+async function ragwanLoadFiles(){
   try{const out=await ragwanPlanApi('list');ragwanRenderFiles(out.files||[]);}
   catch(e){const el=document.getElementById('ragwanFilesList');if(el)el.innerHTML='<div class="muted">⚠️ '+esc(e.message||'تعذر تحميل الملفات.')+'</div>';}
 }
