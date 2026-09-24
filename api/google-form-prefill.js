@@ -1,4 +1,4 @@
-const APPS_SCRIPT_URL = String(process.env.GOOGLE_SPONSOR_FORM_WEBAPP_URL || 'https://script.google.com/macros/s/AKfycby-7XkGAsZ2UpMBsh0BSAopx59JyNUBtqpWKfAU8VWJrS9pDlBkE_9omwb25P3CjbGA/exec').trim();
+const APPS_SCRIPT_URL = String(process.env.GOOGLE_SPONSOR_FORM_WEBAPP_URL || 'https://script.google.com/macros/s/AKfycbx_6YxocFdH7XCkRe1iXgp4MBgeY1ac62adyFV6Gt3FOaXPwLcVGbNPWGkpX-TgehEu/exec').trim();
 
 function json(res, status, body) {
   return res.status(status).setHeader('Content-Type', 'application/json; charset=utf-8').json(body);
