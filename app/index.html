@@ -711,18 +711,22 @@ body:has(.login-header-top)::before{
     width:100%!important;
   }
 
-  /* Bottom navigation: compact, ordered and thumb-friendly. */
+  /* Bottom navigation: keep all ten doors available, horizontally scrollable on narrow phones. */
   .ragwan-step-5-active .ragwan-door-controls{
-    display:grid!important;
-    grid-template-columns:44px repeat(5,minmax(0,1fr)) 44px!important;
+    display:flex!important;
+    flex-wrap:nowrap!important;
+    justify-content:flex-start!important;
     gap:5px!important;
     margin-top:10px!important;
-  }
-  .ragwan-step-5-active .ragwan-door-controls .ragwan-door-chip:nth-of-type(n+6):nth-of-type(-n+10){
-    display:none!important;
+    padding:2px 2px 5px!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    -webkit-overflow-scrolling:touch!important;
+    scrollbar-width:thin;
   }
   .ragwan-step-5-active .ragwan-door-controls .ragwan-door-chip{
-    min-width:0!important;
+    flex:0 0 38px!important;
+    min-width:38px!important;
     min-height:38px!important;
     padding:6px 2px!important;
     font-size:11px!important;
