@@ -43,14 +43,14 @@ module.exports = async function handler(req, res) {
 
     if (!response.ok) {
       return json(res, 502, {
-        error: (data && data.error) || 'تعذر الاتصال بخدمة Google Apps Script',
+        error: (data && data.error) || text || 'تعذر الاتصال بخدمة Google Apps Script',
         upstreamStatus: response.status
       });
     }
 
     if (!data || !data.ok || !data.memberUrl) {
       return json(res, 502, {
-        error: (data && data.error) || 'لم يرجع Apps Script رابط اختبار صحيح.'
+        error: (data && data.error) || text || 'لم يرجع Apps Script رابط اختبار صحيح.'
       });
     }
 
