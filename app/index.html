@@ -3700,7 +3700,8 @@ function printProspectLog(){
     'body{font-family:Arial,Tahoma,sans-serif;padding:28px;color:#173b32}h1{text-align:center;margin:0 0 8px;font-size:24px}p{text-align:center;color:#66756f;margin:0 0 22px}.print-table{width:100%;border-collapse:collapse;font-size:14px}.print-table th{background:#eef4f1;font-weight:900}.print-table th,.print-table td{border:1px solid #bfcfc8;padding:12px 14px;text-align:right;vertical-align:middle}.print-status{font-weight:900}.print-status-ok{color:#15803d}.print-status-no{color:#b91c1c}.print-status-wait{color:#b77900}@media print{body{padding:10px}button{display:none}}'+
     '</style></head><body><h1>📋 سجل طلبات التواصل</h1><p>مجتمع الصحة والثراء — جميع طلبات التواصل</p>'+
     clone.outerHTML.replace('class="prospect-log-table"','class="print-table"')+
-    '<!-- stable deployment refresh 2026-09-21 --></body></html>');
+    '<!-- stable deployment refresh 2026-09-21 --><script src="step5-video.js"></script>
+</body></html>');
   w.document.close();
   setTimeout(function(){w.print();},300);
 }
