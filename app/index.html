@@ -820,7 +820,7 @@ function dxnNavGoForward(){
 function dxnNavRestore(target){
   dxnNav.restoring=true;
   try{
-    if(target.startsWith('tab:')){const t=target.slice(4);if(t==='training'&&!canAccessTraining())return;tab=t;render();requestAnimationFrame(()=>requestAnimationFrame(()=>scrollToTabContent(t)));recordSiteVisit(role||'visitor',t);}
+    if(target.startsWith('tab:')){const t=target.slice(4);if(t==='training'&&!canAccessTraining())return;tab=t;render();requestAnimationFrame(()=>{window.scrollTo({top:0,left:0,behavior:'auto'});});recordSiteVisit(role||'visitor',t);}
     else if(target.startsWith('idea:')){ideaStep(Number(target.slice(5))||0);}
     else if(target==='public:login'){renderLogin();}
   }finally{dxnNav.restoring=false;renderInAppNav();}
