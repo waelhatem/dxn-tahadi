@@ -164,7 +164,7 @@
       +'</div>';
   }
 
-  function renderLeaderSummary(rows){
+  function renderLeaderSummary(rows,errorMessage){
     if(typeof role!=='undefined'&&role!=='leader')return;
     var root=document.getElementById('app');
     if(!root)return;
@@ -177,7 +177,9 @@
     var html='<div class="row" style="border:0;align-items:center"><div><div class="title">📋 سجل اختبارات الأعضاء الجدد</div><div class="muted" style="margin-top:4px">اسم العضو — رقم العضوية — الدرجة — النتيجة.</div></div><button type="button" id="dxnLeaderAssessmentRefresh">🔄 تحديث</button></div>'
       +'<div class="row" style="border:0;background:#f4f8f6;font-weight:900;margin-top:10px;border-radius:12px;padding:10px 14px">'
       +'<div style="flex:1">اسم العضو</div><div style="min-width:120px;text-align:center">رقم العضوية</div><div style="min-width:90px;text-align:center">الدرجة</div><div style="min-width:125px;text-align:center">النتيجة</div></div>';
-    if(!Array.isArray(rows)||!rows.length){
+    if(errorMessage){
+      html+='<div class="challenge" style="margin-top:10px;border-color:#f0b7b2;background:#fff7f6"><b>⚠️ تعذر تحميل سجل الاختبارات</b><div class="muted" style="margin-top:5px;white-space:pre-wrap">'+esc(errorMessage)+'</div><div class="muted" style="margin-top:5px">جرّب زر «🔄 تحديث» بعد التأكد من اتصال الموقع بقاعدة البيانات.</div></div>';
+    }else if(!Array.isArray(rows)||!rows.length){
       html+='<div class="empty" style="margin-top:10px">لا توجد اختبارات محفوظة حتى الآن.</div>';
     }else{
       rows.forEach(function(row){html+=leaderSummaryRow(row);});
@@ -200,6 +202,7 @@
       renderLeaderSummary(Array.isArray(data)?data:[]);
     }catch(e){
       console.error('DXN leader external assessment summary',e);
+      renderLeaderSummary([],String(e&&e.message||e||'تعذر تحميل سجل الاختبارات'));
     }
   }
 
