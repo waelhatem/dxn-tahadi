@@ -59,6 +59,16 @@ function json(res, status, body) {
   return res.status(status).setHeader('Content-Type', 'application/json; charset=utf-8').json(body);
 }
 
+function normalizeMembershipNumber(value) {
+  return String(value || '')
+    .trim()
+    .replace(/[\s-]+/g, '');
+}
+
+function normalizeSponsorEmail(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
 function extractOutputText(data) {
   if (typeof data?.output_text === 'string' && data.output_text.trim()) return data.output_text.trim();
   const parts = [];
@@ -184,9 +194,9 @@ module.exports = async function handler(req, res) {
     }
 
     const formId = String(body.formId || '').trim();
-    const sponsorEmail = String(body.sponsorEmail || '').trim();
+    const sponsorEmail = normalizeSponsorEmail(body.sponsorEmail);
     const memberName = String(body.memberName || '').trim();
-    const membershipNumber = String(body.membershipNumber || '').trim();
+    const membershipNumber = normalizeMembershipNumber(body.membershipNumber);
     const answers = Array.isArray(body.answers) ? body.answers : [];
 
     if (!formId || !sponsorEmail || !memberName || !membershipNumber || answers.length !== REFERENCE_ANSWERS.length) {
@@ -217,16 +227,50 @@ module.exports = async function handler(req, res) {
       approvedCount,
       retryCount: results.length - approvedCount,
       overallStatus: results.every(x => x.status === 'approved') ? 'approved' : 'retry',
+      identity: {
+        source: 'google_form',
+        formId,
+        sponsorEmail,
+        memberName,
+        membershipNumber
+      },
       results
     };
 
-    const saved = await saveSubmission(body, report);
-
-    return json(res, 200, {
-      ok: true,
+    const savePayload = Object.assign({}, body, {
+      formId,
       sponsorEmail,
       memberName,
       membershipNumber,
+      submittedAt: body.submittedAt || new Date().toISOString()
+    });
+
+    const saved = await saveSubmission(savePayload, report);
+    const savedRows = Array.isArray(saved) ? saved : [];
+    const savedRow = savedRows[0] || null;
+    const submissionId = savedRow && savedRow.id ? String(savedRow.id) : '';
+
+    if (!submissionId) {
+      throw new Error('تم تقييم الاختبار لكن لم يُرجع Supabase رقم سجل محفوظ.');
+    }
+
+    // Fail closed if the database returned a row that does not match the
+    // trusted Form ID / Sponsor / member number identity.
+    if (
+      String(savedRow.form_id || '') !== formId ||
+      normalizeSponsorEmail(savedRow.sponsor_email) !== sponsorEmail ||
+      normalizeMembershipNumber(savedRow.membership_number) !== membershipNumber
+    ) {
+      throw new Error('تم الحفظ لكن هوية سجل الاختبار لا تطابق Form ID والـSponsor ورقم العضوية المرسل.');
+    }
+
+    return json(res, 200, {
+      ok: true,
+      submissionId,
+      sponsorEmail,
+      memberName,
+      membershipNumber,
+      formId,
       report,
       saved
     });
