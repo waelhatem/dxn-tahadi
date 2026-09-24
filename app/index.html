@@ -309,7 +309,25 @@ body:has(.login-header-top) .stat,
 body:has(.login-header-top) .notif-item{
   box-shadow:0 10px 28px rgba(15,81,63,.08);
 }
-</style><link rel="stylesheet" href="./transparency-v1.css?v=1">
+<style id="dxn-static-background-v1">
+/* V88.6 — الخلفية ثابتة بصريًا ولا تتحرك مع التنقل بين الصفحات */
+body:has(.login-header-top){
+  background:var(--bg)!important;
+  background-attachment:fixed!important;
+}
+body:has(.login-header-top)::before{
+  position:fixed!important;
+  inset:0!important;
+  width:100vw!important;
+  height:100vh!important;
+  background-position:center center!important;
+  background-attachment:fixed!important;
+  background-size:cover!important;
+  transform:none!important;
+  animation:none!important;
+  transition:none!important;
+}
+</style></style><link rel="stylesheet" href="./transparency-v1.css?v=1">
 <style id="mobileLayoutStabilityV1">
 /* Mobile layout stability: prevent viewport reflow/zoom-like jumping while browser chrome changes size. */
 @media (max-width:799px){
