@@ -2533,11 +2533,11 @@ function ragwanRenderStepResources(files){
       const url=String(f.url||'').trim(),name=esc(f.name),path=String(f.path||'').trim();
       const leaderActions=role==='leader'
         ? '<div class="ragwan-resource-actions">'+
-            '<a class="ragwan-resource-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">📖 فتح الملف</a>'+
+            '<a class="ragwan-resource-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.preventDefault();event.stopPropagation();ragwanOpenResource(this.href)">📖 فتح الملف</a>'+
             '<button type="button" class="ragwan-resource-copy" onclick=\'event.stopPropagation();ragwanCopyStepResourceInfo('+JSON.stringify(f).replace(/'/g,"&#39;")+')\'>📋 نسخ المعلومات</button>'+
             '<button type="button" class="ragwan-resource-delete" onclick=\'event.stopPropagation();ragwanDeleteStepResource('+JSON.stringify(path)+')\'>🗑️ حذف</button>'+
           '</div>'
-        : (url?'<a class="ragwan-resource-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">📖 فتح الملف</a>':'');
+        : (url?'<a class="ragwan-resource-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.preventDefault();event.stopPropagation();ragwanOpenResource(this.href)">📖 فتح الملف</a>':'');
       return '<div class="ragwan-resource-item" '+(url?'role="button" tabindex="0" onclick="ragwanOpenResource(\''+esc(url)+'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \')ragwanOpenResource(\''+esc(url)+'\')"':'')+'>'+
         '<span class="ragwan-resource-icon">'+ragwanFileIcon(f)+'</span>'+
         '<div><b>'+name+'</b><small>'+ragwanFormatSize(f.size)+'</small></div>'+
