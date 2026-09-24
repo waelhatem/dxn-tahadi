@@ -343,7 +343,12 @@ body:has(.login-header-top) .notif-item{
     justify-self:stretch;
   }
 }
-</style></head><body>
+</style><style id="ragwan-doors-static-v1">
+/* V88.1 — الأبواب العشرة: إيقاف الحركة واللمعان فقط */
+.ragwan-door{animation:none!important}
+.ragwan-door:nth-child(1),.ragwan-door:nth-child(2),.ragwan-door:nth-child(3),.ragwan-door:nth-child(4),.ragwan-door:nth-child(5),.ragwan-door:nth-child(6),.ragwan-door:nth-child(7),.ragwan-door:nth-child(8),.ragwan-door:nth-child(9),.ragwan-door:nth-child(10){animation:none!important}
+.ragwan-journey:before{animation:none!important;opacity:0!important}
+</style>\n</head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
   <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
   <div class="pwa-install-actions"><button id="pwaInstallBtn" class="primary" type="button">تثبيت</button><button id="pwaInstallClose" class="pwa-install-close" type="button">لاحقًا</button></div>
