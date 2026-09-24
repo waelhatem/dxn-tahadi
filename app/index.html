@@ -807,12 +807,47 @@ function dxnNavPush(target){
 }
 function dxnNavLockScroll(){
   const x=window.scrollX||0,y=window.scrollY||0;
-  const lock={x,y,until:performance.now()+1400};
+  const html=document.documentElement,body=document.body;
+  const lock={
+    x,y,until:performance.now()+1600,
+    htmlOverflow:html.style.overflow,
+    bodyOverflow:body.style.overflow,
+    bodyPosition:body.style.position,
+    bodyTop:body.style.top,
+    bodyWidth:body.style.width
+  };
   window.__DXN_NAV_SCROLL_LOCK__=lock;
+  /* Freeze the document itself while render() replaces the page.
+     This prevents the browser from moving the visual background. */
+  html.style.overflow='hidden';
+  body.style.overflow='hidden';
+  body.style.position='fixed';
+  body.style.top=(-y)+'px';
+  body.style.left=(-x)+'px';
+  body.style.width='100%';
+  const release=()=>{
+    if(window.__DXN_NAV_SCROLL_LOCK__!==lock)return;
+    html.style.overflow=lock.htmlOverflow;
+    body.style.overflow=lock.bodyOverflow;
+    body.style.position=lock.bodyPosition;
+    body.style.top=lock.bodyTop;
+    body.style.left='';
+    body.style.width=lock.bodyWidth;
+    try{window.scrollTo({left:x,top:y,behavior:'auto'});}catch(_){}
+    window.__DXN_NAV_SCROLL_LOCK__=null;
+  };
   const restore=()=>{
     if(window.__DXN_NAV_SCROLL_LOCK__!==lock)return;
-    if(performance.now()>=lock.until){window.__DXN_NAV_SCROLL_LOCK__=null;return;}
-    try{window.scrollTo({left:lock.x,top:lock.y,behavior:'auto'});}catch(_){}
+    if(performance.now()>=lock.until){release();return;}
+    try{
+      html.style.overflow='hidden';
+      body.style.overflow='hidden';
+      body.style.position='fixed';
+      body.style.top=(-y)+'px';
+      body.style.left=(-x)+'px';
+      body.style.width='100%';
+      window.scrollTo({left:x,top:y,behavior:'auto'});
+    }catch(_){}
     requestAnimationFrame(restore);
   };
   requestAnimationFrame(restore);
