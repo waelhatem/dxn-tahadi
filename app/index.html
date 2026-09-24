@@ -1351,6 +1351,15 @@ function ragwanSuccessIntro(){
 .ragwan-door-status{position:absolute;bottom:30px;padding:5px 10px;border-radius:999px;background:rgba(7,48,38,.84);color:#fff;font-size:10px;font-weight:900;border:1px solid rgba(255,236,157,.55);box-shadow:0 5px 12px rgba(0,0,0,.22)}
 .ragwan-door:hover{transform:translateY(-5px);box-shadow:0 22px 42px rgba(12,42,34,.3)}
 .ragwan-door:hover .ragwan-door-image{transform:scale(1.035);filter:brightness(1.03)}
+
+/* تعبئة المساحة البيضاء التي تظهر خلف الباب عند الفتح — دون تغيير حركة الباب */
+.ragwan-door-back{position:absolute;inset:0;z-index:1;border-radius:18px;background:linear-gradient(145deg,#fffef8,#f4f8f5);border:2px solid rgba(217,154,24,.72);box-shadow:inset 0 0 0 5px rgba(255,255,255,.75),0 16px 34px rgba(12,42,34,.18);padding:22px 15px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#123b30;overflow:hidden;pointer-events:none;direction:rtl}
+.ragwan-door-back-num{font-size:25px;font-weight:950;color:#b8861b;line-height:1}
+.ragwan-door-back-icon{font-size:25px;margin:7px 0 3px}
+.ragwan-door-back-title{font-size:14px;font-weight:950;line-height:1.45;color:#123b30;max-width:94%}
+.ragwan-door-back-text{margin-top:7px;font-size:10px;font-weight:750;line-height:1.6;color:#587067;max-width:94%;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.ragwan-door-back-goal{margin-top:8px;width:94%;padding:6px 7px;border-radius:9px;background:#edf7f2;border:1px solid #d7e9e1;color:#31584c;font-size:9px;font-weight:850;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+@media(max-width:650px){.ragwan-door-back{padding:15px 10px}.ragwan-door-back-title{font-size:12px}.ragwan-door-back-text{font-size:9px}.ragwan-door-back-goal{font-size:8px}}
 /* حركة الباب السينمائية V2: انتقال حقيقي إلى المركز ثم تكبير ثم فتح */
 .ragwan-door{
   transform-style:preserve-3d;
@@ -1768,6 +1777,13 @@ function ragwanDoorJourneyMarkup(){
   const doors=d.map(x=>{
     const status=ragwanStepStatus(x.n,state),locked=status==='locked';
     return '<button type="button" class="ragwan-door '+status+'" id="ragwanDoor'+x.n+'" '+(locked?'disabled':'')+' onclick="ragwanOpenDoor('+x.n+')" aria-label="'+esc(x.title)+'">'+
+      '<span class="ragwan-door-back">'+
+        '<span class="ragwan-door-back-num">'+x.n+'</span>'+
+        '<span class="ragwan-door-back-icon">'+x.icon+'</span>'+
+        '<span class="ragwan-door-back-title">'+esc(x.title)+'</span>'+
+        '<span class="ragwan-door-back-text">'+esc(x.text)+'</span>'+
+        '<span class="ragwan-door-back-goal">🎯 '+esc(x.goal)+'</span>'+
+      '</span>'+
       '<span class="ragwan-door-leaf">'+
         '<span class="ragwan-door-image-wrap"><img class="ragwan-door-image" src="/ragwan-door-locked.png" alt="'+esc(x.title)+'" loading="lazy"></span>'+
         '<span class="ragwan-door-overlay"></span>'+
