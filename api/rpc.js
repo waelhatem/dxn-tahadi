@@ -255,6 +255,73 @@ async function directTeamIntelligenceFromTable(args){
   throw new Error('وضع تحليل الفريق غير صالح');
 }
 
+
+function normalizeAssessmentMembershipNumber(value){
+  return String(value||'').trim().replace(/[\s-]+/g,'');
+}
+
+async function assessmentSession(token){
+  const sessionToken=String(token||'').trim();
+  if(!sessionToken) throw new Error('جلسة الدخول غير موجودة');
+  if(!SUPABASE_SECRET_KEY) throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
+  const boot=await supabaseRpcRequest('bootstrap',{p_token:sessionToken},SUPABASE_SECRET_KEY,10000);
+  if(!boot.ok){
+    throw new Error((boot.data&&(boot.data.message||boot.data.error||boot.data.hint))||boot.text||'جلسة الدخول غير صالحة');
+  }
+  return boot.data||{};
+}
+
+async function assessmentTableRows(extraQuery){
+  if(!SUPABASE_SECRET_KEY) throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
+  const fields=[
+    'id','form_id','sponsor_email','member_name','membership_number',
+    'submitted_at','answers','report','created_at'
+  ].join(',');
+  const suffix=String(extraQuery||'');
+  const url='/rest/v1/external_training_assessment_submissions?select='+
+    encodeURIComponent(fields)+suffix;
+  const rows=await supabaseRestRequest(url,SUPABASE_SECRET_KEY,15000);
+  if(!rows.ok || !Array.isArray(rows.data)){
+    throw new Error((rows.data&&(rows.data.message||rows.data.error||rows.data.hint))||rows.text||'Supabase HTTP '+rows.status);
+  }
+  return rows.data;
+}
+
+async function externalTrainingAssessmentSummaryFallback(args){
+  const boot=await assessmentSession(args&&args.p_token);
+  const role=String(boot.role||'').trim().toLowerCase();
+  if(role!=='leader') throw new Error('غير مصرح بعرض سجل اختبارات الأعضاء');
+  const rows=await assessmentTableRows('&order=submitted_at.desc,created_at.desc&limit=10000');
+  const latest=new Map();
+  for(const row of rows){
+    const no=normalizeAssessmentMembershipNumber(row&&row.membership_number);
+    if(!no) continue;
+    if(!latest.has(no)) latest.set(no,row);
+  }
+  return Array.from(latest.values()).map(row=>({
+    member_name:String(row.member_name||''),
+    membership_number:normalizeAssessmentMembershipNumber(row.membership_number),
+    score:Number(row.report&&row.report.totalScore||0),
+    result:String(row.report&&row.report.overallStatus||'retry'),
+    _sort_at:String(row.submitted_at||row.created_at||'')
+  })).sort((a,b)=>(new Date(b._sort_at).getTime()||0)-(new Date(a._sort_at).getTime()||0))
+    .map(row=>{
+      delete row._sort_at;
+      return row;
+    });
+}
+
+async function externalTrainingAssessmentMemberHistoryFallback(args){
+  const token=String(args&&args.p_token||'').trim();
+  const target=normalizeAssessmentMembershipNumber(args&&args.p_membership_number);
+  if(!target) throw new Error('رقم العضوية غير موجود');
+  const boot=await assessmentSession(token);
+  const role=String(boot.role||'').trim().toLowerCase();
+  const own=normalizeAssessmentMembershipNumber(boot.members&&boot.members[0]&&boot.members[0].member_no);
+  if(role==='member' && own!==target) throw new Error('غير مصرح بعرض سجل عضو آخر');
+  return assessmentTableRows('&membership_number=eq.'+encodeURIComponent(target)+'&order=submitted_at.desc,created_at.desc&limit=200');
+}
+
 async function supabaseSecretRpc(fn,args){
   if(!SUPABASE_SECRET_KEY) throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
   const response=await supabaseRpcRequest(fn,args,SUPABASE_SECRET_KEY,12000);
@@ -361,6 +428,23 @@ module.exports = async function handler(req, res) {
       } catch (error) {
         console.error('generate_training_answer RPC error:',error);
         return res.status(502).json({error:String(error&&error.message||error)});
+      }
+    }
+
+    if(fn==='get_external_training_assessment_summary' || fn==='get_external_training_assessment_submissions'){
+      const normal=await supabaseRpcRequest(fn,args,SUPABASE_KEY,10000);
+      if(normal.ok){
+        return res.status(normal.status||200).json(normal.data||{});
+      }
+      try{
+        const fallback = fn==='get_external_training_assessment_summary'
+          ? await externalTrainingAssessmentSummaryFallback(args)
+          : await externalTrainingAssessmentMemberHistoryFallback(args);
+        return res.status(200).json(fallback);
+      }catch(fallbackError){
+        return res.status(normal.status||500).json({
+          error:String(fallbackError&&fallbackError.message||fallbackError)||normal.text||'تعذر تحميل سجل الاختبارات'
+        });
       }
     }
 
