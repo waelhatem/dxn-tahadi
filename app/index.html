@@ -2589,6 +2589,44 @@ async function ragwanDeleteStepResource(path){
     toast('⚠️ '+String(e.message||'تعذر حذف الملف.'));
   }
 }
+async function ragwanCopyStepResourceImage(url,name){
+  const u=String(url||'').trim();
+  if(!u){toast('⚠️ لا يوجد رابط للصورة.');return;}
+  try{
+    const res=await fetch(u,{mode:'cors',cache:'no-store'});
+    if(!res.ok)throw new Error('تعذر تحميل الصورة.');
+    const blob=await res.blob();
+    if(!String(blob.type||'').startsWith('image/'))throw new Error('هذا الملف ليس صورة.');
+    let copyBlob=blob;
+    let mime=String(blob.type||'image/png').toLowerCase();
+
+    // بعض المتصفحات تقبل image/png بشكل موثوق أكثر من بقية صيغ الصور.
+    if(mime!=='image/png'){
+      try{
+        const bitmap=await createImageBitmap(blob);
+        const canvas=document.createElement('canvas');
+        canvas.width=bitmap.width;
+        canvas.height=bitmap.height;
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(bitmap,0,0);
+        copyBlob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+        if(!copyBlob)copyBlob=blob;
+        mime=String(copyBlob.type||'image/png');
+        bitmap.close?.();
+      }catch(_){}
+    }
+
+    if(!navigator.clipboard?.write || typeof ClipboardItem==='undefined'){
+      throw new Error('المتصفح لا يدعم نسخ الصور مباشرة إلى الحافظة.');
+    }
+
+    const item=new ClipboardItem({[mime]:copyBlob});
+    await navigator.clipboard.write([item]);
+    toast('✅ تم نسخ الصورة. يمكنك لصقها مباشرة في واتساب أو تلغرام.');
+  }catch(e){
+    toast('⚠️ تعذر نسخ الصورة مباشرة. '+String(e.message||'حاول مرة أخرى.'));
+  }
+}
 function ragwanRenderStepResources(files){
   const el=document.getElementById('ragwanStepResources');if(!el)return;
   const step=ragwanCurrentStep,arr=files||[];
@@ -2596,14 +2634,21 @@ function ragwanRenderStepResources(files){
   el.innerHTML='<div class="ragwan-resource-head"><div><b>📚 مواد الخطوة '+step+'</b><small>اطلع على الملفات أولًا ثم انتقل إلى اختبار الفهم.</small></div>'+leaderUpload+'</div>'+
     '<div class="ragwan-resource-list">'+(arr.length?arr.map((f,index)=>{
       const url=String(f.url||'').trim(),name=esc(f.name),path=String(f.path||'').trim();
+      const isImage=String(f.mime||'').toLowerCase().startsWith('image/')||/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(String(f.name||''));
       const leaderActions=role==='leader'
         ? '<div class="ragwan-resource-actions">'+
-            '<a class="ragwan-resource-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.preventDefault();event.stopPropagation();ragwanOpenResource(this.href)">📖 فتح الملف</a>'+
+            (isImage
+              ? '<button type="button" class="ragwan-resource-open" onclick=\'event.stopPropagation();ragwanCopyStepResourceImage('+JSON.stringify(String(f.url||'')).replace(/'/g,"&#39;")+','+JSON.stringify(String(f.name||'الصورة')).replace(/'/g,"&#39;")+')\'>📋 نسخ الصورة</button>'
+              : (url?'<a class="ragwan-resource-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.preventDefault();event.stopPropagation();ragwanOpenResource(this.href)">📖 فتح الملف</a>':'')
+            )+
             '<button type="button" class="ragwan-resource-copy" onclick=\'event.stopPropagation();ragwanCopyStepResourceInfo('+JSON.stringify(f).replace(/'/g,"&#39;")+','+index+')\'>📋 نسخ المعلومات</button>'+
             '<button type="button" class="ragwan-resource-delete" onclick=\'event.stopPropagation();ragwanDeleteStepResource('+JSON.stringify(path)+')\'>🗑️ حذف</button>'+
           '</div>'
         : (url?'<a class="ragwan-resource-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.preventDefault();event.stopPropagation();ragwanOpenResource(this.href)">📖 فتح الملف</a>':'');
-      return '<div class="ragwan-resource-item" '+(url?'role="button" tabindex="0" onclick="ragwanOpenResource(\''+esc(url)+'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \')ragwanOpenResource(\''+esc(url)+'\')"':'')+'>'+
+      const rowOpen=(role==='member'&&url)
+        ? 'role="button" tabindex="0" onclick="ragwanOpenResource(\''+esc(url)+'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \')ragwanOpenResource(\''+esc(url)+'\')"'
+        : '';
+      return '<div class="ragwan-resource-item" '+rowOpen+'>'+
         '<span class="ragwan-resource-icon">'+ragwanFileIcon(f)+'</span>'+
         '<div><b>'+name+'</b><small>'+ragwanFormatSize(f.size)+'</small></div>'+
         leaderActions+
