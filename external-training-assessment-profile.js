@@ -46,36 +46,50 @@
     return '';
   }
 
-  function buildAttemptHtml(row,index,includeSponsor){
+  function resultLabel(report){
+    var status=String((report&&report.overallStatus)||'retry');
+    if(status==='approved')return '✅ ناجح';
+    if(status==='retry')return '🔁 إعادة المحاولة';
+    return '⏳ قيد المعالجة';
+  }
+
+  function scoreOf(row){
     var report=row&&row.report||{};
-    var results=Array.isArray(report.results)?report.results:[];
-    var total=Number(report.totalScore||0);
-    var approved=Number(report.approvedCount||0);
-    var retry=Number(report.retryCount||0);
-    var totalQ=Number(report.totalQuestions||results.length||0);
-    var overall=report.overallStatus||'retry';
-    var html='<details style="margin-top:10px;border:1px solid #d9e7e1;border-radius:14px;padding:10px;background:#fff" '+(index===0?'open':'')+'>';
-    html+='<summary style="cursor:pointer;list-style:none"><div class="row" style="border:0;align-items:center">';
-    html+='<div><b>📝 محاولة '+(index+1)+'</b><div class="muted" style="margin-top:4px">📅 '+formatDate(row.submitted_at||row.created_at)+'</div></div>';
-    html+='<div style="text-align:left"><b style="font-size:18px">'+total+'/100</b><div class="muted">'+statusLabel(overall)+'</div></div>';
-    html+='</div></summary>';
-    html+='<div class="progress-grid" style="margin-top:10px">';
-    html+='<div class="progress-stat"><span class="muted">📊 الدرجة</span><b>'+total+'/100</b></div>';
-    html+='<div class="progress-stat"><span class="muted">✅ المعتمدة</span><b>'+approved+'/'+totalQ+'</b></div>';
-    html+='<div class="progress-stat"><span class="muted">🔁 تحتاج إعادة</span><b>'+retry+'</b></div>';
-    if(includeSponsor){
-      html+='<div class="progress-stat"><span class="muted">📧 السبونسر</span><b style="font-size:12px">'+esc(row.sponsor_email||'')+'</b></div>';
-    }
-    html+='</div>';
-    results.forEach(function(item){
-      html+='<div class="challenge" style="margin-top:10px;border-color:#d9e7e1">';
-      html+='<div class="row" style="border:0;align-items:flex-start"><div style="flex:1"><b>السؤال '+Number(item.questionNo||0)+'</b><div style="margin-top:4px;line-height:1.8">'+esc(item.question||'')+'</div></div><b style="white-space:nowrap">'+Number(item.score||0)+'/100</b></div>';
-      html+='<div style="margin-top:8px;background:#f7f9f8;padding:10px;border-radius:10px;white-space:pre-wrap;line-height:1.8"><b>إجابتك:</b> '+esc(item.answer||'')+'</div>';
-      html+='<div style="margin-top:8px;line-height:1.8"><b>الحالة:</b> '+statusLabel(item.status);
-      if(item.note)html+='<br><b>ملاحظة التقييم:</b> '+esc(item.note);
-      html+='</div></div>';
+    return Number(report.totalScore||0);
+  }
+
+  function simpleRow(row){
+    var report=row&&row.report||{};
+    return '<div class="row" style="border:1px solid #d9e7e1;border-radius:14px;margin-top:8px;padding:12px 14px;background:#fff;align-items:center">'
+      +'<div style="flex:1;min-width:0"><b>'+esc(row.member_name||'عضو غير معروف')+'</b></div>'
+      +'<div style="min-width:90px;text-align:center"><b>'+scoreOf(row)+'/100</b></div>'
+      +'<div style="min-width:125px;text-align:center"><b>'+resultLabel(report)+'</b></div>'
+      +'</div>';
+  }
+
+  function compactRows(rows){
+    var latestByMember={};
+    (Array.isArray(rows)?rows:[]).forEach(function(row){
+      var no=String(row.membership_number||row.member_name||'').trim();
+      if(!no)return;
+      var prev=latestByMember[no];
+      var curTime=new Date(row.submitted_at||row.created_at||0).getTime()||0;
+      var prevTime=prev?new Date(prev.submitted_at||prev.created_at||0).getTime()||0:-1;
+      if(!prev||curTime>prevTime)latestByMember[no]=row;
     });
-    html+='</details>';
+    return Object.keys(latestByMember).map(function(k){return latestByMember[k];})
+      .sort(function(a,b){return (new Date(b.submitted_at||b.created_at||0).getTime()||0)-(new Date(a.submitted_at||a.created_at||0).getTime()||0);});
+  }
+
+  function tableHtml(rows,emptyText){
+    var compact=compactRows(rows);
+    var html='<div style="overflow:auto"><div style="min-width:520px">'
+      +'<div class="row" style="border:0;background:#f4f8f6;font-weight:900;margin-top:10px;border-radius:12px;padding:10px 14px">'
+      +'<div style="flex:1">اسم العضو</div><div style="min-width:90px;text-align:center">الدرجة</div><div style="min-width:125px;text-align:center">النتيجة</div>'
+      +'</div>';
+    if(!compact.length) html+='<div class="empty" style="margin-top:10px">'+esc(emptyText)+'</div>';
+    else compact.forEach(function(row){html+=simpleRow(row);});
+    html+='</div></div>';
     return html;
   }
 
@@ -86,11 +100,9 @@
     box.id='dxn-external-assessment-history';
     box.className='card';
     box.style.cssText='margin-top:10px;border:2px solid #d7e7df;background:linear-gradient(135deg,#fbfffd,#fff);direction:rtl;text-align:right';
-    var html='<div class="title">📝 سجل اختبارات الحقيبة التدريبية</div>';
-    html+='<p class="muted" style="line-height:1.8;margin:6px 0 10px">كل محاولات الاختبار المرسلة عبر Google Form محفوظة حسب رقم العضوية.</p>';
-    if(!rows.length) html+='<div class="empty">لا توجد محاولات اختبار محفوظة لهذا العضو حتى الآن.</div>';
-    else rows.forEach(function(row,i){html+=buildAttemptHtml(row,i,true);});
-    box.innerHTML=html;
+    box.innerHTML='<div class="title">📝 سجل اختبار الحقيبة التدريبية</div>'
+      +'<p class="muted" style="line-height:1.8;margin:6px 0 10px">الاسم والدرجة والنتيجة فقط. تفاصيل الإجابات تصل إلى البريد الإلكتروني للسبونسر.</p>'
+      +tableHtml(rows,'لا توجد نتيجة اختبار محفوظة لهذا العضو حتى الآن.');
     insertBox(modal,box);
   }
 
@@ -104,23 +116,8 @@
     box.id='dxn-member-external-assessment-history';
     box.className='card';
     box.style.cssText='margin-top:14px;border:2px solid #d7e7df;background:linear-gradient(135deg,#fbfffd,#fff);direction:rtl;text-align:right';
-
-    var html='<div class="row" style="border:0;align-items:flex-start"><div><div class="title">📝 سجل اختباراتي</div><div class="muted" style="margin-top:4px;line-height:1.7">هنا تظهر جميع محاولات اختبار الحقيبة التدريبية ونتائج التقييم الآلي بالتفصيل.</div></div><button type="button" id="dxnMemberAssessmentRefresh">🔄 تحديث</button></div>';
-
-    if(!rows.length){
-      html+='<div class="empty" style="margin-top:10px">لم ترسل أي محاولة اختبار حتى الآن.</div>';
-    }else{
-      var latest=rows[0], latestReport=latest.report||{};
-      html+='<div class="progress-grid" style="margin-top:10px">';
-      html+='<div class="progress-stat"><span class="muted">آخر درجة</span><b>'+Number(latestReport.totalScore||0)+'/100</b></div>';
-      html+='<div class="progress-stat"><span class="muted">الحالة</span><b style="font-size:15px">'+statusLabel(latestReport.overallStatus||'retry')+'</b></div>';
-      html+='<div class="progress-stat"><span class="muted">عدد المحاولات</span><b>'+rows.length+'</b></div>';
-      html+='<div class="progress-stat"><span class="muted">آخر إرسال</span><b style="font-size:12px">'+formatDate(latest.submitted_at||latest.created_at)+'</b></div>';
-      html+='</div>';
-      rows.forEach(function(row,i){html+=buildAttemptHtml(row,i,false);});
-    }
-
-    box.innerHTML=html;
+    box.innerHTML='<div class="row" style="border:0;align-items:center"><div><div class="title">📝 سجل الاختبارات</div><div class="muted" style="margin-top:4px">اسم العضو، الدرجة، والنتيجة فقط.</div></div><button type="button" id="dxnMemberAssessmentRefresh">🔄 تحديث</button></div>'
+      +tableHtml(rows,'لم يرسل هذا العضو أي اختبار حتى الآن.');
 
     var anchor=null;
     try{
@@ -137,30 +134,21 @@
     if(btn)btn.onclick=function(){loadMemberHistory();};
   }
 
-  function renderMemberError(message){
-    renderMemberHistory([]);
-    var box=document.getElementById('dxn-member-external-assessment-history');
-    if(!box)return;
-    var old=box.querySelector('.dxn-member-assessment-error');
-    if(old)old.remove();
-    var err=document.createElement('div');
-    err.className='challenge dxn-member-assessment-error';
-    err.style.cssText='border-color:#f0b7b2;background:#fff7f6';
-    err.innerHTML='<b>⚠️ تعذر تحميل سجل الاختبارات</b><div class="muted" style="margin-top:5px;white-space:pre-wrap">'+esc(message||'خطأ غير معروف')+'</div>';
-    box.appendChild(err);
-  }
-
   async function loadMemberHistory(){
     if(typeof role!=='undefined'&&role!=='member')return;
     var no=memberNo(), t=token();
     if(!no||!t)return;
     try{
       var data=await rpc('get_external_training_assessment_submissions',{p_token:t,p_membership_number:no});
-      var rows=Array.isArray(data)?data:[];
-      renderMemberHistory(rows);
+      renderMemberHistory(Array.isArray(data)?data:[]);
     }catch(e){
       console.error('DXN member external assessment history',e);
-      renderMemberError(e&&e.message||String(e));
+      renderMemberHistory([]);
+      var box=document.getElementById('dxn-member-external-assessment-history');
+      if(box){
+        var err=document.createElement('div');err.className='challenge';err.style.cssText='margin-top:10px;border-color:#f0b7b2;background:#fff7f6';
+        err.innerHTML='<b>⚠️ تعذر تحميل السجل</b><div class="muted" style="margin-top:5px">'+esc(e&&e.message||String(e))+'</div>';box.appendChild(err);
+      }
     }
   }
 
