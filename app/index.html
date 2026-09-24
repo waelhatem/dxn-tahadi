@@ -752,7 +752,7 @@ async function login(){
     toast(e.message||'تعذر الدخول');
   }
 }
-async function logout(){try{await rpc('logout',{p_token:token})}catch{}localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');localStorage.removeItem('dxn_login_no');token='';me=null;data=null;tab='home';renderLogin()}
+async function logout(){try{await rpc('logout',{p_token:token})}catch{}localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');localStorage.removeItem('dxn_login_no');token='';me=null;data=null;role=null;trainingData={lessons:[],my_progress:[],member_progress:[]};tab='home';var assessment=document.getElementById('dxn-training-assessment');if(assessment)assessment.remove();var memberAssessmentHistory=document.getElementById('dxn-member-external-assessment-history');if(memberAssessmentHistory)memberAssessmentHistory.remove();renderLogin()}
 const DXN_NAV_KEY='dxn_inapp_nav_v1';
 let dxnNav={back:[],forward:[],current:null,restoring:false};
 function dxnNavLabel(v){return String(v||'home');}
