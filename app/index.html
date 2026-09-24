@@ -369,7 +369,7 @@ body:has(.login-header-top)::before{
 </style>
 <style id="ragwan-mobile-file-open-v1">
 .ragwan-resource-item[role="button"]{cursor:pointer;max-width:100%;min-width:0;box-sizing:border-box}
-.ragwan-resource-open{display:inline-flex!important;align-items:center;justify-content:center;flex:0 1 auto!important;min-width:0!important;width:auto!important;max-width:100%!important;min-height:40px;padding:8px 13px;border-radius:11px;background:#0f513f!important;color:#fff!important;font-weight:900;text-decoration:none!important;white-space:nowrap;box-sizing:border-box;overflow:hidden}.ragwan-resource-delete{border:1px solid #e5bcbc;background:#fff4f4;color:#a22626;border-radius:10px;padding:7px 10px;font-weight:900;cursor:pointer;white-space:nowrap}
+.ragwan-resource-open{display:inline-flex!important;align-items:center;justify-content:center;flex:0 1 auto!important;min-width:0!important;width:auto!important;max-width:100%!important;min-height:40px;padding:8px 13px;border-radius:11px;background:#0f513f!important;color:#fff!important;font-weight:900;text-decoration:none!important;white-space:nowrap;box-sizing:border-box;overflow:hidden}
 @media(max-width:620px){
   .ragwan-resource-item{
     display:grid!important;
@@ -1441,7 +1441,7 @@ function ragwanSuccessIntro(){
 .ragwan-file-actions{display:flex;gap:7px;flex-wrap:wrap}
 .ragwan-file-actions a,.ragwan-file-actions button{border:1px solid #d8e4df;background:#f8fbfa;color:#0f513f;border-radius:10px;padding:7px 10px;font-weight:800;text-decoration:none;cursor:pointer}
 .ragwan-file-actions a:first-child{background:#eef8f2}
-.ragwan-file-actions button{background:#eef8f2!important}.ragwan-file-actions .ragwan-delete-file-btn{background:#fff1f1!important;color:#a52b2b!important;border-color:#f0caca!important}
+.ragwan-file-actions button{background:#eef8f2!important}
 @media(max-width:650px){.ragwan-file-actions{gap:8px}.ragwan-file-actions a,.ragwan-file-actions button{min-height:44px;display:inline-flex;align-items:center;justify-content:center;font-size:14px}}
 @media(max-width:650px){
   .ragwan-files-list{grid-template-columns:1fr}
@@ -2503,7 +2503,6 @@ function ragwanRenderStepResources(files){
         '<span class="ragwan-resource-icon">'+ragwanFileIcon(f)+'</span>'+
         '<div><b>'+name+'</b><small>'+ragwanFormatSize(f.size)+'</small></div>'+
         (url?'<a class="ragwan-resource-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">📖 فتح الملف</a>':'')+
-        (role==='leader'?'<button type="button" class="ragwan-resource-delete" onclick="event.stopPropagation();ragwanDeleteStepResource(\\''+esc(f.path)+\\'\\')">🗑️ حذف المادة</button>':'')+
       '</div>';
     }).join(''):'<div class="ragwan-resource-empty">لم تتم إضافة مواد لهذه الخطوة بعد.</div>')+'</div>';
 }
@@ -2517,16 +2516,6 @@ async function ragwanFocusFirstMaterial(){
   target.style.outline='3px solid #f0bd38';
   target.style.outlineOffset='4px';
   setTimeout(()=>{target.style.outline='';target.style.outlineOffset='';},1800);
-}
-async function ragwanDeleteStepResource(path){
-  if(role!=='leader')return;
-  if(!path)return;
-  if(!confirm('هل تريد حذف هذه المادة من الخطوة؟'))return;
-  try{
-    await ragwanPlanApi('delete_step_resource',{path});
-    toast('🗑️ تم حذف المادة.');
-    await ragwanLoadStepResources();
-  }catch(e){toast(e.message||'تعذر حذف المادة.');}
 }
 async function ragwanLoadStepResources(){
   try{const out=await ragwanPlanApi('step_resource_list',{step:ragwanCurrentStep});ragwanRenderStepResources(out.files||[]);}
@@ -2791,16 +2780,14 @@ function ragwanRenderFiles(files){
   const el=document.getElementById('ragwanFilesList');if(!el)return;
   if(!files.length){el.innerHTML='<div class="muted">لا توجد ملفات مضافة حتى الآن.</div>';return;}
   const ordered=[...files].sort((a,b)=>{
-    const an=String(a?.name||'').trim();
-    const bn=String(b?.name||'').trim();
-    const am=an.match(/(\d+)(?:\.[^.]+)?$/);
-    const bm=bn.match(/(\d+)(?:\.[^.]+)?$/);
-    if(am&&bm){
-      const diff=Number(am[1])-Number(bm[1]);
-      if(diff!==0)return diff;
-    }else if(am)return -1;
-    else if(bm)return 1;
-    return an.localeCompare(bn,undefined,{numeric:true,sensitivity:'base'});
+    const an=String(a?.name||'');
+    const bn=String(b?.name||'');
+    const am=an.match(/(\d+)/);
+    const bm=bn.match(/(\d+)/);
+    if(am&&bm)return Number(am[1])-Number(bm[1]);
+    if(am)return -1;
+    if(bm)return 1;
+    return an.localeCompare(bn,'ar',{numeric:true,sensitivity:'base'});
   });
   el.innerHTML=ordered.map(f=>{
     const mime=String(f.mime||'').toLowerCase(),url=String(f.url||'');
@@ -2812,7 +2799,7 @@ function ragwanRenderFiles(files){
     }else{
       media=`<div class="ragwan-file-media"><div class="ragwan-file-icon">${ragwanFileIcon(f)}</div></div>`;
     }
-    return `<div class="ragwan-file-card">${media}<div class="ragwan-file-info"><div class="ragwan-file-name">${esc(f.name)}</div><div class="ragwan-file-meta">${esc(ragwanFormatSize(f.size))}</div></div><div class="ragwan-file-actions">${url?`<a href="${esc(url)}" target="_blank" rel="noopener">فتح</a><button type="button" onclick='ragwanCopyPrizeInfo(${JSON.stringify(f).replace(/'/g,"&#39;")})'>📋 نسخ</button><a href="${esc(url)}" download>تنزيل</a>`:''}${role==='leader'?`<button type="button" class="ragwan-delete-file-btn" onclick="ragwanDeleteFile('${esc(f.path)}')">🗑️ حذف</button>`:''}</div></div>`;
+    return `<div class="ragwan-file-card">${media}<div class="ragwan-file-info"><div class="ragwan-file-name">${esc(f.name)}</div><div class="ragwan-file-meta">${esc(ragwanFormatSize(f.size))}</div></div><div class="ragwan-file-actions">${url?`<a href="${esc(url)}" target="_blank" rel="noopener">فتح</a><button type="button" onclick='ragwanCopyPrizeInfo(${JSON.stringify(f).replace(/'/g,"&#39;")})'>📋 نسخ</button><a href="${esc(url)}" download>تنزيل</a>`:''}${role==='leader'?`<button type="button" onclick="ragwanDeleteFile('${esc(f.path)}')">🗑️ حذف</button>`:''}</div></div>`;
   }).join('');
 }
 const RAGWAN_GENERAL_PRIZES_TEXT=`🎁 هدايا وجوائز فريق الأمل الريادي للأعضاء المتميزين
