@@ -2559,7 +2559,13 @@ function ragwanCopyStepResourceInfo(f){
     ].join('\\n')
   };
 
-  const key=name.toLowerCase();
+  // الملفات في الواجهة قد تصل باسم مختلف قليلًا عن الاسم الظاهر للمستخدم،
+  // لذلك نحدد المحتوى بحسب رقم الصورة في الاسم أو المسار.
+  const rawResourceId=String(f?.path||f?.name||'').trim().toLowerCase();
+  const normalizedName=name.toLowerCase().replace(/\\.[a-z0-9]+$/i,'');
+  const numberMatch=(rawResourceId+' '+normalizedName).match(/(?:^|[._\\/-])(?:jpg|image|img)?[._ -]?(\\d+)(?:\\.[a-z0-9]+)?(?:$|[._\\/-])/i);
+  const imageNumber=numberMatch?Number(numberMatch[1]):null;
+  const key=imageNumber===1?'jpg.1':imageNumber===2?'jpg.2':name.toLowerCase();
   const description=curated[key];
   // زر النسخ مخصص لنسخ النص الجاهز لإرساله للعضو، وليس بيانات الملف أو رابطه.
   // إذا تمت صياغة محتوى الصورة، ننسخ المحتوى المصاغ فقط.
