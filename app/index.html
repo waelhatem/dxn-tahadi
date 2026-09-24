@@ -155,6 +155,10 @@ button[disabled]:focus-visible{outline-color:#667085!important}
 .ragwan-step4-email-label{display:block;margin-top:14px;font-weight:950;color:#173c31}
 .ragwan-step4-email-label span{display:block;margin-bottom:7px}
 .ragwan-step4-email{width:100%;min-height:48px;padding:11px 13px;border:1px solid #cfe1d8;border-radius:12px;background:#fff;color:#173c31;font-size:15px;box-sizing:border-box;direction:ltr;text-align:left}
+.ragwan-step4-email-row{display:grid;grid-template-columns:minmax(0,1fr) 180px;gap:9px;align-items:stretch}
+.ragwan-step4-approve{min-height:48px;border:0;border-radius:12px;background:linear-gradient(135deg,#0f513f,#176b55);color:#fff;font-weight:950;cursor:pointer}
+.ragwan-step4-approve:disabled{opacity:.55;cursor:not-allowed}
+.ragwan-step4-approved{margin-top:8px;padding:8px 11px;border-radius:11px;background:#eaf7ef;color:#176b55;border:1px solid #cce6d9;font-size:12px;font-weight:900;line-height:1.7}
 .ragwan-step4-email:focus{outline:3px solid rgba(12,166,120,.16);border-color:#0ca678}
 .ragwan-step4-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
 .ragwan-step4-btn{min-height:50px;border:0;border-radius:13px;padding:10px 14px;font-weight:950;cursor:pointer}
@@ -1989,7 +1993,12 @@ function ragwanBuildStep4AssessmentAction(){
   return '<section class="ragwan-step4-assessment-box" id="ragwanStep4AssessmentBox">'+
     '<div class="ragwan-step4-assessment-head"><span class="icon">📝</span><div><b>اختبار الخطوة الرابعة — Google Form</b><small>أدخل بريد الراعي أولًا ثم انسخ رابط الاختبار وأرسله للعضو. نتيجة الاختبار تظهر داخل Google Form نفسه بعد الإرسال.</small></div></div>'+
     '<label class="ragwan-step4-email-label" for="ragwanStep4SponsorEmail"><span>📧 البريد الإلكتروني للراعي <strong style="color:#b42318">*</strong></span>'+
-      '<input id="ragwanStep4SponsorEmail" class="ragwan-step4-email" type="email" autocomplete="email" placeholder="sponsor@example.com" value="'+esc(email)+'"></label>'+
+      '<div class="ragwan-step4-email-row">'+
+        '<input id="ragwanStep4SponsorEmail" class="ragwan-step4-email" type="email" autocomplete="email" placeholder="sponsor@example.com" value="'+esc(email)+'">'+
+        '<button type="button" id="ragwanStep4ApproveBtn" class="ragwan-step4-approve" onclick="ragwanApproveStep4Email()">✅ اعتماد الإيميل</button>'+
+      '</div>'+
+      '<div id="ragwanStep4ApprovedStatus" class="ragwan-step4-approved" '+(unlocked?'':'style="display:none"')+'>✅ تم اعتماد بريد الراعي لهذه المحاولة.</div>'+
+    '</label>'+
     '<div class="ragwan-step4-actions">'+
       '<button type="button" class="ragwan-step4-btn copy" onclick="ragwanCopyStep4FormLink()">📋 نسخ رابط الاختبار</button>'+
       '<button type="button" class="ragwan-step4-btn result" onclick="ragwanConfirmStep4Result()">✅ ظهرت النتيجة في الفورم</button>'+
@@ -2005,11 +2014,16 @@ function ragwanStep4SyncEmail(){
       localStorage.setItem(ragwanStep4StorageKey('sponsor_email'),String(input.value||'').trim());
       localStorage.removeItem(ragwanStep4StorageKey('result_seen'));
       localStorage.removeItem(ragwanStep4StorageKey('form_copied'));
+      localStorage.removeItem(ragwanStep4StorageKey('form_url'));
     }catch(_){}
+    const approved=document.getElementById('ragwanStep4ApprovedStatus');
+    if(approved)approved.style.display='none';
+    const approve=document.getElementById('ragwanStep4ApproveBtn');
+    if(approve){approve.disabled=false;approve.textContent='✅ اعتماد الإيميل';}
     const btn=document.getElementById('ragwanStep4AnswerBtn');
     if(btn){btn.disabled=true;btn.classList.remove('unlocked');btn.textContent='🔒 الإجابات — تُفتح بعد ظهور النتيجة';}
     const status=document.getElementById('ragwanStep4Status');
-    if(status)status.textContent='🔒 أكمل الاختبار في Google Form حتى تظهر النتيجة ثم أكد ظهورها هنا.';
+    if(status)status.textContent='🔒 اعتمد بريد الراعي أولًا، ثم انسخ رابط الاختبار.';
   });
 }
 async function ragwanCopyStep4VideoLink(){
@@ -2025,6 +2039,41 @@ async function ragwanCopyStep4VideoLink(){
   if(status)status.textContent='✅ تم نسخ رابط فيديو الحقيبة التدريبية المختصرة.';
   toast('✅ تم نسخ رابط الفيديو');
 }
+async function ragwanApproveStep4Email(){
+  const input=document.getElementById('ragwanStep4SponsorEmail');
+  const button=document.getElementById('ragwanStep4ApproveBtn');
+  const status=document.getElementById('ragwanStep4Status');
+  const approved=document.getElementById('ragwanStep4ApprovedStatus');
+  const email=String((input&&input.value)||'').trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    toast('⚠️ أدخل بريد الراعي الصحيح أولًا.');
+    if(input)input.focus();
+    return;
+  }
+  if(button){button.disabled=true;button.textContent='⏳ جارٍ الاعتماد...';}
+  try{
+    const res=await fetch('/api/google-form-prefill',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({sponsorEmail:email}),
+      cache:'no-store'
+    });
+    const data=await res.json().catch(()=>null);
+    if(!res.ok||!data?.prefilledUrl) throw new Error(data?.error||'تعذر إنشاء رابط الاختبار المعبّأ مسبقًا.');
+    localStorage.setItem(ragwanStep4StorageKey('sponsor_email'),email);
+    localStorage.setItem(ragwanStep4StorageKey('form_url'),String(data.prefilledUrl));
+    localStorage.removeItem(ragwanStep4StorageKey('form_copied'));
+    localStorage.removeItem(ragwanStep4StorageKey('result_seen'));
+    if(approved)approved.style.display='block';
+    if(status)status.textContent='✅ تم اعتماد البريد. أصبح رابط الاختبار الآن مرتبطًا بهذا البريد تلقائيًا.';
+    toast('✅ تم اعتماد بريد الراعي');
+  }catch(err){
+    if(status)status.textContent='❌ '+String(err?.message||err);
+    toast('❌ تعذر اعتماد البريد');
+  }finally{
+    if(button){button.disabled=false;button.textContent='✅ اعتماد الإيميل';}
+  }
+}
 async function ragwanCopyStep4FormLink(){
   const input=document.getElementById('ragwanStep4SponsorEmail');
   const email=String((input&&input.value)||'').trim();
@@ -2033,14 +2082,18 @@ async function ragwanCopyStep4FormLink(){
     if(input)input.focus();
     return;
   }
-  try{localStorage.setItem(ragwanStep4StorageKey('sponsor_email'),email)}catch(_){}
-  const url=RAGWAN_STEP4_FORM_URL;
+  let url='';
+  try{url=localStorage.getItem(ragwanStep4StorageKey('form_url'))||''}catch(_){}
+  if(!url){
+    toast('⚠️ اعتمد بريد الراعي أولًا.');
+    return;
+  }
   try{await navigator.clipboard.writeText(url)}catch(_){
     const ta=document.createElement('textarea');ta.value=url;ta.setAttribute('readonly','');ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();
   }
   const status=document.getElementById('ragwanStep4Status');
   try{localStorage.setItem(ragwanStep4StorageKey('form_copied'),'1')}catch(_){}
-  if(status)status.textContent='✅ تم نسخ رابط اختبار Google Form. البريد محفوظ هنا للراعي لهذه المحاولة.';
+  if(status)status.textContent='✅ تم نسخ رابط الاختبار المعبّأ مسبقًا. عند فتحه سيظهر بريد الراعي تلقائيًا داخل Google Form.';
   toast('✅ تم نسخ رابط الاختبار');
 }
 function ragwanConfirmStep4Result(){
