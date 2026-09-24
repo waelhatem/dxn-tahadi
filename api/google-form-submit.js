@@ -158,7 +158,20 @@ module.exports = async function handler(req, res) {
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
     const secret = String(req.headers['x-google-form-secret'] || body.webhookSecret || '').trim();
-    if (secret !== WEBHOOK_SECRET) return json(res, 401, { error: 'Unauthorized' });
+    if (secret !== WEBHOOK_SECRET) {
+      const crypto = require('crypto');
+      const hash = (value) => crypto.createHash('sha256').update(String(value || ''), 'utf8').digest('hex');
+      return json(res, 401, {
+        error: 'Unauthorized',
+        diagnostic: {
+          receivedLength: secret.length,
+          expectedLength: WEBHOOK_SECRET.length,
+          receivedSha256: hash(secret),
+          expectedSha256: hash(WEBHOOK_SECRET),
+          headerPresent: Boolean(req.headers['x-google-form-secret'])
+        }
+      });
+    }
 
     const formId = String(body.formId || '').trim();
     const sponsorEmail = String(body.sponsorEmail || '').trim();
