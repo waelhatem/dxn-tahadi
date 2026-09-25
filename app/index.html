@@ -3168,6 +3168,7 @@ function ragwanWelcomeRenderPreview(){
     }
 
     const drawMemberImage=(memberImg)=>{
+      try{
         const frameLayer=document.createElement('canvas');
         frameLayer.width=w;frameLayer.height=h;
         const fctx=frameLayer.getContext('2d');
@@ -3332,6 +3333,14 @@ function ragwanWelcomeRenderPreview(){
         ctx.drawImage(photoLayer,0,0,w,h);
         ctx.drawImage(frameLayer,0,0,w,h);
         finish();
+      }catch(err){
+        console.error('ragwanWelcomeRenderPreview:',err);
+        // لا نترك المعاينة فارغة إذا حدث خطأ أثناء تركيب صورة العضو.
+        ctx.clearRect(0,0,w,h);
+        ctx.drawImage(frame,0,0,w,h);
+        finish();
+        toast('⚠️ حدث خطأ أثناء تركيب صورة العضو، تم عرض الفريم الأساسي.');
+      }
     };
 
     const photoKey=photo.name+'|'+photo.size+'|'+photo.lastModified;
