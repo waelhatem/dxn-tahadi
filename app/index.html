@@ -2946,6 +2946,14 @@ async function ragwanCopyMembershipRequirementsImage(){
 function ragwanRenderStepSection(){
   const el=document.getElementById('ragwanStepSection');if(!el)return;
   const sections=ragwanStepSections[ragwanCurrentStep]||[];
+  if(ragwanCurrentStep===5){
+    el.innerHTML='<section class="ragwan-step-section ragwan-goals-form-card">'+
+      '<div class="ragwan-step-section-head"><span class="icon">🎯</span><b>استمارة الأهداف</b></div>'+
+      '<p class="muted" style="margin:8px 0 12px;line-height:1.8">حوّل أهدافك إلى خطوات واضحة ومواعيد محددة، واكتب أهدافك التي تريد العمل على تحقيقها خلال رحلتك.</p>'+
+      '<a class="ragwan-resource-open" href="/app/ragwan-goals.html" target="_blank" rel="noopener noreferrer">🎯 فتح استمارة الأهداف</a>'+
+    '</section>'+ragwanBuildDxnSponsorAction();
+    return;
+  }
   if(!sections.length){
     el.innerHTML=ragwanBuildDxnSponsorAction();
     return;
