@@ -89,7 +89,7 @@
   }
 
   function installQuizCircularNav() {
-    const p = (window.location.pathname || '/').replace(/\\/+$/, '') || '/';
+    const p = (window.location.pathname || '/').replace(/\/+$/, '') || '/';
     if (p !== '/03-pretest.html') return;
 
     document.body.classList.add('dxn-quiz-page');
