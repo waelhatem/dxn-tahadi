@@ -3004,7 +3004,7 @@ async function ragwanCopyStep7SalesVideoLink(){
   }
 }
 
-const RAGWAN_WELCOME_FRAME_MALE='/welcome_male_frame.jpg';
+const RAGWAN_WELCOME_FRAME_MALE='/welcome_male_frame.png';
 const RAGWAN_WELCOME_FRAME_FEMALE='/welcome_female_frame.png';
 
 function ragwanWelcomeConditionsText(){
@@ -3071,113 +3071,135 @@ function ragwanWelcomeMessage(data){
 function ragwanWelcomeRenderPreview(){
   const canvas=document.getElementById('ragwanWelcomeCanvas'), preview=document.getElementById('ragwanWelcomePreview');
   if(!canvas||!preview)return;
+
   const gender=document.getElementById('ragwanWelcomeGender')?.value||'male';
   const name=String(document.getElementById('ragwanWelcomeName')?.value||'').trim()||'عضو جديد';
   const memberNo=String(document.getElementById('ragwanWelcomeMemberNo')?.value||'').trim()||'................';
   const photo=document.getElementById('ragwanWelcomePhoto')?.files?.[0];
-  const frame=new Image(); frame.crossOrigin='anonymous';
+  const frame=new Image();
+  frame.crossOrigin='anonymous';
 
   frame.onload=()=>{
-    const ctx=canvas.getContext('2d');
     const w=frame.naturalWidth||1200,h=frame.naturalHeight||1600;
-    canvas.width=w;canvas.height=h;ctx.clearRect(0,0,w,h);
+    canvas.width=w;canvas.height=h;
+    const ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,w,h);
 
-    const photoBox={x:.045,y:.002,w:.405,h:.405};
-    const drawPhotoBehindFrame=()=>{
-      if(gender!=='male'||!photo){drawFrame();return;}
-      const reader=new FileReader();
-      reader.onload=e=>{
-        const p=new Image();
-        p.onload=()=>{
-          const pc=document.createElement('canvas');
-          pc.width=w;pc.height=h;
-          const pctx=pc.getContext('2d');
-          const bw=photoBox.w*w,bh=photoBox.h*h;
-          const scale=Math.max(bw/p.width,bh/p.height);
-          const dw=p.width*scale,dh=p.height*scale;
-          const x=photoBox.x*w+(bw-dw)/2,y=photoBox.y*h+(bh-dh)/2;
-          pctx.save();
-          pctx.beginPath();
-          pctx.ellipse((photoBox.x+photoBox.w/2)*w,(photoBox.y+photoBox.h/2)*h,bw/2,bh/2,0,0,Math.PI*2);
-          pctx.clip();
-          pctx.drawImage(p,x,y,dw,dh);
-          pctx.restore();
-          ctx.drawImage(pc,0,0);
-
-          // الفريم فوق الصورة، مع تفريغ فتحة الرجل الأصلية فقط.
-          const fc=document.createElement('canvas');
-          fc.width=w;fc.height=h;
-          const fctx=fc.getContext('2d');
-          fctx.drawImage(frame,0,0,w,h);
-          fctx.save();
-          fctx.globalCompositeOperation='destination-out';
-          fctx.beginPath();
-          fctx.ellipse((photoBox.x+photoBox.w/2)*w,(photoBox.y+photoBox.h/2)*h,(photoBox.w*w)/2,(photoBox.h*h)/2,0,0,Math.PI*2);
-          fctx.fill();
-          fctx.restore();
-          ctx.drawImage(fc,0,0);
-          finish();
-        };
-        p.onerror=()=>toast('⚠️ تعذر قراءة صورة العضو. اختر الصورة مرة أخرى.');
-        p.src=String(e.target.result||'');
-      };
-      reader.onerror=()=>toast('⚠️ تعذر قراءة صورة العضو.');
-      reader.readAsDataURL(photo);
-    };
-
-    const drawFrame=()=>{
-      ctx.drawImage(frame,0,0,w,h);
-      finish();
-    };
-
-    const cleanTextArea=(x1,y1,x2,y2)=>{
-      const px=ctx.getImageData(0,0,w,h),data=px.data;
-      const left=Math.max(0,Math.floor(x1*w)),right=Math.min(w,Math.ceil(x2*w));
-      const top=Math.max(1,Math.floor(y1*h)),bottom=Math.min(h-2,Math.ceil(y2*h));
-      const span=Math.max(1,bottom-top);
-      for(let y=top;y<bottom;y++){
-        const t=(y-top)/span;
-        const yA=Math.max(0,top-2),yB=Math.min(h-1,bottom+1);
-        for(let x=left;x<right;x++){
-          const i=(y*w+x)*4,a=(yA*w+x)*4,b=(yB*w+x)*4;
-          data[i]=Math.round(data[a]*(1-t)+data[b]*t);
-          data[i+1]=Math.round(data[a+1]*(1-t)+data[b+1]*t);
-          data[i+2]=Math.round(data[a+2]*(1-t)+data[b+2]*t);
-          data[i+3]=255;
-        }
-      }
-      ctx.putImageData(px,0,0);
-    };
-
-    function finish(){
-      // إزالة النص التجريبي مع إبقاء لوحة الفريم الأصلية دون أي مستطيل تظليل جديد.
-      cleanTextArea(.415,.535,.740,.605);
-      cleanTextArea(.445,.620,.735,.690);
-
+    const finish=()=>{
       ctx.save();
-      ctx.direction='rtl';ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';
+      ctx.direction='rtl';
+      ctx.textAlign='center';
+      ctx.textBaseline='middle';
+      ctx.lineJoin='round';
 
-      // الاسم والرقم: أصغر قليلاً، أبيض فقط مع حد أسود رفيع حول الحروف.
+      // الاسم والرقم بدون لوحة خلفية: أبيض واضح وحد أسود خفيف حول الحروف فقط.
       ctx.font='900 '+Math.round(w*.029)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
       ctx.lineWidth=Math.max(3,Math.round(w*.0038));
-      ctx.strokeStyle='#050505';ctx.fillStyle='#fff';
-      ctx.strokeText(name,.575*w,.570*h);ctx.fillText(name,.575*w,.570*h);
+      ctx.strokeStyle='#050505';
+      ctx.fillStyle='#fff';
+      ctx.strokeText(name,.575*w,.570*h);
+      ctx.fillText(name,.575*w,.570*h);
 
       ctx.font='900 '+Math.round(w*.036)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
       ctx.lineWidth=Math.max(3,Math.round(w*.0042));
-      ctx.strokeStyle='#050505';ctx.fillStyle='#fff';
-      ctx.strokeText(memberNo,.587*w,.653*h);ctx.fillText(memberNo,.587*w,.653*h);
-
+      ctx.strokeStyle='#050505';
+      ctx.fillStyle='#fff';
+      ctx.strokeText(memberNo,.587*w,.653*h);
+      ctx.fillText(memberNo,.587*w,.653*h);
       ctx.restore();
+
       preview.src=canvas.toDataURL('image/png');
+    };
+
+    if(gender!=='male'||!photo){
+      ctx.drawImage(frame,0,0,w,h);
+      finish();
+      return;
     }
 
-    drawPhotoBehindFrame();
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const memberImg=new Image();
+      memberImg.onload=()=>{
+        /*
+         * الفريم الذكري PNG مفرّغ مسبقًا.
+         * نستخدم الفتحة الشفافة نفسها كقناع بدل رسم دائرة بتخمينات.
+         * النتيجة: صورة العضو خلف الفريم، والحافة الذهبية والزخارف فوقها.
+         */
+        const frameLayer=document.createElement('canvas');
+        frameLayer.width=w;frameLayer.height=h;
+        const fctx=frameLayer.getContext('2d');
+        fctx.drawImage(frame,0,0,w,h);
+
+        const pixels=fctx.getImageData(0,0,w,h).data;
+        const mask=document.createElement('canvas');
+        mask.width=w;mask.height=h;
+        const mctx=mask.getContext('2d');
+        const md=mctx.createImageData(w,h);
+
+        // نستخدم فقط منطقة الفتحة اليسرى، حتى لا تتأثر أي شفافية أخرى في التصميم.
+        const rx1=Math.floor(w*.01), rx2=Math.floor(w*.58);
+        const ry1=Math.floor(h*.01), ry2=Math.floor(h*.62);
+
+        let left=w,right=0,top=h,bottom=0,found=false;
+        for(let y=ry1;y<ry2;y++){
+          for(let x=rx1;x<rx2;x++){
+            const a=pixels[(y*w+x)*4+3];
+            if(a<20){
+              found=true;
+              if(x<left)left=x;
+              if(x>right)right=x;
+              if(y<top)top=y;
+              if(y>bottom)bottom=y;
+            }
+          }
+        }
+
+        if(!found||right-left<100||bottom-top<100){
+          left=Math.floor(w*.045);right=Math.floor(w*.455);
+          top=Math.floor(h*.065);bottom=Math.floor(h*.475);
+        }
+
+        const holeW=right-left+1,holeH=bottom-top+1;
+        const scale=Math.max(holeW/memberImg.naturalWidth,holeH/memberImg.naturalHeight);
+        const dw=memberImg.naturalWidth*scale,dh=memberImg.naturalHeight*scale;
+        const dx=left+(holeW-dw)/2,dy=top+(holeH-dh)/2;
+
+        // طبقة صورة العضو.
+        const photoLayer=document.createElement('canvas');
+        photoLayer.width=w;photoLayer.height=h;
+        const pctx=photoLayer.getContext('2d');
+        pctx.drawImage(memberImg,dx,dy,dw,dh);
+
+        // القناع = المناطق الشفافة في الفريم فقط.
+        for(let y=top;y<=bottom;y++){
+          for(let x=left;x<=right;x++){
+            const i=(y*w+x)*4;
+            md.data[i]=255;md.data[i+1]=255;md.data[i+2]=255;
+            md.data[i+3]=255-pixels[i+3];
+          }
+        }
+        mctx.putImageData(md,0,0);
+
+        pctx.globalCompositeOperation='destination-in';
+        pctx.drawImage(mask,0,0);
+
+        // الترتيب الصحيح: صورة العضو أولاً، ثم الفريم فوقها.
+        ctx.drawImage(photoLayer,0,0,w,h);
+        ctx.drawImage(frameLayer,0,0,w,h);
+
+        finish();
+      };
+      memberImg.onerror=()=>toast('⚠️ تعذر قراءة صورة العضو. اختر الصورة مرة أخرى.');
+      memberImg.src=String(e.target.result||'');
+    };
+    reader.onerror=()=>toast('⚠️ تعذر قراءة صورة العضو.');
+    reader.readAsDataURL(photo);
   };
 
   frame.onerror=()=>{
     preview.removeAttribute('src');
-    toast('⚠️ تعذر تحميل فريم الترحيب. تأكد من اسم ملف الفريم داخل GitHub.');
+    toast('⚠️ تعذر تحميل فريم الترحيب. تأكد من ملف welcome_male_frame.png داخل GitHub.');
   };
   frame.src=gender==='female'?RAGWAN_WELCOME_FRAME_FEMALE:RAGWAN_WELCOME_FRAME_MALE;
 }
