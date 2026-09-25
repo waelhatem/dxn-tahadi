@@ -3405,15 +3405,47 @@ function ragwanWelcomeDownload(){
   const canvas=document.getElementById('ragwanWelcomeCanvas');if(!canvas||!canvas.width){toast('⚠️ جهّز صورة الترحيب أولًا.');return;}
   const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download='welcome-member.png';a.click();
 }
-async function ragwanWelcomeShare(){
-  const canvas=document.getElementById('ragwanWelcomeCanvas');if(!canvas||!canvas.width){toast('⚠️ جهّز صورة الترحيب أولًا.');return;}
+async function ragwanWelcomeCopyPost(){
+  const canvas=document.getElementById('ragwanWelcomeCanvas');
+  if(!canvas||!canvas.width){toast('⚠️ جهّز صورة الترحيب أولًا.');return;}
   canvas.toBlob(async blob=>{
     try{
-      const file=new File([blob],'welcome-member.png',{type:'image/png'});
-      const msg=ragwanWelcomeMessage({gender:document.getElementById('ragwanWelcomeGender')?.value||'male',name:document.getElementById('ragwanWelcomeName')?.value,memberNo:document.getElementById('ragwanWelcomeMemberNo')?.value,country:document.getElementById('ragwanWelcomeCountry')?.value,city:document.getElementById('ragwanWelcomeCity')?.value});
-      if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})) await navigator.share({files:[file],text:msg});
-      else toast('ℹ️ جهازك لا يدعم المشاركة المباشرة. استخدم تنزيل الصورة ونسخ الرسالة.');
-    }catch(e){if(e?.name!=='AbortError')toast('⚠️ تعذر مشاركة الصورة.');}
+      const msg=ragwanWelcomeMessage({
+        gender:document.getElementById('ragwanWelcomeGender')?.value||'male',
+        name:document.getElementById('ragwanWelcomeName')?.value,
+        memberNo:document.getElementById('ragwanWelcomeMemberNo')?.value,
+        country:document.getElementById('ragwanWelcomeCountry')?.value,
+        city:document.getElementById('ragwanWelcomeCity')?.value
+      });
+      if(navigator.clipboard?.write&&window.ClipboardItem){
+        const textBlob=new Blob([msg],{type:'text/plain'});
+        await navigator.clipboard.write([new ClipboardItem({
+          'image/png':blob,
+          'text/plain':textBlob
+        })]);
+        toast('✅ تم نسخ المنشور مع الصورة. الصقه مباشرة في واتساب أو المكان المطلوب.');
+      }else{
+        await navigator.clipboard?.writeText(msg);
+        const a=document.createElement('a');
+        a.href=URL.createObjectURL(blob);
+        a.download='welcome-member.png';
+        a.click();
+        setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+        toast('ℹ️ تم نسخ نص المنشور وتنزيل الصورة لأن المتصفح لا يدعم نسخ الصورة مباشرة.');
+      }
+    }catch(e){
+      try{
+        await navigator.clipboard.writeText(msg);
+        const a=document.createElement('a');
+        a.href=URL.createObjectURL(blob);
+        a.download='welcome-member.png';
+        a.click();
+        setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+        toast('ℹ️ تم نسخ نص المنشور وتنزيل الصورة. يمكنك لصقهما في واتساب.');
+      }catch(_){
+        toast('⚠️ تعذر نسخ المنشور مع الصورة.');
+      }
+    }
   },'image/png');
 }
 function ragwanRenderWelcomeBuilder(){
@@ -3432,7 +3464,7 @@ function ragwanRenderWelcomeBuilder(){
         '<div class="ragwan-welcome-actions">'+
           '<button type="button" class="primary" onclick="ragwanWelcomeRenderPreview()">🖼️ تجهيز صورة الترحيب</button>'+
           ''+
-          '<button type="button" onclick="ragwanWelcomeShare()">📤 مشاركة المنشور مع الصورة</button>'+
+          '<button type="button" onclick="ragwanWelcomeCopyPost()">📋 نسخ المنشور مع الصورة</button>'+
         '</div>'+
       '</div>'+
       '<div class="ragwan-welcome-preview-wrap"><div class="ragwan-welcome-preview-title">🖼️ معاينة الفريم</div><img id="ragwanWelcomePreview" alt="معاينة صورة الترحيب"><canvas id="ragwanWelcomeCanvas" class="hidden"></canvas><div class="muted">للأنثى يستخدم النظام الفريم النسائي دون طلب صورة شخصية.</div></div>'+
