@@ -3071,56 +3071,119 @@ function ragwanWelcomeMessage(data){
 function ragwanWelcomeRenderPreview(){
   const canvas=document.getElementById('ragwanWelcomeCanvas'), preview=document.getElementById('ragwanWelcomePreview');
   if(!canvas||!preview)return;
+
   const gender=document.getElementById('ragwanWelcomeGender')?.value||'male';
   const name=String(document.getElementById('ragwanWelcomeName')?.value||'').trim()||'عضو جديد';
   const memberNo=String(document.getElementById('ragwanWelcomeMemberNo')?.value||'').trim()||'................';
-  const frame=new Image(); frame.crossOrigin='anonymous';
+  const photo=document.getElementById('ragwanWelcomePhoto')?.files?.[0];
+
+  const frame=new Image();
+  frame.crossOrigin='anonymous';
+
   frame.onload=()=>{
     const ctx=canvas.getContext('2d');
     const w=frame.naturalWidth||1200,h=frame.naturalHeight||1600;
-    canvas.width=w;canvas.height=h;ctx.clearRect(0,0,w,h);ctx.drawImage(frame,0,0,w,h);
+    canvas.width=w;
+    canvas.height=h;
+    ctx.clearRect(0,0,w,h);
 
-    // الفريم يحتوي بيانات تجريبية؛ نغطيها ونكتب بيانات العضو الحالية.
-    const cover=(x,y,cw,ch)=>{ctx.save();ctx.fillStyle='#fffaf0';ctx.fillRect(x*w,y*h,cw*w,ch*h);ctx.restore();};
-    cover(.30,.348,.48,.060);
-    cover(.37,.418,.34,.060);
+    // أولاً نرسم الفريم الأصلي كما هو.
+    ctx.drawImage(frame,0,0,w,h);
 
-    ctx.save();
-    ctx.direction='rtl';
-    ctx.textAlign='center';
-    ctx.textBaseline='middle';
-    ctx.fillStyle='#102846';
-    ctx.font='900 '+Math.round(w*.035)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
-    ctx.fillText(name,.54*w,.378*h);
-    ctx.font='900 '+Math.round(w*.045)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
-    ctx.fillText(memberNo,.54*w,.448*h);
-    ctx.restore();
+    const drawMemberPhoto=()=>{
+      if(gender!=='male'||!photo){
+        finish();
+        return;
+      }
 
-    const photo=document.getElementById('ragwanWelcomePhoto')?.files?.[0];
-    const finish=()=>{preview.src=canvas.toDataURL('image/png');};
-    if(gender==='male'&&photo){
       const reader=new FileReader();
       reader.onload=e=>{
         const img=new Image();
         img.onload=()=>{
-          const box={x:.025,y:.015,w:.355,h:.355};
-          const scale=Math.max(box.w*w/img.width,box.h*h/img.height);
+          // فتحة صورة الرجل: قص Cover داخل الشكل البيضاوي مع الحفاظ على إطار الفريم.
+          const box={x:.045,y:.066,w:.405,h:.405};
+          const bw=box.w*w,bh=box.h*h;
+          const scale=Math.max(bw/img.width,bh/img.height);
           const dw=img.width*scale,dh=img.height*scale;
-          const x=box.x*w+(box.w*w-dw)/2,y=box.y*h+(box.h*h-dh)/2;
+          const x=box.x*w+(bw-dw)/2;
+          const y=box.y*h+(bh-dh)/2;
+
           ctx.save();
           ctx.beginPath();
-          ctx.rect(box.x*w,box.y*h,box.w*w,box.h*h);
+          ctx.ellipse(
+            (box.x+box.w/2)*w,
+            (box.y+box.h/2)*h,
+            bw/2,
+            bh/2,
+            0,0,Math.PI*2
+          );
           ctx.clip();
           ctx.drawImage(img,x,y,dw,dh);
           ctx.restore();
+
           finish();
         };
-        img.src=e.target.result;
+        img.onerror=()=>toast('⚠️ تعذر قراءة صورة العضو. اختر الصورة مرة أخرى.');
+        img.src=String(e.target.result||'');
       };
+      reader.onerror=()=>toast('⚠️ تعذر قراءة صورة العضو.');
       reader.readAsDataURL(photo);
-    }else finish();
+    };
+
+    const cleanTextArea=(x1,y1,x2,y2)=>{
+      // إزالة النص التجريبي من دون مستطيل بلون مختلف:
+      // نملأ المنطقة بتدرج مأخوذ من البكسلات المحيطة أعلى وأسفل المنطقة.
+      const px=ctx.getImageData(0,0,w,h);
+      const data=px.data;
+      const left=Math.max(0,Math.floor(x1*w));
+      const right=Math.min(w,Math.ceil(x2*w));
+      const top=Math.max(1,Math.floor(y1*h));
+      const bottom=Math.min(h-2,Math.ceil(y2*h));
+      const span=Math.max(1,bottom-top);
+
+      for(let y=top;y<bottom;y++){
+        const t=(y-top)/span;
+        const yA=Math.max(0,top-2);
+        const yB=Math.min(h-1,bottom+1);
+        for(let x=left;x<right;x++){
+          const i=(y*w+x)*4;
+          const a=(yA*w+x)*4;
+          const b=(yB*w+x)*4;
+          data[i]=Math.round(data[a]*(1-t)+data[b]*t);
+          data[i+1]=Math.round(data[a+1]*(1-t)+data[b+1]*t);
+          data[i+2]=Math.round(data[a+2]*(1-t)+data[b+2]*t);
+          data[i+3]=255;
+        }
+      }
+      ctx.putImageData(px,0,0);
+    };
+
+    function finish(){
+      // تنظيف الاسم والرقم التجريبيين فقط، مع ترك تصميم الفريم والخطوط والزخارف كما هي.
+      cleanTextArea(.415,.542,.740,.597);
+      cleanTextArea(.455,.625,.720,.680);
+
+      ctx.save();
+      ctx.direction='rtl';
+      ctx.textAlign='center';
+      ctx.textBaseline='middle';
+      ctx.fillStyle='#102846';
+      ctx.font='900 '+Math.round(w*.034)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
+      ctx.fillText(name,.575*w,.569*h);
+      ctx.font='900 '+Math.round(w*.042)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
+      ctx.fillText(memberNo,.587*w,.653*h);
+      ctx.restore();
+
+      preview.src=canvas.toDataURL('image/png');
+    }
+
+    drawMemberPhoto();
   };
-  frame.onerror=()=>{preview.removeAttribute('src');toast('⚠️ تعذر تحميل فريم الترحيب. تأكد من اسم ملف الفريم داخل GitHub.');};
+
+  frame.onerror=()=>{
+    preview.removeAttribute('src');
+    toast('⚠️ تعذر تحميل فريم الترحيب. تأكد من اسم ملف الفريم داخل GitHub.');
+  };
   frame.src=gender==='female'?RAGWAN_WELCOME_FRAME_FEMALE:RAGWAN_WELCOME_FRAME_MALE;
 }
 async function ragwanCopyWelcomeMessage(){
