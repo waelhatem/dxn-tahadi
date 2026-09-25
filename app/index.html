@@ -3307,7 +3307,13 @@ function ragwanWelcomeRenderPreview(){
         }
 
         const holeW=right-left+1,holeH=bottom-top+1;
-        const baseScale=Math.max(holeW/memberImg.naturalWidth,holeH/memberImg.naturalHeight);
+        /*
+         * ثبّت حجم الصورة على أبعاد الفتحة الأصلية المستخدمة قبل تصحيح القناع.
+         * لا نجعل تضييق القناع الأخير يكبّر صورة العضو.
+         */
+        const sizeHoleW=w*.38;
+        const sizeHoleH=h*.68;
+        const baseScale=Math.max(sizeHoleW/memberImg.naturalWidth,sizeHoleH/memberImg.naturalHeight);
         const scalePct=Math.max(60,Math.min(110,Number(document.getElementById('ragwanWelcomePhotoScale')?.value||75)));
         const scale=baseScale*(scalePct/100);
         const dw=memberImg.naturalWidth*scale,dh=memberImg.naturalHeight*scale;
