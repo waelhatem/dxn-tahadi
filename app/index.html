@@ -3421,7 +3421,7 @@ function ragwanRenderStepResources(files){
     const actions='<div class="ragwan-resource-actions'+(isVideo&&url?' video-actions':'')+'" aria-label="أدوات المادة">'+
       primary+
       (isGoalFormImage
-        ? '<button type="button" class="ragwan-resource-copy js-ragwan-copy-goals-link">🔗 نسخ رابط الاستمارة</button><button type="button" class="ragwan-resource-copy js-ragwan-share-goals">📤 مشاركة الاستمارة</button>'
+        ? '<button type="button" class="ragwan-resource-copy js-ragwan-share-goals">📤 مشاركة الاستمارة</button>'
         : '<button type="button" class="ragwan-resource-copy js-ragwan-copy-info" data-index="'+index+'">📋 نسخ المعلومات</button>')+
       (isVideo&&url?'<button type="button" class="ragwan-resource-copy js-ragwan-share-video" data-index="'+index+'">📤 مشاركة الفيديو</button>':'')+
       (role==='leader'?'<button type="button" class="ragwan-resource-delete js-ragwan-delete" data-index="'+index+'">🗑️ حذف</button>':'')+
@@ -3441,18 +3441,6 @@ function ragwanRenderStepResources(files){
   const goalsUrl=new URL('/app/ragwan-goals.html',location.origin).href;
   el.querySelectorAll('.js-ragwan-open-goals').forEach(btn=>btn.addEventListener('click',function(e){
     e.preventDefault();e.stopPropagation();window.open(goalsUrl,'_blank','noopener');
-  }));
-  el.querySelectorAll('.js-ragwan-copy-goals-link').forEach(btn=>btn.addEventListener('click',async function(e){
-    e.preventDefault();e.stopPropagation();
-    try{
-      await navigator.clipboard.writeText(goalsUrl);
-      toast('✅ تم نسخ رابط استمارة الأهداف. أرسله للعضو عبر واتساب أو أي تطبيق.');
-    }catch(err){
-      const ta=document.createElement('textarea');ta.value=goalsUrl;ta.style.position='fixed';ta.style.opacity='0';
-      document.body.appendChild(ta);ta.select();
-      try{document.execCommand('copy');toast('✅ تم نسخ رابط استمارة الأهداف.');}
-      finally{ta.remove();}
-    }
   }));
   el.querySelectorAll('.js-ragwan-share-goals').forEach(btn=>btn.addEventListener('click',async function(e){
     e.preventDefault();e.stopPropagation();
