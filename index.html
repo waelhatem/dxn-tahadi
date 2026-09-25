@@ -229,5 +229,91 @@ if(window.matchMedia('(max-width:700px)').matches){
 }
 </script>
 
+
+<style id="root-global-preview-v1">
+#rootPreviewLauncher{position:fixed;left:18px;bottom:18px;z-index:2147483000;direction:rtl}
+#rootPreviewLauncher button{border:0;border-radius:16px;padding:11px 15px;background:#0f513f;color:#fff;font-weight:900;box-shadow:0 10px 28px rgba(0,0,0,.22);cursor:pointer}
+#rootPreviewPanel{position:fixed;inset:0;z-index:2147482999;display:none;background:rgba(8,24,20,.72);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:18px;direction:rtl}
+#rootPreviewPanel.show{display:flex}
+#rootPreviewPanel .rps-shell{width:min(1120px,96vw);height:min(920px,94vh);background:#eef5f1;border:1px solid rgba(255,255,255,.35);border-radius:26px;box-shadow:0 30px 100px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden}
+#rootPreviewPanel .rps-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 15px;background:#fff;border-bottom:1px solid #dfe9e4}
+#rootPreviewPanel .rps-title{font-weight:950;color:#123b30}
+#rootPreviewPanel .rps-controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+#rootPreviewPanel .rps-controls button{border:1px solid #d4e2dc;background:#f6faf8;color:#17473a;border-radius:11px;min-height:38px;padding:7px 11px;font-weight:900;cursor:pointer}
+#rootPreviewPanel .rps-controls button.active{background:#0f513f;color:#fff;border-color:#0f513f}
+#rootPreviewPanel .rps-close{background:#fff1ef!important;color:#a32318!important;border-color:#f0c9c4!important}
+#rootPreviewPanel .rps-stage{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:auto;padding:18px;background:linear-gradient(135deg,#e9f3ee,#f7faf8)}
+#rootPreviewPanel .rps-device{position:relative;background:#101613;border:9px solid #101613;border-radius:38px;box-shadow:0 24px 65px rgba(0,0,0,.28);overflow:hidden;flex:0 0 auto;box-sizing:content-box}
+#rootPreviewPanel .rps-device.portrait{width:390px;height:844px}
+#rootPreviewPanel .rps-device.landscape{width:844px;height:390px;border-radius:30px}
+#rootPreviewPanel .rps-device.desktop{width:min(1100px,92vw);height:min(760px,78vh);border-radius:14px;border:5px solid #202522;box-sizing:border-box}
+#rootPreviewPanel iframe{display:block;width:100%;height:100%;border:0;background:#fff}
+#rootPreviewPanel .rps-note{position:absolute;bottom:8px;left:12px;right:12px;text-align:center;color:#526760;font-size:11px;pointer-events:none}
+@media(max-width:700px){
+ #rootPreviewLauncher{left:10px;bottom:10px}
+ #rootPreviewPanel{padding:8px}
+ #rootPreviewPanel .rps-shell{width:100%;height:100%;border-radius:18px}
+ #rootPreviewPanel .rps-stage{padding:8px}
+ #rootPreviewPanel .rps-device.portrait{width:min(390px,92vw);height:min(844px,calc(100vh - 130px));box-sizing:content-box}
+ #rootPreviewPanel .rps-device.landscape{width:min(844px,96vw);height:min(390px,calc(100vh - 130px));box-sizing:content-box}
+}
+</style>
+<div id="rootPreviewLauncher"><button type="button" id="rootPreviewOpen">👁️ معاينة الموقع</button></div>
+<div id="rootPreviewPanel" aria-hidden="true" role="dialog" aria-modal="true" aria-label="معاينة الموقع">
+ <div class="rps-shell">
+  <div class="rps-head">
+   <div class="rps-title">👁️ معاينة الموقع — وضع الشرح</div>
+   <div class="rps-controls">
+    <button type="button" data-root-preview-mode="desktop">🖥️ كمبيوتر</button>
+    <button type="button" data-root-preview-mode="portrait">📱 موبايل</button>
+    <button type="button" data-root-preview-mode="landscape">📲 أفقي</button>
+    <button type="button" id="rootPreviewZoomOut">➖</button>
+    <button type="button" id="rootPreviewZoomReset">100%</button>
+    <button type="button" id="rootPreviewZoomIn">➕</button>
+    <button type="button" class="rps-close" id="rootPreviewClose">✕ إغلاق</button>
+   </div>
+  </div>
+  <div class="rps-stage">
+   <div id="rootPreviewDevice" class="rps-device portrait">
+    <iframe id="rootPreviewFrame" title="معاينة نسخة الموبايل" loading="eager"></iframe>
+   </div>
+   <div class="rps-note">المعاينة تستخدم نافذة داخلية مستقلة؛ تصميم الصفحة الأصلي لا يتغير.</div>
+  </div>
+ </div>
+</div>
+<script id="root-global-preview-v1-script">
+(function(){
+ const p=new URLSearchParams(location.search),embedded=p.get('rootPreviewFrame')==='1';
+ const launcher=document.getElementById('rootPreviewLauncher'),panel=document.getElementById('rootPreviewPanel'),openBtn=document.getElementById('rootPreviewOpen'),closeBtn=document.getElementById('rootPreviewClose'),device=document.getElementById('rootPreviewDevice'),frame=document.getElementById('rootPreviewFrame'),zin=document.getElementById('rootPreviewZoomIn'),zout=document.getElementById('rootPreviewZoomOut'),zreset=document.getElementById('rootPreviewZoomReset');
+ if(embedded){launcher&&launcher.remove();panel&&panel.remove();return;}
+ let zoom=1;
+ function fit(m){
+  const stage=document.querySelector('#rootPreviewPanel .rps-stage');if(!stage||!device)return;
+  const sw=stage.clientWidth-36,sh=stage.clientHeight-36;
+  const w=m==='landscape'?862:m==='desktop'?Math.min(1100,sw):408;
+  const h=m==='landscape'?408:m==='desktop'?Math.min(760,sh):862;
+  const fit=Math.min(1,sw/w,sh/h);
+  device.style.transform='scale('+(fit*zoom)+')';
+  if(zreset)zreset.textContent=Math.round(zoom*100)+'%';
+ }
+ function mode(m){
+  device.classList.remove('desktop','portrait','landscape');device.classList.add(m);
+  document.querySelectorAll('#rootPreviewPanel [data-root-preview-mode]').forEach(b=>b.classList.toggle('active',b.dataset.rootPreviewMode===m));
+  frame.title=m==='desktop'?'معاينة نسخة الكمبيوتر':m==='landscape'?'معاينة الموبايل الأفقي':'معاينة نسخة الموبايل';
+  if(!frame.src){const u=new URL(location.href);u.searchParams.set('rootPreviewFrame','1');frame.src=u.href;}
+  setTimeout(()=>fit(m),120);
+ }
+ function show(){panel.classList.add('show');panel.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';mode('portrait')}
+ function hide(){panel.classList.remove('show');panel.setAttribute('aria-hidden','true');document.body.style.overflow=''}
+ openBtn&&openBtn.addEventListener('click',show);closeBtn&&closeBtn.addEventListener('click',hide);
+ zin&&zin.addEventListener('click',()=>{zoom=Math.min(1.8,Math.round((zoom+.1)*100)/100);const b=document.querySelector('#rootPreviewPanel [data-root-preview-mode].active');fit(b?b.dataset.rootPreviewMode:'portrait')});
+ zout&&zout.addEventListener('click',()=>{zoom=Math.max(.75,Math.round((zoom-.1)*100)/100);const b=document.querySelector('#rootPreviewPanel [data-root-preview-mode].active');fit(b?b.dataset.rootPreviewMode:'portrait')});
+ zreset&&zreset.addEventListener('click',()=>{zoom=1;const b=document.querySelector('#rootPreviewPanel [data-root-preview-mode].active');fit(b?b.dataset.rootPreviewMode:'portrait')});
+ document.querySelectorAll('#rootPreviewPanel [data-root-preview-mode]').forEach(b=>b.addEventListener('click',()=>mode(b.dataset.rootPreviewMode)));
+ frame&&frame.addEventListener('load',()=>{const b=document.querySelector('#rootPreviewPanel [data-root-preview-mode].active');fit(b?b.dataset.rootPreviewMode:'portrait')});
+ window.addEventListener('resize',()=>{const b=document.querySelector('#rootPreviewPanel [data-root-preview-mode].active');fit(b?b.dataset.rootPreviewMode:'portrait')});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&panel.classList.contains('show'))hide()});
+})();
+</script>
 </body>
 </html>
