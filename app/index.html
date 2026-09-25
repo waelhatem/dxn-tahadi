@@ -3420,7 +3420,7 @@ async function ragwanWelcomeCopyPost(){
     });
 
     try{
-      // على الهاتف: شارك الصورة والنص معًا، وهذا هو المسار الصحيح لواتساب.
+      // على الهاتف: مشاركة الصورة والنص معًا عبر Web Share API.
       if(navigator.share && navigator.canShare){
         const file=new File([blob],'welcome-member.png',{type:'image/png'});
         if(navigator.canShare({files:[file]})){
@@ -3434,32 +3434,46 @@ async function ragwanWelcomeCopyPost(){
         }
       }
 
-      // على سطح المكتب: الحافظة لا تضمن أن واتساب سيستقبل
-      // image + text كعنصر واحد، لذلك ننسخ النص وننزّل الصورة تلقائيًا.
-      if(navigator.clipboard?.writeText){
-        await navigator.clipboard.writeText(msg);
+      // على سطح المكتب: انسخ النص والصورة معًا إلى الحافظة.
+      // يدعم Chrome/Edge صيغة ClipboardItem متعددة الأنواع، مما يسمح
+      // بلصق النص والصورة معًا في التطبيقات التي تدعم ذلك.
+      if(navigator.clipboard?.write && window.ClipboardItem){
+        const item=new ClipboardItem({
+          'text/plain':new Blob([msg],{type:'text/plain'}),
+          'image/png':blob
+        });
+        await navigator.clipboard.write([item]);
+        toast('✅ تم نسخ المنشور مع الصورة. يمكنك الآن لصقه مباشرة.');
+        return;
       }
 
-      const a=document.createElement('a');
-      a.href=URL.createObjectURL(blob);
-      a.download='welcome-member.png';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-
-      toast('✅ تم نسخ المنشور وتنزيل الصورة. افتح واتساب وأرفق الصورة ثم الصق النص.');
+      throw new Error('clipboard_write_unsupported');
     }catch(e){
+      // بديل آمن: نسخ النص وتنزيل الصورة.
       try{
-        if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(msg);
+        if(navigator.clipboard?.writeText){
+          await navigator.clipboard.writeText(msg);
+        }else{
+          const ta=document.createElement('textarea');
+          ta.value=msg;
+          ta.style.position='fixed';
+          ta.style.opacity='0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+        }
+
         const a=document.createElement('a');
-        a.href=URL.createObjectURL(blob);
+        const objectUrl=URL.createObjectURL(blob);
+        a.href=objectUrl;
         a.download='welcome-member.png';
         document.body.appendChild(a);
         a.click();
         a.remove();
-        setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-        toast('ℹ️ تم نسخ النص وتنزيل الصورة.');
+        setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);
+
+        toast('ℹ️ تم نسخ النص وتنزيل الصورة. إذا لم يدعم المتصفح النسخ معًا، أرفق الصورة ثم الصق النص.');
       }catch(_){
         toast('⚠️ تعذر نسخ المنشور وتجهيز الصورة.');
       }
@@ -3483,6 +3497,7 @@ function ragwanRenderWelcomeBuilder(){
           '<button type="button" class="primary" onclick="ragwanWelcomeRenderPreview()">🖼️ تجهيز صورة الترحيب</button>'+
           ''+
           '<button type="button" onclick="ragwanWelcomeCopyPost()">📤 مشاركة المنشور مع الصورة</button>'+
+          '<button type="button" onclick="ragwanWelcomeCopyPostWithImage()">📋 نسخ المنشور مع الصورة</button>'+
         '</div>'+
       '</div>'+
       '<div class="ragwan-welcome-preview-wrap"><div class="ragwan-welcome-preview-title">🖼️ معاينة الفريم</div><img id="ragwanWelcomePreview" alt="معاينة صورة الترحيب"><canvas id="ragwanWelcomeCanvas" class="hidden"></canvas><div class="muted">للأنثى يستخدم النظام الفريم النسائي دون طلب صورة شخصية.</div></div>'+
