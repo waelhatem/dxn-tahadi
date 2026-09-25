@@ -3315,7 +3315,27 @@ function ragwanCopyStepResourceInfo(f,index,allFiles){
       '',
       '💜 معًا نصل إلى القمة — فريق الأمل.'
     ].join('\n'),
-    'jpg.7':[
+    'jpg.9':[
+      '📸 صورة نموذجية — مشاركة تجربة استهلاك المنتج',
+      '',
+      'هذه الصورة تستخدم كنموذج عملي لتعليم العضو الجديد كيف يصوّر استهلاكه الحقيقي للمنتج بطريقة مرتبة وطبيعية.',
+      '',
+      '🎯 الهدف من الصورة:',
+      '• تعليم العضو اختيار مكان مرتب ونظيف للتصوير.',
+      '• إظهار المنتج بوضوح مع ترتيب المشهد قبل التصوير.',
+      '• استخدام إضاءة جيدة تساعد على ظهور المنتج بصورة احترافية.',
+      '• تحويل الاستهلاك الحقيقي إلى تجربة قابلة للمشاركة.',
+      '',
+      '💡 طريقة التطبيق:',
+      'استخدم المنتج فعليًا أولًا، ثم صوّر المنتج أثناء أو بعد الاستهلاك بصورة طبيعية، وشارك تجربتك الشخصية كما حدثت دون مبالغة أو وعود علاجية.',
+      '',
+      '🔗 التسلسل:',
+      'استهلاك حقيقي → تصوير مرتب → مشاركة التجربة → تعلّم العرض → تعلّم البيع.',
+      '',
+      '⚠️ تذكير:',
+      'الصورة نموذج للتعلّم وليست إعلانًا علاجيًا، ولا ينبغي استخدامها لإثبات نتيجة صحية أو مالية مضمونة.'
+    ].join('\n'),
+  'jpg.7':[
       '🍽️ مسابقة وصفتك من مطبخك — فريق الأمل',
       '',
       'شاركنا إبداعك من مطبخك باستخدام أحد منتجات الشركة في إعداد وصفة مميزة.',
@@ -3365,7 +3385,7 @@ function ragwanCopyStepResourceInfo(f,index,allFiles){
   // هذا يمنع تغيّر رقم الصورة إذا كان هناك فيديو أو ملف آخر بين الصور.
   const resourceIndex=Number.isInteger(Number(index))?Number(index):-1;
   let imageNumber=null;
-  if(Number(step)===5 && resourceIndex>=0){
+  if((Number(step)===5 || Number(step)===7) && resourceIndex>=0){
     let imageCount=0;
     for(let i=0;i<=resourceIndex;i++){
       const item=Array.isArray(allFiles)?allFiles[i]:null;
@@ -3458,6 +3478,7 @@ function ragwanRenderStepResources(files){
         : '<div class="ragwan-resource-preview ragwan-resource-file-preview"><span>'+ragwanFileIcon(f)+'</span><small>ملف '+esc(ragwanFormatSize(f?.size))+'</small></div>');
 
     const isGoalFormImage=ragwanCurrentStep===5&&isImage&&/(?:^|[._ -])8(?:$|[._ -])/i.test(rawName);
+    const isDoor7Image9=ragwanCurrentStep===7&&isImage&&(()=>{let n=0;for(let k=0;k<=index;k++){const x=arr[k];const xn=String(x?.name||'').toLowerCase(),xm=String(x?.mime||'').toLowerCase();if(xm.startsWith('image/')||/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(xn))n++;}return n===9;})();
     const primary=isGoalFormImage
       ? '<button type="button" class="ragwan-resource-open js-ragwan-open-goals">🎯 فتح استمارة الأهداف</button>'
       : (isImage&&url
@@ -3470,6 +3491,7 @@ function ragwanRenderStepResources(files){
         ? '<button type="button" class="ragwan-resource-copy js-ragwan-share-goals">📤 مشاركة الاستمارة</button>'
         : '<button type="button" class="ragwan-resource-copy js-ragwan-copy-info" data-index="'+index+'">📋 نسخ المعلومات</button>')+
       (isVideo&&url?'<button type="button" class="ragwan-resource-copy js-ragwan-share-video" data-index="'+index+'">📤 مشاركة الفيديو</button>':'')+
+      (isDoor7Image9&&url?'<button type="button" class="ragwan-resource-copy js-ragwan-share-image" data-index="'+index+'">📤 مشاركة الصورة</button>':'')+
       (role==='leader'?'<button type="button" class="ragwan-resource-delete js-ragwan-delete" data-index="'+index+'">🗑️ حذف</button>':'')+
       '</div>';
 
@@ -3510,6 +3532,29 @@ function ragwanRenderStepResources(files){
     e.preventDefault();e.stopPropagation();
     const f=arr[Number(this.dataset.index)];
     if(f)ragwanCopyStepResourceInfo(f,Number(this.dataset.index),arr);
+  }));
+  el.querySelectorAll('.js-ragwan-share-image').forEach(btn=>btn.addEventListener('click',async function(e){
+    e.preventDefault();e.stopPropagation();
+    const f=arr[Number(this.dataset.index)];
+    const imageUrl=String(f&&f.url||'').trim();
+    if(!imageUrl)return;
+    const imageName=String(f&&f.name||'صورة تجربة المنتج');
+    try{
+      const res=await fetch(imageUrl,{mode:'cors'});
+      if(res.ok && navigator.share && typeof File!=='undefined'){
+        const blob=await res.blob();
+        const file=new File([blob],imageName,{type:blob.type||'image/png'});
+        if(!navigator.canShare || navigator.canShare({files:[file]})){
+          await navigator.share({title:'صورة مشاركة تجربة المنتج',text:'📸 نموذج لتصوير ومشاركة تجربة استهلاك المنتج.',files:[file]});
+          return;
+        }
+      }
+    }catch(err){}
+    try{
+      if(navigator.share){await navigator.share({title:'صورة مشاركة تجربة المنتج',text:'📸 نموذج لتصوير ومشاركة تجربة استهلاك المنتج.',url:imageUrl});return;}
+    }catch(err){if(err&&err.name==='AbortError')return;}
+    try{await navigator.clipboard.writeText(imageUrl);toast('✅ تم نسخ رابط الصورة. يمكنك مشاركته مع العضو الجديد.');}
+    catch(err){toast('⚠️ تعذر مشاركة الصورة تلقائيًا.');}
   }));
   el.querySelectorAll('.js-ragwan-share-video').forEach(btn=>btn.addEventListener('click',async function(e){
     e.preventDefault();e.stopPropagation();
