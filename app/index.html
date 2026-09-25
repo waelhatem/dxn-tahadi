@@ -771,6 +771,40 @@ body:has(.login-header-top)::before{
     margin-top:10px!important;
   }
 }
+
+/* V87.9 — Ensure Door 5 resource action buttons remain visible on mobile. */
+@media(max-width:650px){
+  .ragwan-step-5-active .ragwan-resource-item .ragwan-resource-actions{
+    display:grid!important;
+    visibility:visible!important;
+    opacity:1!important;
+    position:relative!important;
+    z-index:20!important;
+    width:100%!important;
+    min-height:40px!important;
+    grid-column:1!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:6px!important;
+    margin:2px 0 0!important;
+    overflow:visible!important;
+  }
+  .ragwan-step-5-active .ragwan-resource-item .ragwan-resource-actions button,
+  .ragwan-step-5-active .ragwan-resource-item .ragwan-resource-actions a{
+    display:inline-flex!important;
+    visibility:visible!important;
+    opacity:1!important;
+    position:relative!important;
+    z-index:21!important;
+    width:100%!important;
+    min-width:0!important;
+    min-height:40px!important;
+    align-items:center!important;
+    justify-content:center!important;
+    box-sizing:border-box!important;
+    white-space:nowrap!important;
+  }
+  .ragwan-step-5-active .ragwan-resource-item .ragwan-resource-preview{grid-column:1!important}
+}
 </style><script id="ragwan-step5-mobile-state-v1">
 (function(){
   if(window.__RAGWAN_STEP5_MOBILE_STATE_V1__) return;
