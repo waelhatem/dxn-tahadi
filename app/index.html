@@ -4722,7 +4722,15 @@ function trainings(){
       <span class="training-feature-arrow">›</span>
     </button>
   </div>`;
-  const backChoice=`<div style="display:flex;justify-content:flex-start;margin:0 0 12px"><button type="button" onclick="switchTrainingSubtab('home')" style="min-height:40px">↩️ العودة إلى الاختيار</button></div>`;
+  const backChoice=`<div class="training-back-to-lessons" style="margin:0 0 14px">
+    <button type="button" class="training-feature-card training-feature-lessons training-back-feature" onclick="switchTrainingSubtab('home')" aria-label="العودة إلى الشروحات والتدريبات">
+      <span class="training-feature-shine"></span>
+      <span class="training-feature-badge">↩️ العودة إلى الاختيار</span>
+      <span class="training-feature-icon">📚</span>
+      <span class="training-feature-copy"><strong>الشروحات والتدريبات</strong><small>العودة إلى زر التدريبات والشروحات</small></span>
+      <span class="training-feature-arrow">›</span>
+    </button>
+  </div>`;
 
   if(trainingSubtab==='home'){
     return subTabs;
