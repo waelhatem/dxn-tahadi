@@ -3241,12 +3241,14 @@ function ragwanRenderStepResources(files){
         ? '<a class="ragwan-resource-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();ragwanOpenResource(this.href)">📖 فتح الملف</a>'
         : '');
 
-    const actions=role==='leader'
-      ? '<div class="ragwan-resource-actions" aria-label="أدوات المادة">'+primary+
-          '<button type="button" class="ragwan-resource-copy js-ragwan-copy-info" data-index="'+index+'">📋 نسخ المعلومات</button>'+
-          '<button type="button" class="ragwan-resource-delete js-ragwan-delete" data-index="'+index+'">🗑️ حذف</button>'+
-        '</div>'
-      : '<div class="ragwan-resource-actions" aria-label="أدوات المادة">'+primary+'</div>';
+    const actions=
+      '<div class="ragwan-resource-actions" aria-label="أدوات المادة">'+
+        primary+
+        '<button type="button" class="ragwan-resource-copy js-ragwan-copy-info" data-index="'+index+'">📋 نسخ المعلومات</button>'+
+        (role==='leader'
+          ? '<button type="button" class="ragwan-resource-delete js-ragwan-delete" data-index="'+index+'">🗑️ حذف</button>'
+          : '')+
+      '</div>';
 
     const preview=(isImage&&url)
       ? '<div class="ragwan-resource-preview ragwan-resource-image-preview"><img src="'+esc(url)+'" alt="'+name+'" loading="lazy"></div>'
