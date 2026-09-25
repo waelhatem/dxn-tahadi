@@ -3486,12 +3486,14 @@ function ragwanRenderStepResources(files){
         : (url ? '<a class="ragwan-resource-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.preventDefault();event.stopPropagation();ragwanOpenResource(this.href)">📖 فتح الملف</a>' : ''));
 
     const actions='<div class="ragwan-resource-actions'+(isVideo&&url?' video-actions':'')+'" aria-label="أدوات المادة">'+
-      primary+
-      (isGoalFormImage
-        ? '<button type="button" class="ragwan-resource-copy js-ragwan-share-goals">📤 مشاركة الاستمارة</button>'
-        : '<button type="button" class="ragwan-resource-copy js-ragwan-copy-info" data-index="'+index+'">📋 نسخ المعلومات</button>')+
-      (isVideo&&url?'<button type="button" class="ragwan-resource-copy js-ragwan-share-video" data-index="'+index+'">📤 مشاركة الفيديو</button>':'')+
-      (isDoor7Image9&&url?'<button type="button" class="ragwan-resource-copy js-ragwan-share-image" data-index="'+index+'">📤 مشاركة الصورة</button>':'')+
+      (isDoor7Image9&&url
+        ? '<button type="button" class="ragwan-resource-open js-ragwan-copy-image" data-index="'+index+'">📋 نسخ الصورة</button><button type="button" class="ragwan-resource-copy js-ragwan-share-image" data-index="'+index+'">📤 مشاركة الصورة</button><button type="button" class="ragwan-resource-copy js-ragwan-copy-info" data-index="'+index+'">📋 نسخ المعلومات</button>'
+        : primary+
+          (isGoalFormImage
+            ? '<button type="button" class="ragwan-resource-copy js-ragwan-share-goals">📤 مشاركة الاستمارة</button>'
+            : '<button type="button" class="ragwan-resource-copy js-ragwan-copy-info" data-index="'+index+'">📋 نسخ المعلومات</button>')+
+          (isVideo&&url?'<button type="button" class="ragwan-resource-copy js-ragwan-share-video" data-index="'+index+'">📤 مشاركة الفيديو</button>':'')
+      )+
       (role==='leader'?'<button type="button" class="ragwan-resource-delete js-ragwan-delete" data-index="'+index+'">🗑️ حذف</button>':'')+
       '</div>';
 
