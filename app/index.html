@@ -3376,7 +3376,7 @@ async function ragwanFocusFirstMaterial(){
 }
 function ragwanRenderStep5VideoPreview(files){
   if(Number(ragwanCurrentStep)!==5)return;
-  const root=document.getElementById('ragwanStepResources');
+  const root=document.getElementById('ragwanStepVideos');
   if(!root)return;
 
   const videos=(Array.isArray(files)?files:[]).filter(function(f){
@@ -3484,13 +3484,6 @@ function ragwanRenderStep5VideoPreview(files){
 
     section.appendChild(card);
 
-    const rows=root.querySelectorAll('.ragwan-resource-item');
-    rows.forEach(function(row){
-      const nameEl=row.querySelector('div > b');
-      if(nameEl && String(nameEl.textContent||'')===String(f&&f.name||'')){
-        row.style.display='none';
-      }
-    });
   });
 
   root.appendChild(section);
