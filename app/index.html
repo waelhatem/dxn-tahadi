@@ -3480,6 +3480,59 @@ async function ragwanWelcomeCopyPost(){
     }
   },'image/png');
 }
+async function ragwanWelcomeCopyPostWithImage(){
+  const canvas=document.getElementById('ragwanWelcomeCanvas');
+  if(!canvas||!canvas.width){toast('⚠️ جهّز صورة الترحيب أولًا.');return;}
+  canvas.toBlob(async blob=>{
+    if(!blob){toast('⚠️ تعذر تجهيز صورة الترحيب.');return;}
+    const msg=ragwanWelcomeMessage({
+      gender:document.getElementById('ragwanWelcomeGender')?.value||'male',
+      name:document.getElementById('ragwanWelcomeName')?.value,
+      memberNo:document.getElementById('ragwanWelcomeMemberNo')?.value,
+      country:document.getElementById('ragwanWelcomeCountry')?.value,
+      city:document.getElementById('ragwanWelcomeCity')?.value
+    });
+    try{
+      if(navigator.clipboard?.write && window.ClipboardItem){
+        const item=new ClipboardItem({
+          'text/plain':new Blob([msg],{type:'text/plain'}),
+          'image/png':blob
+        });
+        await navigator.clipboard.write([item]);
+        toast('✅ تم نسخ المنشور مع الصورة. يمكنك الآن لصقه مباشرة.');
+        return;
+      }
+      throw new Error('clipboard_write_unsupported');
+    }catch(e){
+      try{
+        if(navigator.clipboard?.writeText){
+          await navigator.clipboard.writeText(msg);
+        }else{
+          const ta=document.createElement('textarea');
+          ta.value=msg;
+          ta.style.position='fixed';
+          ta.style.opacity='0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+        }
+        const objectUrl=URL.createObjectURL(blob);
+        const a=document.createElement('a');
+        a.href=objectUrl;
+        a.download='welcome-member.png';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);
+        toast('ℹ️ المتصفح لا يدعم نسخ الصورة والنص معًا؛ تم نسخ النص وتنزيل الصورة.');
+      }catch(_){
+        toast('⚠️ تعذر نسخ المنشور مع الصورة.');
+      }
+    }
+  },'image/png');
+}
+
 function ragwanRenderWelcomeBuilder(){
   const el=document.getElementById('ragwanWelcomeBuilder');if(!el)return;
   el.innerHTML=
