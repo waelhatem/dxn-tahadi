@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f513f">
+<title>استمارة الأهداف — DXN</title>
+<style>
+:root{--green:#0f513f;--green2:#176b55;--bg:#eef5f1;--card:#fff;--text:#182234;--muted:#667085;--line:#dfe9e4;--gold:#d99a18;--red:#b42318}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#eaf4ef,#f8fbf9);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif}
+.wrap{width:min(920px,94vw);margin:24px auto 50px}.head{background:linear-gradient(135deg,#0c4738,#1a725b);color:#fff;border-radius:24px;padding:24px;text-align:center;box-shadow:0 12px 30px #0002}.head .icon{font-size:46px}.head h1{margin:6px 0;font-size:28px}.head p{margin:5px 0 0;opacity:.9}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px;margin-top:14px;box-shadow:0 7px 22px rgba(15,81,63,.06)}.card h2{margin:0 0 7px;font-size:20px;color:var(--green)}.note{color:var(--muted);font-size:13px;line-height:1.8}
+label{display:block;font-weight:900;margin:12px 0 5px}.goal-row{display:flex;align-items:center;gap:8px;margin:8px 0}.goal-no{width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:#eef8f2;color:var(--green);font-weight:950;flex:0 0 32px}input,textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px;font:inherit;background:#fff}input:focus,textarea:focus{outline:2px solid #cfe4da;border-color:var(--green)}.goal-row input{margin:0}
+.table-wrap{overflow:auto}.targets{width:100%;border-collapse:collapse;min-width:560px}.targets th,.targets td{border-bottom:1px solid var(--line);padding:11px 8px;text-align:right;vertical-align:middle}.targets th{color:var(--muted);font-size:13px}.targets input{margin:0}
+.method{border:1px solid var(--line);border-radius:15px;padding:13px;margin:9px 0;background:#fbfdfc}.method-title{font-weight:900;line-height:1.7}.method textarea{margin-top:8px;min-height:70px}
+.actions{position:sticky;bottom:10px;z-index:10;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:15px;padding:10px;background:#ffffffec;backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 24px #0001}
+button{border:0;border-radius:12px;padding:11px 15px;min-height:44px;font:inherit;font-weight:900;cursor:pointer}button.primary{background:var(--green);color:#fff}button.secondary{background:#eef3f2;color:#17372d}button.gold{background:#fff4d5;color:#7a5300}button.danger{background:#fee4e2;color:#9f2118}
+.status{text-align:center;font-weight:900;min-height:24px;color:var(--green)}.member-box{text-align:center;color:var(--muted);font-size:12px;margin-top:8px}.footer{text-align:center;color:var(--muted);font-size:12px;margin-top:14px}
+@media(max-width:600px){.wrap{width:94vw;margin-top:12px}.head{padding:20px 15px}.head h1{font-size:24px}.card{padding:15px}.goal-row{gap:6px}.goal-no{width:29px;height:29px;flex-basis:29px;font-size:12px}.actions{bottom:5px}.actions button{flex:1;min-width:125px}}
+@media print{body{background:#fff}.wrap{width:100%;margin:0}.head,.card{box-shadow:none}.actions{display:none}.card{break-inside:avoid}.footer{display:none}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<header class="head">
+  <div class="icon">🎯</div>
+  <h1>استمارة تحديد الأهداف</h1>
+  <p>حوّل أهدافك إلى خطوات واضحة ومواعيد محددة، ثم تابع تقدمك باستمرار.</p>
+  <div class="member-box" id="memberBox"></div>
+</header>
+
+<section class="card">
+  <h2>🎯 أهدافي مع DXN</h2>
+  <p class="note">اكتب عشرة أهداف تريد تحقيقها في رحلتك. اجعلها واضحة ومحددة قدر الإمكان.</p>
+  <div id="goals"></div>
+</section>
+
+<section class="card">
+  <h2>📅 الجدول الزمني لأهدافي</h2>
+  <p class="note">حدد التاريخ المستهدف لكل مرحلة ترغب في الوصول إليها.</p>
+  <div class="table-wrap">
+    <table class="targets">
+      <thead><tr><th>المرحلة</th><th>التاريخ المستهدف</th><th>ملاحظتي</th></tr></thead>
+      <tbody id="targets"></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card">
+  <h2>🧭 وسائل تساعدني على تحقيق أهدافي</h2>
+  <p class="note">اكتب أمام كل وسيلة ما ستلتزم به عمليًا.</p>
+  <div id="methods"></div>
+</section>
+
+<div class="actions">
+  <button class="primary" id="save">💾 حفظ أهدافي</button>
+  <button class="secondary" id="edit">✏️ تعديل</button>
+  <button class="gold" id="print">🖨️ طباعة / PDF</button>
+  <button class="secondary" id="back">↩️ العودة إلى الباب الخامس</button>
+</div>
+<div class="status" id="status"></div>
+<div class="footer">يتم حفظ الاستمارة على هذا الجهاز وربطها برقم العضوية المستخدم في الحساب.</div>
+</main>
+
+<script>
+(function(){
+  const memberNo=String(localStorage.getItem('dxn_login_no')||'').trim();
+  const memberBox=document.getElementById('memberBox');
+  if(memberNo) memberBox.textContent='رقم العضوية: '+memberNo;
+  else memberBox.textContent='لم يتم العثور على رقم العضوية في جلسة الدخول الحالية.';
+
+  const key='dxn_ragwan_goals_v1_'+(memberNo||'guest');
+  const stages=[
+    'الوصول إلى مرحلة عميل النجم',
+    'الوصول إلى مرحلة النجم الياقوتي',
+    'الوصول إلى مرحلة النجم الماسي',
+    'الوصول إلى مرحلة التاج الماسي',
+    'الوصول إلى مرحلة التاج السفير'
+  ];
+  const methods=[
+    'أستخدم منتجات شركة DXN الطبيعية وأتعرف على المنتجات التي أستخدمها وفق المعلومات والإرشادات المعتمدة.',
+    'أشارك تجربتي ومعلوماتي مع الأشخاص المهتمين من الأقارب والأصدقاء والمعارف، وأبني قائمة بالأشخاص الذين يمكن التواصل معهم.',
+    'ألتزم بحضور المحاضرات والدورات التدريبية والفعاليات والأنشطة، وأستفيد منها في تطوير معرفتي ومهاراتي.',
+    'أخصص ميزانية مناسبة لتكاليف التواصل والمتابعة والأنشطة المرتبطة بعملي.',
+    'أحافظ على التواصل مع القادة والمدربين للاستفادة من خبراتهم وتجاربهم، وأطرح الأسئلة وأتعلم من التحديات.',
+    'أراجع أهدافي وخطواتي بشكل منتظم، وأتابع ما أنجزته وما يحتاج إلى تطوير.',
+    'وسيلة أخرى أرى أنها تساعدني على تحقيق أهدافي.'
+  ];
+  const goals=document.getElementById('goals'),targets=document.getElementById('targets'),methodsBox=document.getElementById('methods');
+  for(let i=1;i<=10;i++) goals.insertAdjacentHTML('beforeend','<div class="goal-row"><span class="goal-no">'+i+'</span><input id="goal'+i+'" type="text" maxlength="300" placeholder="اكتب هدفك رقم '+i+'"></div>');
+  stages.forEach((x,i)=>targets.insertAdjacentHTML('beforeend','<tr><td><b>'+x+'</b></td><td><input id="date'+i+'" type="date"></td><td><input id="note'+i+'" type="text" maxlength="250" placeholder="ملاحظتك"></td></tr>'));
+  methods.forEach((x,i)=>methodsBox.insertAdjacentHTML('beforeend','<div class="method"><div class="method-title">'+(i+1)+'. '+x+'</div><textarea id="method'+i+'" maxlength="500" placeholder="ما الذي سألتزم به عمليًا؟"></textarea></div>'));
+
+  function load(){
+    try{
+      const d=JSON.parse(localStorage.getItem(key)||'{}');
+      (d.goals||[]).forEach((v,i)=>{const e=document.getElementById('goal'+(i+1));if(e)e.value=v||''});
+      (d.targets||[]).forEach((v,i)=>{document.getElementById('date'+i).value=v?.date||'';document.getElementById('note'+i).value=v?.note||''});
+      (d.methods||[]).forEach((v,i)=>{const e=document.getElementById('method'+i);if(e)e.value=v||''});
+      if(d.updatedAt) status.textContent='آخر حفظ: '+new Date(d.updatedAt).toLocaleString('ar-IQ');
+    }catch(e){}
+  }
+  function save(){
+    const d={goals:[],targets:[],methods:[],updatedAt:Date.now()};
+    for(let i=1;i<=10;i++) d.goals.push(document.getElementById('goal'+i).value.trim());
+    stages.forEach((_,i)=>d.targets.push({date:document.getElementById('date'+i).value,note:document.getElementById('note'+i).value.trim()}));
+    for(let i=0;i<methods.length;i++) d.methods.push(document.getElementById('method'+i).value.trim());
+    localStorage.setItem(key,JSON.stringify(d));
+    status.textContent='✅ تم حفظ أهدافك بنجاح.';
+    setTimeout(()=>{if(status.textContent.startsWith('✅'))status.textContent=''},2500);
+  }
+  function clearAndEdit(){status.textContent='✏️ يمكنك الآن تعديل الأهداف ثم الضغط على «حفظ أهدافي».';document.getElementById('goal1')?.focus()}
+  document.getElementById('save').onclick=save;
+  document.getElementById('edit').onclick=clearAndEdit;
+  document.getElementById('print').onclick=()=>window.print();
+  document.getElementById('back').onclick=()=>window.close();
+  load();
+})();
+</script>
+</body>
+</html>
