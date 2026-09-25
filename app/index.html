@@ -3406,46 +3406,6 @@ function ragwanWelcomeDownload(){
   const canvas=document.getElementById('ragwanWelcomeCanvas');if(!canvas||!canvas.width){toast('⚠️ جهّز صورة الترحيب أولًا.');return;}
   const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download='welcome-member.png';a.click();
 }
-async function ragwanWelcomeCopyPostWithImage(){
-  const canvas=document.getElementById('ragwanWelcomeCanvas');
-  if(!canvas||!canvas.width){toast('⚠️ جهّز صورة الترحيب أولًا.');return;}
-  canvas.toBlob(async function(blob){
-    if(!blob){toast('⚠️ تعذر تجهيز صورة الترحيب.');return;}
-    const data={
-      gender:document.getElementById('ragwanWelcomeGender')?.value||'male',
-      name:document.getElementById('ragwanWelcomeName')?.value,
-      memberNo:document.getElementById('ragwanWelcomeMemberNo')?.value,
-      country:document.getElementById('ragwanWelcomeCountry')?.value,
-      city:document.getElementById('ragwanWelcomeCity')?.value
-    };
-    const msg=ragwanWelcomeMessage(data);
-    try{
-      if(navigator.clipboard && navigator.clipboard.write && window.ClipboardItem){
-        const item=new ClipboardItem({
-          'text/plain':new Blob([msg],{type:'text/plain'}),
-          'image/png':blob
-        });
-        await navigator.clipboard.write([item]);
-        toast('✅ تم نسخ المنشور مع الصورة والنص معًا.');
-        return;
-      }
-      if(navigator.clipboard && navigator.clipboard.writeText){
-        await navigator.clipboard.writeText(msg);
-      }
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement('a');
-      a.href=url;
-      a.download='welcome-member.png';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(function(){URL.revokeObjectURL(url)},1000);
-      toast('ℹ️ هذا المتصفح لا يدعم نسخ النص والصورة معًا؛ تم نسخ النص وتنزيل الصورة.');
-    }catch(e){
-      toast('⚠️ تعذر نسخ النص والصورة معًا في هذا المتصفح.');
-    }
-  },'image/png');
-}
 async function ragwanWelcomeCopyPost(){
   const canvas=document.getElementById('ragwanWelcomeCanvas');
   if(!canvas||!canvas.width){toast('⚠️ جهّز صورة الترحيب أولًا.');return;}
@@ -3522,7 +3482,6 @@ function ragwanRenderWelcomeBuilder(){
         '<div class="ragwan-welcome-actions">'+
           '<button type="button" class="primary" onclick="ragwanWelcomeRenderPreview()">🖼️ تجهيز صورة الترحيب</button>'+
           ''+
-          '<button type="button" onclick="ragwanWelcomeCopyPostWithImage()">📋 نسخ المنشور مع الصورة</button>'+
           '<button type="button" onclick="ragwanWelcomeCopyPost()">📤 مشاركة المنشور مع الصورة</button>'+
         '</div>'+
       '</div>'+
