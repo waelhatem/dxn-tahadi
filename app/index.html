@@ -3075,52 +3075,81 @@ function ragwanWelcomeRenderPreview(){
   const name=String(document.getElementById('ragwanWelcomeName')?.value||'').trim()||'عضو جديد';
   const memberNo=String(document.getElementById('ragwanWelcomeMemberNo')?.value||'').trim()||'................';
   const frame=new Image(); frame.crossOrigin='anonymous';
+
   frame.onload=()=>{
     const ctx=canvas.getContext('2d');
     const w=frame.naturalWidth||1200,h=frame.naturalHeight||1600;
-    canvas.width=w;canvas.height=h;ctx.clearRect(0,0,w,h);ctx.drawImage(frame,0,0,w,h);
-
-    // الفريم يحتوي بيانات تجريبية؛ نغطيها ونكتب بيانات العضو الحالية.
-    const cover=(x,y,cw,ch)=>{ctx.save();ctx.fillStyle='#fffaf0';ctx.fillRect(x*w,y*h,cw*w,ch*h);ctx.restore();};
-    cover(.30,.348,.48,.060);
-    cover(.37,.418,.34,.060);
-
-    ctx.save();
-    ctx.direction='rtl';
-    ctx.textAlign='center';
-    ctx.textBaseline='middle';
-    ctx.fillStyle='#102846';
-    ctx.font='900 '+Math.round(w*.035)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
-    ctx.fillText(name,.54*w,.378*h);
-    ctx.font='900 '+Math.round(w*.045)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
-    ctx.fillText(memberNo,.54*w,.448*h);
-    ctx.restore();
+    canvas.width=w;canvas.height=h;ctx.clearRect(0,0,w,h);
 
     const photo=document.getElementById('ragwanWelcomePhoto')?.files?.[0];
-    const finish=()=>{preview.src=canvas.toDataURL('image/png');};
+
+    // فريم الذكور: الصورة تُقص داخل الفتحة البيضاوية الحقيقية، ثم يُرسم الفريم فوقها
+    // حتى تبقى الحواف الذهبية والزهور والشريط في المقدمة.
+    const drawFrame=()=>{
+      ctx.drawImage(frame,0,0,w,h);
+
+      if(gender==='male'){
+        // تنظيف بيانات العضو التجريبية من الفريم الأصلي مع الحفاظ على بطاقة العضو وخطوطها.
+        ctx.save();
+        ctx.fillStyle='#fff7e8';
+        ctx.fillRect(.415*w,.542*h,.325*w,.055*h); // الاسم القديم
+        ctx.fillRect(.455*w,.625*h,.265*w,.055*h); // الرقم القديم
+        ctx.restore();
+
+        ctx.save();
+        ctx.direction='rtl';
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        ctx.fillStyle='#102846';
+        ctx.font='900 '+Math.round(w*.034)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
+        ctx.fillText(name,.575*w,.569*h);
+        ctx.font='900 '+Math.round(w*.042)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
+        ctx.fillText(memberNo,.587*w,.653*h);
+        ctx.restore();
+      }
+
+      preview.src=canvas.toDataURL('image/png');
+    };
+
     if(gender==='male'&&photo){
       const reader=new FileReader();
       reader.onload=e=>{
         const img=new Image();
         img.onload=()=>{
-          const box={x:.025,y:.015,w:.355,h:.355};
-          const scale=Math.max(box.w*w/img.width,box.h*h/img.height);
+          // الفتحة الحقيقية في الفريم الذكري تقريباً: بيضاوية بعرض 500 وارتفاع 510 بكسل.
+          const box={x:.045,y:.066,w:.405,h:.405};
+          const bw=box.w*w,bh=box.h*h;
+          const scale=Math.max(bw/img.width,bh/img.height);
           const dw=img.width*scale,dh=img.height*scale;
-          const x=box.x*w+(box.w*w-dw)/2,y=box.y*h+(box.h*h-dh)/2;
+          const x=box.x*w+(bw-dw)/2,y=box.y*h+(bh-dh)/2;
+
           ctx.save();
           ctx.beginPath();
-          ctx.rect(box.x*w,box.y*h,box.w*w,box.h*h);
+          ctx.ellipse(
+            (box.x+box.w/2)*w,
+            (box.y+box.h/2)*h,
+            (box.w*w)/2,
+            (box.h*h)/2,
+            0,0,Math.PI*2
+          );
           ctx.clip();
           ctx.drawImage(img,x,y,dw,dh);
           ctx.restore();
-          finish();
+
+          drawFrame();
         };
         img.src=e.target.result;
       };
       reader.readAsDataURL(photo);
-    }else finish();
+    }else{
+      drawFrame();
+    }
   };
-  frame.onerror=()=>{preview.removeAttribute('src');toast('⚠️ تعذر تحميل فريم الترحيب. تأكد من اسم ملف الفريم داخل GitHub.');};
+
+  frame.onerror=()=>{
+    preview.removeAttribute('src');
+    toast('⚠️ تعذر تحميل فريم الترحيب. تأكد من اسم ملف الفريم داخل GitHub.');
+  };
   frame.src=gender==='female'?RAGWAN_WELCOME_FRAME_FEMALE:RAGWAN_WELCOME_FRAME_MALE;
 }
 async function ragwanCopyWelcomeMessage(){
