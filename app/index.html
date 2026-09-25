@@ -3505,7 +3505,7 @@ function ragwanRenderStep5VideoPreview(files){
 }
 
 async function ragwanLoadStepResources(){
-  try{const out=await ragwanPlanApi('step_resource_list',{step:ragwanCurrentStep});const files=out.files||[];ragwanRenderStepResources(files);ragwanRenderStep5VideoPreview(files);}
+  try{const out=await ragwanPlanApi('step_resource_list',{step:ragwanCurrentStep});const files=out.files||[];ragwanRenderStepResources(files);}
   catch(e){const el=document.getElementById('ragwanStepResources');if(el)el.innerHTML='<div class="ragwan-resource-empty">⚠️ '+esc(e.message||'تعذر تحميل مواد الخطوة.')+'</div>';}
 }
 async function ragwanUploadStepResources(files){
