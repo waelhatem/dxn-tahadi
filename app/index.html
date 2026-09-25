@@ -805,6 +805,54 @@ body:has(.login-header-top)::before{
   }
   .ragwan-step-5-active .ragwan-resource-item .ragwan-resource-preview{grid-column:1!important}
 }
+
+/* V88.0 — Door 5 resource card: deterministic mobile action layout. */
+@media(max-width:650px){
+  .ragwan-step-5-active #ragwanStepResources .ragwan-resource-item{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    width:100%!important;
+    box-sizing:border-box!important;
+    gap:8px!important;
+    padding:9px!important;
+    overflow:visible!important;
+  }
+  .ragwan-step-5-active #ragwanStepResources .ragwan-resource-top,
+  .ragwan-step-5-active #ragwanStepResources .ragwan-resource-actions,
+  .ragwan-step-5-active #ragwanStepResources .ragwan-resource-preview{
+    grid-column:1!important;
+    width:100%!important;
+    box-sizing:border-box!important;
+  }
+  .ragwan-step-5-active #ragwanStepResources .ragwan-resource-actions{
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:5px!important;
+    margin:0!important;
+    min-height:42px!important;
+    visibility:visible!important;
+    opacity:1!important;
+    position:relative!important;
+    z-index:50!important;
+  }
+  .ragwan-step-5-active #ragwanStepResources .ragwan-resource-actions>*{
+    display:flex!important;
+    width:100%!important;
+    min-width:0!important;
+    min-height:40px!important;
+    margin:0!important;
+    padding:6px 3px!important;
+    box-sizing:border-box!important;
+    align-items:center!important;
+    justify-content:center!important;
+    font-size:10px!important;
+    line-height:1.25!important;
+    white-space:normal!important;
+    visibility:visible!important;
+    opacity:1!important;
+  }
+  .ragwan-step-5-active #ragwanStepResources .ragwan-resource-preview{margin-top:0!important}
+}
 </style><script id="ragwan-step5-mobile-state-v1">
 (function(){
   if(window.__RAGWAN_STEP5_MOBILE_STATE_V1__) return;
@@ -3142,34 +3190,52 @@ async function ragwanCopyStepResourceImage(url,name){
 function ragwanRenderStepResources(files){
   const el=document.getElementById('ragwanStepResources');if(!el)return;
   const step=ragwanCurrentStep,arr=files||[];
-  const leaderUpload=role==='leader'?'<div class="ragwan-resource-upload"><label for="ragwanStepResourceInput">➕ إضافة ملفات هذه الخطوة</label><input id="ragwanStepResourceInput" type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" onchange="ragwanUploadStepResources(this.files)"></div>':'';
+  const leaderUpload=role==='leader'
+    ? '<div class="ragwan-resource-upload"><label for="ragwanStepResourceInput">➕ إضافة ملفات هذه الخطوة</label><input id="ragwanStepResourceInput" type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" onchange="ragwanUploadStepResources(this.files)"></div>'
+    : '';
+
   el.innerHTML='<div class="ragwan-resource-head"><div><b>📚 مواد الخطوة '+step+'</b><small>اطلع على الملفات أولًا ثم انتقل إلى اختبار الفهم.</small></div>'+leaderUpload+'</div>'+
-    '<div class="ragwan-resource-list">'+(arr.length?arr.map((f,index)=>{
-      const url=String(f.url||'').trim(),name=esc(f.name),path=String(f.path||'').trim();
-      const isImage=String(f.mime||'').toLowerCase().startsWith('image/')||/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(String(f.name||''));
-      const resourceActions=isImage
-        ? '<button type="button" class="ragwan-resource-open" onclick=\'event.stopPropagation();ragwanCopyStepResourceImage('+JSON.stringify(String(f.url||'')).replace(/'/g,"&#39;")+','+JSON.stringify(String(f.name||'الصورة')).replace(/'/g,"&#39;")+')\'>📋 نسخ الصورة</button>'
-        : (url?'<a class="ragwan-resource-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.preventDefault();event.stopPropagation();ragwanOpenResource(this.href)">📖 فتح الملف</a>':'');
-      const leaderActions=role==='leader'
-        ? '<div class="ragwan-resource-actions">'+resourceActions+
-            '<button type="button" class="ragwan-resource-copy" onclick=\'event.stopPropagation();ragwanCopyStepResourceInfo('+JSON.stringify(f).replace(/'/g,"&#39;")+','+index+')\'>📋 نسخ المعلومات</button>'+            '<button type="button" class="ragwan-resource-delete" onclick=\'event.stopPropagation();ragwanDeleteStepResource('+JSON.stringify(path)+')\'>🗑️ حذف</button>'+          '</div>'
-        : '<div class="ragwan-resource-actions">'+resourceActions+'</div>';
-      const mime=String(f.mime||'').toLowerCase();
+    '<div class="ragwan-resource-list">'+
+    (arr.length ? arr.map((f,index)=>{
+      const url=String(f.url||'').trim();
       const rawName=String(f.name||'');
+      const name=esc(rawName);
+      const path=String(f.path||'').trim();
+      const mime=String(f.mime||'').toLowerCase();
+      const isImage=mime.startsWith('image/')||/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(rawName);
       const isVideo=mime.startsWith('video/')||/\.(mp4|webm|mov|m4v|ogg)$/i.test(rawName);
+
+      let primaryAction='';
+      if(isImage && url){
+        primaryAction='<button type="button" class="ragwan-resource-open" onclick=\'event.stopPropagation();ragwanCopyStepResourceImage('+JSON.stringify(url).replace(/'/g,"&#39;")+','+JSON.stringify(rawName||'الصورة').replace(/'/g,"&#39;')+')\'>📋 نسخ الصورة</button>';
+      }else if(url){
+        primaryAction='<a class="ragwan-resource-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.preventDefault();event.stopPropagation();ragwanOpenResource(this.href)">📖 فتح الملف</a>';
+      }
+
+      const actions=(role==='leader'
+        ? '<div class="ragwan-resource-actions" aria-label="أدوات المادة">'+
+            primaryAction+
+            '<button type="button" class="ragwan-resource-copy" onclick=\'event.stopPropagation();ragwanCopyStepResourceInfo('+JSON.stringify(f).replace(/'/g,"&#39;")+','+index+')\'>📋 نسخ المعلومات</button>'+
+            '<button type="button" class="ragwan-resource-delete" onclick=\'event.stopPropagation();ragwanDeleteStepResource('+JSON.stringify(path)+')\'>🗑️ حذف</button>'+
+          '</div>'
+        : '<div class="ragwan-resource-actions" aria-label="أدوات المادة">'+primaryAction+'</div>');
+
       const preview=(isImage&&url)
         ? '<div class="ragwan-resource-preview ragwan-resource-image-preview"><img src="'+esc(url)+'" alt="'+name+'" loading="lazy"></div>'
         : (isVideo
           ? '<div class="ragwan-resource-preview ragwan-resource-video-placeholder"><span>🎥</span><small>الفيديو معروض أسفل المواد</small></div>'
           : '<div class="ragwan-resource-preview ragwan-resource-file-preview"><span>'+ragwanFileIcon(f)+'</span><small>ملف '+esc(ragwanFormatSize(f.size))+'</small></div>');
-      const rowOpen='';
-      return '<div class="ragwan-resource-item" '+rowOpen+'>'+
-        '<div class="ragwan-resource-top"><span class="ragwan-resource-icon">'+ragwanFileIcon(f)+'</span>'+
-        '<div class="ragwan-resource-info"><b>'+name+'</b><small>'+ragwanFormatSize(f.size)+'</small></div></div>'+
-        leaderActions+
+
+      return '<div class="ragwan-resource-item">'+
+        '<div class="ragwan-resource-top">'+
+          '<span class="ragwan-resource-icon">'+ragwanFileIcon(f)+'</span>'+
+          '<div class="ragwan-resource-info"><b>'+name+'</b><small>'+ragwanFormatSize(f.size)+'</small></div>'+
+        '</div>'+
+        actions+
         preview+
       '</div>';
-    }).join(''):'<div class="ragwan-resource-empty">لم تتم إضافة مواد لهذه الخطوة بعد.</div>')+'</div>';
+    }).join('') : '<div class="ragwan-resource-empty">لم تتم إضافة مواد لهذه الخطوة بعد.</div>')+
+    '</div>';
 }
 async function ragwanFocusFirstMaterial(){
   if(role!=='member'||dxnNavScrollLocked())return;
