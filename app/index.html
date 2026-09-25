@@ -1247,32 +1247,50 @@ async function boot(){
   try{
     const d=await rpc('bootstrap',{p_token:token});
     data=d;role=d.role;me=(d.members||[])[0]||null;invalidateNotificationCache();
-    const savedUiScroll=loadDxnUiState();
-    const trainingP=rpc('get_training_data',{p_token:token}).catch(()=>({lessons:[],my_progress:[],member_progress:[]}));
-    const extras=role==='leader'
-      ? Promise.all([
-          rpc('leader_dxn_membership_requests',{p_token:token}).catch(()=>[]),
-          rpc('leader_monthly_point_requests',{p_token:token}).catch(()=>[]),
-          rpc('leader_team_registry',{p_token:token}).catch(()=>[]),
-          rpc('leader_prospect_requests',{p_token:token}).catch(()=>[]),
-          loadSiteVisitStats().catch(()=>{}),
-          loadAiUsageStats().catch(()=>{})
-        ])
-      : rpc('my_monthly_point_requests',{p_token:token}).catch(()=>[]);
-    await Promise.all([trainingP,extras]);
-    trainingData=await trainingP;
-    if(role==='leader'){
-      const [mr,pr,tr,prospects]=await extras;
-      membershipRequests=mr||[];prospectRequests=prospects||[];monthlyPointRequests=pr||[];startAiUsageAutoRefresh();
-      let rr=tr;
-      if(typeof rr==='string'){try{rr=JSON.parse(rr)}catch(e){rr=[]}}
-      teamRegistryRows=Array.isArray(rr)?rr:(Array.isArray(rr?.data)?rr.data:(Array.isArray(rr?.members)?rr.members:(Array.isArray(rr?.result)?rr.result:[])));
-      recordSiteVisit('leader','dashboard');
-    }else{
-      monthlyPointRequests=(await extras)||[];
-      recordSiteVisit('member','dashboard');
-    }
-    render();restoreDxnUiState()
+    // ارسم الواجهة الأساسية فور اكتمال bootstrap، ولا تجعل بيانات الأقسام الثانوية تحجب التنقل.
+    render();
+    restoreDxnUiState();
+
+    // البيانات الثقيلة تُحمّل في الخلفية بعد ظهور الواجهة.
+    // هذا يمنع انتظار التدريبات وإحصائيات القائد وسجل الفرق قبل فتح الموقع.
+    Promise.resolve().then(async()=>{
+      try{
+        const trainingP=rpc('get_training_data',{p_token:token}).catch(()=>({lessons:[],my_progress:[],member_progress:[]}));
+        const extras=role==='leader'
+          ? Promise.all([
+              rpc('leader_dxn_membership_requests',{p_token:token}).catch(()=>[]),
+              rpc('leader_monthly_point_requests',{p_token:token}).catch(()=>[]),
+              rpc('leader_team_registry',{p_token:token}).catch(()=>[]),
+              rpc('leader_prospect_requests',{p_token:token}).catch(()=>[])
+            ])
+          : rpc('my_monthly_point_requests',{p_token:token}).catch(()=>[]);
+
+        const [trainingResult,extrasResult]=await Promise.all([trainingP,extras]);
+        trainingData=trainingResult||{lessons:[],my_progress:[],member_progress:[]};
+        if(role==='leader'){
+          const [mr,pr,tr,prospects]=extrasResult||[];
+          membershipRequests=mr||[];
+          prospectRequests=prospects||[];
+          monthlyPointRequests=pr||[];
+          let rr=tr;
+          if(typeof rr==='string'){try{rr=JSON.parse(rr)}catch(e){rr=[]}}
+          teamRegistryRows=Array.isArray(rr)?rr:(Array.isArray(rr?.data)?rr.data:(Array.isArray(rr?.members)?rr.members:(Array.isArray(rr?.result)?rr.result:[])));
+        }else{
+          monthlyPointRequests=extrasResult||[];
+        }
+
+        // الإحصائيات الثقيلة للقائد تُحمّل عند الحاجة بدل تعطيل بداية الجلسة.
+        if(role==='leader' && tab==='leader'){
+          await Promise.all([loadSiteVisitStats().catch(()=>{}),loadAiUsageStats().catch(()=>{})]);
+          startAiUsageAutoRefresh();
+        }
+
+        // حدّث القسم الحالي فقط بعد وصول البيانات الخلفية.
+        render();
+        restoreDxnUiState();
+      }catch(e){console.debug('DXN background data load',e)}
+    });
+    recordSiteVisit(role==='leader'?'leader':'member','dashboard');
   }catch(e){console.error('DXN boot failure',e);var m=(e&&e.message)||String(e||'خطأ غير معروف'),d=(e&&e.details)||'',h=(e&&e.hint)||'';var b=document.getElementById('dxnBootFailureDiag');if(!b){b=document.createElement('div');b.id='dxnBootFailureDiag';document.body.appendChild(b)}b.setAttribute('role','alert');b.style.cssText='position:fixed;inset:0;z-index:100000;background:#fff;padding:24px;overflow:auto;direction:rtl;text-align:right;font-family:system-ui,sans-serif;color:#182234';b.innerHTML='<div style="max-width:760px;margin:7vh auto;padding:22px;border:3px solid #b42318;border-radius:20px;background:#fff5f4"><h2 style="margin-top:0;color:#9f2118">تم قبول الدخول لكن تعذر تحميل الحساب</h2><p><b>الخطأ:</b> '+String(m).replace(/[<>]/g,'')+'</p><p><b>Details:</b> '+String(d).replace(/[<>]/g,'')+'</p><p><b>Hint:</b> '+String(h).replace(/[<>]/g,'')+'</p><p>تم إبقاء الجلسة محفوظة لتشخيص المشكلة.</p><button class="primary" onclick="location.reload()">إعادة المحاولة</button></div>';}
 }
 function renderSetup(){ $('app').innerHTML=`<div class="login card"><img class="logo" src="/logo.png" alt="شعار مجتمع الصحة والثراء"><h1>مجتمع الصحة والثراء</h1><h2>إعداد النسخة Online</h2><p class="muted">النسخة جاهزة للربط بقاعدة بيانات Supabase. افتح ملف <b>config.js</b> وضع رابط المشروع وPublic anon key، ثم ارفع المجلد إلى Vercel أو أي استضافة ثابتة.</p><div class="card leaderbox"><b>الخطوات:</b><ol><li>أنشئ مشروع Supabase.</li><li>نفّذ ملف schema.sql بالكامل في SQL Editor.</li><li>ضع بيانات المشروع في config.js.</li><li>ارفع المجلد إلى Vercel.</li></ol></div></div>`}
