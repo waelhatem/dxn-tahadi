@@ -3077,8 +3077,6 @@ function ragwanWelcomeRenderPreview(){
   const memberNo=String(document.getElementById('ragwanWelcomeMemberNo')?.value||'').trim()||'................';
   const photo=document.getElementById('ragwanWelcomePhoto')?.files?.[0];
 
-  // نجرب المسارين لأن الصفحة تعمل من /app/index.html وقد تكون ملفات الفريم
-  // مرفوعة في جذر المشروع أو داخل مجلد app.
   const framePaths=gender==='female'
     ? ['/welcome_female_frame.png','/app/welcome_female_frame.png']
     : ['/welcome_male_frame.png','/app/welcome_male_frame.png'];
@@ -3087,14 +3085,11 @@ function ragwanWelcomeRenderPreview(){
     const frame=new Image();
     frame.onload=()=>renderWithFrame(frame);
     frame.onerror=()=>{
-      if(index<framePaths.length-1){
-        loadFrame(index+1);
-        return;
-      }
+      if(index<framePaths.length-1){ loadFrame(index+1); return; }
       preview.removeAttribute('src');
       toast('⚠️ تعذر تحميل فريم الترحيب. تأكد من وجود ملف الفريم داخل GitHub.');
     };
-    frame.src=framePaths[index]+'?v=20260925';
+    frame.src=framePaths[index]+'?v=20260925-2';
   }
 
   function renderWithFrame(frame){
@@ -3126,6 +3121,12 @@ function ragwanWelcomeRenderPreview(){
       ctx.restore();
 
       preview.src=canvas.toDataURL('image/png');
+      preview.style.display='block';
+      preview.style.width='100%';
+      preview.style.maxWidth='100%';
+      preview.style.height='auto';
+      preview.style.objectFit='contain';
+      preview.style.margin='0 auto';
     };
 
     if(gender!=='male'||!photo){
@@ -3138,8 +3139,6 @@ function ragwanWelcomeRenderPreview(){
     reader.onload=e=>{
       const memberImg=new Image();
       memberImg.onload=()=>{
-        // الفريم الذكري PNG مفرّغ مسبقًا؛ نستخدم شفافيته الفعلية لتحديد
-        // فتحة الصورة ووضع صورة العضو خلف الفريم.
         const frameLayer=document.createElement('canvas');
         frameLayer.width=w;frameLayer.height=h;
         const fctx=frameLayer.getContext('2d');
@@ -3149,26 +3148,52 @@ function ragwanWelcomeRenderPreview(){
         try{
           pixels=fctx.getImageData(0,0,w,h).data;
         }catch(err){
-          toast('⚠️ تعذر قراءة شفافية فريم الترحيب.');
+          toast('⚠️ تعذر قراءة فريم الترحيب.');
           ctx.drawImage(frame,0,0,w,h);
           finish();
           return;
         }
 
-        const mask=document.createElement('canvas');
-        mask.width=w;mask.height=h;
-        const mctx=mask.getContext('2d');
-        const md=mctx.createImageData(w,h);
+        /*
+         * الفريم المرفوع قد يحتوي على شكل الشطرنج الخاص بمعاينة الشفافية
+         * كألوان فعلية داخل PNG، وليس Alpha حقيقيًا.
+         * لذلك نعتبر:
+         * 1) الـ Alpha الشفاف الحقيقي، أو
+         * 2) مربعات الشطرنج الرمادية المحايدة،
+         * جزءًا من فتحة الصورة.
+         */
+        const isCheckerPixel=(r,g,b,a)=>{
+          if(a<20)return true;
+          const max=Math.max(r,g,b),min=Math.min(r,g,b);
+          const neutral=(max-min)<=7;
+          const light=(r>=145&&r<=255&&g>=145&&g<=255&&b>=145&&b<=255);
+          return neutral&&light;
+        };
 
-        const rx1=Math.floor(w*.01), rx2=Math.floor(w*.58);
-        const ry1=Math.floor(h*.01), ry2=Math.floor(h*.62);
+        // نحدد فتحة الرجل فقط في المنطقة اليسرى من الفريم.
+        const rx1=Math.floor(w*.01),rx2=Math.floor(w*.48);
+        const ry1=Math.floor(h*.02),ry2=Math.floor(h*.78);
 
-        let left=w,right=0,top=h,bottom=0,found=false;
+        const holeMask=document.createElement('canvas');
+        holeMask.width=w;holeMask.height=h;
+        const hmctx=holeMask.getContext('2d');
+        const hd=hmctx.createImageData(w,h);
+
+        let left=w,right=0,top=h,bottom=0,found=0;
+
+        // نبني القناع من الشفافية/الشطرنج، مع استبعاد المناطق خارج الفتحة
+        // بواسطة إهليلج تقريبي واسع فقط كحاجز أمان.
+        const cx=w*.205,cy=h*.39;
+        const rx=w*.205,ry=h*.39;
+
         for(let y=ry1;y<ry2;y++){
           for(let x=rx1;x<rx2;x++){
-            const a=pixels[(y*w+x)*4+3];
-            if(a<20){
-              found=true;
+            const i=(y*w+x)*4;
+            const a=pixels[i+3],r=pixels[i],g=pixels[i+1],b=pixels[i+2];
+            const ellipse=((x-cx)*(x-cx))/(rx*rx)+((y-cy)*(y-cy))/(ry*ry)<=1.08;
+            if(ellipse && isCheckerPixel(r,g,b,a)){
+              hd.data[i]=255;hd.data[i+1]=255;hd.data[i+2]=255;hd.data[i+3]=255;
+              found++;
               if(x<left)left=x;
               if(x>right)right=x;
               if(y<top)top=y;
@@ -3177,9 +3202,49 @@ function ragwanWelcomeRenderPreview(){
           }
         }
 
-        if(!found||right-left<100||bottom-top<100){
-          left=Math.floor(w*.045);right=Math.floor(w*.455);
-          top=Math.floor(h*.065);bottom=Math.floor(h*.475);
+        // إذا كان الفريم Alpha حقيقيًا، نعيد بناء القناع من الـ Alpha داخل
+        // المنطقة التي اكتشفناها أو من الإهليلج نفسه.
+        if(found<1000){
+          for(let y=ry1;y<ry2;y++){
+            for(let x=rx1;x<rx2;x++){
+              const i=(y*w+x)*4,a=pixels[i+3];
+              if(a<20){
+                const ellipse=((x-cx)*(x-cx))/(rx*rx)+((y-cy)*(y-cy))/(ry*ry)<=1.12;
+                if(ellipse){
+                  hd.data[i]=255;hd.data[i+1]=255;hd.data[i+2]=255;hd.data[i+3]=255;
+                  found++;
+                  if(x<left)left=x;
+                  if(x>right)right=x;
+                  if(y<top)top=y;
+                  if(y>bottom)bottom=y;
+                }
+              }
+            }
+          }
+        }
+
+        if(found<1000){
+          // احتياط أخير مطابق لمنطقة الفتحة في الفريم الذكري.
+          left=Math.floor(w*.015);right=Math.floor(w*.395);
+          top=Math.floor(h*.055);bottom=Math.floor(h*.735);
+          for(let y=top;y<=bottom;y++){
+            for(let x=left;x<=right;x++){
+              const i=(y*w+x)*4;
+              const xx=(x-left)/(right-left)-.5;
+              const yy=(y-top)/(bottom-top)-.5;
+              if((xx*xx)/.25+(yy*yy)/.25<=1){
+                hd.data[i]=255;hd.data[i+1]=255;hd.data[i+2]=255;hd.data[i+3]=255;
+              }
+            }
+          }
+        }
+
+        hmctx.putImageData(hd,0,0);
+
+        // نستخدم حدود القناع الفعلية لوضع صورة الرجل في منتصف الفتحة.
+        if(right<=left||bottom<=top){
+          left=Math.floor(w*.015);right=Math.floor(w*.395);
+          top=Math.floor(h*.055);bottom=Math.floor(h*.735);
         }
 
         const holeW=right-left+1,holeH=bottom-top+1;
@@ -3192,21 +3257,10 @@ function ragwanWelcomeRenderPreview(){
         const pctx=photoLayer.getContext('2d');
         pctx.drawImage(memberImg,dx,dy,dw,dh);
 
-        for(let y=top;y<=bottom;y++){
-          for(let x=left;x<=right;x++){
-            const i=(y*w+x)*4;
-            md.data[i]=255;
-            md.data[i+1]=255;
-            md.data[i+2]=255;
-            md.data[i+3]=255-pixels[i+3];
-          }
-        }
-        mctx.putImageData(md,0,0);
-
         pctx.globalCompositeOperation='destination-in';
-        pctx.drawImage(mask,0,0);
+        pctx.drawImage(holeMask,0,0);
 
-        // صورة العضو أولًا، ثم الفريم الشفاف فوقها.
+        // صورة الرجل أولاً، ثم الفريم فوقها.
         ctx.drawImage(photoLayer,0,0,w,h);
         ctx.drawImage(frameLayer,0,0,w,h);
         finish();
@@ -6514,7 +6568,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 .ragwan-step5-video-share-btn:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(15,81,63,.22)}
 @media(max-width:650px){.ragwan-step5-video-share-btn{min-height:46px!important;font-size:13px!important}}
 </style>
-<style id="global-preview-mode-v2">
+<style id="ragwan-welcome-preview-fix-v2">.ragwan-welcome-preview-wrap{min-width:0!important;max-width:100%!important;overflow:hidden!important}.ragwan-welcome-preview-wrap img#ragwanWelcomePreview{display:block!important;width:100%!important;max-width:100%!important;height:auto!important;max-height:78vh!important;object-fit:contain!important;margin:0 auto!important;border-radius:14px;box-sizing:border-box}</style><style id="global-preview-mode-v2">
 #globalPreviewLauncher{position:fixed;left:18px;bottom:18px;z-index:2147483000;display:none;direction:rtl}
 #globalPreviewLauncher.show{display:block}
 #globalPreviewLauncher .gp-launch{border:0;border-radius:16px;padding:11px 15px;background:#0f513f;color:#fff;font-weight:900;box-shadow:0 10px 28px rgba(0,0,0,.22);cursor:pointer}
