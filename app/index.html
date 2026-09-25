@@ -3157,7 +3157,7 @@ function ragwanWelcomeRenderPreview(){
       preview.style.margin='0 auto';
       preview.style.cursor=(gender==='male' && photo)?'grab':'default';
       preview.style.touchAction=(gender==='male' && photo)?'none':'auto';
-      preview.title=(gender==='male' && photo)?'اسحب صورة العضو بالماوس أو اللمس لضبط الرأس والرقبة داخل الفريم':'';
+      preview.removeAttribute('title');
 
     };
 
