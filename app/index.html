@@ -3122,8 +3122,7 @@ function ragwanRenderStepResources(files){
         : '<div class="ragwan-resource-actions">'+resourceActions+'</div>';
       const mime=String(f.mime||'').toLowerCase();
       const rawName=String(f.name||'');
-      const isImage=mime.startsWith('image/')||/\\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(rawName);
-      const isVideo=mime.startsWith('video/')||/\\.(mp4|webm|mov|m4v|ogg)$/i.test(rawName);
+      const isVideo=mime.startsWith('video/')||/\.(mp4|webm|mov|m4v|ogg)$/i.test(rawName);
       const preview=(isImage&&url)
         ? '<div class="ragwan-resource-preview ragwan-resource-image-preview"><img src="'+esc(url)+'" alt="'+name+'" loading="lazy"></div>'
         : (isVideo
