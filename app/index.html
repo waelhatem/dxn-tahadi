@@ -885,6 +885,58 @@ body:has(.login-header-top)::before{
     line-height:1.2!important;
   }
 }
+
+/* V88.2 — Mobile Door 5: preview first, actions below it. */
+@media(max-width:650px){
+  .ragwan-step-5-active #ragwanStepResources .ragwan-resource-item{
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    width:100%!important;
+    box-sizing:border-box!important;
+    gap:8px!important;
+    overflow:visible!important;
+  }
+  .ragwan-step-5-active #ragwanStepResources .ragwan-resource-top{
+    order:1!important;
+    width:100%!important;
+  }
+  .ragwan-step-5-active #ragwanStepResources .ragwan-resource-preview{
+    order:2!important;
+    width:100%!important;
+    margin:0!important;
+  }
+  .ragwan-step-5-active #ragwanStepResources .ragwan-resource-actions{
+    order:3!important;
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    width:100%!important;
+    min-height:44px!important;
+    gap:6px!important;
+    margin:0!important;
+    padding:0!important;
+    box-sizing:border-box!important;
+    overflow:visible!important;
+    position:relative!important;
+    z-index:100!important;
+  }
+  .ragwan-step-5-active #ragwanStepResources .ragwan-resource-actions>*{
+    display:flex!important;
+    width:100%!important;
+    min-width:0!important;
+    min-height:42px!important;
+    align-items:center!important;
+    justify-content:center!important;
+    box-sizing:border-box!important;
+    padding:6px 3px!important;
+    margin:0!important;
+    font-size:10px!important;
+    line-height:1.2!important;
+    white-space:normal!important;
+    visibility:visible!important;
+    opacity:1!important;
+  }
+}
 </style><script id="ragwan-step5-mobile-state-v1">
 (function(){
   if(window.__RAGWAN_STEP5_MOBILE_STATE_V1__) return;
