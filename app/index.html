@@ -1095,6 +1095,52 @@ function validateDXNAge18(birthDate){
 }
 
 const C=window.DXN_CONFIG||{};const SESSION_MAX_MS=12*60*60*1000;let sb=null,token=localStorage.getItem('dxn_session')||'',me=null,role=null,data=null,tab='home',trainingSubtab='home',membershipRequests=[],prospectRequests=[],monthlyPointRequests=[],trainingData={lessons:[],my_progress:[],member_progress:[]},trainingWatch={player:null,timer:null,guardTimer:null,lessonId:null,videoId:null,invalid:false,maxWatchedSeconds:0,lastSampleSeconds:0,suppressSeek:false},siteVisitStats={},aiUsageStats=null,aiUsageTimer=null;
+const DXN_UI_STATE_KEY='dxn_ui_state_v1';
+function dxnUiStateKey(){
+  const identity=String(
+    (typeof me!=='undefined'&&me&&(
+      me.member_no??me.membership_no??me.membership_number??me.id
+    ))||localStorage.getItem('dxn_login_no')||'guest'
+  ).trim().replace(/[^a-zA-Z0-9_-]/g,'_');
+  return DXN_UI_STATE_KEY+'_'+identity;
+}
+function saveDxnUiState(extra={}){
+  try{
+    const current=JSON.parse(localStorage.getItem(dxnUiStateKey())||'{}');
+    localStorage.setItem(dxnUiStateKey(),JSON.stringify({
+      tab:typeof tab!=='undefined'?tab:(current.tab||'home'),
+      trainingSubtab:typeof trainingSubtab!=='undefined'?trainingSubtab:(current.trainingSubtab||'home'),
+      scrollY:Math.max(0,Number(window.scrollY||window.pageYOffset||0)),
+      ...extra,
+      updatedAt:Date.now()
+    }));
+  }catch(e){}
+}
+function loadDxnUiState(){
+  try{
+    const x=JSON.parse(localStorage.getItem(dxnUiStateKey())||'{}');
+    if(x.tab && ['home','notifications','ch','teams','path','progress','training','community','advanced','leader'].includes(x.tab)){
+      if(x.tab!=='training'||canAccessTraining())tab=x.tab;
+    }
+    trainingSubtab=(tab==='training'&&['home','lessons','ragwan_success_plan'].includes(x.trainingSubtab))
+      ? x.trainingSubtab : 'home';
+    return Math.max(0,Number(x.scrollY||0));
+  }catch(e){return 0}
+}
+function restoreDxnUiState(){
+  const y=loadDxnUiState();
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    window.scrollTo({top:y,left:0,behavior:'auto'});
+  }));
+}
+if(!window.__DXN_UI_STATE_SCROLL_BOUND__){
+  window.__DXN_UI_STATE_SCROLL_BOUND__=true;
+  let t=0;
+  window.addEventListener('scroll',()=>{
+    clearTimeout(t);
+    t=setTimeout(()=>saveDxnUiState(),120);
+  },{passive:true});
+}
 const $=id=>document.getElementById(id); const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(s){$('toast').textContent=s;$('toast').classList.remove('hidden');setTimeout(()=>$('toast').classList.add('hidden'),2600)}
 
@@ -1185,6 +1231,7 @@ async function boot(){
   try{
     const d=await rpc('bootstrap',{p_token:token});
     data=d;role=d.role;me=(d.members||[])[0]||null;invalidateNotificationCache();
+    const savedUiScroll=loadDxnUiState();
     const trainingP=rpc('get_training_data',{p_token:token}).catch(()=>({lessons:[],my_progress:[],member_progress:[]}));
     const extras=role==='leader'
       ? Promise.all([
@@ -1209,7 +1256,7 @@ async function boot(){
       monthlyPointRequests=(await extras)||[];
       recordSiteVisit('member','dashboard');
     }
-    render()
+    render();restoreDxnUiState()
   }catch(e){console.error('DXN boot failure',e);var m=(e&&e.message)||String(e||'خطأ غير معروف'),d=(e&&e.details)||'',h=(e&&e.hint)||'';var b=document.getElementById('dxnBootFailureDiag');if(!b){b=document.createElement('div');b.id='dxnBootFailureDiag';document.body.appendChild(b)}b.setAttribute('role','alert');b.style.cssText='position:fixed;inset:0;z-index:100000;background:#fff;padding:24px;overflow:auto;direction:rtl;text-align:right;font-family:system-ui,sans-serif;color:#182234';b.innerHTML='<div style="max-width:760px;margin:7vh auto;padding:22px;border:3px solid #b42318;border-radius:20px;background:#fff5f4"><h2 style="margin-top:0;color:#9f2118">تم قبول الدخول لكن تعذر تحميل الحساب</h2><p><b>الخطأ:</b> '+String(m).replace(/[<>]/g,'')+'</p><p><b>Details:</b> '+String(d).replace(/[<>]/g,'')+'</p><p><b>Hint:</b> '+String(h).replace(/[<>]/g,'')+'</p><p>تم إبقاء الجلسة محفوظة لتشخيص المشكلة.</p><button class="primary" onclick="location.reload()">إعادة المحاولة</button></div>';}
 }
 function renderSetup(){ $('app').innerHTML=`<div class="login card"><img class="logo" src="/logo.png" alt="شعار مجتمع الصحة والثراء"><h1>مجتمع الصحة والثراء</h1><h2>إعداد النسخة Online</h2><p class="muted">النسخة جاهزة للربط بقاعدة بيانات Supabase. افتح ملف <b>config.js</b> وضع رابط المشروع وPublic anon key، ثم ارفع المجلد إلى Vercel أو أي استضافة ثابتة.</p><div class="card leaderbox"><b>الخطوات:</b><ol><li>أنشئ مشروع Supabase.</li><li>نفّذ ملف schema.sql بالكامل في SQL Editor.</li><li>ضع بيانات المشروع في config.js.</li><li>ارفع المجلد إلى Vercel.</li></ol></div></div>`}
@@ -1500,7 +1547,7 @@ function renderInAppNav(){
   el.innerHTML=`<button type="button" class="dxn-nav-btn" ${dxnNav.back.length?'':'disabled'} onclick="event.preventDefault();this.blur();dxnNavGoBack()" aria-label="الرجوع للصفحة السابقة" title="الرجوع للصفحة السابقة">◀️ <span>رجوع</span></button><button type="button" class="dxn-nav-btn" ${dxnNav.forward.length?'':'disabled'} onclick="event.preventDefault();this.blur();dxnNavGoForward()" aria-label="التقدم إلى الصفحة التالية" title="التقدم إلى الصفحة التالية"><span>تقدم</span> ▶️</button>`;
 }
 function scrollToTabContent(){return;}
-function switchTab(next){if(next==='training'&&!canAccessTraining())return;if(next==='training')trainingSubtab='home';tab=next;try{render();dxnNavPush(`tab:${next}`);recordSiteVisit(role||'visitor',next)}catch(e){console.error(e);toast('تعذر فتح القسم: '+(e.message||e))}}
+function switchTab(next){if(next==='training'&&!canAccessTraining())return;if(next==='training')trainingSubtab='home';tab=next;saveDxnUiState({tab:next,trainingSubtab});try{render();dxnNavPush(`tab:${next}`);recordSiteVisit(role||'visitor',next)}catch(e){console.error(e);toast('تعذر فتح القسم: '+(e.message||e))}}
 function openMemberProgress(){if(role!=='member'||!me){toast('هذه الصفحة متاحة للأعضاء فقط.');return;}tab='progress';try{render()}catch(e){console.error(e);toast('تعذر فتح صفحة تقدّمي: '+(e.message||e))}}
 
 function memberNextStep(){
@@ -1966,6 +2013,7 @@ function ideaTrustVideos(){
 function switchTrainingSubtab(next){
   if(next!=='home'&&next!=='lessons'&&next!=='ragwan_success_plan')return;
   trainingSubtab=next;
+  saveDxnUiState({tab,trainingSubtab:next});
   try{
     render();
     const scrollToTrainingTarget=()=>{
