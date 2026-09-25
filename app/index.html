@@ -3085,7 +3085,7 @@ function ragwanWelcomeRenderPreview(){
     const frame=new Image();
     frame.onload=()=>render(frame);
     frame.onerror=()=>i<paths.length-1?loadFrame(i+1):(preview.removeAttribute('src'),toast('⚠️ تعذر تحميل فريم الترحيب.'));
-    frame.src=paths[i]+'?v=20260925-3';
+    frame.src=paths[i]+'?v=20260925-4';
   }
 
   function render(frame){
@@ -3100,7 +3100,7 @@ function ragwanWelcomeRenderPreview(){
       ctx.font='900 '+Math.round(w*.029)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
       ctx.lineWidth=Math.max(3,Math.round(w*.0038));ctx.strokeStyle='#050505';ctx.fillStyle='#fff';
       ctx.strokeText(name,.575*w,.570*h);ctx.fillText(name,.575*w,.570*h);
-      ctx.font='900 '+Math.round(w*.036)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
+      ctx.font='900 '+Math.round(w*.036)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif;
       ctx.lineWidth=Math.max(3,Math.round(w*.0042));
       ctx.strokeText(memberNo,.587*w,.653*h);ctx.fillText(memberNo,.587*w,.653*h);
       ctx.restore();
@@ -3109,91 +3109,93 @@ function ragwanWelcomeRenderPreview(){
       preview.style.height='auto';preview.style.objectFit='contain';preview.style.margin='0 auto';
     };
 
-    if(gender!=='male'||!photo){ctx.drawImage(frame,0,0,w,h);finish();return;}
+    if(gender!=='male'||!photo){
+      ctx.drawImage(frame,0,0,w,h);finish();return;
+    }
 
     const reader=new FileReader();
     reader.onload=ev=>{
       const memberImg=new Image();
       memberImg.onload=()=>{
-        const fc=document.createElement('canvas');fc.width=w;fc.height=h;
-        const fctx=fc.getContext('2d');fctx.drawImage(frame,0,0,w,h);
+        /*
+         * الفريم الحالي يحتوي على مربعات الشطرنج كصورة فعلية، وليست شفافية.
+         * لذلك الحل الصحيح هو:
+         * 1) قص صورة العضو داخل الفتحة.
+         * 2) حذف مربعات الشطرنج نفسها من طبقة الفريم.
+         * 3) وضع طبقة الفريم بعد ذلك فوق صورة العضو.
+         */
+        const left=Math.floor(w*.035);
+        const right=Math.floor(w*.425);
+        const top=Math.floor(h*.075);
+        const bottom=Math.floor(h*.535);
+        const holeW=right-left+1;
+        const holeH=bottom-top+1;
+        const cx=(left+right)/2;
+        const cy=(top+bottom)/2;
+        const rx=holeW/2;
+        const ry=holeH/2;
 
-        let px;
-        try{px=fctx.getImageData(0,0,w,h).data}catch(err){
-          toast('⚠️ تعذر قراءة فريم الترحيب.');return;
+        const frameLayer=document.createElement('canvas');
+        frameLayer.width=w;frameLayer.height=h;
+        const fctx=frameLayer.getContext('2d');
+        fctx.drawImage(frame,0,0,w,h);
+
+        let data;
+        try{data=fctx.getImageData(0,0,w,h)}catch(err){
+          toast('⚠️ تعذر معالجة فريم الترحيب.');
+          return;
         }
 
-        /*
-         * مهم: الشطرنج الموجود في الفريم ليس Alpha شفافًا، لذلك لا يمكن
-         * استخدام مربعات الشطرنج نفسها كقناع للصورة.
-         * نكتشف حدود منطقة الشطرنج ثم نحولها إلى فتحة بيضاوية واحدة.
-         */
-        const isChecker=(r,g,b,a)=>{
-          if(a<20)return true;
-          const neutral=Math.max(r,g,b)-Math.min(r,g,b)<=10;
-          return neutral && r>=145 && r<=250 && g>=145 && g<=250 && b>=145 && b<=250;
+        const d=data.data;
+
+        // التعرف على مربعات الشطرنج: درجات رمادية/بيضاء محايدة فقط.
+        // لا نلمس اللون الذهبي أو الأسود أو الأزرق أو أي زخرفة.
+        const checker=(r,g,b)=>{
+          const spread=Math.max(r,g,b)-Math.min(r,g,b);
+          const avg=(r+g+b)/3;
+          return spread<=8 && avg>=145 && avg<=252;
         };
 
-        const x1=Math.floor(w*.01),x2=Math.floor(w*.47);
-        const y1=Math.floor(h*.02),y2=Math.floor(h*.70);
-        let minX=w,maxX=0,minY=h,maxY=0,count=0;
-
-        // نأخذ فقط البكسلات الشطرنجية داخل الجزء الخاص بفتحة الصورة.
-        for(let y=y1;y<y2;y++){
-          for(let x=x1;x<x2;x++){
+        for(let y=top;y<=bottom;y++){
+          for(let x=left;x<=right;x++){
+            const ex=(x-cx)/rx,ey=(y-cy)/ry;
+            if(ex*ex+ey*ey>1.015)continue;
             const i=(y*w+x)*4;
-            if(isChecker(px[i],px[i+1],px[i+2],px[i+3])){
-              count++;
-              if(x<minX)minX=x;if(x>maxX)maxX=x;
-              if(y<minY)minY=y;if(y>maxY)maxY=y;
+            const r=d[i],g=d[i+1],b=d[i+2];
+            if(checker(r,g,b)){
+              d[i+3]=0;
             }
           }
         }
+        fctx.putImageData(data,0,0);
 
-        /*
-         * إذا وجدنا شطرنجًا، نستخدم حدوده الفعلية. نضيف هامشًا صغيرًا
-         * حتى تملأ صورة العضو الفتحة كاملة من الداخل، ثم نرسم بيضاويًا
-         * بدل ترك مربعات الشطرنج ظاهرة.
-         */
-        let left=minX,right=maxX,top=minY,bottom=maxY;
-        if(count<5000 || right-left<150 || bottom-top<150){
-          // fallback متوافق مع شكل الفريم الذكري الظاهر.
-          left=Math.floor(w*.035);right=Math.floor(w*.425);
-          top=Math.floor(h*.075);bottom=Math.floor(h*.535);
-        }
-
-        const insetX=Math.max(2,Math.round((right-left)*.008));
-        const insetY=Math.max(2,Math.round((bottom-top)*.008));
-        left+=insetX;right-=insetX;top+=insetY;bottom-=insetY;
-
-        const holeW=right-left+1,holeH=bottom-top+1;
+        // تجهيز صورة العضو بحيث تغطي الفتحة كاملة.
         const scale=Math.max(holeW/memberImg.naturalWidth,holeH/memberImg.naturalHeight);
-        const dw=memberImg.naturalWidth*scale,dh=memberImg.naturalHeight*scale;
-        const dx=left+(holeW-dw)/2,dy=top+(holeH-dh)/2;
+        const dw=memberImg.naturalWidth*scale;
+        const dh=memberImg.naturalHeight*scale;
+        const dx=cx-dw/2;
+        const dy=cy-dh/2;
 
         const photoLayer=document.createElement('canvas');
         photoLayer.width=w;photoLayer.height=h;
         const pctx=photoLayer.getContext('2d');
         pctx.drawImage(memberImg,dx,dy,dw,dh);
 
-        // فتحة بيضاوية كاملة؛ لا نترك مربعات الشطرنج تظهر.
+        // قص الصورة بدقة على شكل فتحة الفريم.
         const mask=document.createElement('canvas');
         mask.width=w;mask.height=h;
         const mctx=mask.getContext('2d');
         mctx.fillStyle='#fff';
         mctx.beginPath();
-        mctx.ellipse(
-          (left+right)/2,(top+bottom)/2,
-          holeW/2,holeH/2,0,0,Math.PI*2
-        );
+        mctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);
         mctx.fill();
 
         pctx.globalCompositeOperation='destination-in';
         pctx.drawImage(mask,0,0);
 
-        // صورة العضو خلف الفريم.
+        // الصورة أولًا، ثم الفريم بعد إزالة الشطرنج من منطقة الصورة.
         ctx.drawImage(photoLayer,0,0,w,h);
-        ctx.drawImage(fc,0,0,w,h);
+        ctx.drawImage(frameLayer,0,0,w,h);
         finish();
       };
       memberImg.onerror=()=>toast('⚠️ تعذر قراءة صورة العضو. اختر الصورة مرة أخرى.');
