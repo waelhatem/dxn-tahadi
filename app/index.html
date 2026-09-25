@@ -2982,7 +2982,16 @@ async function ragwanCopyMembershipRequirementsImage(){
 }
 function ragwanRenderStepSection(){
   const el=document.getElementById('ragwanStepSection');if(!el)return;
+  const item=(ragwanDoorData()||[])[ragwanCurrentStep-1]||{};
   const sections=ragwanStepSections[ragwanCurrentStep]||[];
+
+  // بعض الأبواب تحتوي على شرح تفصيلي مخصص داخل item.section.
+  // هذا المحتوى هو جزء أساسي من الخطة ويجب عرضه داخل صفحة الخطوة.
+  if(item.section){
+    el.innerHTML=item.section+ragwanBuildDxnSponsorAction();
+    return;
+  }
+
   if(ragwanCurrentStep===5){
     el.innerHTML='<section class="ragwan-step-section ragwan-goals-form-card">'+
       '<div class="ragwan-step-section-head"><span class="icon">🎯</span><b>استمارة الأهداف</b></div>'+
