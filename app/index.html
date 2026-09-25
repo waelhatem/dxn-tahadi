@@ -3071,7 +3071,7 @@ function ragwanOpenResource(url){
   const w=window.open(u,'_blank','noopener,noreferrer');
   if(!w)location.href=u;
 }
-function ragwanCopyStepResourceInfo(f,index){
+function ragwanCopyStepResourceInfo(f,index,allFiles){
   const step=Number(f?.step||ragwanCurrentStep)||ragwanCurrentStep;
   const name=String(f?.name||'الملف').trim();
   const size=ragwanFormatSize(f?.size);
@@ -3202,7 +3202,7 @@ function ragwanCopyStepResourceInfo(f,index){
       '',
       '✨ شارك وصفتك، أظهر إبداعك، وكن أحد الفائزين.',
       '💚 فريق الأمل — إبداعك يستحق أن يُشارك.'
-    ].join('\\n'),
+    ].join('\n'),
   'jpg.6':[
       '🚘 تحدي القادة — نحو القمة',
       '',
@@ -3234,10 +3234,20 @@ function ragwanCopyStepResourceInfo(f,index){
     ].join('\n'),
   };
 
-  // في الخطوة الخامسة نربط النص المصاغ بترتيب الصورة داخل قائمة الملفات،
-  // لذلك لا نعتمد على اسم الملف الذي قد يختلف في التخزين أو الواجهة.
+  // في الخطوة الخامسة نحسب ترتيب الصورة فقط، ونتجاهل الفيديوهات والملفات الأخرى.
+  // هذا يمنع تغيّر رقم الصورة إذا كان هناك فيديو أو ملف آخر بين الصور.
   const resourceIndex=Number.isInteger(Number(index))?Number(index):-1;
-  const imageNumber=Number(step)===5 && resourceIndex>=0?resourceIndex+1:null;
+  let imageNumber=null;
+  if(Number(step)===5 && resourceIndex>=0){
+    let imageCount=0;
+    for(let i=0;i<=resourceIndex;i++){
+      const item=Array.isArray(allFiles)?allFiles[i]:null;
+      const itemName=String(item?.name||'').toLowerCase();
+      const itemMime=String(item?.mime||'').toLowerCase();
+      if(itemMime.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(itemName)) imageCount++;
+    }
+    imageNumber=imageCount||null;
+  }
   const key=imageNumber?'jpg.'+imageNumber:name.toLowerCase();
   const description=curated[key];
   // زر النسخ مخصص لنسخ النص الجاهز لإرساله للعضو، وليس بيانات الملف أو رابطه.
@@ -3345,7 +3355,7 @@ function ragwanRenderStepResources(files){
   el.querySelectorAll('.js-ragwan-copy-info').forEach(btn=>btn.addEventListener('click',function(e){
     e.preventDefault();e.stopPropagation();
     const f=arr[Number(this.dataset.index)];
-    if(f)ragwanCopyStepResourceInfo(f,Number(this.dataset.index));
+    if(f)ragwanCopyStepResourceInfo(f,Number(this.dataset.index),arr);
   }));
   el.querySelectorAll('.js-ragwan-delete').forEach(btn=>btn.addEventListener('click',function(e){
     e.preventDefault();e.stopPropagation();
