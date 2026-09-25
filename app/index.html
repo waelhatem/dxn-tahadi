@@ -3409,7 +3409,7 @@ function ragwanRenderStep5VideoPreview(files){
 
     /* Door 5 — sponsor/member sharing control for the final video.
        This is a sharing action only; it does not grant any edit/delete permission. */
-    if(role!=='leader' && String(f&&f.url||'').trim()){
+    if(index===videos.length-1 && String(f&&f.url||'').trim()){
       const shareRow=document.createElement('div');
       shareRow.className='ragwan-step5-video-share';
       shareRow.style.marginTop='10px';
