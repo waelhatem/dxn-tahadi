@@ -4731,13 +4731,22 @@ function trainings(){
       <span class="training-feature-arrow">›</span>
     </button>
   </div>`;
+  const directLessonsButton=`<div class="training-back-to-lessons" style="margin:0 0 14px">
+    <button type="button" class="training-feature-card training-feature-lessons training-back-feature" onclick="switchTrainingSubtab('lessons')" aria-label="الدخول إلى الشروحات والتدريبات">
+      <span class="training-feature-shine"></span>
+      <span class="training-feature-badge">📚 ابدأ التدريبات</span>
+      <span class="training-feature-icon">📚</span>
+      <span class="training-feature-copy"><strong>التدريبات والشروحات</strong><small>الدخول مباشرة إلى الشروحات والتدريبات</small></span>
+      <span class="training-feature-arrow">›</span>
+    </button>
+  </div>`;
 
   if(trainingSubtab==='home'){
     return subTabs;
   }
 
   if(trainingSubtab==='ragwan_success_plan'){
-    return backChoice+`<div class="card">
+    return directLessonsButton+`<div class="card">
       <div class="title">📘 الخطة الاحترافية لرجوان نجاح</div>
       ${ragwanSuccessIntro()}
     </div>`;
