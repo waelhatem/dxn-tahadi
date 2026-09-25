@@ -3068,6 +3068,13 @@ function ragwanWelcomeMessage(data){
   ].join('\n');
 }
 
+function ragwanWelcomeScaleChanged(){
+  const input=document.getElementById('ragwanWelcomePhotoScale');
+  const value=document.getElementById('ragwanWelcomePhotoScaleValue');
+  if(input&&value)value.textContent=String(input.value)+'%';
+  ragwanWelcomeRenderPreview();
+}
+
 function ragwanWelcomeRenderPreview(){
   const canvas=document.getElementById('ragwanWelcomeCanvas'), preview=document.getElementById('ragwanWelcomePreview');
   if(!canvas||!preview)return;
@@ -3248,7 +3255,9 @@ function ragwanWelcomeRenderPreview(){
         }
 
         const holeW=right-left+1,holeH=bottom-top+1;
-        const scale=Math.max(holeW/memberImg.naturalWidth,holeH/memberImg.naturalHeight);
+        const baseScale=Math.max(holeW/memberImg.naturalWidth,holeH/memberImg.naturalHeight);
+        const scalePct=Math.max(60,Math.min(110,Number(document.getElementById('ragwanWelcomePhotoScale')?.value||75)));
+        const scale=baseScale*(scalePct/100);
         const dw=memberImg.naturalWidth*scale,dh=memberImg.naturalHeight*scale;
         const dx=left+(holeW-dw)/2,dy=top+(holeH-dh)/2;
 
@@ -3306,7 +3315,7 @@ function ragwanRenderWelcomeBuilder(){
       '<div class="ragwan-welcome-form">'+
         '<div class="ragwan-welcome-note"><b>أولًا: شروط الانضمام</b><p>أرسل هذه الشروط للعضو الجديد قبل إضافته إلى المجموعة، وانتظر موافقته.</p><button type="button" onclick="ragwanCopyWelcomeConditions()">📋 نسخ شروط الانضمام</button></div>'+
         '<label>🚻 جنس العضو</label><select id="ragwanWelcomeGender" onchange="ragwanWelcomeGenderChanged()"><option value="male">👨 ذكر</option><option value="female">👩 أنثى</option></select>'+
-        '<div id="ragwanWelcomePhotoWrap"><label>📸 صورة العضو (للذكر)</label><input id="ragwanWelcomePhoto" type="file" accept="image/*" onchange="ragwanWelcomeRenderPreview()"><small>تُستخدم صورة العضو الحقيقية وتوضع داخل المساحة المخصصة في فريم الذكور.</small></div>'+
+        '<div id="ragwanWelcomePhotoWrap"><label>📸 صورة العضو (للذكر)</label><input id="ragwanWelcomePhoto" type="file" accept="image/*" onchange="ragwanWelcomeRenderPreview()"><small>تُستخدم صورة العضو الحقيقية وتوضع داخل المساحة المخصصة في فريم الذكور.</small><div style="margin-top:10px;padding:10px 12px;border:1px solid rgba(212,168,52,.35);border-radius:12px;background:rgba(255,255,255,.55)"><label for="ragwanWelcomePhotoScale" style="display:flex;justify-content:space-between;align-items:center;gap:10px">⚖️ مقياس صورة العضو <b id="ragwanWelcomePhotoScaleValue">75%</b></label><input id="ragwanWelcomePhotoScale" type="range" min="60" max="110" step="1" value="75" style="width:100%" oninput="ragwanWelcomeScaleChanged()"><small>حرّك الميزان حتى يظهر الرأس مع جزء مناسب من الرقبة داخل الفتحة.</small></div></div>'+
         '<label>👤 اسم العضو</label><input id="ragwanWelcomeName" type="text" placeholder="مثال: مصطفى" oninput="ragwanWelcomeUpdate()">'+
         '<label>🔢 رقم العضوية</label><input id="ragwanWelcomeMemberNo" type="text" inputmode="numeric" placeholder="رقم العضوية" oninput="ragwanWelcomeUpdate()">'+
         '<label>🌍 البلد</label><input id="ragwanWelcomeCountry" type="text" placeholder="مثال: العراق" oninput="ragwanWelcomeUpdate()">'+
