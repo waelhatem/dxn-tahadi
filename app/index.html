@@ -215,6 +215,11 @@ button[disabled]:focus-visible{outline-color:#667085!important}
 
 /* V87.8 — Door 5 material preview: actions first, visual preview below. */
 .ragwan-resource-preview{width:100%;margin-top:2px;border:1px solid #dfe9e5;border-radius:14px;overflow:hidden;background:#f4f8f6;display:flex;align-items:center;justify-content:center;box-sizing:border-box}
+.ragwan-resource-video-preview{background:#071a14;padding:0;aspect-ratio:16/9}
+.ragwan-resource-video-preview video{display:block;width:100%;height:100%;max-width:100%;object-fit:contain;background:#071a14}
+@media(max-width:650px){
+  .ragwan-resource-actions.video-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+}
 .ragwan-resource-image-preview{aspect-ratio:1/1;min-height:180px;max-height:420px;background:#fff}
 .ragwan-resource-image-preview img{display:block;width:100%;height:100%;object-fit:contain;background:#fff}
 .ragwan-resource-file-preview,.ragwan-resource-video-placeholder{min-height:150px;flex-direction:column;gap:6px;color:#71817a}
@@ -3337,17 +3342,18 @@ function ragwanRenderStepResources(files){
 
     const preview=(isImage&&url)
       ? '<div class="ragwan-resource-preview ragwan-resource-image-preview"><img src="'+esc(url)+'" alt="'+name+'" loading="lazy"></div>'
-      : (isVideo
-        ? '<div class="ragwan-resource-preview ragwan-resource-video-placeholder"><span>🎥</span><small>الفيديو معروض أسفل المواد</small></div>'
+      : (isVideo&&url
+        ? '<div class="ragwan-resource-preview ragwan-resource-video-preview"><video controls playsinline preload="metadata" src="'+esc(url)+'" aria-label="'+name+'"></video></div>'
         : '<div class="ragwan-resource-preview ragwan-resource-file-preview"><span>'+ragwanFileIcon(f)+'</span><small>ملف '+esc(ragwanFormatSize(f?.size))+'</small></div>');
 
     const primary=isImage&&url
       ? '<button type="button" class="ragwan-resource-open js-ragwan-copy-image" data-index="'+index+'">📋 نسخ الصورة</button>'
       : (url ? '<a class="ragwan-resource-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.preventDefault();event.stopPropagation();ragwanOpenResource(this.href)">📖 فتح الملف</a>' : '');
 
-    const actions='<div class="ragwan-resource-actions" aria-label="أدوات المادة">'+
+    const actions='<div class="ragwan-resource-actions'+(isVideo&&url?' video-actions':'')+'" aria-label="أدوات المادة">'+
       primary+
       '<button type="button" class="ragwan-resource-copy js-ragwan-copy-info" data-index="'+index+'">📋 نسخ المعلومات</button>'+
+      (isVideo&&url?'<button type="button" class="ragwan-resource-copy js-ragwan-share-video" data-index="'+index+'">📤 مشاركة الفيديو</button>':'')+
       (role==='leader'?'<button type="button" class="ragwan-resource-delete js-ragwan-delete" data-index="'+index+'">🗑️ حذف</button>':'')+
       '</div>';
 
@@ -3371,6 +3377,33 @@ function ragwanRenderStepResources(files){
     e.preventDefault();e.stopPropagation();
     const f=arr[Number(this.dataset.index)];
     if(f)ragwanCopyStepResourceInfo(f,Number(this.dataset.index),arr);
+  }));
+  el.querySelectorAll('.js-ragwan-share-video').forEach(btn=>btn.addEventListener('click',async function(e){
+    e.preventDefault();e.stopPropagation();
+    const f=arr[Number(this.dataset.index)];
+    const videoUrl=String(f&&f.url||'').trim();
+    if(!videoUrl)return;
+    const videoName=String(f&&f.name||'فيديو الخطوة');
+    const shareData={title:videoName,text:'🎥 '+videoName+' — شاهد الفيديو ثم أكمل الخطوة.',url:videoUrl};
+    try{
+      if(navigator.share){
+        await navigator.share(shareData);
+        return;
+      }
+    }catch(err){
+      if(err&&err.name==='AbortError')return;
+    }
+    try{
+      await navigator.clipboard.writeText(videoUrl);
+      toast('✅ تم نسخ رابط الفيديو. يمكنك إرساله للعضو الجديد عبر واتساب أو أي تطبيق.');
+    }catch(err){
+      const ta=document.createElement('textarea');
+      ta.value=videoUrl;
+      ta.style.position='fixed';ta.style.opacity='0';
+      document.body.appendChild(ta);ta.select();
+      try{document.execCommand('copy');toast('✅ تم نسخ رابط الفيديو. أرسله للعضو الجديد.');}
+      finally{ta.remove();}
+    }
   }));
   el.querySelectorAll('.js-ragwan-delete').forEach(btn=>btn.addEventListener('click',function(e){
     e.preventDefault();e.stopPropagation();
