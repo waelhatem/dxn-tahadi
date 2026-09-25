@@ -3027,6 +3027,7 @@ function ragwanWelcomeConditionsText(){
 function ragwanWelcomeMessage(data){
   const d=data||{}, female=d.gender==='female';
   const name=String(d.name||'').trim()||'عضونا الجديد';
+  const firstName=name.split(/\s+/)[0]||name;
   const no=String(d.memberNo||'').trim()||'................';
   const country=String(d.country||'').trim(), city=String(d.city||'').trim();
   const place=[country,city].filter(Boolean).join(' – ');
@@ -3041,7 +3042,7 @@ function ragwanWelcomeMessage(data){
   const siblings=female?'إخوتكِ':'إخوتك';
   const star=female?'نجمكِ':'نجمك';
   const achievements=female?'إنجازاتكِ':'إنجازاتك';
-  const final=female?'أهلاً بكِ بيننا '+name+' 💜\nوبالتوفيق في بداية رحلتكِ الجديدة. 🚀✨':'أهلاً بك بيننا '+name+' 💜\nوبالتوفيق في بداية رحلتك الجديدة. 🚀✨';
+  const final=female?'أهلاً بكِ بيننا '+firstName+' 💜\nوبالتوفيق في بداية رحلتكِ الجديدة. 🚀✨':'أهلاً بك بيننا '+firstName+' 💜\nوبالتوفيق في بداية رحلتك الجديدة. 🚀✨';
   return [
     '♥️ السلام عليكم ورحمة الله وبركاته ♥️','',
     '👑 بكل فخر وسعادة نرحب بانضمام 👑',
