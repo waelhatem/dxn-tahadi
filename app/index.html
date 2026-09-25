@@ -3068,30 +3068,34 @@ function ragwanWelcomeMessage(data){
   ].join('\n');
 }
 
-let ragwanWelcomeMalePhotoData='';
-
 function ragwanWelcomeRenderPreview(){
   const canvas=document.getElementById('ragwanWelcomeCanvas'), preview=document.getElementById('ragwanWelcomePreview');
   if(!canvas||!preview)return;
-
   const gender=document.getElementById('ragwanWelcomeGender')?.value||'male';
   const name=String(document.getElementById('ragwanWelcomeName')?.value||'').trim()||'عضو جديد';
   const memberNo=String(document.getElementById('ragwanWelcomeMemberNo')?.value||'').trim()||'................';
-  const file=document.getElementById('ragwanWelcomePhoto')?.files?.[0];
+  const frame=new Image(); frame.crossOrigin='anonymous';
 
-  const renderWithPhoto=(photoSrc)=>{
-    const frame=new Image();
-    frame.onload=()=>{
-      const ctx=canvas.getContext('2d');
-      const w=frame.naturalWidth||1200,h=frame.naturalHeight||1600;
-      canvas.width=w;canvas.height=h;
-      ctx.clearRect(0,0,w,h);
+  frame.onload=()=>{
+    const ctx=canvas.getContext('2d');
+    const w=frame.naturalWidth||1200,h=frame.naturalHeight||1600;
+    canvas.width=w;canvas.height=h;ctx.clearRect(0,0,w,h);
 
-      const drawFinalFrame=()=>{
-        // نضع الفريم في النهاية حتى تبقى الحواف الذهبية والزخارف فوق صورة العضو.
-        ctx.drawImage(frame,0,0,w,h);
+    const photo=document.getElementById('ragwanWelcomePhoto')?.files?.[0];
 
-        // بطاقة البيانات في الفريم النظيف: لا نغطي الخلفية بمستطيلات.
+    // فريم الذكور: الصورة تُقص داخل الفتحة البيضاوية الحقيقية، ثم يُرسم الفريم فوقها
+    // حتى تبقى الحواف الذهبية والزهور والشريط في المقدمة.
+    const drawFrame=()=>{
+      ctx.drawImage(frame,0,0,w,h);
+
+      if(gender==='male'){
+        // تنظيف بيانات العضو التجريبية من الفريم الأصلي مع الحفاظ على بطاقة العضو وخطوطها.
+        ctx.save();
+        ctx.fillStyle='#fff7e8';
+        ctx.fillRect(.415*w,.542*h,.325*w,.055*h); // الاسم القديم
+        ctx.fillRect(.455*w,.625*h,.265*w,.055*h); // الرقم القديم
+        ctx.restore();
+
         ctx.save();
         ctx.direction='rtl';
         ctx.textAlign='center';
@@ -3099,65 +3103,54 @@ function ragwanWelcomeRenderPreview(){
         ctx.fillStyle='#102846';
         ctx.font='900 '+Math.round(w*.034)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
         ctx.fillText(name,.575*w,.569*h);
-        ctx.font='900 '+Math.round(w*.042)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif;
+        ctx.font='900 '+Math.round(w*.042)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
         ctx.fillText(memberNo,.587*w,.653*h);
         ctx.restore();
-
-        preview.src=canvas.toDataURL('image/png');
-      };
-
-      if(gender!=='male'||!photoSrc){
-        drawFinalFrame();
-        return;
       }
 
-      const img=new Image();
-      img.onload=()=>{
-        /*
-         * فتحة الصورة في الفريم الذكري:
-         * نستخدم نفس النسبة المربعة تقريباً، لكن القص يكون cover
-         * مع تمركز الوجه في منتصف الفتحة.
-         */
-        const box={x:.045,y:.066,w:.405,h:.405};
-        const bw=box.w*w,bh=box.h*h;
-        const scale=Math.max(bw/img.width,bh/img.height);
-        const dw=img.width*scale,dh=img.height*scale;
-        const x=box.x*w+(bw-dw)/2;
-        const y=box.y*h+(bh-dh)/2;
-
-        ctx.save();
-        ctx.beginPath();
-        ctx.ellipse(
-          (box.x+box.w/2)*w,
-          (box.y+box.h/2)*h,
-          bw/2,
-          bh/2,
-          0,0,Math.PI*2
-        );
-        ctx.clip();
-        ctx.drawImage(img,x,y,dw,dh);
-        ctx.restore();
-
-        drawFinalFrame();
-      };
-      img.onerror=()=>toast('⚠️ تعذر قراءة صورة العضو. اختر الصورة مرة أخرى.');
-      img.src=photoSrc;
+      preview.src=canvas.toDataURL('image/png');
     };
-    frame.onerror=()=>toast('⚠️ تعذر تحميل فريم الترحيب.');
-    frame.src=gender==='female'?RAGWAN_WELCOME_FRAME_FEMALE:RAGWAN_WELCOME_FRAME_MALE;
+
+    if(gender==='male'&&photo){
+      const reader=new FileReader();
+      reader.onload=e=>{
+        const img=new Image();
+        img.onload=()=>{
+          // الفتحة الحقيقية في الفريم الذكري تقريباً: بيضاوية بعرض 500 وارتفاع 510 بكسل.
+          const box={x:.045,y:.066,w:.405,h:.405};
+          const bw=box.w*w,bh=box.h*h;
+          const scale=Math.max(bw/img.width,bh/img.height);
+          const dw=img.width*scale,dh=img.height*scale;
+          const x=box.x*w+(bw-dw)/2,y=box.y*h+(bh-dh)/2;
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.ellipse(
+            (box.x+box.w/2)*w,
+            (box.y+box.h/2)*h,
+            (box.w*w)/2,
+            (box.h*h)/2,
+            0,0,Math.PI*2
+          );
+          ctx.clip();
+          ctx.drawImage(img,x,y,dw,dh);
+          ctx.restore();
+
+          drawFrame();
+        };
+        img.src=e.target.result;
+      };
+      reader.readAsDataURL(photo);
+    }else{
+      drawFrame();
+    }
   };
 
-  if(gender==='male'&&file){
-    const reader=new FileReader();
-    reader.onload=e=>{
-      ragwanWelcomeMalePhotoData=String(e.target.result||'');
-      renderWithPhoto(ragwanWelcomeMalePhotoData);
-    };
-    reader.onerror=()=>toast('⚠️ تعذر قراءة صورة العضو.');
-    reader.readAsDataURL(file);
-  }else{
-    renderWithPhoto(gender==='male'?ragwanWelcomeMalePhotoData:'');
-  }
+  frame.onerror=()=>{
+    preview.removeAttribute('src');
+    toast('⚠️ تعذر تحميل فريم الترحيب. تأكد من اسم ملف الفريم داخل GitHub.');
+  };
+  frame.src=gender==='female'?RAGWAN_WELCOME_FRAME_FEMALE:RAGWAN_WELCOME_FRAME_MALE;
 }
 async function ragwanCopyWelcomeMessage(){
   const gender=document.getElementById('ragwanWelcomeGender')?.value||'male';
