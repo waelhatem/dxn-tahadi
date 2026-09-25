@@ -3068,6 +3068,19 @@ function ragwanWelcomeMessage(data){
   ].join('\n');
 }
 
+let ragwanWelcomePhotoOffsetX=0;
+let ragwanWelcomePhotoOffsetY=0;
+let ragwanWelcomeDragState=null;
+let ragwanWelcomeLastGender='male';
+let ragwanWelcomeFrameCache={src:'',img:null};
+let ragwanWelcomeMemberCache={key:'',img:null};
+
+function ragwanWelcomeResetPhotoPosition(){
+  ragwanWelcomePhotoOffsetX=0;
+  ragwanWelcomePhotoOffsetY=0;
+  ragwanWelcomeRenderPreview();
+}
+
 function ragwanWelcomeScaleChanged(){
   const input=document.getElementById('ragwanWelcomePhotoScale');
   const value=document.getElementById('ragwanWelcomePhotoScaleValue');
@@ -3089,14 +3102,22 @@ function ragwanWelcomeRenderPreview(){
     : ['/welcome_male_frame.png','/app/welcome_male_frame.png'];
 
   function loadFrame(index){
+    const framePath=framePaths[index];
+    if(ragwanWelcomeFrameCache.src===framePath && ragwanWelcomeFrameCache.img && ragwanWelcomeFrameCache.img.complete){
+      renderWithFrame(ragwanWelcomeFrameCache.img);
+      return;
+    }
     const frame=new Image();
-    frame.onload=()=>renderWithFrame(frame);
+    frame.onload=()=>{
+      ragwanWelcomeFrameCache={src:framePath,img:frame};
+      renderWithFrame(frame);
+    };
     frame.onerror=()=>{
       if(index<framePaths.length-1){ loadFrame(index+1); return; }
       preview.removeAttribute('src');
       toast('⚠️ تعذر تحميل فريم الترحيب. تأكد من وجود ملف الفريم داخل GitHub.');
     };
-    frame.src=framePaths[index]+'?v=20260925-2';
+    frame.src=framePath+'?v=20260925-2';
   }
 
   function renderWithFrame(frame){
@@ -3134,6 +3155,10 @@ function ragwanWelcomeRenderPreview(){
       preview.style.height='auto';
       preview.style.objectFit='contain';
       preview.style.margin='0 auto';
+      preview.style.cursor=(gender==='male' && photo)?'grab':'default';
+      preview.style.touchAction=(gender==='male' && photo)?'none':'auto';
+      preview.title=(gender==='male' && photo)?'اسحب صورة العضو بالماوس أو اللمس لضبط الرأس والرقبة داخل الفريم':'';
+
     };
 
     if(gender!=='male'||!photo){
@@ -3142,10 +3167,7 @@ function ragwanWelcomeRenderPreview(){
       return;
     }
 
-    const reader=new FileReader();
-    reader.onload=e=>{
-      const memberImg=new Image();
-      memberImg.onload=()=>{
+    const drawMemberImage=(memberImg)=>{
         const frameLayer=document.createElement('canvas');
         frameLayer.width=w;frameLayer.height=h;
         const fctx=frameLayer.getContext('2d');
@@ -3259,7 +3281,8 @@ function ragwanWelcomeRenderPreview(){
         const scalePct=Math.max(60,Math.min(110,Number(document.getElementById('ragwanWelcomePhotoScale')?.value||75)));
         const scale=baseScale*(scalePct/100);
         const dw=memberImg.naturalWidth*scale,dh=memberImg.naturalHeight*scale;
-        const dx=left+(holeW-dw)/2,dy=top+(holeH-dh)/2;
+        const dx=left+(holeW-dw)/2+ragwanWelcomePhotoOffsetX;
+        const dy=top+(holeH-dh)/2+ragwanWelcomePhotoOffsetY;
 
         const photoLayer=document.createElement('canvas');
         photoLayer.width=w;photoLayer.height=h;
@@ -3273,6 +3296,20 @@ function ragwanWelcomeRenderPreview(){
         ctx.drawImage(photoLayer,0,0,w,h);
         ctx.drawImage(frameLayer,0,0,w,h);
         finish();
+    };
+
+    const photoKey=photo.name+'|'+photo.size+'|'+photo.lastModified;
+    if(ragwanWelcomeMemberCache.key===photoKey && ragwanWelcomeMemberCache.img && ragwanWelcomeMemberCache.img.complete){
+      drawMemberImage(ragwanWelcomeMemberCache.img);
+      return;
+    }
+
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const memberImg=new Image();
+      memberImg.onload=()=>{
+        ragwanWelcomeMemberCache={key:photoKey,img:memberImg};
+        drawMemberImage(memberImg);
       };
       memberImg.onerror=()=>toast('⚠️ تعذر قراءة صورة العضو. اختر الصورة مرة أخرى.');
       memberImg.src=String(e.target.result||'');
@@ -3283,6 +3320,56 @@ function ragwanWelcomeRenderPreview(){
 
   loadFrame(0);
 }
+function ragwanBindWelcomePhotoDrag(){
+  const preview=document.getElementById('ragwanWelcomePreview');
+  if(!preview || preview.dataset.dragBound==='1') return;
+  preview.dataset.dragBound='1';
+
+  preview.addEventListener('pointerdown',e=>{
+    const gender=document.getElementById('ragwanWelcomeGender')?.value||'male';
+    const photo=document.getElementById('ragwanWelcomePhoto')?.files?.[0];
+    if(gender!=='male'||!photo) return;
+    e.preventDefault();
+    preview.setPointerCapture?.(e.pointerId);
+    ragwanWelcomeDragState={
+      pointerId:e.pointerId,
+      startX:e.clientX,
+      startY:e.clientY,
+      startOffsetX:ragwanWelcomePhotoOffsetX,
+      startOffsetY:ragwanWelcomePhotoOffsetY,
+      raf:0
+    };
+    preview.style.cursor='grabbing';
+  });
+
+  preview.addEventListener('pointermove',e=>{
+    if(!ragwanWelcomeDragState || e.pointerId!==ragwanWelcomeDragState.pointerId) return;
+    e.preventDefault();
+    const rect=preview.getBoundingClientRect();
+    const canvas=document.getElementById('ragwanWelcomeCanvas');
+    const scaleX=canvas&&rect.width ? canvas.width/rect.width : 1;
+    const scaleY=canvas&&rect.height ? canvas.height/rect.height : scaleX;
+    ragwanWelcomePhotoOffsetX=ragwanWelcomeDragState.startOffsetX+(e.clientX-ragwanWelcomeDragState.startX)*scaleX;
+    ragwanWelcomePhotoOffsetY=ragwanWelcomeDragState.startOffsetY+(e.clientY-ragwanWelcomeDragState.startY)*scaleY;
+    if(!ragwanWelcomeDragState.raf){
+      ragwanWelcomeDragState.raf=requestAnimationFrame(()=>{
+        if(ragwanWelcomeDragState) ragwanWelcomeRenderPreview();
+        if(ragwanWelcomeDragState) ragwanWelcomeDragState.raf=0;
+      });
+    }
+  });
+
+  const endDrag=()=>{
+    if(!ragwanWelcomeDragState) return;
+    if(ragwanWelcomeDragState.raf) cancelAnimationFrame(ragwanWelcomeDragState.raf);
+    ragwanWelcomeDragState=null;
+    preview.style.cursor='grab';
+  };
+  preview.addEventListener('pointerup',endDrag);
+  preview.addEventListener('pointercancel',endDrag);
+  preview.addEventListener('lostpointercapture',endDrag);
+}
+
 async function ragwanCopyWelcomeMessage(){
   const gender=document.getElementById('ragwanWelcomeGender')?.value||'male';
   const data={gender,name:document.getElementById('ragwanWelcomeName')?.value,memberNo:document.getElementById('ragwanWelcomeMemberNo')?.value,country:document.getElementById('ragwanWelcomeCountry')?.value,city:document.getElementById('ragwanWelcomeCity')?.value};
@@ -3315,7 +3402,7 @@ function ragwanRenderWelcomeBuilder(){
       '<div class="ragwan-welcome-form">'+
         '<div class="ragwan-welcome-note"><b>أولًا: شروط الانضمام</b><p>أرسل هذه الشروط للعضو الجديد قبل إضافته إلى المجموعة، وانتظر موافقته.</p><button type="button" onclick="ragwanCopyWelcomeConditions()">📋 نسخ شروط الانضمام</button></div>'+
         '<label>🚻 جنس العضو</label><select id="ragwanWelcomeGender" onchange="ragwanWelcomeGenderChanged()"><option value="male">👨 ذكر</option><option value="female">👩 أنثى</option></select>'+
-        '<div id="ragwanWelcomePhotoWrap"><label>📸 صورة العضو (للذكر)</label><input id="ragwanWelcomePhoto" type="file" accept="image/*" onchange="ragwanWelcomeRenderPreview()"><small>تُستخدم صورة العضو الحقيقية وتوضع داخل المساحة المخصصة في فريم الذكور.</small><div style="margin-top:10px;padding:10px 12px;border:1px solid rgba(212,168,52,.35);border-radius:12px;background:rgba(255,255,255,.55)"><label for="ragwanWelcomePhotoScale" style="display:flex;justify-content:space-between;align-items:center;gap:10px">⚖️ مقياس صورة العضو <b id="ragwanWelcomePhotoScaleValue">75%</b></label><input id="ragwanWelcomePhotoScale" type="range" min="60" max="110" step="1" value="75" style="width:100%" oninput="ragwanWelcomeScaleChanged()"><small>حرّك الميزان حتى يظهر الرأس مع جزء مناسب من الرقبة داخل الفتحة.</small></div></div>'+
+        '<div id="ragwanWelcomePhotoWrap"><label>📸 صورة العضو (للذكر)</label><input id="ragwanWelcomePhoto" type="file" accept="image/*" onchange="ragwanWelcomeResetPhotoPosition()"><small>تُستخدم صورة العضو الحقيقية وتوضع داخل المساحة المخصصة في فريم الذكور.</small><div style="margin-top:10px;padding:10px 12px;border:1px solid rgba(212,168,52,.35);border-radius:12px;background:rgba(255,255,255,.55)"><label for="ragwanWelcomePhotoScale" style="display:flex;justify-content:space-between;align-items:center;gap:10px">⚖️ مقياس صورة العضو <b id="ragwanWelcomePhotoScaleValue">75%</b></label><input id="ragwanWelcomePhotoScale" type="range" min="60" max="110" step="1" value="75" style="width:100%" oninput="ragwanWelcomeScaleChanged()"><small>حرّك الميزان للحجم، ثم <b>اسحب صورة العضو بالماوس أو بإصبعك</b> داخل المعاينة حتى تضبط الرأس والرقبة داخل الفتحة.</small><button type="button" onclick="ragwanWelcomeResetPhotoPosition()" style="margin-top:8px;width:100%">↺ إعادة تمركز الصورة</button></div></div>'+
         '<label>👤 اسم العضو</label><input id="ragwanWelcomeName" type="text" placeholder="مثال: مصطفى" oninput="ragwanWelcomeUpdate()">'+
         '<label>🔢 رقم العضوية</label><input id="ragwanWelcomeMemberNo" type="text" inputmode="numeric" placeholder="رقم العضوية" oninput="ragwanWelcomeUpdate()">'+
         '<label>🌍 البلد</label><input id="ragwanWelcomeCountry" type="text" placeholder="مثال: العراق" oninput="ragwanWelcomeUpdate()">'+
@@ -3331,6 +3418,7 @@ function ragwanRenderWelcomeBuilder(){
     '</div>'+
     '<div class="ragwan-welcome-message-box"><b>📝 الرسالة الناتجة</b><pre id="ragwanWelcomeMessagePreview"></pre></div>';
   ragwanWelcomeGenderChanged();
+  ragwanBindWelcomePhotoDrag();
 }
 function ragwanWelcomeUpdate(){
   const data={gender:document.getElementById('ragwanWelcomeGender')?.value||'male',name:document.getElementById('ragwanWelcomeName')?.value,memberNo:document.getElementById('ragwanWelcomeMemberNo')?.value,country:document.getElementById('ragwanWelcomeCountry')?.value,city:document.getElementById('ragwanWelcomeCity')?.value};
@@ -3339,6 +3427,11 @@ function ragwanWelcomeUpdate(){
 }
 function ragwanWelcomeGenderChanged(){
   const gender=document.getElementById('ragwanWelcomeGender')?.value||'male';
+  if(gender!==ragwanWelcomeLastGender){
+    ragwanWelcomePhotoOffsetX=0;
+    ragwanWelcomePhotoOffsetY=0;
+    ragwanWelcomeLastGender=gender;
+  }
   const wrap=document.getElementById('ragwanWelcomePhotoWrap');if(wrap)wrap.style.display=gender==='male'?'block':'none';
   ragwanWelcomeUpdate();
 }
