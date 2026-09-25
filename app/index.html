@@ -3168,7 +3168,6 @@ function ragwanWelcomeRenderPreview(){
     }
 
     const drawMemberImage=(memberImg)=>{
-      try{
         const frameLayer=document.createElement('canvas');
         frameLayer.width=w;frameLayer.height=h;
         const fctx=frameLayer.getContext('2d');
@@ -3272,34 +3271,25 @@ function ragwanWelcomeRenderPreview(){
         hmctx.putImageData(hd,0,0);
 
         /*
-         * تصحيح مهم لفتحة الفريم:
-         * القناع الإهليلجي السابق كان أوسع من الفتحة البصرية الحقيقية،
-         * لذلك كان يترك شريطًا أبيض ظاهرًا بجانب صورة العضو.
-         * هنا ننظف الحافة الداخلية للقناع نفسه، وليس صورة العضو ولا الفريم.
-         * نضيق الفتحة من الجهة اليمنى قليلًا ونمنع أي بكسلات خارج منطقة
-         * الصورة الفعلية من الظهور تحت الفريم.
+         * تنظيف أي بكسلات بيضاء/رمادية فاتحة عالقة داخل فتحة صورة العضو.
+         * هذه البكسلات ليست جزءًا من زخرفة الفريم، وقد تظهر كخط أبيض
+         * رفيع فوق حافة صورة العضو. نحذفها من طبقة الفريم فقط داخل الفتحة،
+         * مع إبقاء باقي الفريم والزخارف دون أي تغيير.
          */
-        {
-          const innerRight=Math.floor(w*.385);
-          const innerTop=Math.floor(h*.055);
-          const innerBottom=Math.floor(h*.735);
-          const icx=(w*.015+innerRight)/2;
-          const icy=(innerTop+innerBottom)/2;
-          const irx=(innerRight-w*.015)/2;
-          const iry=(innerBottom-innerTop)/2;
-          for(let y=innerTop;y<=innerBottom;y++){
-            for(let x=Math.floor(w*.015);x<=innerRight;x++){
-              const i=(y*w+x)*4;
-              const inside=((x-icx)*(x-icx))/(irx*irx)+((y-icy)*(y-icy))/(iry*iry)<=1;
-              if(!inside) hd.data[i+3]=0;
+        try{
+          const fd=fctx.getImageData(0,0,w,h);
+          const md=hd.data;
+          for(let i=0;i<fd.data.length;i+=4){
+            if(md[i+3]===0) continue;
+            const r=fd.data[i],g=fd.data[i+1],b=fd.data[i+2],a=fd.data[i+3];
+            const neutral=(Math.max(r,g,b)-Math.min(r,g,b))<=12;
+            const nearWhite=neutral && r>=238 && g>=238 && b>=238;
+            if(nearWhite && a>0){
+              fd.data[i+3]=0;
             }
           }
-          hmctx.putImageData(hd,0,0);
-          left=Math.floor(w*.02);
-          right=innerRight;
-          top=innerTop;
-          bottom=innerBottom;
-        }
+          fctx.putImageData(fd,0,0);
+        }catch(_){}
 
         // نستخدم حدود القناع الفعلية لوضع صورة الرجل في منتصف الفتحة.
         if(right<=left||bottom<=top){
@@ -3308,13 +3298,7 @@ function ragwanWelcomeRenderPreview(){
         }
 
         const holeW=right-left+1,holeH=bottom-top+1;
-        /*
-         * ثبّت حجم الصورة على أبعاد الفتحة الأصلية المستخدمة قبل تصحيح القناع.
-         * لا نجعل تضييق القناع الأخير يكبّر صورة العضو.
-         */
-        const sizeHoleW=w*.38;
-        const sizeHoleH=h*.68;
-        const baseScale=Math.max(sizeHoleW/memberImg.naturalWidth,sizeHoleH/memberImg.naturalHeight);
+        const baseScale=Math.max(holeW/memberImg.naturalWidth,holeH/memberImg.naturalHeight);
         const scalePct=Math.max(60,Math.min(110,Number(document.getElementById('ragwanWelcomePhotoScale')?.value||75)));
         const scale=baseScale*(scalePct/100);
         const dw=memberImg.naturalWidth*scale,dh=memberImg.naturalHeight*scale;
@@ -3333,14 +3317,6 @@ function ragwanWelcomeRenderPreview(){
         ctx.drawImage(photoLayer,0,0,w,h);
         ctx.drawImage(frameLayer,0,0,w,h);
         finish();
-      }catch(err){
-        console.error('ragwanWelcomeRenderPreview:',err);
-        // لا نترك المعاينة فارغة إذا حدث خطأ أثناء تركيب صورة العضو.
-        ctx.clearRect(0,0,w,h);
-        ctx.drawImage(frame,0,0,w,h);
-        finish();
-        toast('⚠️ حدث خطأ أثناء تركيب صورة العضو، تم عرض الفريم الأساسي.');
-      }
     };
 
     const photoKey=photo.name+'|'+photo.size+'|'+photo.lastModified;
