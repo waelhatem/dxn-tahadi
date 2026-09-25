@@ -3075,8 +3075,16 @@ function ragwanSubmitStepTest(){
 function ragwanOpenResource(url){
   const u=String(url||'').trim();
   if(!u)return;
-  const w=window.open(u,'_blank','noopener,noreferrer');
-  if(!w)location.href=u;
+  // فتح المادة في نافذة مستقلة بدل نقل العضو من صفحة التدريب.
+  const features='popup=yes,width=1100,height=800,resizable=yes,scrollbars=yes,noopener,noreferrer';
+  const w=window.open(u,'ragwan_resource_window',features);
+  if(w){
+    try{w.focus();}catch(_){}
+    return;
+  }
+  // إذا منع المتصفح النوافذ المنبثقة، نستخدم تبويبًا جديدًا بدل كسر الصفحة.
+  const tab=window.open(u,'_blank');
+  if(tab){try{tab.focus();}catch(_){}}
 }
 function ragwanCopyStepResourceInfo(f,index,allFiles){
   const step=Number(f?.step||ragwanCurrentStep)||ragwanCurrentStep;
