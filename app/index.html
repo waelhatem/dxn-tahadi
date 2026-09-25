@@ -3407,6 +3407,56 @@ function ragwanRenderStep5VideoPreview(files){
     video.src=String(f&&f.url||'');
     card.appendChild(video);
 
+    /* Door 5 — sponsor/member sharing control for the final video.
+       This is a sharing action only; it does not grant any edit/delete permission. */
+    if(role!=='leader' && String(f&&f.url||'').trim()){
+      const shareRow=document.createElement('div');
+      shareRow.className='ragwan-step5-video-share';
+      shareRow.style.marginTop='10px';
+      shareRow.style.display='flex';
+      shareRow.style.gap='8px';
+      shareRow.style.width='100%';
+
+      const shareBtn=document.createElement('button');
+      shareBtn.type='button';
+      shareBtn.className='ragwan-step5-video-share-btn';
+      shareBtn.textContent='📤 مشاركة الفيديو مع العضو الجديد';
+      shareBtn.style.flex='1';
+      shareBtn.style.minHeight='48px';
+      shareBtn.style.border='0';
+      shareBtn.style.borderRadius='13px';
+      shareBtn.style.background='linear-gradient(135deg,#0f513f,#176b55)';
+      shareBtn.style.color='#fff';
+      shareBtn.style.fontWeight='950';
+      shareBtn.style.cursor='pointer';
+      shareBtn.addEventListener('click',async function(){
+        const videoUrl=String(f&&f.url||'').trim();
+        const videoName=String(f&&f.name||'فيديو الباب الخامس');
+        const shareData={title:videoName,text:'🎥 فيديو الباب الخامس — شاهد الفيديو ثم أكمل الخطوة.',url:videoUrl};
+        try{
+          if(navigator.share){
+            await navigator.share(shareData);
+            return;
+          }
+        }catch(err){
+          if(err&&err.name==='AbortError')return;
+        }
+        try{
+          await navigator.clipboard.writeText(videoUrl);
+          toast('✅ تم نسخ رابط الفيديو. يمكنك إرساله للعضو الجديد عبر واتساب أو أي تطبيق.');
+        }catch(err){
+          const ta=document.createElement('textarea');
+          ta.value=videoUrl;
+          ta.style.position='fixed';ta.style.opacity='0';
+          document.body.appendChild(ta);ta.select();
+          try{document.execCommand('copy');toast('✅ تم نسخ رابط الفيديو. أرسله للعضو الجديد.');}
+          finally{ta.remove();}
+        }
+      });
+      shareRow.appendChild(shareBtn);
+      card.appendChild(shareRow);
+    }
+
     section.appendChild(card);
 
     const rows=root.querySelectorAll('.ragwan-resource-item');
@@ -5883,6 +5933,11 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
   else observe();
 })();</script>
 
+<style id="ragwan-step5-video-share-v1">
+.ragwan-step5-video-share-btn{font-size:14px;box-shadow:0 7px 18px rgba(15,81,63,.16);transition:transform .15s ease,box-shadow .15s ease}
+.ragwan-step5-video-share-btn:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(15,81,63,.22)}
+@media(max-width:650px){.ragwan-step5-video-share-btn{min-height:46px!important;font-size:13px!important}}
+</style>
 <style id="global-preview-mode-v2">
 #globalPreviewLauncher{position:fixed;left:18px;bottom:18px;z-index:2147483000;display:none;direction:rtl}
 #globalPreviewLauncher.show{display:block}
