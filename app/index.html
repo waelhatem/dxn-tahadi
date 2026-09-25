@@ -2551,7 +2551,7 @@ function ragwanDoorData(){
       check:'هل وافق العضو على الشروط؟ وهل جُهزت صورة الترحيب والرسالة بالبيانات الصحيحة وبالصياغة المناسبة للجنس؟ وهل دخل العضو المجموعة وتلقى التوجيه الأول؟',
       win:'إنجاز الخطوة عند استكمال الشروط، تجهيز الترحيب، إضافة العضو فعليًا إلى المجموعة، والتأكد من بدء اندماجه ومتابعته للمحتوى.',
       task:'تنفيذ عملية انضمام كاملة لعضو جديد إلى كروب الأمل الريادي من الشروط حتى الترحيب والمتابعة.'},
-    {n:9,icon:'📚',title:'أكمل معه تدريبات احترافية بدون فرض التخليص',short:'تدريبات إضافية',text:'أكمل معه تدريبات احترافية بدون فرض التخليص، وبحسب احتياجه واستعداده.',goal:'تطوير المهارة تدريجيًا بدل الضغط على العضو.',
+    {n:9,icon:'📚',title:'أكمل معه تدريبات احترافية بدون فرض التلخيص',short:'تدريبات إضافية',text:'أكمل معه تدريبات احترافية بدون فرض التخليص، وبحسب احتياجه واستعداده.',goal:'تطوير المهارة تدريجيًا بدل الضغط على العضو.',
       learn:'تعلّم كيف تبني المهارة على مراحل، وتختار التدريب بحسب مستوى العضو واحتياجه.',
       apply:'اختر تدريبًا واحدًا مناسبًا، ناقشه مع العضو، ثم راقب التطبيق بدل الاكتفاء بالمشاهدة.',
       check:'هل تحسن سلوك أو مهارة محددة لدى العضو بعد التدريب؟',
@@ -3602,6 +3602,20 @@ function ragwanRenderStepSection(){
       '<p class="muted" style="margin:8px 0 12px;line-height:1.8">حوّل أهدافك إلى خطوات واضحة ومواعيد محددة، واكتب أهدافك التي تريد العمل على تحقيقها خلال رحلتك.</p>'+
       '<a class="ragwan-resource-open" href="/app/ragwan-goals.html" target="_blank" rel="noopener noreferrer">🎯 فتح استمارة الأهداف</a>'+
     '</section>'+ragwanBuildDxnSponsorAction();
+    return;
+  }
+  if(ragwanCurrentStep===9){
+    el.innerHTML=
+      '<div class="training-back-to-lessons" style="margin:0 0 14px">'+
+        '<button type="button" class="training-feature-card training-feature-lessons training-back-feature" onclick="switchTrainingSubtab(\'lessons\')" aria-label="الدخول مباشرة إلى الشروحات والتدريبات">'+
+          '<span class="training-feature-shine"></span>'+
+          '<span class="training-feature-badge">📚 ابدأ التدريبات الآن</span>'+
+          '<span class="training-feature-icon">📚</span>'+
+          '<span class="training-feature-copy"><strong>التدريبات والشروحات</strong><small>الدخول مباشرة إلى الشروحات والتدريبات</small></span>'+
+          '<span class="training-feature-arrow">›</span>'+
+        '</button>'+
+      '</div>'+
+      ragwanBuildDxnSponsorAction();
     return;
   }
   if(!sections.length){
