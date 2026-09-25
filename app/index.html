@@ -4384,7 +4384,133 @@ function printProspectLog(){
     'body{font-family:Arial,Tahoma,sans-serif;padding:28px;color:#173b32}h1{text-align:center;margin:0 0 8px;font-size:24px}p{text-align:center;color:#66756f;margin:0 0 22px}.print-table{width:100%;border-collapse:collapse;font-size:14px}.print-table th{background:#eef4f1;font-weight:900}.print-table th,.print-table td{border:1px solid #bfcfc8;padding:12px 14px;text-align:right;vertical-align:middle}.print-status{font-weight:900}.print-status-ok{color:#15803d}.print-status-no{color:#b91c1c}.print-status-wait{color:#b77900}@media print{body{padding:10px}button{display:none}}'+
     '</style></head><body><h1>📋 سجل طلبات التواصل</h1><p>مجتمع الصحة والثراء — جميع طلبات التواصل</p>'+
     clone.outerHTML.replace('class="prospect-log-table"','class="print-table"')+
-    '<!-- stable deployment refresh 2026-09-21 --></body></html>');
+    '<!-- stable deployment refresh 2026-09-21 -->
+<style id="global-preview-mode-v1">
+/* Global Preview Mode — isolated admin/leader teaching tool. It never changes page layout. */
+#globalPreviewLauncher{position:fixed;left:18px;bottom:18px;z-index:2147483000;display:none;direction:rtl}
+#globalPreviewLauncher.show{display:block}
+#globalPreviewLauncher .gp-launch{border:0;border-radius:16px;padding:11px 15px;background:#0f513f;color:#fff;font-weight:900;box-shadow:0 10px 28px rgba(0,0,0,.22);cursor:pointer}
+#globalPreviewPanel{position:fixed;inset:0;z-index:2147482999;display:none;background:rgba(8,24,20,.72);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:18px;direction:rtl}
+#globalPreviewPanel.show{display:flex}
+#globalPreviewPanel .gp-shell{width:min(1120px,96vw);height:min(920px,94vh);background:#eef5f1;border:1px solid rgba(255,255,255,.35);border-radius:26px;box-shadow:0 30px 100px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden}
+#globalPreviewPanel .gp-head{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 15px;background:#fff;border-bottom:1px solid #dfe9e4}
+#globalPreviewPanel .gp-title{font-weight:950;color:#123b30}
+#globalPreviewPanel .gp-controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+#globalPreviewPanel .gp-controls button{border:1px solid #d4e2dc;background:#f6faf8;color:#17473a;border-radius:11px;min-height:38px;padding:7px 11px;font-weight:900;cursor:pointer}
+#globalPreviewPanel .gp-controls button.active{background:#0f513f;color:#fff;border-color:#0f513f}
+#globalPreviewPanel .gp-close{background:#fff1ef!important;color:#a32318!important;border-color:#f0c9c4!important}
+#globalPreviewPanel .gp-stage{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:auto;padding:18px;background:linear-gradient(135deg,#e9f3ee,#f7faf8)}
+#globalPreviewPanel .gp-device{position:relative;background:#101613;border:9px solid #101613;border-radius:38px;box-shadow:0 24px 65px rgba(0,0,0,.28);overflow:hidden;flex:0 0 auto}
+#globalPreviewPanel .gp-device.portrait{width:390px;height:844px}
+#globalPreviewPanel .gp-device.landscape{width:844px;height:390px;border-radius:30px}
+#globalPreviewPanel .gp-device iframe{display:block;width:100%;height:100%;border:0;background:#fff}
+#globalPreviewPanel .gp-device.desktop{width:min(1100px,92vw);height:min(760px,78vh);border-radius:14px;border:5px solid #202522}
+#globalPreviewPanel .gp-note{position:absolute;bottom:8px;left:12px;right:12px;text-align:center;color:#526760;font-size:11px;pointer-events:none}
+@media(max-width:700px){
+ #globalPreviewLauncher{left:10px;bottom:10px}
+ #globalPreviewPanel{padding:8px}
+ #globalPreviewPanel .gp-shell{width:100%;height:100%;border-radius:18px}
+ #globalPreviewPanel .gp-stage{padding:8px}
+ #globalPreviewPanel .gp-device.portrait{width:min(390px,92vw);height:min(844px,calc(100vh - 130px))}
+ #globalPreviewPanel .gp-device.landscape{width:min(844px,96vw);height:min(390px,calc(100vh - 130px))}
+}
+</style>
+<div id="globalPreviewLauncher" aria-hidden="true">
+  <button type="button" class="gp-launch" id="globalPreviewOpen">👁️ معاينة الموقع</button>
+</div>
+<div id="globalPreviewPanel" aria-hidden="true" role="dialog" aria-modal="true" aria-label="معاينة الموقع">
+  <div class="gp-shell">
+    <div class="gp-head">
+      <div class="gp-title">👁️ معاينة الموقع — وضع الشرح</div>
+      <div class="gp-controls">
+        <button type="button" data-preview-mode="desktop">🖥️ كمبيوتر</button>
+        <button type="button" data-preview-mode="portrait">📱 موبايل</button>
+        <button type="button" data-preview-mode="landscape">📲 أفقي</button>
+        <button type="button" class="gp-close" id="globalPreviewClose">✕ إغلاق</button>
+      </div>
+    </div>
+    <div class="gp-stage">
+      <div id="globalPreviewDevice" class="gp-device portrait">
+        <iframe id="globalPreviewFrame" title="معاينة نسخة الموبايل" loading="eager"></iframe>
+      </div>
+      <div class="gp-note">المعاينة تستخدم نافذة داخلية مستقلة؛ تصميم الصفحة الأصلي خارجها لا يتغير.</div>
+    </div>
+  </div>
+</div>
+<script id="global-preview-mode-v1-script">
+(function(){
+  const params=new URLSearchParams(location.search);
+  const embedded=params.get('globalPreviewFrame')==='1';
+  const launcher=document.getElementById('globalPreviewLauncher');
+  const panel=document.getElementById('globalPreviewPanel');
+  const openBtn=document.getElementById('globalPreviewOpen');
+  const closeBtn=document.getElementById('globalPreviewClose');
+  const device=document.getElementById('globalPreviewDevice');
+  const frame=document.getElementById('globalPreviewFrame');
+  if(embedded){
+    if(launcher)launcher.remove();
+    if(panel)panel.remove();
+    window.addEventListener('message',function(e){
+      if(!e.data||e.data.type!=='dxn-preview-sync')return;
+      try{
+        if(typeof tab!=='undefined' && e.data.tab)tab=e.data.tab;
+        if(typeof trainingSubtab!=='undefined' && e.data.trainingSubtab)trainingSubtab=e.data.trainingSubtab;
+        if(typeof render==='function')render();
+      }catch(err){console.debug('preview sync',err)}
+    });
+    return;
+  }
+  function eligible(){return typeof role!=='undefined'&&role==='leader'}
+  function currentUrl(){
+    const u=new URL(location.href);
+    u.searchParams.set('globalPreviewFrame','1');
+    return u.href;
+  }
+  function syncFrame(){
+    if(!frame||!frame.contentWindow)return;
+    try{
+      frame.contentWindow.postMessage({
+        type:'dxn-preview-sync',
+        tab:(typeof tab!=='undefined'?tab:'home'),
+        trainingSubtab:(typeof trainingSubtab!=='undefined'?trainingSubtab:'home')
+      },location.origin);
+    }catch(e){}
+  }
+  function setMode(mode){
+    if(!device)return;
+    device.classList.remove('desktop','portrait','landscape');
+    device.classList.add(mode);
+    document.querySelectorAll('#globalPreviewPanel [data-preview-mode]').forEach(b=>b.classList.toggle('active',b.dataset.previewMode===mode));
+    if(frame){
+      frame.title=mode==='desktop'?'معاينة نسخة الكمبيوتر':mode==='landscape'?'معاينة الموبايل الأفقي':'معاينة نسخة الموبايل';
+      if(!frame.src)frame.src=currentUrl();
+      setTimeout(syncFrame,120);
+    }
+  }
+  function show(){
+    if(!eligible())return;
+    panel.classList.add('show');panel.setAttribute('aria-hidden','false');
+    setMode('portrait');
+    document.body.style.overflow='hidden';
+  }
+  function hide(){
+    panel.classList.remove('show');panel.setAttribute('aria-hidden','true');
+    document.body.style.overflow='';
+  }
+  function mount(){
+    if(!eligible()){launcher.classList.remove('show');launcher.setAttribute('aria-hidden','true');return;}
+    launcher.classList.add('show');launcher.setAttribute('aria-hidden','false');
+  }
+  if(openBtn)openBtn.addEventListener('click',show);
+  if(closeBtn)closeBtn.addEventListener('click',hide);
+  document.querySelectorAll('#globalPreviewPanel [data-preview-mode]').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.previewMode)));
+  if(frame)frame.addEventListener('load',syncFrame);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&panel.classList.contains('show'))hide()});
+  mount();
+  const timer=setInterval(()=>{if(eligible()){mount();clearInterval(timer)}},500);
+})();
+</script>
+</body></html>');
   w.document.close();
   setTimeout(function(){w.print();},300);
 }
