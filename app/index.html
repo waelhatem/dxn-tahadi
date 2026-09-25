@@ -6040,7 +6040,18 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
  const p=new URLSearchParams(location.search),embedded=p.get('globalPreviewFrame')==='1';
  const launcher=document.getElementById('globalPreviewLauncher'),panel=document.getElementById('globalPreviewPanel'),openBtn=document.getElementById('globalPreviewOpen'),closeBtn=document.getElementById('globalPreviewClose'),device=document.getElementById('globalPreviewDevice'),frame=document.getElementById('globalPreviewFrame'),zoomIn=document.getElementById('globalPreviewZoomIn'),zoomOut=document.getElementById('globalPreviewZoomOut'),zoomReset=document.getElementById('globalPreviewZoomReset');
  if(embedded){if(launcher)launcher.remove();if(panel)panel.remove();window.addEventListener('message',function(e){if(!e.data||e.data.type!=='dxn-preview-sync')return;try{if(typeof tab!=='undefined'&&e.data.tab)tab=e.data.tab;if(typeof trainingSubtab!=='undefined'&&e.data.trainingSubtab)trainingSubtab=e.data.trainingSubtab;if(typeof render==='function')render()}catch(err){console.debug('preview sync',err)}});return;}
- function eligible(){return !embedded}
+ function eligible(){
+   if(embedded)return false;
+   if(typeof role==='undefined')return false;
+   if(role==='leader')return true;
+   if(role!=='member')return false;
+   const memberNo=String(
+     (typeof me!=='undefined'&&me&&(
+       me.member_no??me.membership_no??me.membership_number
+     ))||''
+   ).trim();
+   return memberNo==='820469486';
+ }
  function url(){const u=new URL(location.href);u.searchParams.set('globalPreviewFrame','1');return u.href}
  function sync(){if(!frame||!frame.contentWindow)return;try{frame.contentWindow.postMessage({type:'dxn-preview-sync',tab:typeof tab!=='undefined'?tab:'home',trainingSubtab:typeof trainingSubtab!=='undefined'?trainingSubtab:'home'},location.origin)}catch(e){}}
  function hideEmbeddedScrollbars(){try{const d=frame.contentDocument;if(!d)return;let s=d.getElementById('__dxnPreviewScrollbarFix');if(!s){s=d.createElement('style');s.id='__dxnPreviewScrollbarFix';s.textContent='html,body{scrollbar-width:none!important;-ms-overflow-style:none!important}html::-webkit-scrollbar,body::-webkit-scrollbar{width:0!important;height:0!important;display:none!important}';d.head.appendChild(s)}}catch(e){}}
