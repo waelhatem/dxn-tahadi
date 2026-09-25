@@ -3076,10 +3076,28 @@ function ragwanWelcomeRenderPreview(){
   const name=String(document.getElementById('ragwanWelcomeName')?.value||'').trim()||'عضو جديد';
   const memberNo=String(document.getElementById('ragwanWelcomeMemberNo')?.value||'').trim()||'................';
   const photo=document.getElementById('ragwanWelcomePhoto')?.files?.[0];
-  const frame=new Image();
-  frame.crossOrigin='anonymous';
 
-  frame.onload=()=>{
+  // نجرب المسارين لأن الصفحة تعمل من /app/index.html وقد تكون ملفات الفريم
+  // مرفوعة في جذر المشروع أو داخل مجلد app.
+  const framePaths=gender==='female'
+    ? ['/welcome_female_frame.png','/app/welcome_female_frame.png']
+    : ['/welcome_male_frame.png','/app/welcome_male_frame.png'];
+
+  function loadFrame(index){
+    const frame=new Image();
+    frame.onload=()=>renderWithFrame(frame);
+    frame.onerror=()=>{
+      if(index<framePaths.length-1){
+        loadFrame(index+1);
+        return;
+      }
+      preview.removeAttribute('src');
+      toast('⚠️ تعذر تحميل فريم الترحيب. تأكد من وجود ملف الفريم داخل GitHub.');
+    };
+    frame.src=framePaths[index]+'?v=20260925';
+  }
+
+  function renderWithFrame(frame){
     const w=frame.naturalWidth||1200,h=frame.naturalHeight||1600;
     canvas.width=w;canvas.height=h;
     const ctx=canvas.getContext('2d');
@@ -3092,7 +3110,6 @@ function ragwanWelcomeRenderPreview(){
       ctx.textBaseline='middle';
       ctx.lineJoin='round';
 
-      // الاسم والرقم بدون لوحة خلفية: أبيض واضح وحد أسود خفيف حول الحروف فقط.
       ctx.font='900 '+Math.round(w*.029)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
       ctx.lineWidth=Math.max(3,Math.round(w*.0038));
       ctx.strokeStyle='#050505';
@@ -3121,23 +3138,28 @@ function ragwanWelcomeRenderPreview(){
     reader.onload=e=>{
       const memberImg=new Image();
       memberImg.onload=()=>{
-        /*
-         * الفريم الذكري PNG مفرّغ مسبقًا.
-         * نستخدم الفتحة الشفافة نفسها كقناع بدل رسم دائرة بتخمينات.
-         * النتيجة: صورة العضو خلف الفريم، والحافة الذهبية والزخارف فوقها.
-         */
+        // الفريم الذكري PNG مفرّغ مسبقًا؛ نستخدم شفافيته الفعلية لتحديد
+        // فتحة الصورة ووضع صورة العضو خلف الفريم.
         const frameLayer=document.createElement('canvas');
         frameLayer.width=w;frameLayer.height=h;
         const fctx=frameLayer.getContext('2d');
         fctx.drawImage(frame,0,0,w,h);
 
-        const pixels=fctx.getImageData(0,0,w,h).data;
+        let pixels;
+        try{
+          pixels=fctx.getImageData(0,0,w,h).data;
+        }catch(err){
+          toast('⚠️ تعذر قراءة شفافية فريم الترحيب.');
+          ctx.drawImage(frame,0,0,w,h);
+          finish();
+          return;
+        }
+
         const mask=document.createElement('canvas');
         mask.width=w;mask.height=h;
         const mctx=mask.getContext('2d');
         const md=mctx.createImageData(w,h);
 
-        // نستخدم فقط منطقة الفتحة اليسرى، حتى لا تتأثر أي شفافية أخرى في التصميم.
         const rx1=Math.floor(w*.01), rx2=Math.floor(w*.58);
         const ry1=Math.floor(h*.01), ry2=Math.floor(h*.62);
 
@@ -3165,17 +3187,17 @@ function ragwanWelcomeRenderPreview(){
         const dw=memberImg.naturalWidth*scale,dh=memberImg.naturalHeight*scale;
         const dx=left+(holeW-dw)/2,dy=top+(holeH-dh)/2;
 
-        // طبقة صورة العضو.
         const photoLayer=document.createElement('canvas');
         photoLayer.width=w;photoLayer.height=h;
         const pctx=photoLayer.getContext('2d');
         pctx.drawImage(memberImg,dx,dy,dw,dh);
 
-        // القناع = المناطق الشفافة في الفريم فقط.
         for(let y=top;y<=bottom;y++){
           for(let x=left;x<=right;x++){
             const i=(y*w+x)*4;
-            md.data[i]=255;md.data[i+1]=255;md.data[i+2]=255;
+            md.data[i]=255;
+            md.data[i+1]=255;
+            md.data[i+2]=255;
             md.data[i+3]=255-pixels[i+3];
           }
         }
@@ -3184,10 +3206,9 @@ function ragwanWelcomeRenderPreview(){
         pctx.globalCompositeOperation='destination-in';
         pctx.drawImage(mask,0,0);
 
-        // الترتيب الصحيح: صورة العضو أولاً، ثم الفريم فوقها.
+        // صورة العضو أولًا، ثم الفريم الشفاف فوقها.
         ctx.drawImage(photoLayer,0,0,w,h);
         ctx.drawImage(frameLayer,0,0,w,h);
-
         finish();
       };
       memberImg.onerror=()=>toast('⚠️ تعذر قراءة صورة العضو. اختر الصورة مرة أخرى.');
@@ -3195,13 +3216,9 @@ function ragwanWelcomeRenderPreview(){
     };
     reader.onerror=()=>toast('⚠️ تعذر قراءة صورة العضو.');
     reader.readAsDataURL(photo);
-  };
+  }
 
-  frame.onerror=()=>{
-    preview.removeAttribute('src');
-    toast('⚠️ تعذر تحميل فريم الترحيب. تأكد من ملف welcome_male_frame.png داخل GitHub.');
-  };
-  frame.src=gender==='female'?RAGWAN_WELCOME_FRAME_FEMALE:RAGWAN_WELCOME_FRAME_MALE;
+  loadFrame(0);
 }
 async function ragwanCopyWelcomeMessage(){
   const gender=document.getElementById('ragwanWelcomeGender')?.value||'male';
@@ -3244,8 +3261,7 @@ function ragwanRenderWelcomeBuilder(){
         '<div class="ragwan-welcome-actions">'+
           '<button type="button" class="primary" onclick="ragwanWelcomeRenderPreview()">🖼️ تجهيز صورة الترحيب</button>'+
           '<button type="button" onclick="ragwanCopyWelcomeMessage()">📋 نسخ رسالة الترحيب</button>'+
-          '<button type="button" onclick="ragwanWelcomeDownload()">⬇️ تنزيل الصورة</button>'+
-          '<button type="button" onclick="ragwanWelcomeShare()">📤 مشاركة الصورة + الرسالة</button>'+
+          '<button type="button" onclick="ragwanWelcomeShare()">📤 مشاركة المنشور مع الصورة</button>'+
         '</div>'+
       '</div>'+
       '<div class="ragwan-welcome-preview-wrap"><div class="ragwan-welcome-preview-title">🖼️ معاينة الفريم</div><img id="ragwanWelcomePreview" alt="معاينة صورة الترحيب"><canvas id="ragwanWelcomeCanvas" class="hidden"></canvas><div class="muted">للأنثى يستخدم النظام الفريم النسائي دون طلب صورة شخصية.</div></div>'+
