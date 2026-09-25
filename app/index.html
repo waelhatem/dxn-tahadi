@@ -3270,6 +3270,27 @@ function ragwanWelcomeRenderPreview(){
 
         hmctx.putImageData(hd,0,0);
 
+        /*
+         * تنظيف أي بكسلات بيضاء/رمادية فاتحة عالقة داخل فتحة صورة العضو.
+         * هذه البكسلات ليست جزءًا من زخرفة الفريم، وقد تظهر كخط أبيض
+         * رفيع فوق حافة صورة العضو. نحذفها من طبقة الفريم فقط داخل الفتحة،
+         * مع إبقاء باقي الفريم والزخارف دون أي تغيير.
+         */
+        try{
+          const fd=fctx.getImageData(0,0,w,h);
+          const md=hd.data;
+          for(let i=0;i<fd.data.length;i+=4){
+            if(md[i+3]===0) continue;
+            const r=fd.data[i],g=fd.data[i+1],b=fd.data[i+2],a=fd.data[i+3];
+            const neutral=(Math.max(r,g,b)-Math.min(r,g,b))<=12;
+            const nearWhite=neutral && r>=238 && g>=238 && b>=238;
+            if(nearWhite && a>0){
+              fd.data[i+3]=0;
+            }
+          }
+          fctx.putImageData(fd,0,0);
+        }catch(_){}
+
         // نستخدم حدود القناع الفعلية لوضع صورة الرجل في منتصف الفتحة.
         if(right<=left||bottom<=top){
           left=Math.floor(w*.015);right=Math.floor(w*.395);
