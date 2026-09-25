@@ -3075,59 +3075,106 @@ function ragwanWelcomeRenderPreview(){
   const name=String(document.getElementById('ragwanWelcomeName')?.value||'').trim()||'عضو جديد';
   const memberNo=String(document.getElementById('ragwanWelcomeMemberNo')?.value||'').trim()||'................';
   const photo=document.getElementById('ragwanWelcomePhoto')?.files?.[0];
-  const frame=new Image();
-  frame.crossOrigin='anonymous';
+  const frame=new Image(); frame.crossOrigin='anonymous';
+
   frame.onload=()=>{
     const ctx=canvas.getContext('2d');
     const w=frame.naturalWidth||1200,h=frame.naturalHeight||1600;
     canvas.width=w;canvas.height=h;ctx.clearRect(0,0,w,h);
-    ctx.drawImage(frame,0,0,w,h);
-    const drawMemberPhoto=()=>{
-      if(gender!=='male'||!photo){finish();return;}
+
+    const photoBox={x:.045,y:.002,w:.405,h:.405};
+    const drawPhotoBehindFrame=()=>{
+      if(gender!=='male'||!photo){drawFrame();return;}
       const reader=new FileReader();
       reader.onload=e=>{
-        const img=new Image();
-        img.onload=()=>{
-          const box={x:.045,y:.002,w:.405,h:.405};
-          const bw=box.w*w,bh=box.h*h;
-          const scale=Math.max(bw/img.width,bh/img.height);
-          const dw=img.width*scale,dh=img.height*scale;
-          const x=box.x*w+(bw-dw)/2,y=box.y*h+(bh-dh)/2;
-          ctx.save();
-          ctx.beginPath();
-          ctx.ellipse((box.x+box.w/2)*w,(box.y+box.h/2)*h,bw/2,bh/2,0,0,Math.PI*2);
-          ctx.clip();
-          ctx.drawImage(img,x,y,dw,dh);
-          ctx.restore();
+        const p=new Image();
+        p.onload=()=>{
+          const pc=document.createElement('canvas');
+          pc.width=w;pc.height=h;
+          const pctx=pc.getContext('2d');
+          const bw=photoBox.w*w,bh=photoBox.h*h;
+          const scale=Math.max(bw/p.width,bh/p.height);
+          const dw=p.width*scale,dh=p.height*scale;
+          const x=photoBox.x*w+(bw-dw)/2,y=photoBox.y*h+(bh-dh)/2;
+          pctx.save();
+          pctx.beginPath();
+          pctx.ellipse((photoBox.x+photoBox.w/2)*w,(photoBox.y+photoBox.h/2)*h,bw/2,bh/2,0,0,Math.PI*2);
+          pctx.clip();
+          pctx.drawImage(p,x,y,dw,dh);
+          pctx.restore();
+          ctx.drawImage(pc,0,0);
+
+          // الفريم فوق الصورة، مع تفريغ فتحة الرجل الأصلية فقط.
+          const fc=document.createElement('canvas');
+          fc.width=w;fc.height=h;
+          const fctx=fc.getContext('2d');
+          fctx.drawImage(frame,0,0,w,h);
+          fctx.save();
+          fctx.globalCompositeOperation='destination-out';
+          fctx.beginPath();
+          fctx.ellipse((photoBox.x+photoBox.w/2)*w,(photoBox.y+photoBox.h/2)*h,(photoBox.w*w)/2,(photoBox.h*h)/2,0,0,Math.PI*2);
+          fctx.fill();
+          fctx.restore();
+          ctx.drawImage(fc,0,0);
           finish();
         };
-        img.onerror=()=>toast('⚠️ تعذر قراءة صورة العضو. اختر الصورة مرة أخرى.');
-        img.src=String(e.target.result||'');
+        p.onerror=()=>toast('⚠️ تعذر قراءة صورة العضو. اختر الصورة مرة أخرى.');
+        p.src=String(e.target.result||'');
       };
       reader.onerror=()=>toast('⚠️ تعذر قراءة صورة العضو.');
       reader.readAsDataURL(photo);
     };
-    const coverTextArea=(x1,y1,x2,y2)=>{
-      const g=ctx.createLinearGradient(0,y1*h,0,y2*h);
-      g.addColorStop(0,'#fff8e8');g.addColorStop(.5,'#fffdf5');g.addColorStop(1,'#f3dfb0');
-      ctx.save();ctx.fillStyle=g;ctx.fillRect(x1*w,y1*h,(x2-x1)*w,(y2-y1)*h);ctx.restore();
+
+    const drawFrame=()=>{
+      ctx.drawImage(frame,0,0,w,h);
+      finish();
     };
+
+    const cleanTextArea=(x1,y1,x2,y2)=>{
+      const px=ctx.getImageData(0,0,w,h),data=px.data;
+      const left=Math.max(0,Math.floor(x1*w)),right=Math.min(w,Math.ceil(x2*w));
+      const top=Math.max(1,Math.floor(y1*h)),bottom=Math.min(h-2,Math.ceil(y2*h));
+      const span=Math.max(1,bottom-top);
+      for(let y=top;y<bottom;y++){
+        const t=(y-top)/span;
+        const yA=Math.max(0,top-2),yB=Math.min(h-1,bottom+1);
+        for(let x=left;x<right;x++){
+          const i=(y*w+x)*4,a=(yA*w+x)*4,b=(yB*w+x)*4;
+          data[i]=Math.round(data[a]*(1-t)+data[b]*t);
+          data[i+1]=Math.round(data[a+1]*(1-t)+data[b+1]*t);
+          data[i+2]=Math.round(data[a+2]*(1-t)+data[b+2]*t);
+          data[i+3]=255;
+        }
+      }
+      ctx.putImageData(px,0,0);
+    };
+
     function finish(){
-      coverTextArea(.405,.535,.755,.605);
-      coverTextArea(.445,.620,.735,.690);
+      // إزالة النص التجريبي مع إبقاء لوحة الفريم الأصلية دون أي مستطيل تظليل جديد.
+      cleanTextArea(.415,.535,.740,.605);
+      cleanTextArea(.445,.620,.735,.690);
+
       ctx.save();
       ctx.direction='rtl';ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';
-      ctx.font='900 '+Math.round(w*.034)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
-      ctx.lineWidth=Math.max(5,Math.round(w*.006));ctx.strokeStyle='#050505';ctx.fillStyle='#fff';
+
+      // الاسم والرقم: أصغر قليلاً، أبيض فقط مع حد أسود رفيع حول الحروف.
+      ctx.font='900 '+Math.round(w*.029)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
+      ctx.lineWidth=Math.max(3,Math.round(w*.0038));
+      ctx.strokeStyle='#050505';ctx.fillStyle='#fff';
       ctx.strokeText(name,.575*w,.570*h);ctx.fillText(name,.575*w,.570*h);
-      ctx.font='900 '+Math.round(w*.042)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
-      ctx.lineWidth=Math.max(5,Math.round(w*.0065));ctx.strokeStyle='#050505';ctx.fillStyle='#fff';
+
+      ctx.font='900 '+Math.round(w*.036)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
+      ctx.lineWidth=Math.max(3,Math.round(w*.0042));
+      ctx.strokeStyle='#050505';ctx.fillStyle='#fff';
       ctx.strokeText(memberNo,.587*w,.653*h);ctx.fillText(memberNo,.587*w,.653*h);
+
       ctx.restore();
       preview.src=canvas.toDataURL('image/png');
     }
-    drawMemberPhoto();
+
+    drawPhotoBehindFrame();
   };
+
   frame.onerror=()=>{
     preview.removeAttribute('src');
     toast('⚠️ تعذر تحميل فريم الترحيب. تأكد من اسم ملف الفريم داخل GitHub.');
