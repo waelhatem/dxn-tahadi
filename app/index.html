@@ -3069,7 +3069,7 @@ function ragwanWelcomeMessage(data){
 }
 
 function ragwanWelcomeRenderPreview(){
-  const canvas=document.getElementById('ragwanWelcomeCanvas'),preview=document.getElementById('ragwanWelcomePreview');
+  const canvas=document.getElementById('ragwanWelcomeCanvas'), preview=document.getElementById('ragwanWelcomePreview');
   if(!canvas||!preview)return;
 
   const gender=document.getElementById('ragwanWelcomeGender')?.value||'male';
@@ -3077,18 +3077,22 @@ function ragwanWelcomeRenderPreview(){
   const memberNo=String(document.getElementById('ragwanWelcomeMemberNo')?.value||'').trim()||'................';
   const photo=document.getElementById('ragwanWelcomePhoto')?.files?.[0];
 
-  const paths=gender==='female'
+  const framePaths=gender==='female'
     ? ['/welcome_female_frame.png','/app/welcome_female_frame.png']
     : ['/welcome_male_frame.png','/app/welcome_male_frame.png'];
 
-  function loadFrame(i){
+  function loadFrame(index){
     const frame=new Image();
-    frame.onload=()=>render(frame);
-    frame.onerror=()=>i<paths.length-1?loadFrame(i+1):(preview.removeAttribute('src'),toast('⚠️ تعذر تحميل فريم الترحيب.'));
-    frame.src=paths[i]+'?v=20260925-4';
+    frame.onload=()=>renderWithFrame(frame);
+    frame.onerror=()=>{
+      if(index<framePaths.length-1){ loadFrame(index+1); return; }
+      preview.removeAttribute('src');
+      toast('⚠️ تعذر تحميل فريم الترحيب. تأكد من وجود ملف الفريم داخل GitHub.');
+    };
+    frame.src=framePaths[index]+'?v=20260925-2';
   }
 
-  function render(frame){
+  function renderWithFrame(frame){
     const w=frame.naturalWidth||1200,h=frame.naturalHeight||1600;
     canvas.width=w;canvas.height=h;
     const ctx=canvas.getContext('2d');
@@ -3096,110 +3100,173 @@ function ragwanWelcomeRenderPreview(){
 
     const finish=()=>{
       ctx.save();
-      ctx.direction='rtl';ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';
+      ctx.direction='rtl';
+      ctx.textAlign='center';
+      ctx.textBaseline='middle';
+      ctx.lineJoin='round';
+
       ctx.font='900 '+Math.round(w*.029)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
-      ctx.lineWidth=Math.max(3,Math.round(w*.0038));ctx.strokeStyle='#050505';ctx.fillStyle='#fff';
-      ctx.strokeText(name,.575*w,.570*h);ctx.fillText(name,.575*w,.570*h);
-      ctx.font='900 '+Math.round(w*.036)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif;
+      ctx.lineWidth=Math.max(3,Math.round(w*.0038));
+      ctx.strokeStyle='#050505';
+      ctx.fillStyle='#fff';
+      ctx.strokeText(name,.575*w,.570*h);
+      ctx.fillText(name,.575*w,.570*h);
+
+      ctx.font='900 '+Math.round(w*.036)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
       ctx.lineWidth=Math.max(3,Math.round(w*.0042));
-      ctx.strokeText(memberNo,.587*w,.653*h);ctx.fillText(memberNo,.587*w,.653*h);
+      ctx.strokeStyle='#050505';
+      ctx.fillStyle='#fff';
+      ctx.strokeText(memberNo,.587*w,.653*h);
+      ctx.fillText(memberNo,.587*w,.653*h);
       ctx.restore();
+
       preview.src=canvas.toDataURL('image/png');
-      preview.style.display='block';preview.style.width='100%';preview.style.maxWidth='100%';
-      preview.style.height='auto';preview.style.objectFit='contain';preview.style.margin='0 auto';
+      preview.style.display='block';
+      preview.style.width='100%';
+      preview.style.maxWidth='100%';
+      preview.style.height='auto';
+      preview.style.objectFit='contain';
+      preview.style.margin='0 auto';
     };
 
     if(gender!=='male'||!photo){
-      ctx.drawImage(frame,0,0,w,h);finish();return;
+      ctx.drawImage(frame,0,0,w,h);
+      finish();
+      return;
     }
 
     const reader=new FileReader();
-    reader.onload=ev=>{
+    reader.onload=e=>{
       const memberImg=new Image();
       memberImg.onload=()=>{
-        /*
-         * الفريم الحالي يحتوي على مربعات الشطرنج كصورة فعلية، وليست شفافية.
-         * لذلك الحل الصحيح هو:
-         * 1) قص صورة العضو داخل الفتحة.
-         * 2) حذف مربعات الشطرنج نفسها من طبقة الفريم.
-         * 3) وضع طبقة الفريم بعد ذلك فوق صورة العضو.
-         */
-        const left=Math.floor(w*.035);
-        const right=Math.floor(w*.425);
-        const top=Math.floor(h*.075);
-        const bottom=Math.floor(h*.535);
-        const holeW=right-left+1;
-        const holeH=bottom-top+1;
-        const cx=(left+right)/2;
-        const cy=(top+bottom)/2;
-        const rx=holeW/2;
-        const ry=holeH/2;
-
         const frameLayer=document.createElement('canvas');
         frameLayer.width=w;frameLayer.height=h;
         const fctx=frameLayer.getContext('2d');
         fctx.drawImage(frame,0,0,w,h);
 
-        let data;
-        try{data=fctx.getImageData(0,0,w,h)}catch(err){
-          toast('⚠️ تعذر معالجة فريم الترحيب.');
+        let pixels;
+        try{
+          pixels=fctx.getImageData(0,0,w,h).data;
+        }catch(err){
+          toast('⚠️ تعذر قراءة فريم الترحيب.');
+          ctx.drawImage(frame,0,0,w,h);
+          finish();
           return;
         }
 
-        const d=data.data;
-
-        // التعرف على مربعات الشطرنج: درجات رمادية/بيضاء محايدة فقط.
-        // لا نلمس اللون الذهبي أو الأسود أو الأزرق أو أي زخرفة.
-        const checker=(r,g,b)=>{
-          const spread=Math.max(r,g,b)-Math.min(r,g,b);
-          const avg=(r+g+b)/3;
-          return spread<=8 && avg>=145 && avg<=252;
+        /*
+         * الفريم المرفوع قد يحتوي على شكل الشطرنج الخاص بمعاينة الشفافية
+         * كألوان فعلية داخل PNG، وليس Alpha حقيقيًا.
+         * لذلك نعتبر:
+         * 1) الـ Alpha الشفاف الحقيقي، أو
+         * 2) مربعات الشطرنج الرمادية المحايدة،
+         * جزءًا من فتحة الصورة.
+         */
+        const isCheckerPixel=(r,g,b,a)=>{
+          if(a<20)return true;
+          const max=Math.max(r,g,b),min=Math.min(r,g,b);
+          const neutral=(max-min)<=7;
+          const light=(r>=145&&r<=255&&g>=145&&g<=255&&b>=145&&b<=255);
+          return neutral&&light;
         };
 
-        for(let y=top;y<=bottom;y++){
-          for(let x=left;x<=right;x++){
-            const ex=(x-cx)/rx,ey=(y-cy)/ry;
-            if(ex*ex+ey*ey>1.015)continue;
+        // نحدد فتحة الرجل فقط في المنطقة اليسرى من الفريم.
+        const rx1=Math.floor(w*.01),rx2=Math.floor(w*.48);
+        const ry1=Math.floor(h*.02),ry2=Math.floor(h*.78);
+
+        const holeMask=document.createElement('canvas');
+        holeMask.width=w;holeMask.height=h;
+        const hmctx=holeMask.getContext('2d');
+        const hd=hmctx.createImageData(w,h);
+
+        let left=w,right=0,top=h,bottom=0,found=0;
+
+        // نبني القناع من الشفافية/الشطرنج، مع استبعاد المناطق خارج الفتحة
+        // بواسطة إهليلج تقريبي واسع فقط كحاجز أمان.
+        const cx=w*.205,cy=h*.39;
+        const rx=w*.205,ry=h*.39;
+
+        for(let y=ry1;y<ry2;y++){
+          for(let x=rx1;x<rx2;x++){
             const i=(y*w+x)*4;
-            const r=d[i],g=d[i+1],b=d[i+2];
-            if(checker(r,g,b)){
-              d[i+3]=0;
+            const a=pixels[i+3],r=pixels[i],g=pixels[i+1],b=pixels[i+2];
+            const ellipse=((x-cx)*(x-cx))/(rx*rx)+((y-cy)*(y-cy))/(ry*ry)<=1.08;
+            if(ellipse && isCheckerPixel(r,g,b,a)){
+              hd.data[i]=255;hd.data[i+1]=255;hd.data[i+2]=255;hd.data[i+3]=255;
+              found++;
+              if(x<left)left=x;
+              if(x>right)right=x;
+              if(y<top)top=y;
+              if(y>bottom)bottom=y;
             }
           }
         }
-        fctx.putImageData(data,0,0);
 
-        // تجهيز صورة العضو بحيث تغطي الفتحة كاملة.
+        // إذا كان الفريم Alpha حقيقيًا، نعيد بناء القناع من الـ Alpha داخل
+        // المنطقة التي اكتشفناها أو من الإهليلج نفسه.
+        if(found<1000){
+          for(let y=ry1;y<ry2;y++){
+            for(let x=rx1;x<rx2;x++){
+              const i=(y*w+x)*4,a=pixels[i+3];
+              if(a<20){
+                const ellipse=((x-cx)*(x-cx))/(rx*rx)+((y-cy)*(y-cy))/(ry*ry)<=1.12;
+                if(ellipse){
+                  hd.data[i]=255;hd.data[i+1]=255;hd.data[i+2]=255;hd.data[i+3]=255;
+                  found++;
+                  if(x<left)left=x;
+                  if(x>right)right=x;
+                  if(y<top)top=y;
+                  if(y>bottom)bottom=y;
+                }
+              }
+            }
+          }
+        }
+
+        if(found<1000){
+          // احتياط أخير مطابق لمنطقة الفتحة في الفريم الذكري.
+          left=Math.floor(w*.015);right=Math.floor(w*.395);
+          top=Math.floor(h*.055);bottom=Math.floor(h*.735);
+          for(let y=top;y<=bottom;y++){
+            for(let x=left;x<=right;x++){
+              const i=(y*w+x)*4;
+              const xx=(x-left)/(right-left)-.5;
+              const yy=(y-top)/(bottom-top)-.5;
+              if((xx*xx)/.25+(yy*yy)/.25<=1){
+                hd.data[i]=255;hd.data[i+1]=255;hd.data[i+2]=255;hd.data[i+3]=255;
+              }
+            }
+          }
+        }
+
+        hmctx.putImageData(hd,0,0);
+
+        // نستخدم حدود القناع الفعلية لوضع صورة الرجل في منتصف الفتحة.
+        if(right<=left||bottom<=top){
+          left=Math.floor(w*.015);right=Math.floor(w*.395);
+          top=Math.floor(h*.055);bottom=Math.floor(h*.735);
+        }
+
+        const holeW=right-left+1,holeH=bottom-top+1;
         const scale=Math.max(holeW/memberImg.naturalWidth,holeH/memberImg.naturalHeight);
-        const dw=memberImg.naturalWidth*scale;
-        const dh=memberImg.naturalHeight*scale;
-        const dx=cx-dw/2;
-        const dy=cy-dh/2;
+        const dw=memberImg.naturalWidth*scale,dh=memberImg.naturalHeight*scale;
+        const dx=left+(holeW-dw)/2,dy=top+(holeH-dh)/2;
 
         const photoLayer=document.createElement('canvas');
         photoLayer.width=w;photoLayer.height=h;
         const pctx=photoLayer.getContext('2d');
         pctx.drawImage(memberImg,dx,dy,dw,dh);
 
-        // قص الصورة بدقة على شكل فتحة الفريم.
-        const mask=document.createElement('canvas');
-        mask.width=w;mask.height=h;
-        const mctx=mask.getContext('2d');
-        mctx.fillStyle='#fff';
-        mctx.beginPath();
-        mctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);
-        mctx.fill();
-
         pctx.globalCompositeOperation='destination-in';
-        pctx.drawImage(mask,0,0);
+        pctx.drawImage(holeMask,0,0);
 
-        // الصورة أولًا، ثم الفريم بعد إزالة الشطرنج من منطقة الصورة.
+        // صورة الرجل أولاً، ثم الفريم فوقها.
         ctx.drawImage(photoLayer,0,0,w,h);
         ctx.drawImage(frameLayer,0,0,w,h);
         finish();
       };
       memberImg.onerror=()=>toast('⚠️ تعذر قراءة صورة العضو. اختر الصورة مرة أخرى.');
-      memberImg.src=String(ev.target.result||'');
+      memberImg.src=String(e.target.result||'');
     };
     reader.onerror=()=>toast('⚠️ تعذر قراءة صورة العضو.');
     reader.readAsDataURL(photo);
