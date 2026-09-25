@@ -1217,6 +1217,22 @@ async function loadAiUsageStats(){
 async function refreshAiUsageStats(){await loadAiUsageStats();if(!$('aiUsagePanel'))render()}
 function startAiUsageAutoRefresh(){clearInterval(aiUsageTimer);if(role!=='leader')return;aiUsageTimer=setInterval(()=>{if(role==='leader')loadAiUsageStats().catch(()=>{})},5*60*1000)}
 async function boot(){
+  const isPreviewFrame=new URLSearchParams(window.location.search).get('globalPreviewFrame')==='1';
+  if(isPreviewFrame&&!token){
+    await new Promise(resolve=>{
+      let settled=false;
+      const finish=()=>{if(settled)return;settled=true;window.removeEventListener('message',onMessage);clearTimeout(timer);resolve()};
+      const onMessage=e=>{
+        if(e.origin!==location.origin||!e.data||e.data.type!=='dxn-preview-auth'||!e.data.token)return;
+        token=String(e.data.token);
+        localStorage.setItem('dxn_session',token);
+        localStorage.setItem('dxn_session_issued',String(e.data.issued||Date.now()));
+        finish();
+      };
+      const timer=setTimeout(finish,5000);
+      window.addEventListener('message',onMessage);
+    });
+  }
   if(!ready()){renderSetup();return}
   if(!sb) sb=supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY);
   try{
@@ -6147,7 +6163,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
  function show(){if(!eligible())return;panel.classList.add('show');panel.setAttribute('aria-hidden','false');mode('portrait');document.body.style.overflow='hidden'}
  function hide(){panel.classList.remove('show');panel.setAttribute('aria-hidden','true');document.body.style.overflow=''}
  function mount(){const ok=eligible();launcher.classList.toggle('show',ok);launcher.setAttribute('aria-hidden',String(!ok))}
- openBtn&&openBtn.addEventListener('click',show);closeBtn&&closeBtn.addEventListener('click',hide);zoomIn&&zoomIn.addEventListener('click',()=>changeZoom(.1));zoomOut&&zoomOut.addEventListener('click',()=>changeZoom(-.1));zoomReset&&zoomReset.addEventListener('click',()=>{previewZoom=1;const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});document.querySelectorAll('#globalPreviewPanel [data-preview-mode]').forEach(b=>b.addEventListener('click',()=>mode(b.dataset.previewMode)));frame&&frame.addEventListener('load',function(){hideEmbeddedScrollbars();sync();const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});window.addEventListener('resize',function(){const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&panel.classList.contains('show'))hide()});mount();const t=setInterval(()=>{if(eligible()){mount();clearInterval(t)}},500);
+ openBtn&&openBtn.addEventListener('click',show);closeBtn&&closeBtn.addEventListener('click',hide);zoomIn&&zoomIn.addEventListener('click',()=>changeZoom(.1));zoomOut&&zoomOut.addEventListener('click',()=>changeZoom(-.1));zoomReset&&zoomReset.addEventListener('click',()=>{previewZoom=1;const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});document.querySelectorAll('#globalPreviewPanel [data-preview-mode]').forEach(b=>b.addEventListener('click',()=>mode(b.dataset.previewMode)));frame&&frame.addEventListener('load',function(){hideEmbeddedScrollbars();try{frame.contentWindow.postMessage({type:'dxn-preview-auth',token:typeof token!=='undefined'?token:'',issued:localStorage.getItem('dxn_session_issued')||Date.now()},location.origin)}catch(e){}sync();const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});window.addEventListener('resize',function(){const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&panel.classList.contains('show'))hide()});mount();const t=setInterval(()=>{if(eligible()){mount();clearInterval(t)}},500);
 })();
 </script>
 </body>
