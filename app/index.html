@@ -3411,13 +3411,18 @@ function ragwanRenderStepResources(files){
         ? '<div class="ragwan-resource-preview ragwan-resource-video-preview"><video controls playsinline preload="metadata" src="'+esc(url)+'" aria-label="'+name+'"></video></div>'
         : '<div class="ragwan-resource-preview ragwan-resource-file-preview"><span>'+ragwanFileIcon(f)+'</span><small>ملف '+esc(ragwanFormatSize(f?.size))+'</small></div>');
 
-    const primary=isImage&&url
-      ? '<button type="button" class="ragwan-resource-open js-ragwan-copy-image" data-index="'+index+'">📋 نسخ الصورة</button>'
-      : (url ? '<a class="ragwan-resource-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.preventDefault();event.stopPropagation();ragwanOpenResource(this.href)">📖 فتح الملف</a>' : '');
+    const isGoalFormImage=ragwanCurrentStep===5&&isImage&&/(?:^|[._ -])8(?:$|[._ -])/i.test(rawName);
+    const primary=isGoalFormImage
+      ? '<button type="button" class="ragwan-resource-open js-ragwan-open-goals">🎯 فتح استمارة الأهداف</button>'
+      : (isImage&&url
+        ? '<button type="button" class="ragwan-resource-open js-ragwan-copy-image" data-index="'+index+'">📋 نسخ الصورة</button>'
+        : (url ? '<a class="ragwan-resource-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" onclick="event.preventDefault();event.stopPropagation();ragwanOpenResource(this.href)">📖 فتح الملف</a>' : ''));
 
     const actions='<div class="ragwan-resource-actions'+(isVideo&&url?' video-actions':'')+'" aria-label="أدوات المادة">'+
       primary+
-      '<button type="button" class="ragwan-resource-copy js-ragwan-copy-info" data-index="'+index+'">📋 نسخ المعلومات</button>'+
+      (isGoalFormImage
+        ? '<button type="button" class="ragwan-resource-copy js-ragwan-copy-goals-link">🔗 نسخ رابط الاستمارة</button><button type="button" class="ragwan-resource-copy js-ragwan-share-goals">📤 مشاركة الاستمارة</button>'
+        : '<button type="button" class="ragwan-resource-copy js-ragwan-copy-info" data-index="'+index+'">📋 نسخ المعلومات</button>')+
       (isVideo&&url?'<button type="button" class="ragwan-resource-copy js-ragwan-share-video" data-index="'+index+'">📤 مشاركة الفيديو</button>':'')+
       (role==='leader'?'<button type="button" class="ragwan-resource-delete js-ragwan-delete" data-index="'+index+'">🗑️ حذف</button>':'')+
       '</div>';
@@ -3433,6 +3438,35 @@ function ragwanRenderStepResources(files){
   el.innerHTML='<div class="ragwan-resource-head"><div><b>📚 مواد الخطوة '+step+'</b><small>اطلع على الملفات أولًا ثم انتقل إلى اختبار الفهم.</small></div>'+leaderUpload+'</div>'+
     '<div class="ragwan-resource-list">'+(arr.length?rows:'<div class="ragwan-resource-empty">لم تتم إضافة مواد لهذه الخطوة بعد.</div>')+'</div>';
 
+  const goalsUrl=new URL('/app/ragwan-goals.html',location.origin).href;
+  el.querySelectorAll('.js-ragwan-open-goals').forEach(btn=>btn.addEventListener('click',function(e){
+    e.preventDefault();e.stopPropagation();window.open(goalsUrl,'_blank','noopener');
+  }));
+  el.querySelectorAll('.js-ragwan-copy-goals-link').forEach(btn=>btn.addEventListener('click',async function(e){
+    e.preventDefault();e.stopPropagation();
+    try{
+      await navigator.clipboard.writeText(goalsUrl);
+      toast('✅ تم نسخ رابط استمارة الأهداف. أرسله للعضو عبر واتساب أو أي تطبيق.');
+    }catch(err){
+      const ta=document.createElement('textarea');ta.value=goalsUrl;ta.style.position='fixed';ta.style.opacity='0';
+      document.body.appendChild(ta);ta.select();
+      try{document.execCommand('copy');toast('✅ تم نسخ رابط استمارة الأهداف.');}
+      finally{ta.remove();}
+    }
+  }));
+  el.querySelectorAll('.js-ragwan-share-goals').forEach(btn=>btn.addEventListener('click',async function(e){
+    e.preventDefault();e.stopPropagation();
+    const data={title:'استمارة الأهداف — DXN',text:'🎯 استمارة الأهداف — يرجى تعبئتها ثم حفظ الأهداف.',url:goalsUrl};
+    try{
+      if(navigator.share){await navigator.share(data);return;}
+    }catch(err){if(err&&err.name==='AbortError')return;}
+    try{
+      await navigator.clipboard.writeText(goalsUrl);
+      toast('✅ تم نسخ رابط الاستمارة. يمكنك إرساله للعضو.');
+    }catch(err){
+      toast('⚠️ تعذر مشاركة الرابط تلقائيًا.');
+    }
+  }));
   el.querySelectorAll('.js-ragwan-copy-image').forEach(btn=>btn.addEventListener('click',function(e){
     e.preventDefault();e.stopPropagation();
     const f=arr[Number(this.dataset.index)];
