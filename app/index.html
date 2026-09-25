@@ -212,6 +212,24 @@ button[disabled]:focus-visible{outline-color:#667085!important}
 /* V87.7 — Uploaded video files are represented by the dedicated player below; do not reserve preview space here. */
 .ragwan-file-media:has(video){display:none!important}
 .ragwan-file-media video{display:none!important}
+
+/* V87.8 — Door 5 material preview: actions first, visual preview below. */
+.ragwan-resource-preview{width:100%;margin-top:2px;border:1px solid #dfe9e5;border-radius:14px;overflow:hidden;background:#f4f8f6;display:flex;align-items:center;justify-content:center;box-sizing:border-box}
+.ragwan-resource-image-preview{aspect-ratio:1/1;min-height:180px;max-height:420px;background:#fff}
+.ragwan-resource-image-preview img{display:block;width:100%;height:100%;object-fit:contain;background:#fff}
+.ragwan-resource-file-preview,.ragwan-resource-video-placeholder{min-height:150px;flex-direction:column;gap:6px;color:#71817a}
+.ragwan-resource-file-preview span,.ragwan-resource-video-placeholder span{font-size:48px;line-height:1}
+.ragwan-resource-preview small{font-size:11px;font-weight:800;color:#71817a}
+.ragwan-resource-top{display:flex;align-items:center;gap:9px;width:100%;min-width:0}
+.ragwan-resource-info{flex:1;min-width:0}
+@media(max-width:650px){
+  .ragwan-step-5-active .ragwan-resource-item{grid-template-columns:1fr!important;display:grid!important;align-items:stretch!important;padding:8px!important;gap:7px!important}
+  .ragwan-step-5-active .ragwan-resource-top{grid-column:1!important}
+  .ragwan-step-5-active .ragwan-resource-actions{grid-column:1!important;grid-row:auto!important}
+  .ragwan-step-5-active .ragwan-resource-preview{grid-column:1!important;margin-top:1px!important}
+  .ragwan-step-5-active .ragwan-resource-image-preview{aspect-ratio:1/1!important;min-height:0!important;height:auto!important;max-height:none!important}
+  .ragwan-step-5-active .ragwan-resource-image-preview img{width:100%!important;height:100%!important;object-fit:contain!important}
+}
 </style><style id="dxn-universal-glow-buttons-v1">
 /* V87.5 — Universal luminous buttons across the entire application.
    Visual-only enhancement: existing colors, actions, permissions and click handlers remain unchanged. */
@@ -3102,11 +3120,21 @@ function ragwanRenderStepResources(files){
         ? '<div class="ragwan-resource-actions">'+resourceActions+
             '<button type="button" class="ragwan-resource-copy" onclick=\'event.stopPropagation();ragwanCopyStepResourceInfo('+JSON.stringify(f).replace(/'/g,"&#39;")+','+index+')\'>📋 نسخ المعلومات</button>'+            '<button type="button" class="ragwan-resource-delete" onclick=\'event.stopPropagation();ragwanDeleteStepResource('+JSON.stringify(path)+')\'>🗑️ حذف</button>'+          '</div>'
         : '<div class="ragwan-resource-actions">'+resourceActions+'</div>';
+      const mime=String(f.mime||'').toLowerCase();
+      const rawName=String(f.name||'');
+      const isImage=mime.startsWith('image/')||/\\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(rawName);
+      const isVideo=mime.startsWith('video/')||/\\.(mp4|webm|mov|m4v|ogg)$/i.test(rawName);
+      const preview=(isImage&&url)
+        ? '<div class="ragwan-resource-preview ragwan-resource-image-preview"><img src="'+esc(url)+'" alt="'+name+'" loading="lazy"></div>'
+        : (isVideo
+          ? '<div class="ragwan-resource-preview ragwan-resource-video-placeholder"><span>🎥</span><small>الفيديو معروض أسفل المواد</small></div>'
+          : '<div class="ragwan-resource-preview ragwan-resource-file-preview"><span>'+ragwanFileIcon(f)+'</span><small>ملف '+esc(ragwanFormatSize(f.size))+'</small></div>');
       const rowOpen='';
       return '<div class="ragwan-resource-item" '+rowOpen+'>'+
-        '<span class="ragwan-resource-icon">'+ragwanFileIcon(f)+'</span>'+
-        '<div><b>'+name+'</b><small>'+ragwanFormatSize(f.size)+'</small></div>'+
+        '<div class="ragwan-resource-top"><span class="ragwan-resource-icon">'+ragwanFileIcon(f)+'</span>'+
+        '<div class="ragwan-resource-info"><b>'+name+'</b><small>'+ragwanFormatSize(f.size)+'</small></div></div>'+
         leaderActions+
+        preview+
       '</div>';
     }).join(''):'<div class="ragwan-resource-empty">لم تتم إضافة مواد لهذه الخطوة بعد.</div>')+'</div>';
 }
