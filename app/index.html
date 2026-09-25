@@ -3928,20 +3928,21 @@ function trainings(){
       <span class="training-feature-arrow">›</span>
     </button>
   </div>`;
+  const backChoice=`<div style="display:flex;justify-content:flex-start;margin:0 0 12px"><button type="button" onclick="switchTrainingSubtab('home')" style="min-height:40px">↩️ العودة إلى الاختيار</button></div>`;
 
   if(trainingSubtab==='home'){
     return subTabs;
   }
 
   if(trainingSubtab==='ragwan_success_plan'){
-    return subTabs+`<div class="card">
+    return backChoice+`<div class="card">
       <div class="title">📘 الخطة الاحترافية لرجوان نجاح</div>
       ${ragwanSuccessIntro()}
     </div>`;
   }
 
-  if(!canAccessTraining())return subTabs+`<div class="card"><div class="title">🔒 التدريب للأعضاء والقائد</div><p class="muted">هذا القسم متاح للعضو صاحب رقم عضوية DXN وللقائد.</p></div>`;
-  if(!lessons.length)return subTabs+`<div class="card"><div class="title">📚 الشروحات والتدريبات</div><p class="muted">لم تتم إضافة تدريبات بعد. يمكن للقائد إضافة روابط YouTube من مركز القيادة.</p>${role==='leader'?`<button class="primary" onclick="openTrainingManager()">➕ إضافة أول تدريب</button>`:''}</div>`;
+  if(!canAccessTraining())return backChoice+`<div class="card"><div class="title">🔒 التدريب للأعضاء والقائد</div><p class="muted">هذا القسم متاح للعضو صاحب رقم عضوية DXN وللقائد.</p></div>`;
+  if(!lessons.length)return backChoice+`<div class="card"><div class="title">📚 الشروحات والتدريبات</div><p class="muted">لم تتم إضافة تدريبات بعد. يمكن للقائد إضافة روابط YouTube من مركز القيادة.</p>${role==='leader'?`<button class="primary" onclick="openTrainingManager()">➕ إضافة أول تدريب</button>`:''}</div>`;
 
   const completedNo=new Set(progress.filter(p=>p.completed).map(p=>{
     const l=lessons.find(x=>String(x.id)===String(p.lesson_id)); return l?Number(l.lesson_no):0;
@@ -3972,7 +3973,7 @@ function trainings(){
     </div>`;
   }).join('');
 
-  return subTabs+`<div class="card">
+  return backChoice+`<div class="card">
     <div class="title">📚 الشروحات والتدريبات</div>
     <p class="muted">شاهد التدريبات بالترتيب. لا يفتح التدريب التالي إلا بعد إكمال التدريب السابق، ويمكنك إعادة مشاهدة أي تدريب أكملته في أي وقت.</p>
     <div style="background:#eef3f1;border-radius:999px;height:14px;overflow:hidden;margin:15px 0"><div style="width:${pct}%;height:100%;background:#0f513f"></div></div>
