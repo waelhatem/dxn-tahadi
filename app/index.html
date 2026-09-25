@@ -3331,7 +3331,11 @@ async function ragwanCopyStepResourceImage(url,name){
 }
 function ragwanRenderStepResources(files){
   const el=document.getElementById('ragwanStepResources');if(!el)return;
-  const step=ragwanCurrentStep,arr=Array.isArray(files)?files:[];
+  const step=ragwanCurrentStep,arr=(Array.isArray(files)?files:[]).slice().sort((a,b)=>{
+    const av=String(a?.mime||'').toLowerCase().startsWith('video/')||/\.(mp4|webm|mov|m4v|ogg)$/i.test(String(a?.name||''));
+    const bv=String(b?.mime||'').toLowerCase().startsWith('video/')||/\.(mp4|webm|mov|m4v|ogg)$/i.test(String(b?.name||''));
+    return Number(av)-Number(bv);
+  });
   const leaderUpload=role==='leader'
     ? '<div class="ragwan-resource-upload"><label for="ragwanStepResourceInput">➕ إضافة ملفات هذه الخطوة</label><input id="ragwanStepResourceInput" type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" onchange="ragwanUploadStepResources(this.files)"></div>'
     : '';
