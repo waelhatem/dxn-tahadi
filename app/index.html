@@ -2477,6 +2477,12 @@ function ragwanProgressKey(){
   ))||'self').replace(/[^a-zA-Z0-9_-]/g,'_');
   return 'dxn_ragwan_progress_v2_'+memberKey;
 }
+// حساب معاينة خاص للمشرف: هذا الاستثناء مخصص لحساب واحد فقط لمراجعة تجربة العضو.
+const RAGWAN_PREVIEW_MEMBER_NO='820469486';
+function ragwanIsPreviewMember(){
+  return role==='member' && String(me&&me.member_no||'').trim()===RAGWAN_PREVIEW_MEMBER_NO;
+}
+
 function ragwanProgressLoad(){
   const d=ragwanDoorData();
   let state={completed:[],started:[]};
@@ -2497,6 +2503,7 @@ function ragwanProgressNextStep(){
 function ragwanStepStatus(n,state){
   if(state.completed.includes(n))return 'completed';
   if(state.started.includes(n))return 'started';
+  // الحساب التجريبي يرى جميع الأبواب المتاحة للمراجعة دون تغيير حالة الإنجاز الفعلية.
   return 'available';
 }
 function ragwanStatusLabel(status){
@@ -3616,7 +3623,7 @@ async function ragwanLoadEvidence(){
 
 function ragwanOpenDoor(n){
   const data=ragwanDoorData(),state=ragwanProgressLoad(),maxOpen=ragwanProgressNextStep(),step=Math.max(1,Math.min(10,Number(n)||1));
-  if(role!=='leader' && step>maxOpen){toast('🔒 هذه الخطوة مغلقة. أكمل الخطوة السابقة أولًا.');return;}
+  if(role!=='leader' && !ragwanIsPreviewMember() && step>maxOpen){toast('🔒 هذه الخطوة مغلقة. أكمل الخطوة السابقة أولًا.');return;}
   const item=data[step-1],status=ragwanStepStatus(step,state);
   ragwanCurrentStep=step;
   data.forEach(x=>{
@@ -3692,7 +3699,7 @@ function ragwanOpenDoor(n){
 function ragwanStartStep(){
   const state=ragwanProgressLoad(),step=ragwanCurrentStep;
   if(state.completed.includes(step))return;
-  if(step!==ragwanProgressNextStep()){toast('🔒 أكمل الخطوة السابقة أولًا.');return;}
+  if(!ragwanIsPreviewMember() && step!==ragwanProgressNextStep()){toast('🔒 أكمل الخطوة السابقة أولًا.');return;}
   if(!state.started.includes(step))state.started.push(step);
   ragwanProgressSave(state);ragwanOpenDoor(step);
 }
@@ -3725,7 +3732,7 @@ function ragwanEnterNextStep(){
 function ragwanPrevDoor(){ragwanOpenDoor(Math.max(1,ragwanCurrentStep-1));}
 function ragwanNextDoor(){
   const state=ragwanProgressLoad(),next=Math.min(10,ragwanCurrentStep+1);
-  if(next>ragwanProgressNextStep()&&!state.completed.includes(ragwanCurrentStep)){toast('🔒 أكمل الخطوة الحالية أولًا.');return;}
+  if(!ragwanIsPreviewMember() && next>ragwanProgressNextStep()&&!state.completed.includes(ragwanCurrentStep)){toast('🔒 أكمل الخطوة الحالية أولًا.');return;}
   ragwanOpenDoor(next);
 }
 async function ragwanPlanApi(action,args={}){
@@ -3898,7 +3905,7 @@ function trainings(){
     const n=Number(l.lesson_no), p=progress.find(x=>String(x.lesson_id)===String(l.id));
     const done=!!p?.completed;
     const previousDone = n===1 || completedNo.has(n-1);
-    const locked = !done && !previousDone;
+    const locked = !done && !previousDone && !ragwanIsPreviewMember();
     return `<div id="${n===1?'trainingLessonsStart':''}" class="card" style="${locked?'opacity:.58;background:#f6f8f7':''}">
       <div class="row">
         <div style="flex:1">
@@ -3941,7 +3948,7 @@ function startTrainingLesson(id){
   const done=new Set(progress.filter(p=>p.completed).map(p=>{const z=lessons.find(x=>String(x.id)===String(p.lesson_id));return z?Number(z.lesson_no):0;}));
   const n=Number(l.lesson_no);
   const previousDone = n===1 || done.has(n-1);
-  if(!previousDone)return toast('أكمل التدريب السابق أولاً.');
+  if(!previousDone && !ragwanIsPreviewMember())return toast('أكمل التدريب السابق أولاً.');
   const embed=youtubeEmbed(l.youtube_url);
   if(!embed)return toast('رابط YouTube غير صالح.');
 
