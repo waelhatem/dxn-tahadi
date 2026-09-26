@@ -1968,7 +1968,7 @@ async function communityChatRpc(fn,args){
   const token=String(localStorage.getItem('dxn_session')||'').trim();
   if(!token){toast('انتهت جلسة الدخول. أعد تسجيل الدخول.');return null}
   const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),15000);
+  const timer=setTimeout(()=>controller.abort(),7000);
   try{
     const response=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn,args:{...(args||{}),p_token:token}}),cache:'no-store',signal:controller.signal});
     const data=await response.json().catch(()=>({}));
@@ -2004,21 +2004,31 @@ async function communityChatOpen(){
   modal.addEventListener('click',e=>{if(e.target===modal)communityChatClose()});
   document.body.appendChild(modal);
   setTimeout(()=>document.getElementById('communityChatInput')?.focus(),50);
-  // لا نمنع فتح المحادثة بانتظار الشبكة؛ حمّل الرسائل في الخلفية.
+  // أظهر المحادثات المحلية القديمة فورًا، ثم حدّثها من الخادم في الخلفية.
+  // هذا يحافظ على الرسائل التي كانت محفوظة قبل نقل المحادثة إلى قاعدة البيانات
+  // ولا يجعل المستخدم ينتظر اتصال الخادم حتى يرى محادثته السابقة.
+  const box=document.getElementById('communityChatMessages');
+  let local=[];
+  try{local=JSON.parse(localStorage.getItem('dxn_community_chat_local')||'[]')}catch(_){local=[]}
+  if(box && Array.isArray(local) && local.length){
+    const legacy=local.slice(-100).map(m=>({
+      sender_member_no:'',
+      sender_name:'أنت',
+      sender_role:'member',
+      message_text:String(m.text||''),
+      created_at:String(m.time||new Date().toISOString())
+    })).filter(m=>m.message_text.trim());
+    if(legacy.length) communityChatRender(legacy);
+  }
   communityChatRpc('community_chat_list',{p_limit:100}).then(messages=>{
-    if(messages && document.getElementById('communityChatModal')) {
+    if(!document.getElementById('communityChatModal')) return;
+    if(Array.isArray(messages) && messages.length){
       communityChatRender(messages);
       return;
     }
-    // احتياط مؤقت: إذا تعذر الوصول إلى قاعدة البيانات، اعرض الرسائل المحلية القديمة
-    // التي كانت المحادثة تعمل بها سابقًا بدل إبقاء النافذة معلقة على التحميل.
-    const box=document.getElementById('communityChatMessages');
-    let local=[];
-    try{local=JSON.parse(localStorage.getItem('dxn_community_chat_local')||'[]')}catch(_){local=[]}
-    if(box && Array.isArray(local) && local.length){
-      communityChatRender(local.slice(-100));
-    }else if(box){
-      box.innerHTML='<div class="community-chat-empty"><div class="icon">⚠️</div><span>تعذر تحميل المحادثة من الخادم.</span><small style="display:block;margin-top:8px">اضغط لإعادة المحاولة</small><button type="button" class="primary" style="margin-top:10px" onclick="communityChatRetry()">إعادة المحاولة</button></div>';
+    // إذا لم يرجع الخادم رسائل، أبقِ الرسائل المحلية القديمة ظاهرة.
+    if(box && (!Array.isArray(local)||!local.length)){
+      box.innerHTML='<div class="community-chat-empty"><div class="icon">⚠️</div><span>لا توجد رسائل محفوظة على الخادم.</span><button type="button" class="primary" style="margin-top:10px" onclick="communityChatRetry()">إعادة المحاولة</button></div>';
     }
   });
 }
