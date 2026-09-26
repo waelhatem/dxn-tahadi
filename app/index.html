@@ -1461,7 +1461,49 @@ nav[aria-label="التنقل بين الصفحات"]{
   .ragwan-mobile-back:active{transform:scale(.94)!important}
   .ragwan-mobile-back[disabled]{opacity:.45!important}
 }
-</style></head><body>
+</style><style id="dxnRemoveMobileLegacyNavV4">
+/* V4 — إزالة نهائية لأي نسخة قديمة من أزرار رجوع/تقدم الموبايل. */
+#dxnInAppNav,
+.dxn-inapp-nav,
+nav[aria-label="التنقل بين الصفحات"],
+button[aria-label="الرجوع للصفحة السابقة"],
+button[aria-label="التقدم إلى الصفحة التالية"]{
+  display:none!important;
+  visibility:hidden!important;
+  opacity:0!important;
+  pointer-events:none!important;
+  width:0!important;
+  height:0!important;
+  min-width:0!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+}
+</style>
+<script id="dxnRemoveMobileLegacyNavV4Script">
+(function(){
+  function removeLegacyNav(){
+    var selectors=[
+      '#dxnInAppNav',
+      '.dxn-inapp-nav',
+      'nav[aria-label="التنقل بين الصفحات"]',
+      'button[aria-label="الرجوع للصفحة السابقة"]',
+      'button[aria-label="التقدم إلى الصفحة التالية"]'
+    ];
+    selectors.forEach(function(sel){
+      document.querySelectorAll(sel).forEach(function(el){el.remove();});
+    });
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',removeLegacyNav,{once:true});
+  }else{
+    removeLegacyNav();
+  }
+  new MutationObserver(removeLegacyNav).observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
+</head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
   <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
   <div class="pwa-install-actions"><button id="pwaInstallBtn" class="primary" type="button">تثبيت</button><button id="pwaInstallClose" class="pwa-install-close" type="button">لاحقًا</button></div>
