@@ -1215,7 +1215,25 @@ body:has(.login-header-top)::before{
   #communityChatModal .community-attach-wrap{left:10px!important}
   #communityChatModal .community-chat-send{min-width:64px!important;padding:0 10px!important}
 }
-</style></head><body>
+<style id="communityComposerInsideFieldV1">
+@media(max-width:700px){
+  #communityChatModal .community-chat-compose{display:flex!important;align-items:center!important;gap:7px!important;padding:9px 10px!important;position:relative!important}
+  #communityChatModal .community-composer-field{position:relative!important;flex:1 1 auto!important;min-width:0!important;height:48px!important}
+  #communityChatModal .community-composer-field .community-chat-input{position:absolute!important;inset:0!important;width:100%!important;height:48px!important;min-height:48px!important;margin:0!important;padding:11px 104px 11px 52px!important;box-sizing:border-box!important;border-radius:16px!important}
+  #communityChatModal .community-composer-field .community-attach-wrap{position:absolute!important;left:7px!important;top:50%!important;transform:translateY(-50%)!important;width:38px!important;min-width:38px!important;height:38px!important;z-index:20!important}
+  #communityChatModal .community-composer-field .community-attach-btn{width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;font-size:22px!important}
+  #communityChatModal .community-composer-field .community-chat-formatbar{position:absolute!important;right:7px!important;top:50%!important;transform:translateY(-50%)!important;display:flex!important;gap:3px!important;padding:0!important;z-index:20!important;direction:rtl!important}
+  #communityChatModal .community-composer-field .community-chat-formatbar button{width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;padding:0!important;border-radius:9px!important;font-size:16px!important}
+  #communityChatModal .community-chat-send{flex:0 0 auto!important;height:48px!important;min-width:68px!important;padding:0 13px!important;border-radius:14px!important}
+}
+@media(max-width:390px){
+  #communityChatModal .community-composer-field .community-chat-input{padding-right:96px!important;padding-left:48px!important}
+  #communityChatModal .community-composer-field .community-attach-wrap{left:5px!important}
+  #communityChatModal .community-composer-field .community-chat-formatbar{right:5px!important;gap:2px!important}
+  #communityChatModal .community-composer-field .community-chat-formatbar button{width:30px!important;min-width:30px!important;height:30px!important;min-height:30px!important;font-size:14px!important}
+  #communityChatModal .community-chat-send{min-width:64px!important;padding:0 10px!important}
+}
+</style></style></head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
   <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
   <div class="pwa-install-actions"><button id="pwaInstallBtn" class="primary" type="button">تثبيت</button><button id="pwaInstallClose" class="pwa-install-close" type="button">لاحقًا</button></div>
@@ -2252,18 +2270,19 @@ async function communityChatOpen(){
    +'<div class="community-chat-messages" id="communityChatMessages"><div class="community-chat-empty"><div class="icon">⏳</div><span>جارٍ تحميل المحادثة...</span></div></div>'
    +'<div class="community-attachment-preview" id="communityAttachmentPreview" style="display:none"></div>'
    +'<form class="community-chat-compose" onsubmit="communityChatSend(event)">'
+   +'<div class="community-composer-field">'
    +'<div class="community-attach-wrap"><button type="button" class="community-attach-btn" onclick="communityAttachToggle(event)" aria-label="المرفقات">📎</button><div class="community-attach-menu" id="communityAttachMenu" style="display:none">'
-   +'<button type="button" onclick="communityPickFiles(\'image/*\',false)"><span class="attach-icon">🖼️</span>الصور</button>'
-   +'<button type="button" onclick="communityPickFiles(\'video/*\',false)"><span class="attach-icon">🎬</span>الفيديو</button>'
-   +'<button type="button" onclick="communityPickFiles(\'audio/*\',false)"><span class="attach-icon">🎵</span>الصوتيات</button>'
-   +'<button type="button" onclick="communityPickFiles(\'.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar\',true)"><span class="attach-icon">📄</span>المستندات</button>'
-   +'<button type="button" onclick="communityPickFiles(\'image/*\',false,true)"><span class="attach-icon">📷</span>الكاميرا</button>'
+   +'<button type="button" onclick="communityPickFiles(\\'image/*\\',false)"><span class="attach-icon">🖼️</span>الصور</button>'
+   +'<button type="button" onclick="communityPickFiles(\\'video/*\\',false)"><span class="attach-icon">🎬</span>الفيديو</button>'
+   +'<button type="button" onclick="communityPickFiles(\\'audio/*\\',false)"><span class="attach-icon">🎵</span>الصوتيات</button>'
+   +'<button type="button" onclick="communityPickFiles(\\'.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar\\',true)"><span class="attach-icon">📄</span>المستندات</button>'
+   +'<button type="button" onclick="communityPickFiles(\\'image/*\\',false,true)"><span class="attach-icon">📷</span>الكاميرا</button>'
    +'<button type="button" onclick="communityRecordAudio()"><span class="attach-icon">🎙️</span>تسجيل صوت</button>'
    +'</div></div>'
    +'<input id="communityFilePicker" type="file" multiple hidden onchange="communityFilesSelected(event)">'
    +'<input id="communityCameraPicker" type="file" accept="image/*" capture="environment" hidden onchange="communityFilesSelected(event)">'
-   +'<div class="community-chat-formatbar" aria-label="تنسيق الرسالة"><button type="button" id="communityBoldButton" aria-label="غامق" title="غامق" onmousedown="event.preventDefault()" onclick="communityToggleBold()">B</button><button type="button" aria-label="الإيموجي" title="الإيموجي" onmousedown="event.preventDefault()" onclick="communityOpenEmojiPicker(\'communityChatInput\')">😀</button><button type="button" aria-label="الملصقات" title="الملصقات" onmousedown="event.preventDefault()" onclick="communityOpenStickerPicker(\'communityChatInput\')">🧩</button></div>'+'<textarea id="communityChatInput" class="community-chat-input" autocomplete="off" placeholder="اكتب رسالتك هنا..." maxlength="1000" rows="1"></textarea><button class="community-chat-send" type="submit">إرسال</button></form>'
-   +'</div>';
+   +'<div class="community-chat-formatbar" aria-label="تنسيق الرسالة"><button type="button" id="communityBoldButton" aria-label="غامق" title="غامق" onmousedown="event.preventDefault()" onclick="communityToggleBold()">B</button><button type="button" aria-label="الإيموجي" title="الإيموجي" onmousedown="event.preventDefault()" onclick="communityOpenEmojiPicker(\\'communityChatInput\\')">😀</button><button type="button" aria-label="الملصقات" title="الملصقات" onmousedown="event.preventDefault()" onclick="communityOpenStickerPicker(\\'communityChatInput\\')">🧩</button></div>'+'<textarea id="communityChatInput" class="community-chat-input" autocomplete="off" placeholder="اكتب رسالتك هنا..." maxlength="1000" rows="1"></textarea>'
+   +'</div><button class="community-chat-send" type="submit">إرسال</button></form>'   +'</div>';
   modal.addEventListener('click',e=>{if(e.target===modal)communityChatClose()});
   document.body.appendChild(modal);
   const box=document.getElementById('communityChatMessages');
