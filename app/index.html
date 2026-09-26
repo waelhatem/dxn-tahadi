@@ -1374,6 +1374,32 @@ body:has(.login-header-top)::before{
   display:inline!important;
   white-space:pre-wrap!important;
 }
+</style><style id="communityAttachmentMenuFinalPositionV1">
+/* V1 — Keep the attachment menu fully visible inside the mobile chat field. */
+@media(max-width:700px){
+  #communityChatModal .community-composer-field > .community-attach-wrap{
+    overflow:visible!important;
+  }
+  #communityChatModal .community-composer-field > .community-attach-wrap > .community-attach-menu{
+    position:absolute!important;
+    left:0!important;
+    right:auto!important;
+    bottom:calc(100% + 8px)!important;
+    width:min(190px,calc(100vw - 28px))!important;
+    max-width:calc(100vw - 28px)!important;
+    min-width:0!important;
+    z-index:1000000!important;
+    box-sizing:border-box!important;
+    display:grid!important;
+  }
+}
+@media(max-width:390px){
+  #communityChatModal .community-composer-field > .community-attach-wrap > .community-attach-menu{
+    left:0!important;
+    width:min(180px,calc(100vw - 24px))!important;
+    max-width:calc(100vw - 24px)!important;
+  }
+}
 </style></head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
   <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
