@@ -1995,12 +1995,18 @@ let communityAudioRecorder=null,communityAudioChunks=[];
 async function communityRecordAudio(){try{if(communityAudioRecorder?.state==='recording'){communityAudioRecorder.stop();return}const stream=await navigator.mediaDevices.getUserMedia({audio:true});communityAudioChunks=[];communityAudioRecorder=new MediaRecorder(stream);communityAudioRecorder.ondataavailable=e=>{if(e.data.size)communityAudioChunks.push(e.data)};communityAudioRecorder.onstop=()=>{stream.getTracks().forEach(t=>t.stop());const blob=new Blob(communityAudioChunks,{type:'audio/webm'});const file=new File([blob],'تسجيل-صوتي-'+Date.now()+'.webm',{type:'audio/webm'});window.communityPendingFiles=[...(window.communityPendingFiles||[]),file];communityFilesSelected({target:{files:[file]}});toast('تم تجهيز التسجيل الصوتي للإرسال.')};communityAudioRecorder.start();toast('جارٍ تسجيل الصوت... اضغط المرفقات ثم تسجيل صوت لإيقافه.')}catch(e){toast('تعذر الوصول إلى الميكروفون. تحقق من صلاحية المتصفح.')}}
 
 function communityCurrentSenderName(){
+  try{
+    if(typeof currentAccountName==='function'){
+      const accountName=String(currentAccountName()||'').trim();
+      if(accountName)return accountName;
+    }
+  }catch(_){}
   const candidates=[
-    typeof me!=='undefined'&&me&&me.member_name,
     typeof me!=='undefined'&&me&&me.name,
-    typeof data!=='undefined'&&data&&data.member_name,
+    typeof me!=='undefined'&&me&&me.member_name,
     typeof data!=='undefined'&&data&&data.name,
-    typeof data!=='undefined'&&Array.isArray(data.members)&&data.members[0]&&data.members[0].member_name
+    typeof data!=='undefined'&&data&&data.member_name,
+    typeof data!=='undefined'&&Array.isArray(data.members)&&data.members[0]&&(data.members[0].name||data.members[0].member_name)
   ];
   const name=candidates.find(v=>String(v||'').trim());
   return String(name||'عضو المجتمع').trim();
