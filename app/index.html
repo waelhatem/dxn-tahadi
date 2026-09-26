@@ -2212,10 +2212,13 @@ function communityOpenSymbolPicker(targetId,title,items){
     const rect=target.getBoundingClientRect();
     const width=Math.min(360,window.innerWidth-20);
     let left=Math.max(10,Math.min(rect.left,window.innerWidth-width-10));
-    let top=rect.top-12;
     panel.style.width=width+'px';
     panel.style.left=left+'px';
-    if(top+250>window.innerHeight)top=Math.max(10,rect.bottom+10);
+    // ضع اللوحة فوق مربع الكتابة أولاً، ثم انقلها للأسفل فقط إذا لم تتسع المساحة.
+    const panelHeight=panel.offsetHeight||300;
+    let top=rect.top-panelHeight-10;
+    if(top<10)top=Math.min(rect.bottom+10,window.innerHeight-panelHeight-10);
+    top=Math.max(10,Math.min(top,window.innerHeight-panelHeight-10));
     panel.style.top=top+'px';
   }
   setTimeout(()=>document.addEventListener('click',communitySymbolOutside,{capture:true}),0);
