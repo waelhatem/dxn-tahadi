@@ -428,11 +428,24 @@ async function communitySession(token){
   if(!SUPABASE_SECRET_KEY) throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
   const boot=await supabaseRpcRequest('bootstrap',{p_token:pToken},SUPABASE_SECRET_KEY,10000);
   if(!boot.ok) throw new Error((boot.data&&(boot.data.message||boot.data.error||boot.data.hint))||boot.text||'جلسة الدخول غير صالحة');
-  const member=Array.isArray(boot.data&&boot.data.members)?boot.data.members[0]:null;
+  const bootData=boot.data||{};
+  const sessionRole=String(bootData.role||'').trim().toLowerCase();
+  const member=(sessionRole==='member'&&Array.isArray(bootData.members))?bootData.members[0]:null;
+  const leaderCandidate=bootData.leader||bootData.user||bootData.profile||bootData.account||{};
+  const leaderName=String(
+    bootData.leader_name||
+    bootData.leaderName||
+    leaderCandidate.name||
+    leaderCandidate.full_name||
+    leaderCandidate.display_name||
+    leaderCandidate.displayName||
+    ''
+  ).trim();
   return {
-    role:String(boot.data&&boot.data.role||'').trim().toLowerCase(),
+    role:sessionRole,
     member_no:String(member&&member.member_no||'').trim(),
-    member_name:String(member&&(member.member_name||member.name)||'').trim()
+    member_name:String(member&&(member.member_name||member.name)||'').trim(),
+    leader_name:leaderName
   };
 }
 
