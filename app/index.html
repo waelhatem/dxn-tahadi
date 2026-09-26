@@ -1051,6 +1051,11 @@ body:has(.login-header-top)::before{
   box-sizing:border-box!important;
   z-index:100000!important;
 }
+
+.community-chat-edit-formatbar{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.community-chat-edit-formatbar button{width:38px;height:34px;border:1px solid rgba(15,81,63,.18);border-radius:9px;background:#fff;color:#0f513f;font-size:18px;font-weight:900;cursor:pointer}
+.community-chat-edit-formatbar button:active{background:#0f513f;color:#fff}
+@media(max-width:700px){.community-chat-edit-formatbar button{width:36px;height:32px}}
 </style><style id="communityChatMobileAttachmentFixV1">
 /* V1 — Keep the community attachment menu fully inside the phone viewport. */
 @media(max-width:700px){
@@ -2292,6 +2297,30 @@ function communityChatToggleActions(button,e){
   menu.style.zIndex='100000';
   menu.classList.add('open');
 }
+function communityEditToggleBold(){
+  const input=document.getElementById('communityChatEditText');
+  if(!input)return;
+  const start=Number(input.selectionStart||0), end=Number(input.selectionEnd||0);
+  const value=String(input.value||'');
+  const selected=value.slice(start,end);
+  if(start===end){
+    input.setRangeText('****',start,end,'end');
+    input.selectionStart=input.selectionEnd=start+2;
+  }else{
+    const alreadyBold=selected.startsWith('**')&&selected.endsWith('**')&&selected.length>=4;
+    if(alreadyBold){
+      const plain=selected.slice(2,-2);
+      input.setRangeText(plain,start,end,'select');
+      input.selectionStart=start;
+      input.selectionEnd=start+plain.length;
+    }else{
+      input.setRangeText('**'+selected+'**',start,end,'select');
+      input.selectionStart=start;
+      input.selectionEnd=end+4;
+    }
+  }
+  input.focus();
+}
 function communityChatCloseEdit(){
   const modal=document.getElementById('communityChatEditModal');
   if(modal)modal.remove();
@@ -2308,7 +2337,7 @@ async function communityChatEditMessage(id){
   const modal=document.createElement('div');
   modal.id='communityChatEditModal';
   modal.className='community-chat-edit-modal';
-  modal.innerHTML='<div class="community-chat-edit-card" role="dialog" aria-modal="true" aria-label="تعديل الرسالة"><div class="community-chat-edit-title">✏️ تعديل الرسالة</div><textarea id="communityChatEditText" dir="auto" rows="7"></textarea><div class="community-chat-edit-actions"><button type="button" class="community-chat-edit-cancel" onclick="communityChatCloseEdit()">إلغاء</button><button type="button" class="community-chat-edit-save" onclick="communityChatSaveEdit('+JSON.stringify(String(id))+')">حفظ التعديل</button></div></div>';
+  modal.innerHTML='<div class="community-chat-edit-card" role="dialog" aria-modal="true" aria-label="تعديل الرسالة"><div class="community-chat-edit-title">✏️ تعديل الرسالة</div><div class="community-chat-edit-formatbar"><button type="button" aria-label="غامق" title="غامق" onmousedown="event.preventDefault()" onclick="communityEditToggleBold()">B</button></div><textarea id="communityChatEditText" dir="auto" rows="7"></textarea><div class="community-chat-edit-actions"><button type="button" class="community-chat-edit-cancel" onclick="communityChatCloseEdit()">إلغاء</button><button type="button" class="community-chat-edit-save" onclick="communityChatSaveEdit('+JSON.stringify(String(id))+')">حفظ التعديل</button></div></div>';
   document.body.appendChild(modal);
   const textarea=document.getElementById('communityChatEditText');
   if(textarea){
