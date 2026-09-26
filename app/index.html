@@ -2002,7 +2002,13 @@ async function communityChatOpen(){
    +'<input id="communityChatInput" class="community-chat-input" autocomplete="off" placeholder="اكتب رسالتك هنا..." maxlength="1000"><button class="community-chat-send" type="submit">إرسال</button></form>'
    +'</div>';
   modal.addEventListener('click',e=>{if(e.target===modal)communityChatClose()});
+  const closeButton=modal.querySelector('.community-chat-close');
+  if(closeButton) closeButton.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();communityChatClose()});
+  modal.setAttribute('tabindex','-1');
   document.body.appendChild(modal);
+  modal.focus();
+  modal._escapeHandler=e=>{if(e.key==='Escape')communityChatClose()};
+  document.addEventListener('keydown',modal._escapeHandler);
   setTimeout(()=>document.getElementById('communityChatInput')?.focus(),50);
   // أظهر المحادثات المحلية القديمة فورًا، ثم حدّثها من الخادم في الخلفية.
   // هذا يحافظ على الرسائل التي كانت محفوظة قبل نقل المحادثة إلى قاعدة البيانات
@@ -2087,7 +2093,12 @@ function communityChatToggleBold(){
   }
   input.focus();
 }
-function communityChatClose(){document.getElementById('communityChatModal')?.remove()}
+function communityChatClose(){
+  const modal=document.getElementById('communityChatModal');
+  if(!modal)return;
+  if(modal._escapeHandler)document.removeEventListener('keydown',modal._escapeHandler);
+  modal.remove();
+}
 function communityAttachToggle(e){e?.stopPropagation();const m=document.getElementById('communityAttachMenu');if(m)m.style.display=m.style.display==='none'?'grid':'none'}
 function communityPickFiles(accept,multi,camera=false){document.getElementById('communityAttachMenu')?.style.setProperty('display','none');const el=document.getElementById(camera?'communityCameraPicker':'communityFilePicker');if(!el)return;el.accept=accept;el.multiple=!!multi;el.value='';el.click()}
 function communityRenderPendingFiles(){
