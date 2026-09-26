@@ -472,6 +472,31 @@ async function communityMeetingGet(args){
   return result.data[0];
 }
 
+async function communityChatList(args){
+  await communitySession(args.p_token);
+  const limit=Math.max(1,Math.min(Number(args.p_limit)||100,200));
+  const url='/rest/v1/community_chat_messages?select=id,sender_member_no,sender_name,sender_role,message_text,created_at&order=created_at.asc&limit='+limit;
+  const rows=await supabaseTableRequest('GET',url,SUPABASE_SECRET_KEY);
+  if(!rows.ok || !Array.isArray(rows.data)) throw new Error((rows.data&&(rows.data.message||rows.data.error||rows.data.hint))||rows.text||'تعذر تحميل محادثة المجتمع');
+  return rows.data;
+}
+
+async function communityChatSend(args){
+  const session=await communitySession(args.p_token);
+  const message=String(args.p_message||'').trim();
+  if(!message) throw new Error('الرسالة فارغة');
+  if(message.length>1000) throw new Error('الرسالة تتجاوز الحد المسموح');
+  const row={
+    sender_member_no:session.member_no||'',
+    sender_name:session.member_name||(session.role==='leader'?'القائد':'عضو المجتمع'),
+    sender_role:session.role==='leader'?'leader':'member',
+    message_text:message
+  };
+  const result=await supabaseTableRequest('POST','/rest/v1/community_chat_messages?select=id,sender_member_no,sender_name,sender_role,message_text,created_at',SUPABASE_SECRET_KEY,row);
+  if(!result.ok) throw new Error((result.data&&(result.data.message||result.data.error||result.data.hint))||result.text||'تعذر حفظ الرسالة');
+  return Array.isArray(result.data)?result.data[0]:result.data;
+}
+
 async function communityMeetingCancel(args){
   const session=await communitySession(args.p_token);
   const id=String(args.p_id||'').trim();
@@ -515,13 +540,15 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid RPC name' });
     }
 
-    if(fn==='community_meetings_list' || fn==='community_meeting_create' || fn==='community_meeting_get' || fn==='community_meeting_cancel'){
+    if(fn==='community_meetings_list' || fn==='community_meeting_create' || fn==='community_meeting_get' || fn==='community_meeting_cancel' || fn==='community_chat_list' || fn==='community_chat_send'){
       try{
         let data;
         if(fn==='community_meetings_list') data=await communityMeetingsList(args);
         else if(fn==='community_meeting_create') data=await communityMeetingCreate(args);
         else if(fn==='community_meeting_get') data=await communityMeetingGet(args);
-        else data=await communityMeetingCancel(args);
+        else if(fn==='community_meeting_cancel') data=await communityMeetingCancel(args);
+        else if(fn==='community_chat_list') data=await communityChatList(args);
+        else data=await communityChatSend(args);
         return res.status(200).json(data||{});
       }catch(error){
         console.error('community meetings RPC error:',error);
