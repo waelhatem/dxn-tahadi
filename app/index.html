@@ -1993,7 +1993,7 @@ async function communityChatRpc(fn,args){
   const token=String(localStorage.getItem('dxn_session')||'').trim();
   if(!token){toast('انتهت جلسة الدخول. أعد تسجيل الدخول.');return null}
   try{
-    const response=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn,args:{...(args||{}),p_token:token}}),cache:'no-store'});
+    const response=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn,args:{...(args||{}),p_token:token,p_display_name:currentAccountName()}}),cache:'no-store'});
     const data=await response.json().catch(()=>({}));
     if(!response.ok||data?.error) throw new Error(data?.error||'تعذر تنفيذ العملية');
     return data;
@@ -2075,7 +2075,7 @@ async function communityMeetingRpc(fn,args){
   const token=String(localStorage.getItem('dxn_session')||'').trim();
   if(!token){toast('انتهت جلسة الدخول. أعد تسجيل الدخول.');return null}
   try{
-    const response=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn,args:{...(args||{}),p_token:token}}),cache:'no-store'});
+    const response=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn,args:{...(args||{}),p_token:token,p_display_name:currentAccountName()}}),cache:'no-store'});
     const data=await response.json().catch(()=>({}));
     if(!response.ok||data?.error) throw new Error(data?.error||'تعذر تنفيذ العملية');
     return data;
