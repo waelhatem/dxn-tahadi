@@ -996,6 +996,18 @@ body:has(.login-header-top)::before{
   .community-chat-attachment-image img{max-height:300px}
   .community-chat-attachment-video{max-height:300px}
 }
+</style><style id="communityChatSymbolsV1">
+.community-chat-formatbar button,.community-chat-edit-formatbar button{display:inline-flex;align-items:center;justify-content:center}
+.community-symbol-picker{position:fixed;z-index:100050;padding:10px;border:1px solid #d8e7e0;border-radius:16px;background:#fff;box-shadow:0 16px 45px rgba(0,0,0,.22);direction:rtl;box-sizing:border-box}
+.community-symbol-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;color:#0f513f}
+.community-symbol-head button{width:30px!important;height:30px!important;min-height:30px!important;padding:0!important;border-radius:8px!important;background:#eef5f2!important;color:#18352c!important}
+.community-symbol-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;max-height:230px;overflow:auto}
+.community-symbol-grid button{min-height:38px!important;height:38px!important;padding:2px!important;border:0!important;border-radius:9px!important;background:#f5f8f7!important;font-size:22px!important;line-height:1!important}
+.community-symbol-grid button:hover{background:#e4f0eb!important}
+@media(max-width:700px){
+  .community-symbol-picker{max-width:calc(100vw - 20px)}
+  .community-symbol-grid{grid-template-columns:repeat(7,1fr);max-height:250px}
+}
 </style><style id="communityChatMessageActionsV1">
 .community-chat-msg{position:relative}
 .community-chat-msg-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -2167,7 +2179,7 @@ async function communityChatOpen(){
    +'</div></div>'
    +'<input id="communityFilePicker" type="file" multiple hidden onchange="communityFilesSelected(event)">'
    +'<input id="communityCameraPicker" type="file" accept="image/*" capture="environment" hidden onchange="communityFilesSelected(event)">'
-   +'<div class="community-chat-formatbar" aria-label="تنسيق الرسالة"><button type="button" id="communityBoldButton" aria-label="غامق" title="غامق" onmousedown="event.preventDefault()" onclick="communityToggleBold()">B</button></div>'+'<textarea id="communityChatInput" class="community-chat-input" autocomplete="off" placeholder="اكتب رسالتك هنا..." maxlength="1000" rows="1"></textarea><button class="community-chat-send" type="submit">إرسال</button></form>'
+   +'<div class="community-chat-formatbar" aria-label="تنسيق الرسالة"><button type="button" id="communityBoldButton" aria-label="غامق" title="غامق" onmousedown="event.preventDefault()" onclick="communityToggleBold()">B</button><button type="button" aria-label="الإيموجي" title="الإيموجي" onmousedown="event.preventDefault()" onclick="communityOpenEmojiPicker(\'communityChatInput\')">😀</button><button type="button" aria-label="الملصقات" title="الملصقات" onmousedown="event.preventDefault()" onclick="communityOpenStickerPicker(\'communityChatInput\')">🧩</button></div>'+'<textarea id="communityChatInput" class="community-chat-input" autocomplete="off" placeholder="اكتب رسالتك هنا..." maxlength="1000" rows="1"></textarea><button class="community-chat-send" type="submit">إرسال</button></form>'
    +'</div>';
   modal.addEventListener('click',e=>{if(e.target===modal)communityChatClose()});
   document.body.appendChild(modal);
@@ -2175,6 +2187,56 @@ async function communityChatOpen(){
   if(box) box.innerHTML='<div class="community-chat-empty"><div class="icon">💬</div><b>المحادثة جاهزة</b><span>يمكنك كتابة رسالتك الآن… جارٍ جلب الرسائل السابقة في الخلفية.</span></div>';
   setTimeout(()=>document.getElementById('communityChatInput')?.focus(),50);
   communityChatRpc('community_chat_list',{p_limit:100}).then(messages=>{if(messages)communityChatRender(messages)});
+}
+function communityChatInsertSymbol(targetId,symbol){
+  const input=document.getElementById(targetId);
+  if(!input)return;
+  const start=Number(input.selectionStart||input.value.length), end=Number(input.selectionEnd||input.value.length);
+  input.setRangeText(symbol,start,end,'end');
+  input.focus();
+  const pos=start+symbol.length;
+  input.selectionStart=input.selectionEnd=pos;
+}
+function communityCloseSymbolPicker(){
+  document.getElementById('communitySymbolPicker')?.remove();
+}
+function communityOpenSymbolPicker(targetId,title,items){
+  communityCloseSymbolPicker();
+  const panel=document.createElement('div');
+  panel.id='communitySymbolPicker';
+  panel.className='community-symbol-picker';
+  panel.innerHTML='<div class="community-symbol-head"><b>'+communityEscapeHtml(title)+'</b><button type="button" onclick="communityCloseSymbolPicker()">×</button></div><div class="community-symbol-grid">'+items.map(x=>'<button type="button" title="'+communityEscapeHtml(x.label)+'" onclick="communityChatInsertSymbol('+JSON.stringify(String(targetId))+','+JSON.stringify(x.value)+')">'+x.value+'</button>').join('')+'</div>';
+  document.body.appendChild(panel);
+  const target=document.getElementById(targetId);
+  if(target){
+    const rect=target.getBoundingClientRect();
+    const width=Math.min(360,window.innerWidth-20);
+    let left=Math.max(10,Math.min(rect.left,window.innerWidth-width-10));
+    let top=rect.top-12;
+    panel.style.width=width+'px';
+    panel.style.left=left+'px';
+    if(top+250>window.innerHeight)top=Math.max(10,rect.bottom+10);
+    panel.style.top=top+'px';
+  }
+  setTimeout(()=>document.addEventListener('click',communitySymbolOutside,{capture:true}),0);
+}
+function communitySymbolOutside(e){
+  const panel=document.getElementById('communitySymbolPicker');
+  if(panel&&!panel.contains(e.target))communityCloseSymbolPicker();
+}
+function communityOpenEmojiPicker(targetId){
+  const items=['😀','😃','😄','😁','😂','🤣','😊','😍','🥰','😘','😎','🤩','🤗','🤔','😢','😭','😡','😱','👏','👍','🙏','❤️','💚','💙','💜','🔥','✨','🌟','🎉','🎊','🏆','💯','🌹','☀️','🌙','⭐','😊'];
+  communityOpenSymbolPicker(targetId,'الإيموجي',items.map(v=>({value:v,label:v})));
+}
+function communityOpenStickerPicker(targetId){
+  const items=[
+    {value:'🎉',label:'احتفال'},{value:'🥳',label:'فرح'},{value:'👏',label:'تصفيق'},{value:'🙌',label:'إنجاز'},
+    {value:'💪',label:'قوة'},{value:'🔥',label:'حماس'},{value:'🏆',label:'نجاح'},{value:'👑',label:'قيادة'},
+    {value:'❤️',label:'محبة'},{value:'🌹',label:'وردة'},{value:'🙏',label:'شكر'},{value:'🤝',label:'تعاون'},
+    {value:'💯',label:'ممتاز'},{value:'🚀',label:'انطلاق'},{value:'⭐',label:'نجمة'},{value:'🌟',label:'تألق'},
+    {value:'🎁',label:'هدية'},{value:'☀️',label:'إيجابية'}
+  ];
+  communityOpenSymbolPicker(targetId,'الملصقات',items);
 }
 function communityChatClose(){document.getElementById('communityChatModal')?.remove()}
 function communityAttachToggle(e){e?.stopPropagation();const m=document.getElementById('communityAttachMenu');if(m)m.style.display=m.style.display==='none'?'grid':'none'}
@@ -2337,7 +2399,7 @@ async function communityChatEditMessage(id){
   const modal=document.createElement('div');
   modal.id='communityChatEditModal';
   modal.className='community-chat-edit-modal';
-  modal.innerHTML='<div class="community-chat-edit-card" role="dialog" aria-modal="true" aria-label="تعديل الرسالة"><div class="community-chat-edit-title">✏️ تعديل الرسالة</div><div class="community-chat-edit-formatbar"><button type="button" aria-label="غامق" title="غامق" onmousedown="event.preventDefault()" onclick="communityEditToggleBold()">B</button></div><textarea id="communityChatEditText" dir="auto" rows="7"></textarea><div class="community-chat-edit-actions"><button type="button" class="community-chat-edit-cancel" onclick="communityChatCloseEdit()">إلغاء</button><button type="button" class="community-chat-edit-save" onclick="communityChatSaveEdit('+JSON.stringify(String(id))+')">حفظ التعديل</button></div></div>';
+  modal.innerHTML='<div class="community-chat-edit-card" role="dialog" aria-modal="true" aria-label="تعديل الرسالة"><div class="community-chat-edit-title">✏️ تعديل الرسالة</div><div class="community-chat-edit-formatbar"><button type="button" aria-label="غامق" title="غامق" onmousedown="event.preventDefault()" onclick="communityEditToggleBold()">B</button><button type="button" aria-label="الإيموجي" title="الإيموجي" onmousedown="event.preventDefault()" onclick="communityOpenEmojiPicker('communityChatEditText')">😀</button><button type="button" aria-label="الملصقات" title="الملصقات" onmousedown="event.preventDefault()" onclick="communityOpenStickerPicker('communityChatEditText')">🧩</button></div><textarea id="communityChatEditText" dir="auto" rows="7"></textarea><div class="community-chat-edit-actions"><button type="button" class="community-chat-edit-cancel" onclick="communityChatCloseEdit()">إلغاء</button><button type="button" class="community-chat-edit-save" onclick="communityChatSaveEdit('+JSON.stringify(String(id))+')">حفظ التعديل</button></div></div>';
   document.body.appendChild(modal);
   const textarea=document.getElementById('communityChatEditText');
   if(textarea){
