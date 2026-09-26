@@ -1774,6 +1774,23 @@ async function boot(){
   }catch(e){
   console.error('DXN boot failure',e);
   var m=(e&&e.message)||String(e||'خطأ غير معروف'),
+      sessionExpired=/انتهت الجلسة|session expired/i.test(String(m));
+  if(sessionExpired){
+    localStorage.removeItem('dxn_session');
+    localStorage.removeItem('dxn_session_issued');
+    token='';
+    me=null;
+    data=null;
+    role=null;
+    trainingData={lessons:[],my_progress:[],member_progress:[]};
+    tab='home';
+    var expiredDiag=document.getElementById('dxnBootFailureDiag');
+    if(expiredDiag) expiredDiag.remove();
+    try{renderLogin();}catch(_){}
+    try{toast('انتهت جلسة الدخول. سجّل الدخول من جديد.');}catch(_){}
+    return;
+  }
+  var
       d=(e&&e.details)||'',
       h=(e&&e.hint)||'',
       code=(e&&e.code)||'',
