@@ -495,6 +495,56 @@ async function communityChatList(args){
   return rows.data;
 }
 
+async function communityChatGetOwnedMessage(args,session){
+  const id=String(args.p_id||'').trim();
+  if(!id) throw new Error('معرّف الرسالة غير موجود');
+  const result=await supabaseTableRequest('GET','/rest/v1/community_chat_messages?select=id,sender_member_no,sender_name,sender_role,message_text,created_at,updated_at&id=eq.'+encodeURIComponent(id),SUPABASE_SECRET_KEY);
+  if(!result.ok || !Array.isArray(result.data) || !result.data[0]) throw new Error('الرسالة غير موجودة');
+  const row=result.data[0];
+  const sameMember=!!session.member_no && String(row.sender_member_no||'')===String(session.member_no);
+  const sameLeader=session.role==='leader' && row.sender_role==='leader' && String(row.sender_name||'')===String(session.leader_name||session.member_name||'');
+  if(!sameMember && !sameLeader) throw new Error('لا تملك صلاحية تعديل أو حذف هذه الرسالة');
+  return row;
+}
+function communityChatPayloadParse(value){
+  const raw=String(value??'');
+  const prefix='[[DXN_CHAT_V2]]';
+  if(!raw.startsWith(prefix))return null;
+  try{
+    const data=JSON.parse(raw.slice(prefix.length));
+    return data&&Array.isArray(data.attachments)?data:null;
+  }catch(_){return null}
+}
+async function communityChatEdit(args){
+  const session=await communitySession(args.p_token,args);
+  const row=await communityChatGetOwnedMessage(args,session);
+  const text=String(args.p_message||'').trim();
+  if(!text) throw new Error('الرسالة فارغة');
+  if(text.length>1000) throw new Error('الرسالة تتجاوز الحد المسموح');
+  const payload=communityChatPayloadParse(row.message_text);
+  const next=payload
+    ? '[[DXN_CHAT_V2]]'+JSON.stringify({text,attachments:payload.attachments})
+    : text;
+  const result=await supabaseTableRequest('PATCH','/rest/v1/community_chat_messages?id=eq.'+encodeURIComponent(row.id),SUPABASE_SECRET_KEY,{message_text:next,updated_at:new Date().toISOString()});
+  if(!result.ok) throw new Error((result.data&&(result.data.message||result.data.error||result.data.hint))||result.text||'تعذر تعديل الرسالة');
+  return {ok:true,id:row.id};
+}
+async function communityChatDelete(args){
+  const session=await communitySession(args.p_token,args);
+  const row=await communityChatGetOwnedMessage(args,session);
+  const payload=communityChatPayloadParse(row.message_text);
+  if(payload&&Array.isArray(payload.attachments)){
+    for(const attachment of payload.attachments){
+      const path=String(attachment?.path||'').trim();
+      if(!path)continue;
+      await supabaseTableRequest('DELETE','/storage/v1/object/community-chat/'+path.split('/').map(encodeURIComponent).join('/'),SUPABASE_SECRET_KEY);
+    }
+  }
+  const result=await supabaseTableRequest('DELETE','/rest/v1/community_chat_messages?id=eq.'+encodeURIComponent(row.id),SUPABASE_SECRET_KEY);
+  if(!result.ok) throw new Error((result.data&&(result.data.message||result.data.error||result.data.hint))||result.text||'تعذر حذف الرسالة لدى الجميع');
+  return {ok:true,id:row.id};
+}
+
 async function communityChatSend(args){
   const session=await communitySession(args.p_token);
   const message=String(args.p_message||'').trim();
@@ -554,7 +604,7 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid RPC name' });
     }
 
-    if(fn==='community_meetings_list' || fn==='community_meeting_create' || fn==='community_meeting_get' || fn==='community_meeting_cancel' || fn==='community_chat_list' || fn==='community_chat_send'){
+    if(fn==='community_meetings_list' || fn==='community_meeting_create' || fn==='community_meeting_get' || fn==='community_meeting_cancel' || fn==='community_chat_list' || fn==='community_chat_send' || fn==='community_chat_edit' || fn==='community_chat_delete'){
       try{
         let data;
         if(fn==='community_meetings_list') data=await communityMeetingsList(args);
@@ -562,6 +612,8 @@ module.exports = async function handler(req, res) {
         else if(fn==='community_meeting_get') data=await communityMeetingGet(args);
         else if(fn==='community_meeting_cancel') data=await communityMeetingCancel(args);
         else if(fn==='community_chat_list') data=await communityChatList(args);
+        else if(fn==='community_chat_edit') data=await communityChatEdit(args);
+        else if(fn==='community_chat_delete') data=await communityChatDelete(args);
         else data=await communityChatSend(args);
         return res.status(200).json(data||{});
       }catch(error){
