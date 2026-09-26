@@ -2122,7 +2122,7 @@ function communityChatRender(messages){
   }).join('');
   box.scrollTop=box.scrollHeight;
 }
-async function communityChatFormatMessage(value){
+function communityChatFormatMessage(value){
   const raw=String(value??'');
   const escaped=communityEscapeHtml(raw);
   return escaped.replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>');
