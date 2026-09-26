@@ -1020,6 +1020,24 @@ body:has(.login-header-top)::before{
 .community-chat-msg.mine .community-chat-actions-menu{right:0!important;left:auto!important}
 .community-chat-actions-menu{max-width:calc(100vw - 32px)!important;box-sizing:border-box!important}
 .community-chat-actions-menu button{display:block!important;width:100%!important;box-sizing:border-box!important}
+
+/* V3 — Native-free in-app editor for community messages. */
+.community-chat-edit-modal{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.58);box-sizing:border-box}
+.community-chat-edit-card{width:min(620px,calc(100vw - 30px));max-height:calc(100vh - 40px);box-sizing:border-box;padding:18px;border-radius:20px;background:#fff;box-shadow:0 20px 60px rgba(0,0,0,.28);direction:rtl}
+.community-chat-edit-title{font-size:18px;font-weight:900;color:#0f513f;margin-bottom:12px}
+.community-chat-edit-card textarea{display:block;width:100%;min-height:150px;box-sizing:border-box;resize:vertical;padding:12px 14px;border:1px solid #cbded6;border-radius:13px;background:#f8fbfa;color:#18352c;font:inherit;font-size:16px;line-height:1.8;white-space:pre-wrap;direction:auto;outline:none}
+.community-chat-edit-card textarea:focus{border-color:#0f513f;box-shadow:0 0 0 3px rgba(15,81,63,.1)}
+.community-chat-edit-actions{display:flex;justify-content:flex-start;gap:9px;margin-top:12px}
+.community-chat-edit-actions button{border:0;border-radius:11px;padding:10px 16px;font-weight:900;cursor:pointer}
+.community-chat-edit-save{background:#0f513f;color:#fff}
+.community-chat-edit-cancel{background:#edf3f0;color:#18352c}
+.community-chat-edit-save:disabled{opacity:.6;cursor:wait}
+@media(max-width:700px){
+  .community-chat-edit-modal{align-items:flex-end;padding:10px}
+  .community-chat-edit-card{width:100%;border-radius:18px 18px 12px 12px;padding:14px}
+  .community-chat-edit-card textarea{min-height:190px;font-size:16px}
+  .community-chat-edit-actions button{flex:1}
+}
 </style><style id="communityChatMobileAttachmentFixV1">
 /* V1 — Keep the community attachment menu fully inside the phone viewport. */
 @media(max-width:700px){
@@ -2227,6 +2245,10 @@ function communityChatToggleActions(button,e){
   });
   if(menu)menu.classList.toggle('open');
 }
+function communityChatCloseEdit(){
+  const modal=document.getElementById('communityChatEditModal');
+  if(modal)modal.remove();
+}
 async function communityChatEditMessage(id){
   document.querySelectorAll('.community-chat-actions-menu').forEach(menu=>menu.classList.remove('open'));
   const messages=await communityChatRpc('community_chat_list',{p_limit:200});
@@ -2235,15 +2257,37 @@ async function communityChatEditMessage(id){
   if(!row)return;
   const payload=communityChatParsePayload(row.message_text||'');
   const current=payload?String(payload.text||''):String(row.message_text||'');
-  const next=window.prompt('تعديل الرسالة:',current);
-  if(next===null)return;
-  const text=String(next).trim();
+  communityChatCloseEdit();
+  const modal=document.createElement('div');
+  modal.id='communityChatEditModal';
+  modal.className='community-chat-edit-modal';
+  modal.innerHTML='<div class="community-chat-edit-card" role="dialog" aria-modal="true" aria-label="تعديل الرسالة"><div class="community-chat-edit-title">✏️ تعديل الرسالة</div><textarea id="communityChatEditText" dir="auto" rows="7"></textarea><div class="community-chat-edit-actions"><button type="button" class="community-chat-edit-cancel" onclick="communityChatCloseEdit()">إلغاء</button><button type="button" class="community-chat-edit-save" onclick="communityChatSaveEdit('+JSON.stringify(String(id))+')">حفظ التعديل</button></div></div>';
+  document.body.appendChild(modal);
+  const textarea=document.getElementById('communityChatEditText');
+  if(textarea){
+    textarea.value=current;
+    textarea.focus();
+    textarea.setSelectionRange(textarea.value.length,textarea.value.length);
+  }
+  modal.addEventListener('click',e=>{if(e.target===modal)communityChatCloseEdit()});
+}
+async function communityChatSaveEdit(id){
+  const textarea=document.getElementById('communityChatEditText');
+  const text=String(textarea?.value||'').trim();
   if(!text){toast('لا يمكن أن تكون الرسالة فارغة.');return}
-  const saved=await communityChatRpc('community_chat_edit',{p_id:id,p_message:text});
-  if(saved){
-    const fresh=await communityChatRpc('community_chat_list',{p_limit:100});
-    if(fresh)communityChatRender(fresh);
-    toast('تم تعديل الرسالة.');
+  const saveButton=document.querySelector('.community-chat-edit-save');
+  if(saveButton){saveButton.disabled=true;saveButton.textContent='جارٍ الحفظ…'}
+  try{
+    const saved=await communityChatRpc('community_chat_edit',{p_id:id,p_message:text});
+    if(saved){
+      communityChatCloseEdit();
+      const fresh=await communityChatRpc('community_chat_list',{p_limit:100});
+      if(fresh)communityChatRender(fresh);
+      toast('تم تعديل الرسالة.');
+    }
+  }catch(error){
+    toast(error?.message||'تعذر تعديل الرسالة.');
+    if(saveButton){saveButton.disabled=false;saveButton.textContent='حفظ التعديل'}
   }
 }
 async function communityChatDeleteMessage(id,hasImage){
