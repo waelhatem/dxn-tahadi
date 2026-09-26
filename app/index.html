@@ -1604,7 +1604,21 @@ document.addEventListener('submit',function(e){
   if(typeof login==='function') login();
 });
 function ready(){return C.SUPABASE_URL&&C.SUPABASE_ANON_KEY&&!C.SUPABASE_URL.includes('YOUR-PROJECT')&&!C.SUPABASE_ANON_KEY.includes('YOUR_')}
-async function rpc(fn,args){if(!sb)throw Error('لم يتم إعداد Supabase');const {data:d,error}=await sb.rpc(fn,args);if(error)throw error;return d}
+async function rpc(fn,args){
+  if(!sb)throw Object.assign(new Error('لم يتم إعداد Supabase'),{code:'DXN_NO_SUPABASE'});
+  const {data:d,error}=await sb.rpc(fn,args);
+  if(error){
+    const e=new Error(String(error.message||error.error_description||'تعذر تنفيذ العملية'));
+    e.code=error.code||'';
+    e.details=error.details||'';
+    e.hint=error.hint||'';
+    e.status=error.status||error.statusCode||'';
+    e.rpc=fn;
+    e.raw=error;
+    throw e;
+  }
+  return d;
+}
 function siteVisitSessionKey(){const now=Date.now(),ttl=30*60*1000;let k=localStorage.getItem('dxn_site_visit_session'),at=Number(localStorage.getItem('dxn_site_visit_session_at')||0);if(!k||!at||now-at>ttl){k=(window.crypto&&typeof window.crypto.randomUUID==='function')?window.crypto.randomUUID():'sv-'+now+'-'+Math.random().toString(36).slice(2)+'-'+Math.random().toString(36).slice(2);localStorage.setItem('dxn_site_visit_session',k)}localStorage.setItem('dxn_site_visit_session_at',String(now));return k}
 async function recordSiteVisit(type='visitor',view='landing'){if(!sb)return;try{const safeType=['visitor','member','leader'].includes(type)?type:'visitor';await rpc('record_site_visit',{p_session_key:siteVisitSessionKey(),p_token:token||null,p_visit_type:safeType,p_view:String(view||'landing').slice(0,120)});}catch(e){console.debug('site visit tracking unavailable',e)}}
 async function loadSiteVisitStats(){if(role!=='leader')return;try{siteVisitStats=await rpc('leader_site_visit_stats',{p_token:token})||{};}catch(e){siteVisitStats={};}}
@@ -1757,7 +1771,23 @@ async function boot(){
       }catch(e){console.debug('DXN background data load',e)}
     });
     recordSiteVisit(role==='leader'?'leader':'member','dashboard');
-  }catch(e){console.error('DXN boot failure',e);var m=(e&&e.message)||String(e||'خطأ غير معروف'),d=(e&&e.details)||'',h=(e&&e.hint)||'';var b=document.getElementById('dxnBootFailureDiag');if(!b){b=document.createElement('div');b.id='dxnBootFailureDiag';document.body.appendChild(b)}b.setAttribute('role','alert');b.style.cssText='position:fixed;inset:0;z-index:100000;background:#fff;padding:24px;overflow:auto;direction:rtl;text-align:right;font-family:system-ui,sans-serif;color:#182234';b.innerHTML='<div style="max-width:760px;margin:7vh auto;padding:22px;border:3px solid #b42318;border-radius:20px;background:#fff5f4"><h2 style="margin-top:0;color:#9f2118">تم قبول الدخول لكن تعذر تحميل الحساب</h2><p><b>الخطأ:</b> '+String(m).replace(/[<>]/g,'')+'</p><p><b>Details:</b> '+String(d).replace(/[<>]/g,'')+'</p><p><b>Hint:</b> '+String(h).replace(/[<>]/g,'')+'</p><p>تم إبقاء الجلسة محفوظة لتشخيص المشكلة.</p><button class="primary" onclick="location.reload()">إعادة المحاولة</button></div>';}
+  }catch(e){
+  console.error('DXN boot failure',e);
+  var m=(e&&e.message)||String(e||'خطأ غير معروف'),
+      d=(e&&e.details)||'',
+      h=(e&&e.hint)||'',
+      code=(e&&e.code)||'',
+      status=(e&&e.status)||'',
+      rpcName=(e&&e.rpc)||'',
+      issuedAt=Number(localStorage.getItem('dxn_session_issued')||0);
+  var b=document.getElementById('dxnBootFailureDiag');
+  if(!b){b=document.createElement('div');b.id='dxnBootFailureDiag';document.body.appendChild(b)}
+  b.setAttribute('role','alert');
+  b.style.cssText='position:fixed;inset:0;z-index:100000;background:#fff;padding:24px;overflow:auto;direction:rtl;text-align:right;font-family:system-ui,sans-serif;color:#182234';
+  var clean=v=>String(v??'').replace(/[<>]/g,'');
+  var issuedText=issuedAt?new Date(issuedAt).toLocaleString('ar-IQ'):'غير متوفر';
+  b.innerHTML='<div style="max-width:760px;margin:7vh auto;padding:22px;border:3px solid #b42318;border-radius:20px;background:#fff5f4"><h2 style="margin-top:0;color:#9f2118">تم قبول الدخول لكن تعذر تحميل الحساب</h2><p><b>الخطأ:</b> '+clean(m)+'</p><p><b>RPC:</b> '+clean(rpcName||'bootstrap')+'</p><p><b>Code:</b> '+clean(code||'غير متوفر')+'</p><p><b>Status:</b> '+clean(status||'غير متوفر')+'</p><p><b>Details:</b> '+clean(d||'غير متوفر')+'</p><p><b>Hint:</b> '+clean(h||'غير متوفر')+'</p><p><b>وقت إنشاء الجلسة:</b> '+clean(issuedText)+'</p><p>تم إبقاء الجلسة محفوظة لتشخيص المشكلة. لا يتم عرض رمز الجلسة نفسه.</p><button class="primary" onclick="location.reload()">إعادة المحاولة</button></div>';
+}
 }
 function renderSetup(){ $('app').innerHTML=`<div class="login card"><img class="logo" src="/logo.png" alt="شعار مجتمع الصحة والثراء"><h1>مجتمع الصحة والثراء</h1><h2>إعداد النسخة Online</h2><p class="muted">النسخة جاهزة للربط بقاعدة بيانات Supabase. افتح ملف <b>config.js</b> وضع رابط المشروع وPublic anon key، ثم ارفع المجلد إلى Vercel أو أي استضافة ثابتة.</p><div class="card leaderbox"><b>الخطوات:</b><ol><li>أنشئ مشروع Supabase.</li><li>نفّذ ملف schema.sql بالكامل في SQL Editor.</li><li>ضع بيانات المشروع في config.js.</li><li>ارفع المجلد إلى Vercel.</li></ol></div></div>`}
 function renderLogin(){
