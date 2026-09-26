@@ -441,11 +441,12 @@ async function communitySession(token){
     leaderCandidate.displayName||
     ''
   ).trim();
+  const requestedDisplayName=String(args&&args.p_display_name||'').trim();
   return {
     role:sessionRole,
     member_no:String(member&&member.member_no||'').trim(),
     member_name:String(member&&(member.member_name||member.name)||'').trim(),
-    leader_name:leaderName
+    leader_name:leaderName||requestedDisplayName
   };
 }
 
@@ -469,7 +470,7 @@ async function communityMeetingCreate(args){
   if(Number.isNaN(date.getTime())) throw new Error('تاريخ اللقاء غير صالح');
   if(date.getTime()<=Date.now()) throw new Error('يجب أن يكون موعد اللقاء في المستقبل');
   const organizerNo=session.member_no||('ROLE:'+(session.role||'member'));
-  const organizerName=session.member_name||(session.role==='leader'?'القائد':'عضو المجتمع');
+  const organizerName=session.member_name||(session.role==='leader'?session.leader_name||'القائد':'عضو المجتمع');
   const row={organizer_member_no:organizerNo,organizer_name:organizerName,title,scheduled_at:date.toISOString(),duration_minutes:duration,description,meeting_url:meetingUrl,status:'scheduled'};
   const result=await supabaseTableRequest('POST','/rest/v1/community_meetings?select=id,organizer_member_no,organizer_name,title,scheduled_at,duration_minutes,description,meeting_url,status,created_at,updated_at',SUPABASE_SECRET_KEY,row);
   if(!result.ok) throw new Error((result.data&&(result.data.message||result.data.error||result.data.hint))||result.text||'تعذر حفظ اللقاء');
@@ -501,7 +502,7 @@ async function communityChatSend(args){
   if(message.length>1000) throw new Error('الرسالة تتجاوز الحد المسموح');
   const row={
     sender_member_no:session.member_no||'',
-    sender_name:session.member_name||(session.role==='leader'?'القائد':'عضو المجتمع'),
+    sender_name:session.member_name||(session.role==='leader'?session.leader_name||'القائد':'عضو المجتمع'),
     sender_role:session.role==='leader'?'leader':'member',
     message_text:message
   };
