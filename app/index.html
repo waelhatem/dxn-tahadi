@@ -2046,6 +2046,12 @@ async function communityChatOpen(){
      if(box){
        box.innerHTML='<div class="community-chat-empty"><div class="icon">⚠️</div><span>لا توجد رسائل محفوظة على الخادم.</span><button type="button" class="primary" style="margin-top:10px" onclick="communityChatRetry()">إعادة المحاولة</button></div>';
      }
+   }).catch(error=>{
+     console.error('Community chat load:',error);
+     const currentBox=document.getElementById('communityChatMessages');
+     if(currentBox){
+       currentBox.innerHTML='<div class="community-chat-empty"><div class="icon">⚠️</div><span>تعذر تحميل المحادثة.</span><button type="button" class="primary" style="margin-top:10px" onclick="communityChatRetry()">إعادة المحاولة</button></div>';
+     }
    });
 }
 async function communityChatRetry(){
