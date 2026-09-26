@@ -1504,6 +1504,58 @@ button[aria-label="التقدم إلى الصفحة التالية"]{
   new MutationObserver(removeLegacyNav).observe(document.documentElement,{childList:true,subtree:true});
 })();
 </script>
+<style id="ragwan-mobile-door-text-fix-v1">
+/* تحسين قراءة نصوص الأبواب على الموبايل دون تغيير أي محتوى أو بيانات. */
+@media(max-width:650px){
+  .ragwan-journey .ragwan-door{
+    overflow:hidden!important;
+  }
+  .ragwan-journey .ragwan-door-content{
+    inset:0!important;
+    padding:0 5px!important;
+  }
+  .ragwan-journey .ragwan-door-num{
+    top:9px!important;
+    width:32px!important;
+    height:32px!important;
+    font-size:17px!important;
+    z-index:4!important;
+  }
+  .ragwan-journey .ragwan-door-icon{
+    top:49px!important;
+    font-size:20px!important;
+    z-index:4!important;
+  }
+  .ragwan-journey .ragwan-door-label{
+    top:82px!important;
+    left:7%!important;
+    right:7%!important;
+    font-size:9px!important;
+    line-height:1.35!important;
+    min-height:25px!important;
+    max-height:38px!important;
+    font-weight:950!important;
+    color:#fff!important;
+    text-shadow:0 1px 3px rgba(0,0,0,.95),0 0 5px rgba(0,0,0,.75)!important;
+    z-index:4!important;
+    -webkit-line-clamp:2!important;
+    overflow:hidden!important;
+  }
+  .ragwan-journey .ragwan-door-detail{
+    display:none!important;
+  }
+  .ragwan-journey .ragwan-door-status{
+    bottom:8px!important;
+    left:50%!important;
+    transform:translateX(-50%)!important;
+    padding:3px 7px!important;
+    font-size:8px!important;
+    line-height:1.2!important;
+    white-space:nowrap!important;
+    z-index:4!important;
+  }
+}
+</style>
 </head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
   <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
