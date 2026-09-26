@@ -5,6 +5,7 @@ const configuredSupabaseUrl = String(process.env.SUPABASE_URL || '').trim().repl
 const SUPABASE_URL = /^https:\/\/ryqpstkzppaifpvhezzn\.supabase\.co$/i.test(configuredSupabaseUrl) ? configuredSupabaseUrl : DEFAULT_SUPABASE_URL;
 const SUPABASE_KEY = String(process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || 'sb_publishable_pD9m1Z3gN--2HAfhf_t2YA_2RiAeUh').trim().replace(/[\r\n]/g,'');
 const SUPABASE_SECRET_KEY = String(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim().replace(/[\r\n]/g,'');
+const COMMUNITY_DB_KEY = SUPABASE_SECRET_KEY || SUPABASE_KEY;
 const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY || '').trim().replace(/[\r\n]/g,'');
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-5.6-luna';
 
@@ -498,9 +499,6 @@ async function communityChatSend(args){
   const result=await supabaseTableRequest('POST','/rest/v1/community_chat_messages?select=id,sender_member_no,sender_name,sender_role,message_text,created_at',COMMUNITY_DB_KEY,row);
   if(!result.ok) throw new Error((result.data&&(result.data.message||result.data.error||result.data.hint))||result.text||'تعذر حفظ الرسالة');
   return Array.isArray(result.data)?result.data[0]:result.data;
-}
-
-turn Array.isArray(result.data)?result.data[0]:result.data;
 }
 
 async function communityMeetingCancel(args){
