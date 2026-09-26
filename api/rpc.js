@@ -5,7 +5,7 @@ const configuredSupabaseUrl = String(process.env.SUPABASE_URL || '').trim().repl
 const SUPABASE_URL = /^https:\/\/ryqpstkzppaifpvhezzn\.supabase\.co$/i.test(configuredSupabaseUrl) ? configuredSupabaseUrl : DEFAULT_SUPABASE_URL;
 const SUPABASE_KEY = String(process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || 'sb_publishable_pD9m1Z3gN--2HAfhf_t2YA_2RiAeUh').trim().replace(/[\r\n]/g,'');
 const SUPABASE_SECRET_KEY = String(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim().replace(/[\r\n]/g,'');
-const COMMUNITY_DB_KEY = SUPABASE_SECRET_KEY || SUPABASE_KEY;
+const COMMUNITY_DB_KEY = SUPABASE_SECRET_KEY;
 const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY || '').trim().replace(/[\r\n]/g,'');
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-5.6-luna';
 
@@ -477,6 +477,7 @@ async function communityMeetingGet(args){
 }
 
 async function communityChatList(args){
+  if(!COMMUNITY_DB_KEY) throw new Error('مفتاح Supabase السري غير مضبوط في Vercel (SUPABASE_SECRET_KEY أو SUPABASE_SERVICE_ROLE_KEY)');
   await communitySession(args.p_token);
   const limit=Math.max(1,Math.min(Number(args.p_limit)||100,200));
   const url='/rest/v1/community_chat_messages?select=id,sender_member_no,sender_name,sender_role,message_text,created_at&order=created_at.asc&limit='+limit;
@@ -486,6 +487,7 @@ async function communityChatList(args){
 }
 
 async function communityChatSend(args){
+  if(!COMMUNITY_DB_KEY) throw new Error('مفتاح Supabase السري غير مضبوط في Vercel (SUPABASE_SECRET_KEY أو SUPABASE_SERVICE_ROLE_KEY)');
   const session=await communitySession(args.p_token);
   const message=String(args.p_message||'').trim();
   if(!message) throw new Error('الرسالة فارغة');
