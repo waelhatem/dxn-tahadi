@@ -2053,7 +2053,13 @@ async function communityChatRetry(){
   if(!box)return;
   box.innerHTML='<div class="community-chat-empty"><div class="icon">⏳</div><span>جارٍ إعادة تحميل المحادثة...</span></div>';
   const messages=await communityChatRpc('community_chat_list',{p_limit:100});
-  if(messages){communityChatRender(messages);return}
+  if(messages){
+    let local=[];
+    try{local=JSON.parse(localStorage.getItem('dxn_community_chat_local')||'[]')}catch(_){local=[]}
+    const legacy=(Array.isArray(local)?local:[]).map(m=>({sender_member_no:'',sender_name:'أنت',sender_role:'member',message_text:String(m.text||''),created_at:String(m.time||'')})).filter(m=>m.message_text.trim());
+    const merged=[...legacy,...(Array.isArray(messages)?messages:[])].filter(m=>m&&String(m.message_text||'').trim()).sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));
+    communityChatRender(merged.slice(-200));return
+  }
   box.innerHTML='<div class="community-chat-empty"><div class="icon">⚠️</div><span>تعذر تحميل المحادثة من الخادم.</span><button type="button" class="primary" style="margin-top:10px" onclick="communityChatRetry()">إعادة المحاولة</button></div>';
 }
 function communityChatToggleBold(){
@@ -2168,8 +2174,14 @@ async function communityChatSend(e){
       input?.focus();
       // حدّث القائمة في الخلفية، ولا تجعل الإرسال ينتظر تحميل كل الرسائل.
       communityChatRpc('community_chat_list',{p_limit:100}).then(messages=>{
-        if(messages && document.getElementById('communityChatModal')) communityChatRender(messages);
-      });
+         if(messages && document.getElementById('communityChatModal')){
+           let local=[];
+           try{local=JSON.parse(localStorage.getItem('dxn_community_chat_local')||'[]')}catch(_){local=[]}
+           const legacy=(Array.isArray(local)?local:[]).map(m=>({sender_member_no:'',sender_name:'أنت',sender_role:'member',message_text:String(m.text||''),created_at:String(m.time||'')})).filter(m=>m.message_text.trim());
+           const merged=[...legacy,...(Array.isArray(messages)?messages:[])].filter(m=>m&&String(m.message_text||'').trim()).sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));
+           communityChatRender(merged.slice(-200));
+         }
+       });
     }
   }catch(error){toast(error?.message||'تعذر إرسال المرفق')}finally{if(sendButton)sendButton.disabled=false}
 }
