@@ -515,13 +515,15 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid RPC name' });
     }
 
-    if(fn==='community_meetings_list' || fn==='community_meeting_create' || fn==='community_meeting_get' || fn==='community_meeting_cancel'){
+    if(fn==='community_meetings_list' || fn==='community_meeting_create' || fn==='community_meeting_get' || fn==='community_meeting_cancel' || fn==='community_chat_list' || fn==='community_chat_send'){
       try{
         let data;
         if(fn==='community_meetings_list') data=await communityMeetingsList(args);
         else if(fn==='community_meeting_create') data=await communityMeetingCreate(args);
         else if(fn==='community_meeting_get') data=await communityMeetingGet(args);
-        else data=await communityMeetingCancel(args);
+        else if(fn==='community_meeting_cancel') data=await communityMeetingCancel(args);
+        else if(fn==='community_chat_list') data=await communityChatList(args);
+        else data=await communityChatSend(args);
         return res.status(200).json(data||{});
       }catch(error){
         console.error('community meetings RPC error:',error);
