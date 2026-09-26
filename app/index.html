@@ -2178,7 +2178,26 @@ async function communityChatSend(e){
       window.communityPendingFiles=[];
       communityRenderPendingFiles();
       input?.focus();
-      // حدّث القائمة في الخلفية، ولا تجعل الإرسال ينتظر تحميل كل الرسائل.
+
+      // أظهر الرسالة المرسلة فورًا من نتيجة الحفظ، ثم حدّث السجل من الخادم.
+      // بهذه الطريقة لا تختفي الرسالة إذا تعطل استدعاء قائمة الرسائل بعد نجاح الحفظ.
+      const currentBox=document.getElementById('communityChatMessages');
+      if(currentBox){
+        let local=[];
+        try{local=JSON.parse(localStorage.getItem('dxn_community_chat_local')||'[]')}catch(_){local=[]}
+        let existing=[];
+        try{existing=Array.isArray(window.communityChatMessages)?window.communityChatMessages:[]}catch(_){existing=[]}
+        const currentMessages=existing.length?existing:(Array.isArray(local)?local.map(m=>({
+          sender_member_no:'',
+          sender_name:'أنت',
+          sender_role:'member',
+          message_text:String(m.text||''),
+          created_at:String(m.time||'')
+        })).filter(m=>m.message_text.trim()):[]);
+        const next=[...currentMessages,saved].filter(m=>m&&String(m.message_text||'').trim());
+        communityChatRender(next.slice(-200));
+      }
+
       communityChatRpc('community_chat_list',{p_limit:100}).then(messages=>{
          if(messages && document.getElementById('communityChatModal')){
            let local=[];
@@ -2187,7 +2206,7 @@ async function communityChatSend(e){
            const merged=[...legacy,...(Array.isArray(messages)?messages:[])].filter(m=>m&&String(m.message_text||'').trim()).sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));
            communityChatRender(merged.slice(-200));
          }
-       });
+       }).catch(error=>console.error('Community chat refresh:',error));
     }
   }catch(error){toast(error?.message||'تعذر إرسال المرفق')}finally{if(sendButton)sendButton.disabled=false}
 }
