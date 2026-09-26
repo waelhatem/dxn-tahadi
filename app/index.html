@@ -2050,7 +2050,14 @@ async function communityCancelMeeting(id){
   if(!result)return;
   communityUiClose();toast('تم إلغاء اللقاء.');setTimeout(()=>communityScheduleOpen(),120);
 }
-
+function communityVoiceOpen(){communityChatOpen();setTimeout(()=>{const b=document.querySelector('#communityChatModal .community-attach-btn');b?.click();toast('اختر «تسجيل صوت» من المرفقات.');},100)}
+function communityMediaOpen(){communityChatOpen();setTimeout(()=>{const b=document.querySelector('#communityChatModal .community-attach-btn');b?.click();toast('اختر الصور أو الفيديو من المرفقات.');},100)}
+function communityMeetingsOpen(){communityScheduleOpen()}
+function communityShowAll(){communityUiModal('أحدث نشاطات المجتمع','<div class="community-ui-list"><div>🟢 <b>مجتمع الصحة والثراء</b><small>منشور ترحيبي بالمجتمع</small></div><div>🎓 <b>لقاء المجتمع القادم</b><small>موعد اللقاء ورابط الدخول سيظهران هنا</small></div><div>💬 <b>محادثات المجتمع</b><small>ابدأ محادثة مع أعضاء المجتمع</small></div></div>')}
+function communityComment(){communityChatOpen();setTimeout(()=>document.getElementById('communityChatInput')?.focus(),100)}
+function communityReact(btn){if(!btn)return;const active=btn.dataset.active==='1';btn.dataset.active=active?'0':'1';btn.textContent=active?'❤️ تفاعل':'❤️ تم التفاعل';btn.style.background=active?'':'#fff1f2';toast(active?'تم إلغاء التفاعل.':'تم تسجيل تفاعلك.')}
+async function communityShare(){const text='مجتمع الصحة والثراء — لنتواصل ونتعلم ونلتقي';try{await navigator.clipboard.writeText(text);toast('تم نسخ رابط/محتوى المجتمع للمشاركة.')}catch(e){toast('يمكنك مشاركة المجتمع من خلال نسخ عنوان الصفحة.');}}
+function communitySettingsOpen(){communityUiModal('إعدادات المجتمع','<div class="community-settings-list"><label><input type="checkbox" checked> إشعارات المحادثات</label><label><input type="checkbox" checked> إشعارات اللقاءات</label><label><input type="checkbox" checked> تنبيهات النشاطات</label><label><input type="checkbox"> تشغيل الأصوات</label></div>','<div class="community-ui-actions"><button class="community-chat-send" onclick="communityUiClose();toast(\'تم حفظ إعدادات المجتمع.\')">حفظ الإعدادات</button></div>')}
 /* Community actions — explicit global bindings for inline/dynamic buttons */
 window.communityUiModal=communityUiModal;
 window.communityUiClose=communityUiClose;
