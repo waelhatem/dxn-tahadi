@@ -387,6 +387,102 @@ async function generateIdealTrainingAnswer(args){
   return saved&&saved.question ? saved.question : {...question,model_answer:ideal};
 }
 
+async function supabaseTableRequest(method,path,key,body){
+  return new Promise((resolve,reject)=>{
+    const base=new URL(SUPABASE_URL);
+    const payload=body==null?null:JSON.stringify(body);
+    const request=https.request({
+      protocol:base.protocol,
+      hostname:base.hostname,
+      port:base.port||443,
+      method,
+      path,
+      headers:{
+        Accept:'application/json',
+        'Content-Type':'application/json',
+        ...(key?{apikey:key,Authorization:'Bearer '+key}:{}),
+        ...(payload?{'Content-Length':Buffer.byteLength(payload)}:{'Prefer':'return=representation'})
+      },
+      timeout:12000
+    },response=>{
+      let text='';
+      response.setEncoding('utf8');
+      response.on('data',chunk=>{text+=chunk});
+      response.on('end',()=>{
+        let data=null;
+        try{data=text?JSON.parse(text):null}catch(_){data=text}
+        resolve({ok:response.statusCode>=200&&response.statusCode<300,status:response.statusCode||0,data,text});
+      });
+    });
+    request.on('timeout',()=>request.destroy(new Error('انتهت مهلة الاتصال ببيانات اللقاءات')));
+    request.on('error',reject);
+    if(payload) request.write(payload);
+    request.end();
+  });
+}
+
+async function communitySession(token){
+  const pToken=String(token||'').trim();
+  if(!pToken) throw new Error('جلسة العضوية غير موجودة');
+  if(!SUPABASE_SECRET_KEY) throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
+  const boot=await supabaseRpcRequest('bootstrap',{p_token:pToken},SUPABASE_SECRET_KEY,10000);
+  if(!boot.ok) throw new Error((boot.data&&(boot.data.message||boot.data.error||boot.data.hint))||boot.text||'جلسة الدخول غير صالحة');
+  const member=Array.isArray(boot.data&&boot.data.members)?boot.data.members[0]:null;
+  return {
+    role:String(boot.data&&boot.data.role||'').trim().toLowerCase(),
+    member_no:String(member&&member.member_no||'').trim(),
+    member_name:String(member&&(member.member_name||member.name)||'').trim()
+  };
+}
+
+async function communityMeetingsList(args){
+  await communitySession(args.p_token);
+  const url='/rest/v1/community_meetings?select=id,organizer_member_no,organizer_name,title,scheduled_at,duration_minutes,description,meeting_url,status,created_at,updated_at&status=eq.scheduled&scheduled_at=gte.'+encodeURIComponent(new Date().toISOString())+'&order=scheduled_at.asc&limit=100';
+  const rows=await supabaseTableRequest('GET',url,SUPABASE_SECRET_KEY);
+  if(!rows.ok || !Array.isArray(rows.data)) throw new Error((rows.data&&(rows.data.message||rows.data.error||rows.data.hint))||rows.text||'تعذر تحميل جدول اللقاءات');
+  return rows.data;
+}
+
+async function communityMeetingCreate(args){
+  const session=await communitySession(args.p_token);
+  const title=String(args.p_title||'').trim();
+  const scheduledAt=String(args.p_scheduled_at||'').trim();
+  const duration=Math.max(5,Math.min(Number(args.p_duration_minutes)||60,720));
+  const description=String(args.p_description||'').trim();
+  const meetingUrl=String(args.p_meeting_url||'').trim();
+  if(!title||!scheduledAt) throw new Error('عنوان اللقاء والتاريخ والوقت مطلوبان');
+  const date=new Date(scheduledAt);
+  if(Number.isNaN(date.getTime())) throw new Error('تاريخ اللقاء غير صالح');
+  if(date.getTime()<=Date.now()) throw new Error('يجب أن يكون موعد اللقاء في المستقبل');
+  const organizerNo=session.member_no||('ROLE:'+(session.role||'member'));
+  const organizerName=session.member_name||(session.role==='leader'?'القائد':'عضو المجتمع');
+  const row={organizer_member_no:organizerNo,organizer_name:organizerName,title,scheduled_at:date.toISOString(),duration_minutes:duration,description,meeting_url:meetingUrl,status:'scheduled'};
+  const result=await supabaseTableRequest('POST','/rest/v1/community_meetings?select=id,organizer_member_no,organizer_name,title,scheduled_at,duration_minutes,description,meeting_url,status,created_at,updated_at',SUPABASE_SECRET_KEY,row);
+  if(!result.ok) throw new Error((result.data&&(result.data.message||result.data.error||result.data.hint))||result.text||'تعذر حفظ اللقاء');
+  return Array.isArray(result.data)?result.data[0]:result.data;
+}
+
+async function communityMeetingGet(args){
+  await communitySession(args.p_token);
+  const id=String(args.p_id||'').trim();
+  if(!id) throw new Error('معرّف اللقاء غير موجود');
+  const result=await supabaseTableRequest('GET','/rest/v1/community_meetings?select=id,organizer_member_no,organizer_name,title,scheduled_at,duration_minutes,description,meeting_url,status,created_at,updated_at&id=eq.'+encodeURIComponent(id),SUPABASE_SECRET_KEY);
+  if(!result.ok || !Array.isArray(result.data) || !result.data[0]) throw new Error((result.data&&(result.data.message||result.data.error||result.data.hint))||result.text||'اللقاء غير موجود');
+  return result.data[0];
+}
+
+async function communityMeetingCancel(args){
+  const session=await communitySession(args.p_token);
+  const id=String(args.p_id||'').trim();
+  if(!id) throw new Error('معرّف اللقاء غير موجود');
+  const existing=await communityMeetingGet(args);
+  const allowed=session.role==='leader' || (!!session.member_no && session.member_no===String(existing.organizer_member_no||''));
+  if(!allowed) throw new Error('لا تملك صلاحية إلغاء هذا اللقاء');
+  const result=await supabaseTableRequest('PATCH','/rest/v1/community_meetings?id=eq.'+encodeURIComponent(id),SUPABASE_SECRET_KEY,{status:'cancelled',updated_at:new Date().toISOString()});
+  if(!result.ok) throw new Error((result.data&&(result.data.message||result.data.error||result.data.hint))||result.text||'تعذر إلغاء اللقاء');
+  return {ok:true,id};
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
