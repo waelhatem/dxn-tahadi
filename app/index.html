@@ -1132,6 +1132,75 @@ body:has(.login-header-top)::before{
   .community-chat-compose .community-chat-formatbar{padding-bottom:5px}
   .community-chat-formatbar button{width:36px;height:32px}
 }
+
+/* V2 — Telegram-style mobile composer: maximize writing space. */
+@media(max-width:700px){
+  #communityChatModal .community-chat-compose{
+    display:grid!important;
+    grid-template-columns:auto minmax(0,1fr) auto!important;
+    grid-template-areas:"send input attach"!important;
+    align-items:center!important;
+    gap:7px!important;
+    padding:9px 10px!important;
+  }
+  #communityChatModal .community-chat-send{
+    grid-area:send!important;
+    height:48px!important;
+    min-width:68px!important;
+    padding:0 13px!important;
+    border-radius:14px!important;
+    z-index:3!important;
+  }
+  #communityChatModal .community-chat-input{
+    grid-area:input!important;
+    width:100%!important;
+    min-width:0!important;
+    min-height:48px!important;
+    max-height:120px!important;
+    resize:none!important;
+    box-sizing:border-box!important;
+    padding:11px 108px 11px 12px!important;
+    line-height:1.55!important;
+    border-radius:16px!important;
+  }
+  #communityChatModal .community-attach-wrap{
+    grid-area:attach!important;
+    flex:none!important;
+    width:46px!important;
+    min-width:46px!important;
+    height:46px!important;
+  }
+  #communityChatModal .community-attach-btn{
+    width:46px!important;
+    height:46px!important;
+  }
+  #communityChatModal .community-chat-formatbar{
+    position:absolute!important;
+    right:58px!important;
+    top:50%!important;
+    transform:translateY(-50%)!important;
+    display:flex!important;
+    gap:4px!important;
+    padding:0!important;
+    z-index:4!important;
+    direction:rtl!important;
+  }
+  #communityChatModal .community-chat-formatbar button{
+    width:34px!important;
+    height:34px!important;
+    min-width:34px!important;
+    min-height:34px!important;
+    padding:0!important;
+    border-radius:9px!important;
+    font-size:17px!important;
+  }
+}
+@media(max-width:390px){
+  #communityChatModal .community-chat-formatbar{right:54px!important;gap:3px!important}
+  #communityChatModal .community-chat-formatbar button{width:31px!important;min-width:31px!important;height:31px!important;min-height:31px!important;font-size:15px!important}
+  #communityChatModal .community-chat-input{padding-right:100px!important}
+  #communityChatModal .community-chat-send{min-width:64px!important;padding:0 10px!important}
+}
 </style></head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
   <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
