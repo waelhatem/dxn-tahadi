@@ -1964,13 +1964,26 @@ function advancedMember(){
  <div class="card"><div class="title">🎖️ إنجازاتي المتقدمة</div><div class="command-grid"><div class="command-card"><b>🌱 البداية</b><div class="muted">أول إنجاز معتمد</div></div><div class="command-card"><b>🔥 الاستمرارية</b><div class="muted">7 أيام نشاط متتابع</div></div><div class="command-card"><b>🎯 التارجت</b><div class="muted">الوصول إلى 100 نقطة DXN</div></div><div class="command-card"><b>💎 التميز</b><div class="muted">الوصول إلى 2000 نجمة</div></div></div><p class="muted">الشارات التي تحققت فعليًا تظهر في بطاقة «شاراتي» على الرئيسية.</p></div>`;
 }
 function communityEscapeHtml(v){return String(v??'').replace(/[&<>"']/g,function(ch){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[ch]})}
-function communityChatOpen(){
+async function communityChatRpc(fn,args){
+  const token=String(localStorage.getItem('dxn_session')||'').trim();
+  if(!token){toast('انتهت جلسة الدخول. أعد تسجيل الدخول.');return null}
+  try{
+    const response=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn,args:{...(args||{}),p_token:token}}),cache:'no-store'});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||data?.error) throw new Error(data?.error||'تعذر تنفيذ العملية');
+    return data;
+  }catch(error){
+    console.error('Community chat:',error);
+    toast(error?.message||'تعذر الاتصال بمحادثة المجتمع.');
+    return null;
+  }
+}
+async function communityChatOpen(){
   if(document.getElementById('communityChatModal'))return;
-  const saved=JSON.parse(localStorage.getItem('dxn_community_chat_local')||'[]');
   const modal=document.createElement('div'); modal.id='communityChatModal'; modal.className='community-chat-modal';
   modal.innerHTML='<div class="community-chat-box" role="dialog" aria-modal="true" aria-label="محادثة المجتمع">'
-   +'<div class="community-chat-head"><div class="community-chat-head-info"><div class="community-chat-head-icon">💬</div><div><b>محادثة المجتمع</b><small>مساحة المحادثة</small></div></div><button class="community-chat-close" onclick="communityChatClose()">×</button></div>'
-   +'<div class="community-chat-messages" id="communityChatMessages"></div>'
+   +'<div class="community-chat-head"><div class="community-chat-head-info"><div class="community-chat-head-icon">💬</div><div><b>محادثة المجتمع</b><small>رسائل المجتمع المحفوظة</small></div></div><button class="community-chat-close" onclick="communityChatClose()">×</button></div>'
+   +'<div class="community-chat-messages" id="communityChatMessages"><div class="community-chat-empty"><div class="icon">⏳</div><span>جارٍ تحميل المحادثة...</span></div></div>'
    +'<div class="community-attachment-preview" id="communityAttachmentPreview" style="display:none"></div>'
    +'<form class="community-chat-compose" onsubmit="communityChatSend(event)">'
    +'<div class="community-attach-wrap"><button type="button" class="community-attach-btn" onclick="communityAttachToggle(event)" aria-label="المرفقات">📎</button><div class="community-attach-menu" id="communityAttachMenu" style="display:none">'
@@ -1986,60 +1999,48 @@ function communityChatOpen(){
    +'<input id="communityChatInput" class="community-chat-input" autocomplete="off" placeholder="اكتب رسالتك هنا..." maxlength="1000"><button class="community-chat-send" type="submit">إرسال</button></form>'
    +'</div>';
   modal.addEventListener('click',e=>{if(e.target===modal)communityChatClose()});
-  document.body.appendChild(modal); communityChatRender(saved); setTimeout(()=>document.getElementById('communityChatInput')?.focus(),50);
+  document.body.appendChild(modal);
+  const messages=await communityChatRpc('community_chat_list',{p_limit:100});
+  if(messages)communityChatRender(messages);
+  setTimeout(()=>document.getElementById('communityChatInput')?.focus(),50);
 }
-function communityChatClose(){document.getElementById('communityChatModal')?.remove()}function communityAttachToggle(e){e?.stopPropagation();const m=document.getElementById('communityAttachMenu');if(m)m.style.display=m.style.display==='none'?'grid':'none'}
+function communityChatClose(){document.getElementById('communityChatModal')?.remove()}
+function communityAttachToggle(e){e?.stopPropagation();const m=document.getElementById('communityAttachMenu');if(m)m.style.display=m.style.display==='none'?'grid':'none'}
 function communityPickFiles(accept,multi,camera=false){document.getElementById('communityAttachMenu')?.style.setProperty('display','none');const el=document.getElementById(camera?'communityCameraPicker':'communityFilePicker');if(!el)return;el.accept=accept;el.multiple=!!multi;el.value='';el.click()}
 function communityFilesSelected(e){const files=[...(e.target.files||[])];if(!files.length)return;const box=document.getElementById('communityAttachmentPreview');if(!box)return;box.style.display='flex';files.forEach(file=>{const chip=document.createElement('div');chip.className='community-attachment-chip';chip.dataset.fileName=file.name;chip.innerHTML='<span>📎</span><span>'+communityEscapeHtml(file.name)+'</span><button type="button" aria-label="إزالة">×</button>';chip.querySelector('button').onclick=()=>{chip.remove();if(!box.children.length)box.style.display='none'};box.appendChild(chip)});window.communityPendingFiles=files}
 let communityAudioRecorder=null,communityAudioChunks=[];
-async function communityRecordAudio(){try{if(communityAudioRecorder?.state==='recording'){communityAudioRecorder.stop();return}const stream=await navigator.mediaDevices.getUserMedia({audio:true});communityAudioChunks=[];communityAudioRecorder=new MediaRecorder(stream);communityAudioRecorder.ondataavailable=e=>{if(e.data.size)communityAudioChunks.push(e.data)};communityAudioRecorder.onstop=()=>{stream.getTracks().forEach(t=>t.stop());const blob=new Blob(communityAudioChunks,{type:'audio/webm'});const file=new File([blob],'تسجيل-صوتي-'+Date.now()+'.webm',{type:'audio/webm'});window.communityPendingFiles=[...(window.communityPendingFiles||[]),file];communityFilesSelected({target:{files:[file]}});toast('تم تجهيز التسجيل الصوتي للإرسال.')};communityAudioRecorder.start();toast('جارٍ تسجيل الصوت... اضغط المرفقات ثم تسجيل صوت لإيقافه.')}catch(e){toast('تعذر الوصول إلى الميكروفون. تحقق من صلاحية المتصفح.')}}
+async function communityRecordAudio(){try{if(communityAudioRecorder?.state==='recording'){communityAudioRecorder.stop();return}const stream=await navigator.mediaDevices.getUserMedia({audio:true});communityAudioChunks=[];communityAudioRecorder=new MediaRecorder(stream);communityAudioRecorder.ondataavailable=e=>{if(e.data.size)communityAudioChunks.push(e.data)};communityAudioRecorder.onstop=()=>{stream.getTracks().forEach(t=>t.stop());const blob=new Blob(communityAudioChunks,{type:'audio/webm'});const file=new File([blob],'تسجيل-صوتي-'+Date.now()+'.webm',{type:'audio/webm'});window.communityPendingFiles=[...(window.communityPendingFiles||[]),file];communityFilesSelected({target:{files:[file]}});toast('تم تجهيز التسجيل الصوتي للإرسال بعد تفعيل المرفقات.')};communityAudioRecorder.start();toast('جارٍ تسجيل الصوت... اضغط المرفقات ثم تسجيل صوت لإيقافه.')}catch(e){toast('تعذر الوصول إلى الميكروفون. تحقق من صلاحية المتصفح.')}}
 
-function communityCurrentSenderName(){
-  try{
-    if(typeof currentAccountName==='function'){
-      const accountName=String(currentAccountName()||'').trim();
-      if(accountName)return accountName;
-    }
-  }catch(_){}
-  const candidates=[
-    typeof me!=='undefined'&&me&&me.name,
-    typeof me!=='undefined'&&me&&me.member_name,
-    typeof data!=='undefined'&&data&&data.name,
-    typeof data!=='undefined'&&data&&data.member_name,
-    typeof data!=='undefined'&&Array.isArray(data.members)&&data.members[0]&&(data.members[0].name||data.members[0].member_name)
-  ];
-  const name=candidates.find(v=>String(v||'').trim());
-  return String(name||'عضو المجتمع').trim();
-}
 function communityChatRender(messages){
   const box=document.getElementById('communityChatMessages'); if(!box)return;
-  if(!messages.length){box.innerHTML='<div class="community-chat-empty"><div class="icon">💬</div><b>ابدأ أول محادثة</b><span>اكتب رسالتك في الأسفل لبدء المحادثة.</span></div>';return}
+  if(!Array.isArray(messages)||!messages.length){box.innerHTML='<div class="community-chat-empty"><div class="icon">💬</div><b>ابدأ أول محادثة</b><span>اكتب رسالتك في الأسفل لبدء المحادثة.</span></div>';return}
+  const identity=currentAccountIdentity();
   box.innerHTML=messages.map(m=>{
-    const body=m.type==='image'&&m.url?'<img src="'+m.url+'" alt="'+communityEscapeHtml(m.name||'صورة')+'">':m.type==='video'&&m.url?'<video src="'+m.url+'" controls></video>':m.type==='audio'&&m.url?'<audio src="'+m.url+'" controls></audio>':m.type==='file'?'<div>📄 '+communityEscapeHtml(m.name||m.text)+'</div>':communityEscapeHtml(m.text||'');
-    const sender=communityEscapeHtml(m.sender_name||'عضو المجتمع');
-    return '<div class="community-chat-msg mine '+(m.type&&m.type!=='text'?'attach':'')+'"><b class="community-chat-sender">'+sender+'</b>'+body+'<small>'+new Date(m.time).toLocaleString('ar-IQ')+'</small></div>'
+    const mine=(String(m.sender_member_no||'')&&String(m.sender_member_no||'')===String(identity.member_no||''))||(identity.type==='leader'&&m.sender_role==='leader'&&String(m.sender_name||'')===String(identity.name||''));
+    const body=communityEscapeHtml(m.message_text||'');
+    const sender=communityEscapeHtml(m.sender_name||(m.sender_role==='leader'?'القائد':'عضو المجتمع'));
+    const when=new Date(m.created_at||Date.now()).toLocaleString('ar-IQ');
+    return '<div class="community-chat-msg '+(mine?'mine':'')+'"><div class="community-chat-sender">'+sender+'</div><div>'+body+'</div><small>'+when+'</small></div>';
   }).join('');
   box.scrollTop=box.scrollHeight;
 }
-function communityChatSend(e){
+async function communityChatSend(e){
   e.preventDefault();
   const input=document.getElementById('communityChatInput');
   const text=String(input?.value||'').trim();
   const files=[...(window.communityPendingFiles||[])];
-  if(!text&&!files.length)return;
-  const messages=JSON.parse(localStorage.getItem('dxn_community_chat_local')||'[]');
-  const sender_name=communityCurrentSenderName();
-  if(text)messages.push({text,time:new Date().toISOString(),type:'text',sender_name});
-  files.forEach(file=>{
-    const url=URL.createObjectURL(file);
-    let type=file.type.startsWith('image/')?'image':file.type.startsWith('video/')?'video':file.type.startsWith('audio/')?'audio':'file';
-    messages.push({text:file.name,time:new Date().toISOString(),type,url,name:file.name,sender_name})
-  });
-  localStorage.setItem('dxn_community_chat_local',JSON.stringify(messages.slice(-100)));
-  input.value='';window.communityPendingFiles=[];
-  const box=document.getElementById('communityAttachmentPreview');
-  if(box){box.innerHTML='';box.style.display='none'}
-  communityChatRender(messages.slice(-100));input.focus()
+  if(files.length){toast('حفظ المرفقات سيُضاف في المرحلة التالية. أرسل الرسالة النصية أولًا.');return}
+  if(!text)return;
+  const sendButton=e.submitter||document.querySelector('#communityChatModal .community-chat-send');
+  if(sendButton)sendButton.disabled=true;
+  const saved=await communityChatRpc('community_chat_send',{p_message:text});
+  if(saved){
+    input.value='';
+    const messages=await communityChatRpc('community_chat_list',{p_limit:100});
+    if(messages)communityChatRender(messages);
+    input.focus();
+  }
+  if(sendButton)sendButton.disabled=false;
 }
 function communityComingSoon(){toast("هذه الوظيفة ستُفعّل في المرحلة التالية.");}function community(){return '<div id="section-community" class="community-page" dir="rtl"><section class="community-hero community-hero-v2"><div class="community-glow glow-a"></div><div class="community-glow glow-b"></div><div class="community-leaf leaf-a">✦</div><div class="community-leaf leaf-b">✦</div><div class="community-live-badge"><span></span> مجتمع نشط الآن</div><div class="community-hero-content"><div class="community-brand-panel"><div class="community-logo-wrap"><img src="/logo.png" alt="مجتمع الصحة والثراء"></div><div class="community-brand-name">مجتمع الصحة والثراء</div><div class="community-brand-tag">بناء إنسان · صحة أوفر · مستقبل أجمل</div><div class="community-brand-line"></div><div class="community-mini-stats"><span><b>💬</b> تواصل</span><span><b>🎙️</b> صوت</span><span><b>📹</b> لقاءات</span></div></div><div class="community-hero-copy"><div class="community-kicker">🌐 مساحة المجتمع الرقمية</div><h1>مكان يجمعنا…<br><strong>لنتواصل ونتعلم ونلتقي</strong></h1><p>هنا تبدأ الحياة الاجتماعية للمجتمع: محادثات، صوتيات، وسائط، ولقاءات مباشرة في مساحة واحدة مصممة لتبقى قريبًا من فريقك.</p><div class="community-hero-actions"><button class="community-main-action" onclick="communityChatOpen()">💬 ابدأ محادثة</button><button class="community-secondary-action" onclick="communityCreateMeeting()">📹 إنشاء لقاء</button></div></div></div></section><section class="community-quick-grid"><button class="community-quick chat" onclick="communityChatOpen()"><span class="quick-icon">💬</span><span><b>الدردشة</b><small>رسائل فردية ومجموعات</small></span></button><button class="community-quick voice" onclick="communityVoiceOpen()"><span class="quick-icon">🎙️</span><span><b>البصمات الصوتية</b><small>سجل وأرسل صوتك</small></span></button><button class="community-quick media" onclick="communityMediaOpen()"><span class="quick-icon">🎬</span><span><b>الصور والفيديو</b><small>شارك لحظاتك مع المجتمع</small></span></button><button class="community-quick meetings" onclick="communityMeetingsOpen()"><span class="quick-icon">📹</span><span><b>اللقاءات والاجتماعات</b><small>صوت وصورة ومشاركة شاشة</small></span></button></section><section class="community-main-grid"><div class="community-feed-card"><div class="community-section-head"><div><span class="community-label">المجتمع الآن</span><h2>🔥 أحدث النشاطات</h2></div><button onclick="communityShowAll()">عرض الكل</button></div><div class="community-post"><div class="community-avatar avatar-green">و</div><div class="community-post-body"><div class="community-post-top"><b>مجتمع الصحة والثراء</b><time>الآن</time></div><p>مرحبًا بك في مساحتنا الجديدة. هنا ستلتقي بالأعضاء، تتبادل الخبرات، وتحضر اللقاءات القادمة.</p><div class="community-post-actions"><button onclick="communityComment()">💬 تعليق</button><button onclick="communityReact(this)">❤️ تفاعل</button><button onclick="communityShare()">↗ مشاركة</button></div></div></div><div class="community-post"><div class="community-avatar avatar-gold">🎓</div><div class="community-post-body"><div class="community-post-top"><b>لقاء المجتمع القادم</b><time>قريبًا</time></div><p>يمكنك من هنا الاطلاع على تفاصيل اللقاء القادم ورابط الدخول والموعد المحدد.</p><div class="community-event-mini"><span>📅</span><b>لقاء مباشر بالصوت والصورة</b><button onclick="communityMeetingDetails()">التفاصيل</button></div></div></div></div><aside class="community-side-card"><div class="community-section-head"><div><span class="community-label">حضورك</span><h2>✨ مساحة العضو</h2></div></div><div class="community-profile-mini"><div class="community-profile-avatar">👤</div><div><b>عضو المجتمع</b><small>مرحبًا بك في المجتمع</small></div></div><div class="community-stat-row"><span>🟢 المتصلون الآن</span><strong>—</strong></div><div class="community-stat-row"><span>💬 المحادثات</span><strong>—</strong></div><div class="community-stat-row"><span>📅 اللقاءات القادمة</span><strong>—</strong></div><button class="community-full-btn" onclick="communitySettingsOpen()">⚙️ إعدادات المجتمع</button></aside></section><section class="community-meet-banner"><div><span class="community-label">متاح الآن</span><h2>📹 قاعة اللقاءات</h2><p>أنشئ لقاءك، حدّد الموعد، وأضف رابط الدخول ليظهر اللقاء في جدول المجتمع.</p></div><div class="community-meet-actions"><button onclick="communityCreateMeeting()">＋ إنشاء لقاء</button><button onclick="communityScheduleOpen()">📅 جدول اللقاءات</button></div></section></div>';}
 
