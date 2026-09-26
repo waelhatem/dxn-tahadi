@@ -2140,6 +2140,7 @@ function communityChatAttachmentHtml(a){
 }
 function communityChatRender(messages){
   const box=document.getElementById('communityChatMessages'); if(!box)return;
+  window.communityChatMessages=Array.isArray(messages)?messages.slice(-200):[];
   if(!Array.isArray(messages)||!messages.length){box.innerHTML='<div class="community-chat-empty"><div class="icon">💬</div><b>ابدأ أول محادثة</b><span>اكتب رسالتك في الأسفل لبدء المحادثة.</span></div>';return}
   const identity=currentAccountIdentity();
   box.innerHTML=messages.map(m=>{
