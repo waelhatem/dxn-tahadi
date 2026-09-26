@@ -1463,6 +1463,37 @@ button[aria-label="التقدم إلى الصفحة التالية"]{
   .ragwan-mobile-back:active{transform:scale(.94)!important}
   .ragwan-mobile-back[disabled]{opacity:.45!important}
 }
+</style><style id="dxnPageForwardButtonV1">
+/* زر التقدم المقابل لزر العودة — ثابت أسفل اليمين ولا يحجب محتوى الصفحة. */
+.dxn-page-forward-btn{
+  position:fixed!important;
+  right:16px!important;
+  bottom:18px!important;
+  z-index:9997!important;
+  width:52px!important;
+  height:52px!important;
+  min-width:52px!important;
+  min-height:52px!important;
+  padding:0!important;
+  margin:0!important;
+  border:1px solid #e2e8e5!important;
+  border-radius:50%!important;
+  background:rgba(255,255,255,.96)!important;
+  color:#0f513f!important;
+  display:grid!important;
+  place-items:center!important;
+  font-size:32px!important;
+  font-weight:900!important;
+  line-height:1!important;
+  box-shadow:0 8px 24px rgba(0,0,0,.16)!important;
+  cursor:pointer!important;
+  backdrop-filter:blur(5px)!important;
+}
+.dxn-page-forward-btn:hover{transform:translateY(-1px)!important;box-shadow:0 10px 28px rgba(0,0,0,.20)!important}
+.dxn-page-forward-btn:active{transform:scale(.94)!important}
+@media(max-width:600px){
+  .dxn-page-forward-btn{right:10px!important;bottom:12px!important;width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;font-size:28px!important}
+}
 </style></head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
   <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
@@ -8037,6 +8068,26 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
  openBtn&&openBtn.addEventListener('click',show);closeBtn&&closeBtn.addEventListener('click',hide);zoomIn&&zoomIn.addEventListener('click',()=>changeZoom(.1));zoomOut&&zoomOut.addEventListener('click',()=>changeZoom(-.1));zoomReset&&zoomReset.addEventListener('click',()=>{previewZoom=1;const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});document.querySelectorAll('#globalPreviewPanel [data-preview-mode]').forEach(b=>b.addEventListener('click',()=>mode(b.dataset.previewMode)));frame&&frame.addEventListener('load',function(){hideEmbeddedScrollbars();try{frame.contentWindow.postMessage({type:'dxn-preview-auth',token:typeof token!=='undefined'?token:'',issued:localStorage.getItem('dxn_session_issued')||Date.now()},location.origin)}catch(e){}sync();const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});window.addEventListener('resize',function(){mount();const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&panel.classList.contains('show'))hide()});mount();const t=setInterval(()=>{if(eligible()){mount();clearInterval(t)}},500);
 })();
 </script>
-</body>
+<script id="dxnPageForwardButtonRuntimeV1">
+(function(){
+  function ensureForward(){
+    if(document.getElementById('dxnPageForwardBtn'))return;
+    var b=document.createElement('button');
+    b.id='dxnPageForwardBtn';
+    b.type='button';
+    b.className='dxn-page-forward-btn';
+    b.setAttribute('aria-label','التقدم إلى الصفحة التالية');
+    b.title='التقدم إلى الصفحة التالية';
+    b.textContent='›';
+    b.onclick=function(e){
+      e.preventDefault();
+      if(typeof dxnNavGoForward==='function')dxnNavGoForward();
+    };
+    document.body.appendChild(b);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ensureForward,{once:true});
+  else ensureForward();
+})();
+</script></body>
 
 </html>
