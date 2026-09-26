@@ -2260,11 +2260,15 @@ async function communityChatOpen(){
 function communityChatInsertSymbol(targetId,symbol){
   const input=document.getElementById(targetId);
   if(!input)return;
-  const start=Number(input.selectionStart||input.value.length), end=Number(input.selectionEnd||input.value.length);
-  input.setRangeText(symbol,start,end,'end');
+  const start=Number(input.selectionStart??input.value.length);
+  const end=Number(input.selectionEnd??input.value.length);
   input.focus();
-  const pos=start+symbol.length;
-  input.selectionStart=input.selectionEnd=pos;
+  input.setRangeText(String(symbol),start,end,'end');
+  const pos=start+String(symbol).length;
+  input.selectionStart=pos;
+  input.selectionEnd=pos;
+  input.dispatchEvent(new Event('input',{bubbles:true}));
+  communityCloseSymbolPicker();
 }
 function communityCloseSymbolPicker(){
   document.getElementById('communitySymbolPicker')?.remove();
@@ -2576,7 +2580,8 @@ async function communityUploadFile(file){
 async function communityChatSend(e){
   e.preventDefault();
   const input=document.getElementById('communityChatInput');
-  const text=String(input?.value||'').trim();
+  const rawText=String(input?.value??'');
+  const text=rawText.trim();
   const files=[...(window.communityPendingFiles||[])];
   if(!text&&!files.length)return;
   const sendButton=e.submitter||document.querySelector('#communityChatModal .community-chat-send');
