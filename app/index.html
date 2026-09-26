@@ -1964,6 +1964,8 @@ function advancedMember(){
  <div class="card"><div class="title">🎖️ إنجازاتي المتقدمة</div><div class="command-grid"><div class="command-card"><b>🌱 البداية</b><div class="muted">أول إنجاز معتمد</div></div><div class="command-card"><b>🔥 الاستمرارية</b><div class="muted">7 أيام نشاط متتابع</div></div><div class="command-card"><b>🎯 التارجت</b><div class="muted">الوصول إلى 100 نقطة DXN</div></div><div class="command-card"><b>💎 التميز</b><div class="muted">الوصول إلى 2000 نجمة</div></div></div><p class="muted">الشارات التي تحققت فعليًا تظهر في بطاقة «شاراتي» على الرئيسية.</p></div>`;
 }
 function communityEscapeHtml(v){return String(v??'').replace(/[&<>"']/g,function(ch){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[ch]})}
+let communityChatSendController=null;
+let communityChatSendActive=false;
 async function communityChatRpc(fn,args){
   const token=String(localStorage.getItem('dxn_session')||'').trim();
   if(!token){toast('انتهت جلسة الدخول. أعد تسجيل الدخول.');return null}
@@ -2095,6 +2097,13 @@ function communityChatToggleBold(){
 }
 function communityChatClose(){
   const modal=document.getElementById('communityChatModal');
+  if(communityChatSendController){
+    try{communityChatSendController.abort()}catch(_){}
+    communityChatSendController=null;
+  }
+  communityChatSendActive=false;
+  const toastBox=document.getElementById('toast');
+  if(toastBox)toastBox.classList.add('hidden');
   if(!modal)return;
   if(modal._escapeHandler)document.removeEventListener('keydown',modal._escapeHandler);
   modal.remove();
@@ -2174,8 +2183,11 @@ async function communityUploadFile(file){
 }
 async function communityChatSend(e){
   e.preventDefault();
+  if(communityChatSendActive)return;
   const input=document.getElementById('communityChatInput'), text=String(input?.value||'').trim(), files=[...(window.communityPendingFiles||[])];
   if(!text&&!files.length)return;
+  communityChatSendActive=true;
+  communityChatSendController=new AbortController();
   const sendButton=e.submitter||document.querySelector('#communityChatModal .community-chat-send'); if(sendButton)sendButton.disabled=true;
   try{
     let payload=text;
@@ -2184,6 +2196,7 @@ async function communityChatSend(e){
       for(let i=0;i<files.length;i++){toast('جارٍ رفع المرفق '+(i+1)+' من '+files.length+'…');attachments.push(await communityUploadFile(files[i]))}
       payload='[[DXN_CHAT_V2]]'+JSON.stringify({text,attachments});
     }
+    if(!document.getElementById('communityChatModal'))return;
     const saved=await communityChatRpc('community_chat_send',{p_message:payload});
     if(saved){
       if(input)input.value='';
@@ -2220,7 +2233,13 @@ async function communityChatSend(e){
          }
        }).catch(error=>console.error('Community chat refresh:',error));
     }
-  }catch(error){toast(error?.message||'تعذر إرسال المرفق')}finally{if(sendButton)sendButton.disabled=false}
+  }catch(error){
+    if(error?.name!=='AbortError' && document.getElementById('communityChatModal'))toast(error?.message||'تعذر إرسال المرفق')
+  }finally{
+    communityChatSendActive=false;
+    communityChatSendController=null;
+    if(sendButton)sendButton.disabled=false
+  }
 }
 function communityComingSoon(){toast("هذه الوظيفة ستُفعّل في المرحلة التالية.");}function community(){return '<div id="section-community" class="community-page" dir="rtl"><section class="community-hero community-hero-v2"><div class="community-glow glow-a"></div><div class="community-glow glow-b"></div><div class="community-leaf leaf-a">✦</div><div class="community-leaf leaf-b">✦</div><div class="community-live-badge"><span></span> مجتمع نشط الآن</div><div class="community-hero-content"><div class="community-brand-panel"><div class="community-logo-wrap"><img src="/logo.png" alt="مجتمع الصحة والثراء"></div><div class="community-brand-name">مجتمع الصحة والثراء</div><div class="community-brand-tag">بناء إنسان · صحة أوفر · مستقبل أجمل</div><div class="community-brand-line"></div><div class="community-mini-stats"><span><b>💬</b> تواصل</span><span><b>🎙️</b> صوت</span><span><b>📹</b> لقاءات</span></div></div><div class="community-hero-copy"><div class="community-kicker">🌐 مساحة المجتمع الرقمية</div><h1>مكان يجمعنا…<br><strong>لنتواصل ونتعلم ونلتقي</strong></h1><p>هنا تبدأ الحياة الاجتماعية للمجتمع: محادثات، صوتيات، وسائط، ولقاءات مباشرة في مساحة واحدة مصممة لتبقى قريبًا من فريقك.</p><div class="community-hero-actions"><button class="community-main-action" onclick="communityChatOpen()">💬 ابدأ محادثة</button><button class="community-secondary-action" onclick="communityCreateMeeting()">📹 إنشاء لقاء</button></div></div></div></section><section class="community-quick-grid"><button class="community-quick chat" onclick="communityChatOpen()"><span class="quick-icon">💬</span><span><b>الدردشة</b><small>رسائل فردية ومجموعات</small></span></button><button class="community-quick voice" onclick="communityVoiceOpen()"><span class="quick-icon">🎙️</span><span><b>البصمات الصوتية</b><small>سجل وأرسل صوتك</small></span></button><button class="community-quick media" onclick="communityMediaOpen()"><span class="quick-icon">🎬</span><span><b>الصور والفيديو</b><small>شارك لحظاتك مع المجتمع</small></span></button><button class="community-quick meetings" onclick="communityMeetingsOpen()"><span class="quick-icon">📹</span><span><b>اللقاءات والاجتماعات</b><small>صوت وصورة ومشاركة شاشة</small></span></button></section><section class="community-main-grid"><div class="community-feed-card"><div class="community-section-head"><div><span class="community-label">المجتمع الآن</span><h2>🔥 أحدث النشاطات</h2></div><button onclick="communityShowAll()">عرض الكل</button></div><div class="community-post"><div class="community-avatar avatar-green">و</div><div class="community-post-body"><div class="community-post-top"><b>مجتمع الصحة والثراء</b><time>الآن</time></div><p>مرحبًا بك في مساحتنا الجديدة. هنا ستلتقي بالأعضاء، تتبادل الخبرات، وتحضر اللقاءات القادمة.</p><div class="community-post-actions"><button onclick="communityComment()">💬 تعليق</button><button onclick="communityReact(this)">❤️ تفاعل</button><button onclick="communityShare()">↗ مشاركة</button></div></div></div><div class="community-post"><div class="community-avatar avatar-gold">🎓</div><div class="community-post-body"><div class="community-post-top"><b>لقاء المجتمع القادم</b><time>قريبًا</time></div><p>يمكنك من هنا الاطلاع على تفاصيل اللقاء القادم ورابط الدخول والموعد المحدد.</p><div class="community-event-mini"><span>📅</span><b>لقاء مباشر بالصوت والصورة</b><button onclick="communityMeetingDetails()">التفاصيل</button></div></div></div></div><aside class="community-side-card"><div class="community-section-head"><div><span class="community-label">حضورك</span><h2>✨ مساحة العضو</h2></div></div><div class="community-profile-mini"><div class="community-profile-avatar">👤</div><div><b>عضو المجتمع</b><small>مرحبًا بك في المجتمع</small></div></div><div class="community-stat-row"><span>🟢 المتصلون الآن</span><strong>—</strong></div><div class="community-stat-row"><span>💬 المحادثات</span><strong>—</strong></div><div class="community-stat-row"><span>📅 اللقاءات القادمة</span><strong>—</strong></div><button class="community-full-btn" onclick="communitySettingsOpen()">⚙️ إعدادات المجتمع</button></aside></section><section class="community-meet-banner"><div><span class="community-label">متاح الآن</span><h2>📹 قاعة اللقاءات</h2><p>أنشئ لقاءك، حدّد الموعد، وأضف رابط الدخول ليظهر اللقاء في جدول المجتمع.</p></div><div class="community-meet-actions"><button onclick="communityCreateMeeting()">＋ إنشاء لقاء</button><button onclick="communityScheduleOpen()">📅 جدول اللقاءات</button></div></section></div>';}
 
