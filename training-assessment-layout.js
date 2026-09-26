@@ -4,7 +4,7 @@
   window.__DXN_TRAINING_ASSESSMENT_LAYOUT_V86444__=true;
   function lessons(){var ls=(typeof trainingData!=='undefined'&&trainingData&&Array.isArray(trainingData.lessons))?trainingData.lessons.slice():[];return ls.filter(function(x){return x&&x.active!==false}).sort(function(a,b){return Number(a.lesson_no||0)-Number(b.lesson_no||0)})}
   function videoId(url){var s=String(url||''),m=s.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{6,})/i);return m?m[1]:''}
-  function ytIn(node){return node&&node.querySelectorAll?[].slice.call(node.querySelectorAll('a[href*="youtu.be"],a[href*="youtube.com"],iframe[src*="youtube.com"],iframe[src*="youtube-nocookie.com"])):[]}
+  function ytIn(node){return node&&node.querySelectorAll?Array.prototype.slice.call(node.querySelectorAll('a[href*="youtu.be"],a[href*="youtube.com"],iframe[src*="youtube.com"],iframe[src*="youtube-nocookie.com"]')):[]}
   function ytAll(){return [].slice.call(document.querySelectorAll('a[href*="youtu.be"],a[href*="youtube.com"],iframe[src*="youtube.com"],iframe[src*="youtube-nocookie.com"]'))}
   function titleAnchor(title){title=String(title||'').trim();if(!title)return null;var ns=document.querySelectorAll('.title,h2,h3,h4,strong,b,summary');for(var i=0;i<ns.length;i++){var t=String(ns[i].textContent||'').replace(/\s+/g,' ').trim();if((t===title||t.indexOf(title)!==-1)&&!/اختبارات استيعاب|اختبارات التدريبات/.test(t))return ns[i]}return null}
   function findTarget(lesson,no){var title=lesson.title||lesson.lesson_title||'',a=titleAnchor(title),id=videoId(lesson.video_url||lesson.url||'');
