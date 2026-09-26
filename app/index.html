@@ -2210,12 +2210,14 @@ function communityChatAttachmentHtml(a){
   if(type.startsWith('audio/')) return '<audio class="community-chat-attachment-audio" controls preload="metadata" src="'+url+'"></audio>';
   return '<a class="community-chat-attachment-file" href="'+url+'" target="_blank" rel="noopener" download>📎 '+name+'</a>';
 }
-function communityChatToggleActions(e,id){
+function communityChatToggleActions(button,e){
+  e?.preventDefault();
   e?.stopPropagation();
-  document.querySelectorAll('.community-chat-actions-menu.open').forEach(menu=>{
-    if(menu.dataset.messageId!==String(id))menu.classList.remove('open');
+  const holder=button?.parentElement;
+  const menu=holder?.querySelector('.community-chat-actions-menu');
+  document.querySelectorAll('.community-chat-actions-menu.open').forEach(other=>{
+    if(other!==menu)other.classList.remove('open');
   });
-  const menu=document.querySelector('.community-chat-actions-menu[data-message-id="'+CSS.escape(String(id))+'"]');
   if(menu)menu.classList.toggle('open');
 }
 async function communityChatEditMessage(id){
@@ -2263,7 +2265,7 @@ function communityChatRender(messages){
     const when=new Date(m.created_at||Date.now()).toLocaleString('ar-IQ');
     const edited=String(m.updated_at||'')&&String(m.updated_at)!==String(m.created_at||'');
     const actions=mine
-      ? '<div class="community-chat-actions"><button type="button" class="community-chat-actions-trigger" aria-label="خيارات الرسالة" onclick="communityChatToggleActions(event,'+JSON.stringify(String(m.id))+')">⋮</button><div class="community-chat-actions-menu" data-message-id="'+communityEscapeHtml(String(m.id))+'"><button type="button" onclick="communityChatEditMessage('+JSON.stringify(String(m.id))+')">✏️ تعديل الرسالة</button><button type="button" class="danger" onclick="communityChatDeleteMessage('+JSON.stringify(String(m.id))+','+(hasImage?'true':'false')+')">'+(hasImage?'🗑️ حذف الصورة لدى الجميع':'🗑️ حذف لدى الجميع')+'</button></div></div>'
+      ? '<div class="community-chat-actions"><button type="button" class="community-chat-actions-trigger" aria-label="خيارات الرسالة" onclick="communityChatToggleActions(this,event)">⋮</button><div class="community-chat-actions-menu" data-message-id="'+communityEscapeHtml(String(m.id))+'"><button type="button" onclick="communityChatEditMessage('+JSON.stringify(String(m.id))+')">✏️ تعديل الرسالة</button><button type="button" class="danger" onclick="communityChatDeleteMessage('+JSON.stringify(String(m.id))+','+(hasImage?'true':'false')+')">'+(hasImage?'🗑️ حذف الصورة لدى الجميع':'🗑️ حذف لدى الجميع')+'</button></div></div>'
       : '';
     return '<div class="community-chat-msg '+(mine?'mine':'')+'"><div class="community-chat-msg-top"><div class="community-chat-sender">'+sender+'</div>'+actions+'</div><div>'+body+'</div><small>'+when+(edited?' · معدلة':'')+'</small></div>';
   }).join('');
