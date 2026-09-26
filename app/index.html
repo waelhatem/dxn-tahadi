@@ -1987,6 +1987,29 @@ async function communityShare(){const text='مجتمع الصحة والثراء
 function communityMeetingDetails(){const list=JSON.parse(localStorage.getItem('dxn_community_meetings')||'[]');const m=list[0];communityUiModal('تفاصيل اللقاء',m?'<div class="community-ui-list"><div>📌 <b>'+escapeHtml(m.title)+'</b><small>'+new Date(m.date).toLocaleString('ar-IQ')+'</small></div><div>📝 '+escapeHtml(m.desc||'لا يوجد وصف إضافي.')+'</div></div>':'<div class="community-ui-empty">لا يوجد لقاء مجدول حاليًا. يمكنك إنشاء لقاء جديد من زر «إنشاء لقاء».</div>')}
 function communitySettingsOpen(){communityUiModal('إعدادات المجتمع','<div class="community-settings-list"><label><input type="checkbox" checked> إشعارات المحادثات</label><label><input type="checkbox" checked> إشعارات اللقاءات</label><label><input type="checkbox" checked> تنبيهات النشاطات</label><label><input type="checkbox"> تشغيل الأصوات</label></div>','<div class="community-ui-actions"><button class="community-chat-send" onclick="communityUiClose();toast(\'تم حفظ إعدادات المجتمع.\')">حفظ الإعدادات</button></div>')}
 function communityScheduleOpen(){const list=JSON.parse(localStorage.getItem('dxn_community_meetings')||'[]');const body=list.length?'<div class="community-ui-list">'+list.slice().reverse().map(m=>'<div>📅 <b>'+escapeHtml(m.title)+'</b><small>'+new Date(m.date).toLocaleString('ar-IQ')+'</small></div>').join('')+'</div>':'<div class="community-ui-empty">لا توجد لقاءات مجدولة بعد.</div>';communityUiModal('جدول اللقاءات',body,'<div class="community-ui-actions"><button class="community-chat-send" onclick="communityCreateMeeting()">＋ إنشاء لقاء</button></div>')}
+/* Community actions — explicit global bindings for inline/dynamic buttons */
+window.communityUiModal=communityUiModal;
+window.communityUiClose=communityUiClose;
+window.communityChatOpen=communityChatOpen;
+window.communityChatClose=communityChatClose;
+window.communityChatSend=communityChatSend;
+window.communityAttachToggle=communityAttachToggle;
+window.communityPickFiles=communityPickFiles;
+window.communityFilesSelected=communityFilesSelected;
+window.communityRecordAudio=communityRecordAudio;
+window.communityVoiceOpen=communityVoiceOpen;
+window.communityMediaOpen=communityMediaOpen;
+window.communityMeetingsOpen=communityMeetingsOpen;
+window.communityShowAll=communityShowAll;
+window.communityComment=communityComment;
+window.communityReact=communityReact;
+window.communityShare=communityShare;
+window.communityMeetingDetails=communityMeetingDetails;
+window.communitySettingsOpen=communitySettingsOpen;
+window.communityCreateMeeting=communityCreateMeeting;
+window.communitySaveMeeting=communitySaveMeeting;
+window.communityScheduleOpen=communityScheduleOpen;
+
 function advancedCenter(){return role==='leader'?advancedLeader():advancedMember()}
 
 function ideaStep(n){
