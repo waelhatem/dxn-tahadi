@@ -1360,6 +1360,20 @@ body:has(.login-header-top)::before{
     min-width:64px!important;
   }
 }
+</style><style id="communityChatEmojiInlineFixV1">
+/* V1 — Keep emoji/symbols visually attached to the message text, including Arabic RTL text. */
+#communityChatModal .community-chat-msg-body{
+  direction:auto!important;
+  unicode-bidi:plaintext!important;
+  white-space:pre-wrap!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+  text-align:start!important;
+}
+#communityChatModal .community-chat-msg-body strong{
+  display:inline!important;
+  white-space:pre-wrap!important;
+}
 </style></head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
   <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
@@ -2722,7 +2736,7 @@ function communityChatRender(messages){
     const actions=mine
       ? '<div class="community-chat-actions"><button type="button" class="community-chat-actions-trigger" aria-label="خيارات الرسالة" onclick="communityChatToggleActions(this,event)">⋮</button><div class="community-chat-actions-menu" data-message-id="'+communityEscapeHtml(messageId)+'"><button type="button" onclick="communityChatEditMessage(\''+messageId+'\')">✏️ تعديل الرسالة</button><button type="button" class="danger" onclick="communityChatDeleteMessage(\''+messageId+'\','+(hasImage?'true':'false')+')">'+(hasImage?'🗑️ حذف الصورة لدى الجميع':'🗑️ حذف لدى الجميع')+'</button></div></div>'
       : '';
-    return '<div class="community-chat-msg '+(mine?'mine':'')+'"><div class="community-chat-msg-top"><div class="community-chat-sender">'+sender+'</div>'+actions+'</div><div>'+body+'</div><small>'+when+(edited?' · معدلة':'')+'</small></div>';
+    return '<div class="community-chat-msg '+(mine?'mine':'')+'"><div class="community-chat-msg-top"><div class="community-chat-sender">'+sender+'</div>'+actions+'</div><div class="community-chat-msg-body" dir="auto">'+body+'</div><small>'+when+(edited?' · معدلة':'')+'</small></div>';
   }).join('');
   box.scrollTop=box.scrollHeight;
 }
