@@ -1013,6 +1013,13 @@ body:has(.login-header-top)::before{
 @media(max-width:700px){
   .community-chat-actions-menu{min-width:165px}
 }
+
+/* V2 — Keep message actions inside the chat viewport for both message directions. */
+#communityChatMessages{overflow-x:hidden!important}
+.community-chat-msg:not(.mine) .community-chat-actions-menu{left:0!important;right:auto!important}
+.community-chat-msg.mine .community-chat-actions-menu{right:0!important;left:auto!important}
+.community-chat-actions-menu{max-width:calc(100vw - 32px)!important;box-sizing:border-box!important}
+.community-chat-actions-menu button{display:block!important;width:100%!important;box-sizing:border-box!important}
 </style><style id="communityChatMobileAttachmentFixV1">
 /* V1 — Keep the community attachment menu fully inside the phone viewport. */
 @media(max-width:700px){
