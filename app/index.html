@@ -2029,9 +2029,10 @@ async function communityChatOpen(){
    +'</div>';
   modal.addEventListener('click',e=>{if(e.target===modal)communityChatClose()});
   document.body.appendChild(modal);
-  const messages=await communityChatRpc('community_chat_list',{p_limit:100});
-  if(messages)communityChatRender(messages);
+  const box=document.getElementById('communityChatMessages');
+  if(box) box.innerHTML='<div class="community-chat-empty"><div class="icon">💬</div><b>المحادثة جاهزة</b><span>يمكنك كتابة رسالتك الآن… جارٍ جلب الرسائل السابقة في الخلفية.</span></div>';
   setTimeout(()=>document.getElementById('communityChatInput')?.focus(),50);
+  communityChatRpc('community_chat_list',{p_limit:100}).then(messages=>{if(messages)communityChatRender(messages)});
 }
 function communityChatClose(){document.getElementById('communityChatModal')?.remove()}
 function communityAttachToggle(e){e?.stopPropagation();const m=document.getElementById('communityAttachMenu');if(m)m.style.display=m.style.display==='none'?'grid':'none'}
