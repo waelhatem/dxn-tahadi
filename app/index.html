@@ -1400,6 +1400,9 @@ body:has(.login-header-top)::before{
     max-width:calc(100vw - 24px)!important;
   }
 }
+</style><style id="dxnRemoveLegacyInAppNavV1">
+/* إزالة نهائية لأزرار التنقل القديمة من جميع المقاسات والمعاينات. */
+#dxnInAppNav{display:none!important}
 </style></head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
   <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
@@ -2104,9 +2107,9 @@ function dxnNavRestore(target){
   }finally{dxnNav.restoring=false;renderInAppNav();}
 }
 function renderInAppNav(){
-  let el=document.getElementById('dxnInAppNav');
-  if(!el){el=document.createElement('nav');el.id='dxnInAppNav';el.className='dxn-inapp-nav';el.setAttribute('aria-label','التنقل بين الصفحات');document.body.appendChild(el);}
-  el.innerHTML=`<button type="button" class="dxn-nav-btn" ${dxnNav.back.length?'':'disabled'} onclick="event.preventDefault();this.blur();dxnNavGoBack()" aria-label="الرجوع للصفحة السابقة" title="الرجوع للصفحة السابقة">◀️ <span>رجوع</span></button><button type="button" class="dxn-nav-btn" ${dxnNav.forward.length?'':'disabled'} onclick="event.preventDefault();this.blur();dxnNavGoForward()" aria-label="التقدم إلى الصفحة التالية" title="التقدم إلى الصفحة التالية"><span>تقدم</span> ▶️</button>`;
+  // تم إلغاء أزرار «رجوع / تقدم» القديمة من الواجهة.
+  const el=document.getElementById('dxnInAppNav');
+  if(el)el.remove();
 }
 function scrollToTabContent(){return;}
 function switchTab(next){if(next==='training'&&!canAccessTraining())return;if(next==='training')trainingSubtab='home';tab=next;saveDxnUiState({tab:next,trainingSubtab});try{render();dxnNavPush(`tab:${next}`);recordSiteVisit(role||'visitor',next)}catch(e){console.error(e);toast('تعذر فتح القسم: '+(e.message||e))}}
