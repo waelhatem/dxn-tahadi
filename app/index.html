@@ -2027,7 +2027,46 @@ function communityChatToggleBold(){
 function communityChatClose(){document.getElementById('communityChatModal')?.remove()}
 function communityAttachToggle(e){e?.stopPropagation();const m=document.getElementById('communityAttachMenu');if(m)m.style.display=m.style.display==='none'?'grid':'none'}
 function communityPickFiles(accept,multi,camera=false){document.getElementById('communityAttachMenu')?.style.setProperty('display','none');const el=document.getElementById(camera?'communityCameraPicker':'communityFilePicker');if(!el)return;el.accept=accept;el.multiple=!!multi;el.value='';el.click()}
-function communityFilesSelected(e){const files=[...(e.target.files||[])];if(!files.length)return;const box=document.getElementById('communityAttachmentPreview');if(!box)return;box.style.display='flex';files.forEach(file=>{const chip=document.createElement('div');chip.className='community-attachment-chip';chip.dataset.fileName=file.name;chip.innerHTML='<span>📎</span><span>'+communityEscapeHtml(file.name)+'</span><button type="button" aria-label="إزالة">×</button>';chip.querySelector('button').onclick=()=>{chip.remove();if(!box.children.length)box.style.display='none'};box.appendChild(chip)});window.communityPendingFiles=files}
+function communityFilesSelected(e){
+  const files=[...(e.target.files||[])];
+  if(!files.length)return;
+  const box=document.getElementById('communityAttachmentPreview');
+  if(!box)return;
+  const existing=[...(window.communityPendingFiles||[])];
+  const all=[...existing,...files];
+  window.communityPendingFiles=all;
+  box.style.display='flex';
+  files.forEach(file=>{
+    const chip=document.createElement('div');
+    chip.className='community-attachment-chip community-attachment-preview-item';
+    chip.dataset.fileName=file.name;
+    chip.dataset.fileKey=file.name+'_'+file.size+'_'+file.lastModified;
+    const url=URL.createObjectURL(file);
+    let preview='';
+    if(file.type.startsWith('image/')){
+      preview='<img class="community-attachment-thumb" src="'+url+'" alt="'+communityEscapeHtml(file.name)+'">';
+    }else if(file.type.startsWith('video/')){
+      preview='<div class="community-attachment-file-icon">🎬</div>';
+    }else if(file.type.startsWith('audio/')){
+      preview='<div class="community-attachment-file-icon">🎵</div>';
+    }else{
+      preview='<div class="community-attachment-file-icon">📄</div>';
+    }
+    chip.innerHTML=preview+'<span class="community-attachment-name">'+communityEscapeHtml(file.name)+'</span><button type="button" aria-label="إزالة">×</button>';
+    chip.querySelector('button').onclick=()=>{
+      const idx=(window.communityPendingFiles||[]).findIndex(x=>x===file);
+      if(idx>=0)window.communityPendingFiles.splice(idx,1);
+      URL.revokeObjectURL(url);
+      chip.remove();
+      if(!box.children.length){
+        box.style.display='none';
+        window.communityPendingFiles=[];
+      }
+    };
+    box.appendChild(chip);
+  });
+  e.target.value='';
+}
 let communityAudioRecorder=null,communityAudioChunks=[];
 async function communityRecordAudio(){try{if(communityAudioRecorder?.state==='recording'){communityAudioRecorder.stop();return}const stream=await navigator.mediaDevices.getUserMedia({audio:true});communityAudioChunks=[];communityAudioRecorder=new MediaRecorder(stream);communityAudioRecorder.ondataavailable=e=>{if(e.data.size)communityAudioChunks.push(e.data)};communityAudioRecorder.onstop=()=>{stream.getTracks().forEach(t=>t.stop());const blob=new Blob(communityAudioChunks,{type:'audio/webm'});const file=new File([blob],'تسجيل-صوتي-'+Date.now()+'.webm',{type:'audio/webm'});window.communityPendingFiles=[...(window.communityPendingFiles||[]),file];communityFilesSelected({target:{files:[file]}});toast('تم تجهيز التسجيل الصوتي للإرسال بعد تفعيل المرفقات.')};communityAudioRecorder.start();toast('جارٍ تسجيل الصوت... اضغط المرفقات ثم تسجيل صوت لإيقافه.')}catch(e){toast('تعذر الوصول إلى الميكروفون. تحقق من صلاحية المتصفح.')}}
 
@@ -6436,7 +6475,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 /* Community chat — first active function */
 .community-ui-box{height:min(620px,82vh)}.community-ui-body{padding:22px;overflow:auto;display:flex;flex-direction:column;gap:13px;background:#f7fbf9}.community-form-label{display:flex;flex-direction:column;gap:7px;font-weight:800;color:#18352c;font-size:13px}.community-form-label textarea{resize:vertical}.community-ui-actions{padding:12px;border-top:1px solid #e2e8e5;background:#fff;display:flex;justify-content:flex-start;gap:8px}.community-ui-list{display:flex;flex-direction:column;gap:10px}.community-ui-list>div{background:#fff;border:1px solid #e1ebe6;border-radius:14px;padding:13px;color:#18352c}.community-ui-list small{display:block;color:#667085;margin-top:5px}.community-ui-empty{text-align:center;color:#667085;padding:35px 10px}.community-settings-list{display:flex;flex-direction:column;gap:10px}.community-settings-list label{background:#fff;border:1px solid #e1ebe6;border-radius:14px;padding:14px;display:flex;gap:9px;align-items:center;font-weight:700;color:#18352c}.community-settings-list input{accent-color:#0f513f}
 
-.community-attach-wrap{position:relative;flex:0 0 auto}.community-attach-btn{width:46px;height:46px;border:1px solid #d7e3de;border-radius:14px;background:#f5faf7;color:#0f513f;font-size:22px;cursor:pointer;display:grid;place-items:center}.community-attach-btn:hover{background:#eaf5f0}.community-attach-menu{position:absolute;bottom:56px;right:0;width:235px;padding:9px;border:1px solid #dce8e3;border-radius:18px;background:#fff;box-shadow:0 18px 45px rgba(0,0,0,.16);display:grid;grid-template-columns:1fr 1fr;gap:7px;z-index:20}.community-attach-menu button{border:1px solid #e5ece9;background:#fff;border-radius:13px;padding:10px 7px;font:inherit;font-size:12px;font-weight:800;color:#18352c;cursor:pointer}.community-attach-menu button:hover{background:#f1f8f5}.community-attach-menu .attach-icon{display:block;font-size:21px;margin-bottom:4px}.community-attachment-preview{padding:8px 12px;border-top:1px solid #edf1ef;background:#fbfdfc;display:flex;gap:8px;flex-wrap:wrap}.community-attachment-chip{display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:11px;background:#eef7f3;border:1px solid #d7e9e1;font-size:11px;color:#18352c}.community-attachment-chip button{border:0;background:transparent;color:#b42318;cursor:pointer;font-size:14px}.community-chat-msg.attach{background:#f7fbf9;color:#18352c;border:1px solid #dbe9e3}.community-chat-msg.attach img,.community-chat-msg.attach video{display:block;max-width:240px;max-height:180px;border-radius:11px;margin-top:5px}.community-chat-msg.attach audio{max-width:250px;margin-top:5px}@media(max-width:600px){
+.community-attach-wrap{position:relative;flex:0 0 auto}.community-attach-btn{width:46px;height:46px;border:1px solid #d7e3de;border-radius:14px;background:#f5faf7;color:#0f513f;font-size:22px;cursor:pointer;display:grid;place-items:center}.community-attach-btn:hover{background:#eaf5f0}.community-attach-menu{position:absolute;bottom:56px;right:0;width:235px;padding:9px;border:1px solid #dce8e3;border-radius:18px;background:#fff;box-shadow:0 18px 45px rgba(0,0,0,.16);display:grid;grid-template-columns:1fr 1fr;gap:7px;z-index:20}.community-attach-menu button{border:1px solid #e5ece9;background:#fff;border-radius:13px;padding:10px 7px;font:inherit;font-size:12px;font-weight:800;color:#18352c;cursor:pointer}.community-attach-menu button:hover{background:#f1f8f5}.community-attach-menu .attach-icon{display:block;font-size:21px;margin-bottom:4px}.community-attachment-preview{padding:8px 12px;border-top:1px solid #edf1ef;background:#fbfdfc;display:flex;gap:8px;flex-wrap:wrap;max-height:150px;overflow:auto}.community-attachment-chip{position:relative;display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:11px;background:#eef7f3;border:1px solid #d7e9e1;font-size:11px;color:#18352c;max-width:100%}.community-attachment-preview-item{min-height:54px}.community-attachment-thumb{width:58px;height:48px;object-fit:cover;border-radius:8px;border:1px solid #cfe1d9;display:block}.community-attachment-file-icon{width:48px;height:48px;border-radius:8px;background:#fff;display:grid;place-items:center;font-size:24px;border:1px solid #d7e9e1;flex:0 0 48px}.community-attachment-name{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.community-attachment-chip button{border:0;background:transparent;color:#b42318;cursor:pointer;font-size:16px;font-weight:900;line-height:1}.community-chat-msg.attach{background:#f7fbf9;color:#18352c;border:1px solid #dbe9e3}.community-chat-msg.attach img,.community-chat-msg.attach video{display:block;max-width:240px;max-height:180px;border-radius:11px;margin-top:5px}.community-chat-msg.attach audio{max-width:250px;margin-top:5px}@media(max-width:600px){
   .community-chat-compose{flex-wrap:wrap!important;gap:7px!important}
   .community-attach-wrap{position:static!important;flex:0 0 100%!important;width:100%!important;order:1!important}
   .community-attach-btn{display:none!important}
