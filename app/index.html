@@ -2264,8 +2264,9 @@ function communityChatRender(messages){
     const sender=communityEscapeHtml(m.sender_name||(m.sender_role==='leader'?'القائد':'عضو المجتمع'));
     const when=new Date(m.created_at||Date.now()).toLocaleString('ar-IQ');
     const edited=String(m.updated_at||'')&&String(m.updated_at)!==String(m.created_at||'');
+    const messageId=String(m.id||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     const actions=mine
-      ? '<div class="community-chat-actions"><button type="button" class="community-chat-actions-trigger" aria-label="خيارات الرسالة" onclick="communityChatToggleActions(this,event)">⋮</button><div class="community-chat-actions-menu" data-message-id="'+communityEscapeHtml(String(m.id))+'"><button type="button" onclick="communityChatEditMessage('+JSON.stringify(String(m.id))+')">✏️ تعديل الرسالة</button><button type="button" class="danger" onclick="communityChatDeleteMessage('+JSON.stringify(String(m.id))+','+(hasImage?'true':'false')+')">'+(hasImage?'🗑️ حذف الصورة لدى الجميع':'🗑️ حذف لدى الجميع')+'</button></div></div>'
+      ? '<div class="community-chat-actions"><button type="button" class="community-chat-actions-trigger" aria-label="خيارات الرسالة" onclick="communityChatToggleActions(this,event)">⋮</button><div class="community-chat-actions-menu" data-message-id="'+communityEscapeHtml(messageId)+'"><button type="button" onclick="communityChatEditMessage(\''+messageId+'\')">✏️ تعديل الرسالة</button><button type="button" class="danger" onclick="communityChatDeleteMessage(\''+messageId+'\','+(hasImage?'true':'false')+')">'+(hasImage?'🗑️ حذف الصورة لدى الجميع':'🗑️ حذف لدى الجميع')+'</button></div></div>'
       : '';
     return '<div class="community-chat-msg '+(mine?'mine':'')+'"><div class="community-chat-msg-top"><div class="community-chat-sender">'+sender+'</div>'+actions+'</div><div>'+body+'</div><small>'+when+(edited?' · معدلة':'')+'</small></div>';
   }).join('');
