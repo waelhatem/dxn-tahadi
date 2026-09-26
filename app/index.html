@@ -1038,6 +1038,19 @@ body:has(.login-header-top)::before{
   .community-chat-edit-card textarea{min-height:190px;font-size:16px}
   .community-chat-edit-actions button{flex:1}
 }
+
+/* V4 — Message actions escape the scroll viewport so the full menu is always visible. */
+#communityChatModal .community-chat-actions-menu.open{
+  display:grid!important;
+  position:fixed!important;
+  overflow:visible!important;
+  min-width:165px!important;
+  width:185px;
+  max-width:calc(100vw - 24px)!important;
+  max-height:110px!important;
+  box-sizing:border-box!important;
+  z-index:100000!important;
+}
 </style><style id="communityChatMobileAttachmentFixV1">
 /* V1 — Keep the community attachment menu fully inside the phone viewport. */
 @media(max-width:700px){
@@ -2240,10 +2253,44 @@ function communityChatToggleActions(button,e){
   e?.stopPropagation();
   const holder=button?.parentElement;
   const menu=holder?.querySelector('.community-chat-actions-menu');
+  if(!menu)return;
   document.querySelectorAll('.community-chat-actions-menu.open').forEach(other=>{
-    if(other!==menu)other.classList.remove('open');
+    if(other!==menu){
+      other.classList.remove('open');
+      other.style.position='';
+      other.style.top='';
+      other.style.left='';
+      other.style.right='';
+      other.style.width='';
+    }
   });
-  if(menu)menu.classList.toggle('open');
+  const opening=!menu.classList.contains('open');
+  if(!opening){
+    menu.classList.remove('open');
+    menu.style.position='';
+    menu.style.top='';
+    menu.style.left='';
+    menu.style.right='';
+    menu.style.width='';
+    return;
+  }
+  const rect=button.getBoundingClientRect();
+  const menuWidth=Math.min(185,Math.max(165,window.innerWidth-24));
+  const gap=6;
+  const leftSide=!holder.closest('.community-chat-msg')?.classList.contains('mine');
+  let left=leftSide?rect.left:(rect.right-menuWidth);
+  left=Math.max(12,Math.min(left,window.innerWidth-menuWidth-12));
+  let top=rect.bottom+gap;
+  const menuHeight=Math.min(110,window.innerHeight-24);
+  if(top+menuHeight>window.innerHeight-12)top=Math.max(12,rect.top-menuHeight-gap);
+  menu.style.position='fixed';
+  menu.style.left=left+'px';
+  menu.style.right='auto';
+  menu.style.top=top+'px';
+  menu.style.width=menuWidth+'px';
+  menu.style.maxWidth=menuWidth+'px';
+  menu.style.zIndex='100000';
+  menu.classList.add('open');
 }
 function communityChatCloseEdit(){
   const modal=document.getElementById('communityChatEditModal');
