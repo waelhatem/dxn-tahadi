@@ -3852,7 +3852,7 @@ function ragwanDoorJourneyMarkup(){
       '</div>'+
     '</div>'+
     '<div class="ragwan-door-controls"><button type="button" class="ragwan-door-nav" onclick="ragwanPrevDoor()">‹</button>'+chips+'<button type="button" class="ragwan-door-nav" onclick="ragwanNextDoor()">›</button></div>'+
-    '<button type="button" class="ragwan-mobile-back" onclick="ragwanPrevDoor()" aria-label="الرجوع للخطوة السابقة" title="الرجوع للخطوة السابقة">‹</button>'+
+    '<button type="button" class="ragwan-mobile-back" onclick="ragwanMobileBackOneStep(event)" aria-label="الرجوع خطوة واحدة" title="الرجوع خطوة واحدة">‹</button>'+
     '<div class="ragwan-journey-note">✨ خطوات بسيطة اليوم... تصنع نجاحات كبيرة غدًا</div>'+
   '</section>';
 }
@@ -5751,7 +5751,17 @@ function ragwanEnterNextStep(){
   }
   ragwanStartStep();
 }
-function ragwanPrevDoor(){ragwanOpenDoor(Math.max(1,ragwanCurrentStep-1));}
+function ragwanPrevDoor(){
+  const previous=Math.max(1,Number(ragwanCurrentStep||1)-1);
+  if(previous===ragwanCurrentStep)return;
+  ragwanOpenDoor(previous);
+}
+function ragwanMobileBackOneStep(event){
+  if(event){event.preventDefault();event.stopPropagation();}
+  const current=Math.max(1,Number(ragwanCurrentStep||1));
+  if(current<=1)return;
+  ragwanOpenDoor(current-1);
+}
 function ragwanNextDoor(){
   const state=ragwanProgressLoad(),next=Math.min(10,ragwanCurrentStep+1);
   if(!ragwanIsPreviewMember() && next>ragwanProgressNextStep()&&!state.completed.includes(ragwanCurrentStep)){toast('🔒 أكمل الخطوة الحالية أولًا.');return;}
