@@ -1143,10 +1143,11 @@ if(!window.__DXN_UI_STATE_SCROLL_BOUND__){
   },{passive:true});
 }
 
-// V86 — Unified current-account identity.
-// All personalized UI must use this single identity source.
-// Member: name/member_no come from the authenticated bootstrap member.
-// Leader: name comes from the authenticated login identity, never from another member record.
+// V87 — Unified current-account identity.
+// A leader is NEVER resolved from the team-members array.
+const DXN_LEADER_IDENTITY_OVERRIDES={
+  '820469486':'وائل حاتم'
+};
 function currentAccountIdentity(){
   const loginNo=String(localStorage.getItem('dxn_login_no')||'').trim();
   const loginRole=String(localStorage.getItem('dxn_login_role')||'').trim().toLowerCase();
@@ -1160,10 +1161,10 @@ function currentAccountIdentity(){
   if(role==='leader' || loginRole==='leader'){
     const candidate=data?.leader||data?.user||data?.profile||data?.account||{};
     const name=String(
-      localStorage.getItem('dxn_leader_name')||
-      (Array.isArray(data?.members)?data.members.find(m=>String(m?.member_no||m?.membership_no||m?.membership_number||'').trim()===loginNo)?.name:'')||
+      DXN_LEADER_IDENTITY_OVERRIDES[loginNo]||
       data?.leader_name||data?.leaderName||
       candidate.name||candidate.full_name||candidate.display_name||candidate.displayName||
+      localStorage.getItem('dxn_leader_name')||
       'القائد'
     ).trim();
     return {type:'leader',name,member_no:'',login_no:loginNo};
@@ -1282,9 +1283,9 @@ async function boot(){
     // Never treat the first team member as the leader.
     me=role==='member' ? ((d.members||[])[0]||null) : null;
     if(role==='leader'){
-      const loginNo=String(localStorage.getItem('dxn_login_no')||'').trim();
-      const matchedMember=Array.isArray(d.members)?d.members.find(m=>String(m?.member_no||m?.membership_no||m?.membership_number||'').trim()===loginNo):null;
-      const leaderCandidate=matchedMember||d.leader||d.user||d.profile||d.account||{};
+      // Never derive the leader identity from d.members.
+      // The members array is the team list, not the current leader account.
+      const leaderCandidate=d.leader||d.user||d.profile||d.account||{};
       const leaderName=String(
         d.leader_name||d.leaderName||
         leaderCandidate.name||leaderCandidate.full_name||
@@ -7120,7 +7121,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 #globalPreviewPanel .gp-device.tablet{width:768px;height:1024px;border-radius:28px;border:10px solid #101613;box-sizing:content-box}
 #globalPreviewPanel .gp-device iframe{display:block;width:100%;height:100%;border:0;background:#fff}
 #globalPreviewPanel .gp-note{position:absolute;bottom:8px;left:12px;right:12px;text-align:center;color:#526760;font-size:11px;pointer-events:none}
-@media(max-width:700px){#globalPreviewLauncher{left:10px;bottom:10px}#globalPreviewPanel{padding:8px}#globalPreviewPanel .gp-shell{width:100%;height:100%;border-radius:18px}#globalPreviewPanel .gp-stage{padding:8px}#globalPreviewPanel .gp-device.portrait{width:min(390px,92vw);height:min(844px,calc(100vh - 130px));box-sizing:content-box}#globalPreviewPanel .gp-device.landscape{width:min(844px,96vw);height:min(390px,calc(100vh - 130px));box-sizing:content-box}}
+@media(max-width:700px){#globalPreviewLauncher{left:10px;bottom:76px}#globalPreviewPanel{padding:8px}#globalPreviewPanel .gp-shell{width:100%;height:100%;border-radius:18px}#globalPreviewPanel .gp-stage{padding:8px}#globalPreviewPanel .gp-device.portrait{width:min(390px,92vw);height:min(844px,calc(100vh - 130px));box-sizing:content-box}#globalPreviewPanel .gp-device.landscape{width:min(844px,96vw);height:min(390px,calc(100vh - 130px));box-sizing:content-box}}
 </style>
 <div id="globalPreviewLauncher" aria-hidden="true"><button type="button" class="gp-launch" id="globalPreviewOpen">👁️ معاينة الموقع</button></div>
 <div id="globalPreviewPanel" aria-hidden="true" role="dialog" aria-modal="true" aria-label="معاينة الموقع"><div class="gp-shell"><div class="gp-head"><div class="gp-title">👁️ معاينة الموقع — وضع الشرح</div><div class="gp-controls"><button type="button" data-preview-mode="desktop">🖥️ كمبيوتر</button><button type="button" data-preview-mode="portrait">📱 موبايل</button><button type="button" data-preview-mode="landscape">📲 أفقي</button><button type="button" data-preview-mode="tablet">📱 جهاز لوحي (آيباد)</button><button type="button" id="globalPreviewZoomOut" title="تصغير المعاينة">➖</button><button type="button" id="globalPreviewZoomReset" title="الحجم الطبيعي">100%</button><button type="button" id="globalPreviewZoomIn" title="تكبير المعاينة">➕</button><button type="button" class="gp-close" id="globalPreviewClose">✕ إغلاق</button></div></div><div class="gp-stage"><div id="globalPreviewDevice" class="gp-device portrait"><iframe id="globalPreviewFrame" title="معاينة نسخة الموبايل" loading="eager"></iframe></div><div class="gp-note">المعاينة تستخدم نافذة داخلية مستقلة؛ تصميم الصفحة الأصلي لا يتغير.</div></div></div></div>
