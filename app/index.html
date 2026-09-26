@@ -1233,6 +1233,133 @@ body:has(.login-header-top)::before{
   #communityChatModal .community-composer-field .community-chat-formatbar button{width:30px!important;min-width:30px!important;height:30px!important;min-height:30px!important;font-size:14px!important}
   #communityChatModal .community-chat-send{min-width:64px!important;padding:0 10px!important}
 }
+</style><style id="communityComposerFinalPositionV2">
+@media (max-width:700px){
+  #communityChatModal .community-chat-compose{
+    position:relative!important;
+    display:flex!important;
+    flex-direction:row!important;
+    align-items:center!important;
+    gap:7px!important;
+    width:100%!important;
+    box-sizing:border-box!important;
+    padding:9px 10px!important;
+  }
+  #communityChatModal .community-composer-field{
+    position:relative!important;
+    display:block!important;
+    flex:1 1 auto!important;
+    width:auto!important;
+    min-width:0!important;
+    height:48px!important;
+    min-height:48px!important;
+    margin:0!important;
+    box-sizing:border-box!important;
+  }
+  #communityChatModal .community-composer-field > .community-chat-input{
+    position:absolute!important;
+    left:0!important;
+    top:0!important;
+    right:0!important;
+    bottom:0!important;
+    width:100%!important;
+    height:48px!important;
+    min-height:48px!important;
+    margin:0!important;
+    box-sizing:border-box!important;
+    padding:10px 100px 10px 52px!important;
+    border-radius:16px!important;
+  }
+  #communityChatModal .community-composer-field > .community-attach-wrap{
+    position:absolute!important;
+    left:8px!important;
+    right:auto!important;
+    top:50%!important;
+    bottom:auto!important;
+    transform:translateY(-50%)!important;
+    display:block!important;
+    width:38px!important;
+    min-width:38px!important;
+    height:38px!important;
+    min-height:38px!important;
+    margin:0!important;
+    padding:0!important;
+    z-index:100!important;
+    box-sizing:border-box!important;
+  }
+  #communityChatModal .community-composer-field > .community-attach-wrap > .community-attach-btn{
+    position:relative!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    width:38px!important;
+    min-width:38px!important;
+    height:38px!important;
+    min-height:38px!important;
+    margin:0!important;
+    padding:0!important;
+    border:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    font-size:22px!important;
+  }
+  #communityChatModal .community-composer-field > .community-chat-formatbar{
+    position:absolute!important;
+    left:auto!important;
+    right:8px!important;
+    top:50%!important;
+    bottom:auto!important;
+    transform:translateY(-50%)!important;
+    display:flex!important;
+    align-items:center!important;
+    gap:3px!important;
+    width:auto!important;
+    height:34px!important;
+    margin:0!important;
+    padding:0!important;
+    z-index:101!important;
+  }
+  #communityChatModal .community-composer-field > .community-chat-formatbar button{
+    width:32px!important;
+    min-width:32px!important;
+    height:32px!important;
+    min-height:32px!important;
+    margin:0!important;
+    padding:0!important;
+  }
+  #communityChatModal .community-chat-send{
+    position:relative!important;
+    flex:0 0 auto!important;
+    width:auto!important;
+    min-width:68px!important;
+    height:48px!important;
+    min-height:48px!important;
+    margin:0!important;
+    z-index:102!important;
+  }
+}
+@media (max-width:390px){
+  #communityChatModal .community-composer-field > .community-chat-input{
+    padding-right:96px!important;
+    padding-left:48px!important;
+  }
+  #communityChatModal .community-composer-field > .community-attach-wrap{
+    left:5px!important;
+  }
+  #communityChatModal .community-composer-field > .community-chat-formatbar{
+    right:5px!important;
+    gap:2px!important;
+  }
+  #communityChatModal .community-composer-field > .community-chat-formatbar button{
+    width:30px!important;
+    min-width:30px!important;
+    height:30px!important;
+    min-height:30px!important;
+  }
+  #communityChatModal .community-chat-send{
+    min-width:64px!important;
+  }
+}
 </style></head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
   <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
