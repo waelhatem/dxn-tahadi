@@ -401,7 +401,8 @@ async function supabaseTableRequest(method,path,key,body){
         Accept:'application/json',
         'Content-Type':'application/json',
         ...(key?{apikey:key,Authorization:'Bearer '+key}:{}),
-        ...(payload?{'Content-Length':Buffer.byteLength(payload)}:{'Prefer':'return=representation'})
+        ...(payload?{'Content-Length':Buffer.byteLength(payload)}:{}),
+        Prefer:'return=representation'
       },
       timeout:12000
     },response=>{
