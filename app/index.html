@@ -2442,7 +2442,9 @@ async function communityChatOpen(){
   const box=document.getElementById('communityChatMessages');
   if(box) box.innerHTML='<div class="community-chat-empty"><div class="icon">💬</div><b>المحادثة جاهزة</b><span>يمكنك كتابة رسالتك الآن… جارٍ جلب الرسائل السابقة في الخلفية.</span></div>';
   setTimeout(()=>document.getElementById('communityChatInput')?.focus(),50);
-  communityChatRpc('community_chat_list',{p_limit:100}).then(messages=>{if(messages)communityChatRender(messages)});
+  communityChatRpc('community_chat_list',{p_limit:100}).then(messages=>{if(messages)communityChatRender(messages);else{const b=document.getElementById('communityChatMessages');if(b)b.innerHTML='<div class="community-chat-empty"><div class="icon">⚠️</div><b>تعذر تحميل الرسائل</b><span>تحقق من الاتصال ثم أعد فتح المحادثة.</span></div>';}});
+  clearInterval(window.communityChatRefreshTimer);
+  window.communityChatRefreshTimer=setInterval(()=>{if(!document.getElementById('communityChatModal')){clearInterval(window.communityChatRefreshTimer);window.communityChatRefreshTimer=null;return;} communityChatRpc('community_chat_list',{p_limit:100}).then(messages=>{if(messages)communityChatRender(messages);});},4000);
 }
 function communityChatInsertSymbol(targetId,symbol){
   const input=document.getElementById(targetId);
@@ -2501,7 +2503,7 @@ function communityOpenStickerPicker(targetId){
   ];
   communityOpenSymbolPicker(targetId,'الملصقات',items);
 }
-function communityChatClose(){document.getElementById('communityChatModal')?.remove()}
+function communityChatClose(){clearInterval(window.communityChatRefreshTimer);window.communityChatRefreshTimer=null;document.getElementById('communityChatModal')?.remove()}
 function communityAttachToggle(e){e?.stopPropagation();const m=document.getElementById('communityAttachMenu');if(m)m.style.display=m.style.display==='none'?'grid':'none'}
 function communityPickFiles(accept,multi,camera=false){document.getElementById('communityAttachMenu')?.style.setProperty('display','none');const el=document.getElementById(camera?'communityCameraPicker':'communityFilePicker');if(!el)return;el.accept=accept;el.multiple=!!multi;el.value='';el.click()}
 function communityRenderPendingFiles(){
