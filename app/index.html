@@ -461,11 +461,28 @@ body:has(.login-header-top)::before{
 
   /* Keep the ten doors available, but make their navigation compact. */
   .ragwan-step-5-active .ragwan-door-gallery{
+    display:grid!important;
     grid-template-columns:repeat(10,118px)!important;
+    grid-auto-flow:column!important;
     gap:8px!important;
+    width:100%!important;
+    max-width:100%!important;
     padding:4px 2px 12px!important;
     margin:0!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    -webkit-overflow-scrolling:touch!important;
+    overscroll-behavior-x:contain!important;
+    touch-action:pan-x pan-y!important;
+    scroll-snap-type:x proximity;
     scroll-padding-inline:10px!important;
+    scrollbar-width:thin;
+  }
+  .ragwan-step-5-active .ragwan-door-gallery .ragwan-door{
+    flex:0 0 118px!important;
+    width:118px!important;
+    min-width:118px!important;
+    scroll-snap-align:start;
   }
   .ragwan-step-5-active .ragwan-door{
     min-width:118px!important;
