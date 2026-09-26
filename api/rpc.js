@@ -442,7 +442,7 @@ async function communitySession(token){
 async function communityMeetingsList(args){
   await communitySession(args.p_token);
   const url='/rest/v1/community_meetings?select=id,organizer_member_no,organizer_name,title,scheduled_at,duration_minutes,description,meeting_url,status,created_at,updated_at&status=eq.scheduled&scheduled_at=gte.'+encodeURIComponent(new Date().toISOString())+'&order=scheduled_at.asc&limit=100';
-  const rows=await supabaseTableRequest('GET',url,SUPABASE_SECRET_KEY);
+  const rows=await supabaseTableRequest('GET',url,COMMUNITY_DB_KEY);
   if(!rows.ok || !Array.isArray(rows.data)) throw new Error((rows.data&&(rows.data.message||rows.data.error||rows.data.hint))||rows.text||'تعذر تحميل جدول اللقاءات');
   return rows.data;
 }
@@ -461,7 +461,7 @@ async function communityMeetingCreate(args){
   const organizerNo=session.member_no||('ROLE:'+(session.role||'member'));
   const organizerName=session.member_name||(session.role==='leader'?'القائد':'عضو المجتمع');
   const row={organizer_member_no:organizerNo,organizer_name:organizerName,title,scheduled_at:date.toISOString(),duration_minutes:duration,description,meeting_url:meetingUrl,status:'scheduled'};
-  const result=await supabaseTableRequest('POST','/rest/v1/community_meetings?select=id,organizer_member_no,organizer_name,title,scheduled_at,duration_minutes,description,meeting_url,status,created_at,updated_at',SUPABASE_SECRET_KEY,row);
+  const result=await supabaseTableRequest('POST','/rest/v1/community_meetings?select=id,organizer_member_no,organizer_name,title,scheduled_at,duration_minutes,description,meeting_url,status,created_at,updated_at',COMMUNITY_DB_KEY,row);
   if(!result.ok) throw new Error((result.data&&(result.data.message||result.data.error||result.data.hint))||result.text||'تعذر حفظ اللقاء');
   return Array.isArray(result.data)?result.data[0]:result.data;
 }
@@ -470,7 +470,7 @@ async function communityMeetingGet(args){
   await communitySession(args.p_token);
   const id=String(args.p_id||'').trim();
   if(!id) throw new Error('معرّف اللقاء غير موجود');
-  const result=await supabaseTableRequest('GET','/rest/v1/community_meetings?select=id,organizer_member_no,organizer_name,title,scheduled_at,duration_minutes,description,meeting_url,status,created_at,updated_at&id=eq.'+encodeURIComponent(id),SUPABASE_SECRET_KEY);
+  const result=await supabaseTableRequest('GET','/rest/v1/community_meetings?select=id,organizer_member_no,organizer_name,title,scheduled_at,duration_minutes,description,meeting_url,status,created_at,updated_at&id=eq.'+encodeURIComponent(id),COMMUNITY_DB_KEY);
   if(!result.ok || !Array.isArray(result.data) || !result.data[0]) throw new Error((result.data&&(result.data.message||result.data.error||result.data.hint))||result.text||'اللقاء غير موجود');
   return result.data[0];
 }
@@ -479,7 +479,7 @@ async function communityChatList(args){
   await communitySession(args.p_token);
   const limit=Math.max(1,Math.min(Number(args.p_limit)||100,200));
   const url='/rest/v1/community_chat_messages?select=id,sender_member_no,sender_name,sender_role,message_text,created_at&order=created_at.asc&limit='+limit;
-  const rows=await supabaseTableRequest('GET',url,SUPABASE_SECRET_KEY);
+  const rows=await supabaseTableRequest('GET',url,COMMUNITY_DB_KEY);
   if(!rows.ok || !Array.isArray(rows.data)) throw new Error((rows.data&&(rows.data.message||rows.data.error||rows.data.hint))||rows.text||'تعذر تحميل محادثة المجتمع');
   return rows.data;
 }
@@ -495,9 +495,12 @@ async function communityChatSend(args){
     sender_role:session.role==='leader'?'leader':'member',
     message_text:message
   };
-  const result=await supabaseTableRequest('POST','/rest/v1/community_chat_messages?select=id,sender_member_no,sender_name,sender_role,message_text,created_at',SUPABASE_SECRET_KEY,row);
+  const result=await supabaseTableRequest('POST','/rest/v1/community_chat_messages?select=id,sender_member_no,sender_name,sender_role,message_text,created_at',COMMUNITY_DB_KEY,row);
   if(!result.ok) throw new Error((result.data&&(result.data.message||result.data.error||result.data.hint))||result.text||'تعذر حفظ الرسالة');
   return Array.isArray(result.data)?result.data[0]:result.data;
+}
+
+turn Array.isArray(result.data)?result.data[0]:result.data;
 }
 
 async function communityMeetingCancel(args){
