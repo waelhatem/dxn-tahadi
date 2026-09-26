@@ -422,36 +422,22 @@ async function supabaseTableRequest(method,path,key,body){
   });
 }
 
-async function communitySession(token,args={}){
+async function communitySession(token){
   const pToken=String(token||'').trim();
   if(!pToken) throw new Error('جلسة العضوية غير موجودة');
   if(!SUPABASE_SECRET_KEY) throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
   const boot=await supabaseRpcRequest('bootstrap',{p_token:pToken},SUPABASE_SECRET_KEY,10000);
   if(!boot.ok) throw new Error((boot.data&&(boot.data.message||boot.data.error||boot.data.hint))||boot.text||'جلسة الدخول غير صالحة');
-  const bootData=boot.data||{};
-  const sessionRole=String(bootData.role||'').trim().toLowerCase();
-  const member=(sessionRole==='member'&&Array.isArray(bootData.members))?bootData.members[0]:null;
-  const leaderCandidate=bootData.leader||bootData.user||bootData.profile||bootData.account||{};
-  const leaderName=String(
-    bootData.leader_name||
-    bootData.leaderName||
-    leaderCandidate.name||
-    leaderCandidate.full_name||
-    leaderCandidate.display_name||
-    leaderCandidate.displayName||
-    ''
-  ).trim();
-  const requestedDisplayName=String(args?.p_display_name||'').trim();
+  const member=Array.isArray(boot.data&&boot.data.members)?boot.data.members[0]:null;
   return {
-    role:sessionRole,
+    role:String(boot.data&&boot.data.role||'').trim().toLowerCase(),
     member_no:String(member&&member.member_no||'').trim(),
-    member_name:String(member&&(member.member_name||member.name)||'').trim(),
-    leader_name:leaderName||requestedDisplayName
+    member_name:String(member&&(member.member_name||member.name)||'').trim()
   };
 }
 
 async function communityMeetingsList(args){
-  await communitySession(args.p_token,args);
+  await communitySession(args.p_token);
   const url='/rest/v1/community_meetings?select=id,organizer_member_no,organizer_name,title,scheduled_at,duration_minutes,description,meeting_url,status,created_at,updated_at&status=eq.scheduled&scheduled_at=gte.'+encodeURIComponent(new Date().toISOString())+'&order=scheduled_at.asc&limit=100';
   const rows=await supabaseTableRequest('GET',url,SUPABASE_SECRET_KEY);
   if(!rows.ok || !Array.isArray(rows.data)) throw new Error((rows.data&&(rows.data.message||rows.data.error||rows.data.hint))||rows.text||'تعذر تحميل جدول اللقاءات');
@@ -459,7 +445,7 @@ async function communityMeetingsList(args){
 }
 
 async function communityMeetingCreate(args){
-  const session=await communitySession(args.p_token,args);
+  const session=await communitySession(args.p_token);
   const title=String(args.p_title||'').trim();
   const scheduledAt=String(args.p_scheduled_at||'').trim();
   const duration=Math.max(5,Math.min(Number(args.p_duration_minutes)||60,720));
@@ -470,7 +456,7 @@ async function communityMeetingCreate(args){
   if(Number.isNaN(date.getTime())) throw new Error('تاريخ اللقاء غير صالح');
   if(date.getTime()<=Date.now()) throw new Error('يجب أن يكون موعد اللقاء في المستقبل');
   const organizerNo=session.member_no||('ROLE:'+(session.role||'member'));
-  const organizerName=session.member_name||(session.role==='leader'?session.leader_name||'القائد':'عضو المجتمع');
+  const organizerName=session.member_name||(session.role==='leader'?'القائد':'عضو المجتمع');
   const row={organizer_member_no:organizerNo,organizer_name:organizerName,title,scheduled_at:date.toISOString(),duration_minutes:duration,description,meeting_url:meetingUrl,status:'scheduled'};
   const result=await supabaseTableRequest('POST','/rest/v1/community_meetings?select=id,organizer_member_no,organizer_name,title,scheduled_at,duration_minutes,description,meeting_url,status,created_at,updated_at',SUPABASE_SECRET_KEY,row);
   if(!result.ok) throw new Error((result.data&&(result.data.message||result.data.error||result.data.hint))||result.text||'تعذر حفظ اللقاء');
@@ -484,81 +470,6 @@ async function communityMeetingGet(args){
   const result=await supabaseTableRequest('GET','/rest/v1/community_meetings?select=id,organizer_member_no,organizer_name,title,scheduled_at,duration_minutes,description,meeting_url,status,created_at,updated_at&id=eq.'+encodeURIComponent(id),SUPABASE_SECRET_KEY);
   if(!result.ok || !Array.isArray(result.data) || !result.data[0]) throw new Error((result.data&&(result.data.message||result.data.error||result.data.hint))||result.text||'اللقاء غير موجود');
   return result.data[0];
-}
-
-async function communityChatList(args){
-  await communitySession(args.p_token);
-  const limit=Math.max(1,Math.min(Number(args.p_limit)||100,200));
-  const url='/rest/v1/community_chat_messages?select=id,sender_member_no,sender_name,sender_role,message_text,created_at&order=created_at.asc&limit='+limit;
-  const rows=await supabaseTableRequest('GET',url,SUPABASE_SECRET_KEY);
-  if(!rows.ok || !Array.isArray(rows.data)) throw new Error((rows.data&&(rows.data.message||rows.data.error||rows.data.hint))||rows.text||'تعذر تحميل محادثة المجتمع');
-  return rows.data;
-}
-
-async function communityChatGetOwnedMessage(args,session){
-  const id=String(args.p_id||'').trim();
-  if(!id) throw new Error('معرّف الرسالة غير موجود');
-  const result=await supabaseTableRequest('GET','/rest/v1/community_chat_messages?select=id,sender_member_no,sender_name,sender_role,message_text,created_at,updated_at&id=eq.'+encodeURIComponent(id),SUPABASE_SECRET_KEY);
-  if(!result.ok || !Array.isArray(result.data) || !result.data[0]) throw new Error('الرسالة غير موجودة');
-  const row=result.data[0];
-  const sameMember=!!session.member_no && String(row.sender_member_no||'')===String(session.member_no);
-  const sameLeader=session.role==='leader' && row.sender_role==='leader' && String(row.sender_name||'')===String(session.leader_name||session.member_name||'');
-  if(!sameMember && !sameLeader) throw new Error('لا تملك صلاحية تعديل أو حذف هذه الرسالة');
-  return row;
-}
-function communityChatPayloadParse(value){
-  const raw=String(value??'');
-  const prefix='[[DXN_CHAT_V2]]';
-  if(!raw.startsWith(prefix))return null;
-  try{
-    const data=JSON.parse(raw.slice(prefix.length));
-    return data&&Array.isArray(data.attachments)?data:null;
-  }catch(_){return null}
-}
-async function communityChatEdit(args){
-  const session=await communitySession(args.p_token,args);
-  const row=await communityChatGetOwnedMessage(args,session);
-  const text=String(args.p_message||'').trim();
-  if(!text) throw new Error('الرسالة فارغة');
-  if(text.length>1000) throw new Error('الرسالة تتجاوز الحد المسموح');
-  const payload=communityChatPayloadParse(row.message_text);
-  const next=payload
-    ? '[[DXN_CHAT_V2]]'+JSON.stringify({text,attachments:payload.attachments})
-    : text;
-  const result=await supabaseTableRequest('PATCH','/rest/v1/community_chat_messages?id=eq.'+encodeURIComponent(row.id),SUPABASE_SECRET_KEY,{message_text:next,updated_at:new Date().toISOString()});
-  if(!result.ok) throw new Error((result.data&&(result.data.message||result.data.error||result.data.hint))||result.text||'تعذر تعديل الرسالة');
-  return {ok:true,id:row.id};
-}
-async function communityChatDelete(args){
-  const session=await communitySession(args.p_token,args);
-  const row=await communityChatGetOwnedMessage(args,session);
-  const payload=communityChatPayloadParse(row.message_text);
-  if(payload&&Array.isArray(payload.attachments)){
-    for(const attachment of payload.attachments){
-      const path=String(attachment?.path||'').trim();
-      if(!path)continue;
-      await supabaseTableRequest('DELETE','/storage/v1/object/community-chat/'+path.split('/').map(encodeURIComponent).join('/'),SUPABASE_SECRET_KEY);
-    }
-  }
-  const result=await supabaseTableRequest('DELETE','/rest/v1/community_chat_messages?id=eq.'+encodeURIComponent(row.id),SUPABASE_SECRET_KEY);
-  if(!result.ok) throw new Error((result.data&&(result.data.message||result.data.error||result.data.hint))||result.text||'تعذر حذف الرسالة لدى الجميع');
-  return {ok:true,id:row.id};
-}
-
-async function communityChatSend(args){
-  const session=await communitySession(args.p_token);
-  const message=String(args.p_message||'').trim();
-  if(!message) throw new Error('الرسالة فارغة');
-  if(message.length>1000) throw new Error('الرسالة تتجاوز الحد المسموح');
-  const row={
-    sender_member_no:session.member_no||'',
-    sender_name:session.member_name||(session.role==='leader'?session.leader_name||'القائد':'عضو المجتمع'),
-    sender_role:session.role==='leader'?'leader':'member',
-    message_text:message
-  };
-  const result=await supabaseTableRequest('POST','/rest/v1/community_chat_messages?select=id,sender_member_no,sender_name,sender_role,message_text,created_at',SUPABASE_SECRET_KEY,row);
-  if(!result.ok) throw new Error((result.data&&(result.data.message||result.data.error||result.data.hint))||result.text||'تعذر حفظ الرسالة');
-  return Array.isArray(result.data)?result.data[0]:result.data;
 }
 
 async function communityMeetingCancel(args){
@@ -604,17 +515,13 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid RPC name' });
     }
 
-    if(fn==='community_meetings_list' || fn==='community_meeting_create' || fn==='community_meeting_get' || fn==='community_meeting_cancel' || fn==='community_chat_list' || fn==='community_chat_send' || fn==='community_chat_edit' || fn==='community_chat_delete'){
+    if(fn==='community_meetings_list' || fn==='community_meeting_create' || fn==='community_meeting_get' || fn==='community_meeting_cancel'){
       try{
         let data;
         if(fn==='community_meetings_list') data=await communityMeetingsList(args);
         else if(fn==='community_meeting_create') data=await communityMeetingCreate(args);
         else if(fn==='community_meeting_get') data=await communityMeetingGet(args);
-        else if(fn==='community_meeting_cancel') data=await communityMeetingCancel(args);
-        else if(fn==='community_chat_list') data=await communityChatList(args);
-        else if(fn==='community_chat_edit') data=await communityChatEdit(args);
-        else if(fn==='community_chat_delete') data=await communityChatDelete(args);
-        else data=await communityChatSend(args);
+        else data=await communityMeetingCancel(args);
         return res.status(200).json(data||{});
       }catch(error){
         console.error('community meetings RPC error:',error);
