@@ -982,7 +982,21 @@ body:has(.login-header-top)::before{
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
   else init();
 })();
-</script><style id="communityChatMobileAttachmentFixV1">
+</script><style id="communityChatAttachmentsV2">
+.community-chat-attachment-grid{display:grid;gap:8px;margin-top:9px;max-width:min(420px,100%)}
+.community-chat-attachment-image{display:block;max-width:100%;overflow:hidden;border-radius:13px;background:#edf4f1}
+.community-chat-attachment-image img{display:block;width:100%;max-height:360px;object-fit:contain;background:#f3f7f5}
+.community-chat-attachment-video{display:block;width:min(100%,420px);max-height:360px;border-radius:13px;background:#111}
+.community-chat-attachment-audio{display:block;width:min(100%,360px);height:42px}
+.community-chat-attachment-file{display:flex;align-items:center;gap:7px;padding:10px 12px;border-radius:12px;background:#f1f7f4;color:#0f513f;font-weight:900;text-decoration:none;overflow-wrap:anywhere}
+.community-attachment-chip{display:flex;align-items:center;gap:7px;max-width:100%;padding:7px 9px;border:1px solid #d8e7e0;border-radius:11px;background:#f7fbf9}
+.community-attachment-chip>span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:ltr}
+.community-attachment-chip button{width:28px;min-width:28px;height:28px;min-height:28px;padding:0;border-radius:8px;background:#fee4e2;color:#a32318}
+@media(max-width:700px){
+  .community-chat-attachment-image img{max-height:300px}
+  .community-chat-attachment-video{max-height:300px}
+}
+</style><style id="communityChatMobileAttachmentFixV1">
 /* V1 — Keep the community attachment menu fully inside the phone viewport. */
 @media(max-width:700px){
   #communityChatModal,
@@ -2105,17 +2119,90 @@ async function communityChatOpen(){
 function communityChatClose(){document.getElementById('communityChatModal')?.remove()}
 function communityAttachToggle(e){e?.stopPropagation();const m=document.getElementById('communityAttachMenu');if(m)m.style.display=m.style.display==='none'?'grid':'none'}
 function communityPickFiles(accept,multi,camera=false){document.getElementById('communityAttachMenu')?.style.setProperty('display','none');const el=document.getElementById(camera?'communityCameraPicker':'communityFilePicker');if(!el)return;el.accept=accept;el.multiple=!!multi;el.value='';el.click()}
-function communityFilesSelected(e){const files=[...(e.target.files||[])];if(!files.length)return;const box=document.getElementById('communityAttachmentPreview');if(!box)return;box.style.display='flex';files.forEach(file=>{const chip=document.createElement('div');chip.className='community-attachment-chip';chip.dataset.fileName=file.name;chip.innerHTML='<span>📎</span><span>'+communityEscapeHtml(file.name)+'</span><button type="button" aria-label="إزالة">×</button>';chip.querySelector('button').onclick=()=>{chip.remove();if(!box.children.length)box.style.display='none'};box.appendChild(chip)});window.communityPendingFiles=files}
+function communityRenderPendingFiles(){
+  const box=document.getElementById('communityAttachmentPreview');
+  if(!box)return;
+  const files=[...(window.communityPendingFiles||[])];
+  box.innerHTML='';
+  if(!files.length){box.style.display='none';return}
+  box.style.display='flex';
+  files.forEach((file,index)=>{
+    const chip=document.createElement('div');
+    chip.className='community-attachment-chip';
+    chip.dataset.fileIndex=String(index);
+    const icon=file.type?.startsWith('image/')?'🖼️':file.type?.startsWith('video/')?'🎬':file.type?.startsWith('audio/')?'🎙️':'📎';
+    chip.innerHTML='<span>'+icon+'</span><span>'+communityEscapeHtml(file.name)+'</span><button type="button" aria-label="إزالة">×</button>';
+    chip.querySelector('button').onclick=()=>{
+      const next=[...(window.communityPendingFiles||[])];
+      next.splice(index,1);
+      window.communityPendingFiles=next;
+      communityRenderPendingFiles();
+    };
+    box.appendChild(chip);
+  });
+}
+function communityFilesSelected(e){
+  const files=[...(e.target.files||[])];
+  if(!files.length)return;
+  const existing=[...(window.communityPendingFiles||[])];
+  const merged=[...existing,...files].slice(0,10);
+  window.communityPendingFiles=merged;
+  communityRenderPendingFiles();
+}
 let communityAudioRecorder=null,communityAudioChunks=[];
-async function communityRecordAudio(){try{if(communityAudioRecorder?.state==='recording'){communityAudioRecorder.stop();return}const stream=await navigator.mediaDevices.getUserMedia({audio:true});communityAudioChunks=[];communityAudioRecorder=new MediaRecorder(stream);communityAudioRecorder.ondataavailable=e=>{if(e.data.size)communityAudioChunks.push(e.data)};communityAudioRecorder.onstop=()=>{stream.getTracks().forEach(t=>t.stop());const blob=new Blob(communityAudioChunks,{type:'audio/webm'});const file=new File([blob],'تسجيل-صوتي-'+Date.now()+'.webm',{type:'audio/webm'});window.communityPendingFiles=[...(window.communityPendingFiles||[]),file];communityFilesSelected({target:{files:[file]}});toast('تم تجهيز التسجيل الصوتي للإرسال بعد تفعيل المرفقات.')};communityAudioRecorder.start();toast('جارٍ تسجيل الصوت... اضغط المرفقات ثم تسجيل صوت لإيقافه.')}catch(e){toast('تعذر الوصول إلى الميكروفون. تحقق من صلاحية المتصفح.')}}
-
+async function communityRecordAudio(){
+  try{
+    if(communityAudioRecorder?.state==='recording'){
+      communityAudioRecorder.stop();
+      return;
+    }
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    communityAudioChunks=[];
+    communityAudioRecorder=new MediaRecorder(stream);
+    communityAudioRecorder.ondataavailable=e=>{if(e.data.size)communityAudioChunks.push(e.data)};
+    communityAudioRecorder.onstop=()=>{
+      stream.getTracks().forEach(t=>t.stop());
+      const blob=new Blob(communityAudioChunks,{type:'audio/webm'});
+      const file=new File([blob],'تسجيل-صوتي-'+Date.now()+'.webm',{type:'audio/webm'});
+      window.communityPendingFiles=[...(window.communityPendingFiles||[]),file];
+      communityRenderPendingFiles();
+      toast('تم تجهيز التسجيل الصوتي للإرسال.');
+    };
+    communityAudioRecorder.start();
+    toast('جارٍ تسجيل الصوت... اضغط «تسجيل صوت» مرة أخرى لإيقاف التسجيل.');
+  }catch(e){
+    toast('تعذر الوصول إلى الميكروفون. تحقق من صلاحية المتصفح.');
+  }
+}
+function communityChatParsePayload(value){
+  const raw=String(value??'');
+  const prefix='[[DXN_CHAT_V2]]';
+  if(!raw.startsWith(prefix))return null;
+  try{
+    const data=JSON.parse(raw.slice(prefix.length));
+    return data&&Array.isArray(data.attachments)?data:null;
+  }catch(_){return null}
+}
+function communityChatAttachmentHtml(a){
+  const url=communityEscapeHtml(a?.url||'');
+  const name=communityEscapeHtml(a?.name||'مرفق');
+  const type=String(a?.type||'').toLowerCase();
+  if(!url)return '';
+  if(type.startsWith('image/')) return '<a class="community-chat-attachment-image" href="'+url+'" target="_blank" rel="noopener"><img src="'+url+'" alt="'+name+'" loading="lazy"></a>';
+  if(type.startsWith('video/')) return '<video class="community-chat-attachment-video" controls preload="metadata" src="'+url+'"></video>';
+  if(type.startsWith('audio/')) return '<audio class="community-chat-attachment-audio" controls preload="metadata" src="'+url+'"></audio>';
+  return '<a class="community-chat-attachment-file" href="'+url+'" target="_blank" rel="noopener" download>📎 '+name+'</a>';
+}
 function communityChatRender(messages){
   const box=document.getElementById('communityChatMessages'); if(!box)return;
   if(!Array.isArray(messages)||!messages.length){box.innerHTML='<div class="community-chat-empty"><div class="icon">💬</div><b>ابدأ أول محادثة</b><span>اكتب رسالتك في الأسفل لبدء المحادثة.</span></div>';return}
   const identity=currentAccountIdentity();
   box.innerHTML=messages.map(m=>{
     const mine=(String(m.sender_member_no||'')&&String(m.sender_member_no||'')===String(identity.member_no||''))||(identity.type==='leader'&&m.sender_role==='leader'&&String(m.sender_name||'')===String(identity.name||''));
-    const body=communityChatFormatMessage(m.message_text||'');
+    const payload=communityChatParsePayload(m.message_text||'');
+    const body=payload
+      ? communityChatFormatMessage(payload.text||'')+'<div class="community-chat-attachment-grid">'+payload.attachments.map(communityChatAttachmentHtml).join('')+'</div>'
+      : communityChatFormatMessage(m.message_text||'');
     const sender=communityEscapeHtml(m.sender_name||(m.sender_role==='leader'?'القائد':'عضو المجتمع'));
     const when=new Date(m.created_at||Date.now()).toLocaleString('ar-IQ');
     return '<div class="community-chat-msg '+(mine?'mine':'')+'"><div class="community-chat-sender">'+sender+'</div><div>'+body+'</div><small>'+when+'</small></div>';
@@ -2143,23 +2230,57 @@ function communityToggleBold(){
   }
   input.focus();
 }
+async function communityUploadFile(file){
+  if(!file||!file.size)throw new Error('المرفق فارغ');
+  if(file.size>4*1024*1024)throw new Error('حجم «'+file.name+'» أكبر من 4 ميغابايت');
+  const token=String(localStorage.getItem('dxn_session')||'').trim();
+  if(!token)throw new Error('انتهت جلسة الدخول. أعد تسجيل الدخول.');
+  const response=await fetch('/api/community-chat-upload',{
+    method:'POST',
+    headers:{
+      'Content-Type':file.type||'application/octet-stream',
+      'X-DXN-Session':token,
+      'X-DXN-File-Name':encodeURIComponent(file.name)
+    },
+    body:file,
+    cache:'no-store'
+  });
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok||!data?.ok)throw new Error(data?.error||'تعذر رفع المرفق');
+  return {url:data.url,name:data.name||file.name,type:data.type||file.type||'application/octet-stream',size:data.size||file.size};
+}
 async function communityChatSend(e){
   e.preventDefault();
   const input=document.getElementById('communityChatInput');
   const text=String(input?.value||'').trim();
   const files=[...(window.communityPendingFiles||[])];
-  if(files.length){toast('حفظ المرفقات سيُضاف في المرحلة التالية. أرسل الرسالة النصية أولًا.');return}
-  if(!text)return;
+  if(!text&&!files.length)return;
   const sendButton=e.submitter||document.querySelector('#communityChatModal .community-chat-send');
   if(sendButton)sendButton.disabled=true;
-  const saved=await communityChatRpc('community_chat_send',{p_message:text});
-  if(saved){
-    input.value='';
-    const messages=await communityChatRpc('community_chat_list',{p_limit:100});
-    if(messages)communityChatRender(messages);
-    input.focus();
+  try{
+    let payload=text;
+    if(files.length){
+      const attachments=[];
+      for(let i=0;i<files.length;i++){
+        toast('جارٍ رفع المرفق '+(i+1)+' من '+files.length+'…');
+        attachments.push(await communityUploadFile(files[i]));
+      }
+      payload='[[DXN_CHAT_V2]]'+JSON.stringify({text,attachments});
+    }
+    const saved=await communityChatRpc('community_chat_send',{p_message:payload});
+    if(saved){
+      if(input)input.value='';
+      window.communityPendingFiles=[];
+      communityRenderPendingFiles();
+      const messages=await communityChatRpc('community_chat_list',{p_limit:100});
+      if(messages)communityChatRender(messages);
+      input?.focus();
+    }
+  }catch(error){
+    toast(error?.message||'تعذر إرسال المرفق');
+  }finally{
+    if(sendButton)sendButton.disabled=false;
   }
-  if(sendButton)sendButton.disabled=false;
 }
 function communityComingSoon(){toast("هذه الوظيفة ستُفعّل في المرحلة التالية.");}function community(){return '<div id="section-community" class="community-page" dir="rtl"><section class="community-hero community-hero-v2"><div class="community-glow glow-a"></div><div class="community-glow glow-b"></div><div class="community-leaf leaf-a">✦</div><div class="community-leaf leaf-b">✦</div><div class="community-live-badge"><span></span> مجتمع نشط الآن</div><div class="community-hero-content"><div class="community-brand-panel"><div class="community-logo-wrap"><img src="/logo.png" alt="مجتمع الصحة والثراء"></div><div class="community-brand-name">مجتمع الصحة والثراء</div><div class="community-brand-tag">بناء إنسان · صحة أوفر · مستقبل أجمل</div><div class="community-brand-line"></div><div class="community-mini-stats"><span><b>💬</b> تواصل</span><span><b>🎙️</b> صوت</span><span><b>📹</b> لقاءات</span></div></div><div class="community-hero-copy"><div class="community-kicker">🌐 مساحة المجتمع الرقمية</div><h1>مكان يجمعنا…<br><strong>لنتواصل ونتعلم ونلتقي</strong></h1><p>هنا تبدأ الحياة الاجتماعية للمجتمع: محادثات، صوتيات، وسائط، ولقاءات مباشرة في مساحة واحدة مصممة لتبقى قريبًا من فريقك.</p><div class="community-hero-actions"><button class="community-main-action" onclick="communityChatOpen()">💬 ابدأ محادثة</button><button class="community-secondary-action" onclick="communityCreateMeeting()">📹 إنشاء لقاء</button></div></div></div></section><section class="community-quick-grid"><button class="community-quick chat" onclick="communityChatOpen()"><span class="quick-icon">💬</span><span><b>الدردشة</b><small>رسائل فردية ومجموعات</small></span></button><button class="community-quick voice" onclick="communityVoiceOpen()"><span class="quick-icon">🎙️</span><span><b>البصمات الصوتية</b><small>سجل وأرسل صوتك</small></span></button><button class="community-quick media" onclick="communityMediaOpen()"><span class="quick-icon">🎬</span><span><b>الصور والفيديو</b><small>شارك لحظاتك مع المجتمع</small></span></button><button class="community-quick meetings" onclick="communityMeetingsOpen()"><span class="quick-icon">📹</span><span><b>اللقاءات والاجتماعات</b><small>صوت وصورة ومشاركة شاشة</small></span></button></section><section class="community-main-grid"><div class="community-feed-card"><div class="community-section-head"><div><span class="community-label">المجتمع الآن</span><h2>🔥 أحدث النشاطات</h2></div><button onclick="communityShowAll()">عرض الكل</button></div><div class="community-post"><div class="community-avatar avatar-green">و</div><div class="community-post-body"><div class="community-post-top"><b>مجتمع الصحة والثراء</b><time>الآن</time></div><p>مرحبًا بك في مساحتنا الجديدة. هنا ستلتقي بالأعضاء، تتبادل الخبرات، وتحضر اللقاءات القادمة.</p><div class="community-post-actions"><button onclick="communityComment()">💬 تعليق</button><button onclick="communityReact(this)">❤️ تفاعل</button><button onclick="communityShare()">↗ مشاركة</button></div></div></div><div class="community-post"><div class="community-avatar avatar-gold">🎓</div><div class="community-post-body"><div class="community-post-top"><b>لقاء المجتمع القادم</b><time>قريبًا</time></div><p>يمكنك من هنا الاطلاع على تفاصيل اللقاء القادم ورابط الدخول والموعد المحدد.</p><div class="community-event-mini"><span>📅</span><b>لقاء مباشر بالصوت والصورة</b><button onclick="communityMeetingDetails()">التفاصيل</button></div></div></div></div><aside class="community-side-card"><div class="community-section-head"><div><span class="community-label">حضورك</span><h2>✨ مساحة العضو</h2></div></div><div class="community-profile-mini"><div class="community-profile-avatar">👤</div><div><b>عضو المجتمع</b><small>مرحبًا بك في المجتمع</small></div></div><div class="community-stat-row"><span>🟢 المتصلون الآن</span><strong>—</strong></div><div class="community-stat-row"><span>💬 المحادثات</span><strong>—</strong></div><div class="community-stat-row"><span>📅 اللقاءات القادمة</span><strong>—</strong></div><button class="community-full-btn" onclick="communitySettingsOpen()">⚙️ إعدادات المجتمع</button></aside></section><section class="community-meet-banner"><div><span class="community-label">متاح الآن</span><h2>📹 قاعة اللقاءات</h2><p>أنشئ لقاءك، حدّد الموعد، وأضف رابط الدخول ليظهر اللقاء في جدول المجتمع.</p></div><div class="community-meet-actions"><button onclick="communityCreateMeeting()">＋ إنشاء لقاء</button><button onclick="communityScheduleOpen()">📅 جدول اللقاءات</button></div></section></div>';}
 
