@@ -115,7 +115,7 @@ body.mobile-mode .view-switch button{min-width:120px}
 </style></style>  <link rel="icon" type="image/png" href="logo.png">
 
 <style>
-.ai-guide-fab{position:fixed;left:18px;bottom:178px;z-index:60;border-radius:999px!important;padding:12px 16px!important;background:linear-gradient(135deg,#0f513f,#1a8064)!important;color:#fff!important;box-shadow:0 8px 25px #0003;font-size:14px!important}.ai-guide-modal{position:fixed;inset:0;background:#0006;z-index:100;display:flex;align-items:flex-end;justify-content:center;padding:12px}.ai-guide-box{width:min(720px,100%);max-height:82vh;background:#fff;border-radius:24px;box-shadow:0 18px 60px #0004;display:flex;flex-direction:column;overflow:hidden}.ai-guide-head{padding:14px 16px;background:linear-gradient(135deg,#0c4738,#1a725b);color:#fff;display:flex;justify-content:space-between;align-items:center}.ai-guide-head b{font-size:18px}.ai-guide-close{background:#ffffff22!important;color:#fff!important}.ai-guide-messages{padding:14px;overflow:auto;display:grid;gap:10px;min-height:220px}.ai-msg{padding:11px 13px;border-radius:16px;line-height:1.75;white-space:pre-wrap;max-width:92%}.ai-msg.bot{background:#f1f7f4;border:1px solid #d9e9e1;justify-self:start}.ai-msg.user{background:#0f513f;color:#fff;justify-self:end}.ai-guide-quick{display:flex;gap:7px;overflow:auto;padding:0 14px 10px}.ai-guide-quick button{white-space:nowrap}.ai-guide-input{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--line)}.ai-guide-input input{margin:0}.ai-guide-note{padding:0 14px 10px;color:#667085;font-size:11px;text-align:center}
+.ai-guide-fab{position:fixed;left:18px;bottom:78px;z-index:60;border-radius:999px!important;padding:12px 16px!important;background:linear-gradient(135deg,#0f513f,#1a8064)!important;color:#fff!important;box-shadow:0 8px 25px #0003;font-size:14px!important}.ai-guide-modal{position:fixed;inset:0;background:#0006;z-index:100;display:flex;align-items:flex-end;justify-content:center;padding:12px}.ai-guide-box{width:min(720px,100%);max-height:82vh;background:#fff;border-radius:24px;box-shadow:0 18px 60px #0004;display:flex;flex-direction:column;overflow:hidden}.ai-guide-head{padding:14px 16px;background:linear-gradient(135deg,#0c4738,#1a725b);color:#fff;display:flex;justify-content:space-between;align-items:center}.ai-guide-head b{font-size:18px}.ai-guide-close{background:#ffffff22!important;color:#fff!important}.ai-guide-messages{padding:14px;overflow:auto;display:grid;gap:10px;min-height:220px}.ai-msg{padding:11px 13px;border-radius:16px;line-height:1.75;white-space:pre-wrap;max-width:92%}.ai-msg.bot{background:#f1f7f4;border:1px solid #d9e9e1;justify-self:start}.ai-msg.user{background:#0f513f;color:#fff;justify-self:end}.ai-guide-quick{display:flex;gap:7px;overflow:auto;padding:0 14px 10px}.ai-guide-quick button{white-space:nowrap}.ai-guide-input{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--line)}.ai-guide-input input{margin:0}.ai-guide-note{padding:0 14px 10px;color:#667085;font-size:11px;text-align:center}
 @media(max-width:560px){.ai-guide-fab{left:10px;bottom:72px}.ai-guide-box{max-height:88vh;border-radius:20px}}
 </style>
 
@@ -461,28 +461,11 @@ body:has(.login-header-top)::before{
 
   /* Keep the ten doors available, but make their navigation compact. */
   .ragwan-step-5-active .ragwan-door-gallery{
-    display:grid!important;
     grid-template-columns:repeat(10,118px)!important;
-    grid-auto-flow:column!important;
     gap:8px!important;
-    width:100%!important;
-    max-width:100%!important;
     padding:4px 2px 12px!important;
     margin:0!important;
-    overflow-x:auto!important;
-    overflow-y:hidden!important;
-    -webkit-overflow-scrolling:touch!important;
-    overscroll-behavior-x:contain!important;
-    touch-action:pan-x pan-y!important;
-    scroll-snap-type:x proximity;
     scroll-padding-inline:10px!important;
-    scrollbar-width:thin;
-  }
-  .ragwan-step-5-active .ragwan-door-gallery .ragwan-door{
-    flex:0 0 118px!important;
-    width:118px!important;
-    min-width:118px!important;
-    scroll-snap-align:start;
   }
   .ragwan-step-5-active .ragwan-door{
     min-width:118px!important;
@@ -999,581 +982,7 @@ body:has(.login-header-top)::before{
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
   else init();
 })();
-</script><style id="communityChatAttachmentsV2">
-.community-chat-attachment-grid{display:grid;gap:8px;margin-top:9px;max-width:min(420px,100%)}
-.community-chat-attachment-image{display:block;max-width:100%;overflow:hidden;border-radius:13px;background:#edf4f1}
-.community-chat-attachment-image img{display:block;width:100%;max-height:360px;object-fit:contain;background:#f3f7f5}
-.community-chat-attachment-video{display:block;width:min(100%,420px);max-height:360px;border-radius:13px;background:#111}
-.community-chat-attachment-audio{display:block;width:min(100%,360px);height:42px}
-.community-chat-attachment-file{display:flex;align-items:center;gap:7px;padding:10px 12px;border-radius:12px;background:#f1f7f4;color:#0f513f;font-weight:900;text-decoration:none;overflow-wrap:anywhere}
-.community-attachment-chip{display:flex;align-items:center;gap:7px;max-width:100%;padding:7px 9px;border:1px solid #d8e7e0;border-radius:11px;background:#f7fbf9}
-.community-attachment-chip>span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:ltr}
-.community-attachment-chip button{width:28px;min-width:28px;height:28px;min-height:28px;padding:0;border-radius:8px;background:#fee4e2;color:#a32318}
-@media(max-width:700px){
-  .community-chat-attachment-image img{max-height:300px}
-  .community-chat-attachment-video{max-height:300px}
-}
-</style><style id="communityChatSymbolsV1">
-.community-chat-formatbar button,.community-chat-edit-formatbar button{display:inline-flex;align-items:center;justify-content:center}
-.community-symbol-picker{position:fixed;z-index:100050;padding:10px;border:1px solid #d8e7e0;border-radius:16px;background:#fff;box-shadow:0 16px 45px rgba(0,0,0,.22);direction:rtl;box-sizing:border-box}
-.community-symbol-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;color:#0f513f}
-.community-symbol-head button{width:30px!important;height:30px!important;min-height:30px!important;padding:0!important;border-radius:8px!important;background:#eef5f2!important;color:#18352c!important}
-.community-symbol-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;max-height:230px;overflow:auto}
-.community-symbol-grid button{min-height:38px!important;height:38px!important;padding:2px!important;border:0!important;border-radius:9px!important;background:#f5f8f7!important;font-size:22px!important;line-height:1!important}
-.community-symbol-grid button:hover{background:#e4f0eb!important}
-@media(max-width:700px){
-  .community-symbol-picker{max-width:calc(100vw - 20px)}
-  .community-symbol-grid{grid-template-columns:repeat(7,1fr);max-height:250px}
-}
-</style><style id="communityChatMessageActionsV1">
-.community-chat-msg{position:relative}
-.community-chat-msg-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.community-chat-msg-top .community-chat-sender{flex:1;min-width:0}
-.community-chat-actions{position:relative;flex:0 0 auto}
-.community-chat-actions-trigger{width:30px!important;height:28px!important;min-height:28px!important;padding:0!important;border:0!important;border-radius:8px!important;background:rgba(255,255,255,.72)!important;color:#174f40!important;font-size:21px!important;font-weight:900!important;line-height:1!important;cursor:pointer!important}
-.community-chat-msg.mine .community-chat-actions-trigger{background:rgba(255,255,255,.16)!important;color:#fff!important}
-.community-chat-actions-menu{display:none;position:absolute;top:31px;right:0;z-index:20;min-width:175px;padding:5px;border:1px solid #dce9e3;border-radius:12px;background:#fff;box-shadow:0 10px 28px rgba(0,0,0,.16)}
-.community-chat-actions-menu.open{display:grid}
-.community-chat-actions-menu button{border:0;background:transparent;color:#18352c;padding:9px 10px;border-radius:8px;text-align:right;cursor:pointer;font-weight:800;white-space:nowrap}
-.community-chat-actions-menu button:hover{background:#eef7f3}
-.community-chat-actions-menu button.danger{color:#a32118}
-.community-chat-actions-menu button.danger:hover{background:#fff0ee}
-.community-chat-msg.mine .community-chat-actions-menu{right:0}
-@media(max-width:700px){
-  .community-chat-actions-menu{min-width:165px}
-}
-
-/* V2 — Keep message actions inside the chat viewport for both message directions. */
-#communityChatMessages{overflow-x:hidden!important}
-.community-chat-msg:not(.mine) .community-chat-actions-menu{left:0!important;right:auto!important}
-.community-chat-msg.mine .community-chat-actions-menu{right:0!important;left:auto!important}
-.community-chat-actions-menu{max-width:calc(100vw - 32px)!important;box-sizing:border-box!important}
-.community-chat-actions-menu button{display:block!important;width:100%!important;box-sizing:border-box!important}
-
-/* V3 — Native-free in-app editor for community messages. */
-.community-chat-edit-modal{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.58);box-sizing:border-box}
-.community-chat-edit-card{width:min(620px,calc(100vw - 30px));max-height:calc(100vh - 40px);box-sizing:border-box;padding:18px;border-radius:20px;background:#fff;box-shadow:0 20px 60px rgba(0,0,0,.28);direction:rtl}
-.community-chat-edit-title{font-size:18px;font-weight:900;color:#0f513f;margin-bottom:12px}
-.community-chat-edit-card textarea{display:block;width:100%;min-height:150px;box-sizing:border-box;resize:vertical;padding:12px 14px;border:1px solid #cbded6;border-radius:13px;background:#f8fbfa;color:#18352c;font:inherit;font-size:16px;line-height:1.8;white-space:pre-wrap;direction:auto;outline:none}
-.community-chat-edit-card textarea:focus{border-color:#0f513f;box-shadow:0 0 0 3px rgba(15,81,63,.1)}
-.community-chat-edit-actions{display:flex;justify-content:flex-start;gap:9px;margin-top:12px}
-.community-chat-edit-actions button{border:0;border-radius:11px;padding:10px 16px;font-weight:900;cursor:pointer}
-.community-chat-edit-save{background:#0f513f;color:#fff}
-.community-chat-edit-cancel{background:#edf3f0;color:#18352c}
-.community-chat-edit-save:disabled{opacity:.6;cursor:wait}
-@media(max-width:700px){
-  .community-chat-edit-modal{align-items:flex-end;padding:10px}
-  .community-chat-edit-card{width:100%;border-radius:18px 18px 12px 12px;padding:14px}
-  .community-chat-edit-card textarea{min-height:190px;font-size:16px}
-  .community-chat-edit-actions button{flex:1}
-}
-
-/* V4 — Message actions escape the scroll viewport so the full menu is always visible. */
-#communityChatModal .community-chat-actions-menu.open{
-  display:grid!important;
-  position:fixed!important;
-  overflow:visible!important;
-  min-width:165px!important;
-  width:185px;
-  max-width:calc(100vw - 24px)!important;
-  max-height:110px!important;
-  box-sizing:border-box!important;
-  z-index:100000!important;
-}
-
-.community-chat-edit-formatbar{display:flex;align-items:center;gap:6px;margin-bottom:8px}
-.community-chat-edit-formatbar button{width:38px;height:34px;border:1px solid rgba(15,81,63,.18);border-radius:9px;background:#fff;color:#0f513f;font-size:18px;font-weight:900;cursor:pointer}
-.community-chat-edit-formatbar button:active{background:#0f513f;color:#fff}
-@media(max-width:700px){.community-chat-edit-formatbar button{width:36px;height:32px}}
-</style><style id="communityChatMobileAttachmentFixV1">
-/* V1 — Keep the community attachment menu fully inside the phone viewport. */
-@media(max-width:700px){
-  #communityChatModal,
-  #communityChatModal .community-chat-box,
-  #communityChatModal .community-chat-compose{
-    max-width:100vw!important;
-    box-sizing:border-box!important;
-  }
-  #communityChatModal .community-chat-box{
-    width:calc(100vw - 20px)!important;
-    margin-inline:auto!important;
-  }
-  #communityChatModal .community-chat-compose{
-    position:relative!important;
-    overflow:visible!important;
-    min-width:0!important;
-  }
-  #communityChatModal .community-attach-wrap{
-    position:relative!important;
-    flex:0 0 54px!important;
-    min-width:54px!important;
-  }
-  #communityChatModal .community-attach-menu{
-    position:absolute!important;
-    right:0!important;
-    left:auto!important;
-    bottom:calc(100% + 8px)!important;
-    width:min(190px,calc(100vw - 28px))!important;
-    max-width:calc(100vw - 28px)!important;
-    min-width:0!important;
-    box-sizing:border-box!important;
-    z-index:100020!important;
-    overflow:hidden!important;
-  }
-  #communityChatModal .community-attach-menu button{
-    width:100%!important;
-    min-width:0!important;
-    box-sizing:border-box!important;
-    white-space:nowrap!important;
-  }
-}
-</style><style id="communityChatRichTextV1">
-/* V1 — Simple rich text for community chat: member controls bold text. */
-.community-chat-compose .community-chat-formatbar{
-  display:flex;align-items:center;gap:6px;padding:0 0 6px;
-}
-.community-chat-formatbar button{
-  width:38px;height:34px;border:1px solid rgba(15,81,63,.18);border-radius:9px;
-  background:#fff;color:#0f513f;font-size:18px;font-weight:900;cursor:pointer;
-}
-.community-chat-formatbar button.active{
-  background:#0f513f;color:#fff;
-}
-.community-chat-compose .community-chat-input{
-  white-space:pre-wrap;
-}
-.community-chat-msg > div:not(.community-chat-sender){
-  white-space:pre-wrap;
-}
-@media(max-width:700px){
-  .community-chat-compose .community-chat-formatbar{padding-bottom:5px}
-  .community-chat-formatbar button{width:36px;height:32px}
-}
-
-/* V2 — Telegram-style mobile composer: maximize writing space. */
-@media(max-width:700px){
-  #communityChatModal .community-chat-compose{
-    position:relative!important;
-    display:grid!important;
-    grid-template-columns:minmax(0,1fr) auto!important;
-    grid-template-areas:"input send"!important;
-    align-items:center!important;
-    gap:7px!important;
-    padding:9px 10px!important;
-  }
-  #communityChatModal .community-chat-send{
-    grid-area:send!important;
-    height:48px!important;
-    min-width:68px!important;
-    padding:0 13px!important;
-    border-radius:14px!important;
-    z-index:5!important;
-  }
-  #communityChatModal .community-chat-input{
-    grid-area:input!important;
-    width:100%!important;
-    min-width:0!important;
-    min-height:48px!important;
-    max-height:120px!important;
-    resize:none!important;
-    box-sizing:border-box!important;
-    padding:11px 108px 11px 58px!important;
-    line-height:1.55!important;
-    border-radius:16px!important;
-  }
-  /* الدبوس داخل مستطيل الكتابة من اليسار */
-  #communityChatModal .community-attach-wrap{
-    position:absolute!important;
-    left:14px!important;
-    top:50%!important;
-    transform:translateY(-50%)!important;
-    width:38px!important;
-    min-width:38px!important;
-    height:38px!important;
-    z-index:6!important;
-  }
-  #communityChatModal .community-attach-btn{
-    width:38px!important;
-    height:38px!important;
-    min-width:38px!important;
-    min-height:38px!important;
-    padding:0!important;
-    border:0!important;
-    background:transparent!important;
-    box-shadow:none!important;
-    font-size:22px!important;
-  }
-  /* الإيموجي والملصقات وB داخل مستطيل الكتابة من الجهة المقابلة */
-  #communityChatModal .community-chat-formatbar{
-    position:absolute!important;
-    right:14px!important;
-    top:50%!important;
-    transform:translateY(-50%)!important;
-    display:flex!important;
-    gap:3px!important;
-    padding:0!important;
-    z-index:6!important;
-    direction:rtl!important;
-  }
-  #communityChatModal .community-chat-formatbar button{
-    width:34px!important;
-    height:34px!important;
-    min-width:34px!important;
-    min-height:34px!important;
-    padding:0!important;
-    border-radius:9px!important;
-    font-size:17px!important;
-  }
-}
-@media(max-width:390px){
-  #communityChatModal .community-chat-formatbar{right:10px!important;gap:2px!important}
-  #communityChatModal .community-chat-formatbar button{width:30px!important;min-width:30px!important;height:30px!important;min-height:30px!important;font-size:14px!important}
-  #communityChatModal .community-chat-input{padding-right:98px!important;padding-left:50px!important}
-  #communityChatModal .community-attach-wrap{left:10px!important}
-  #communityChatModal .community-chat-send{min-width:64px!important;padding:0 10px!important}
-}
-</style><style id="communityComposerInsideFieldV1">
-@media(max-width:700px){
-  #communityChatModal .community-chat-compose{display:flex!important;align-items:center!important;gap:7px!important;padding:9px 10px!important;position:relative!important}
-  #communityChatModal .community-composer-field{position:relative!important;flex:1 1 auto!important;min-width:0!important;height:48px!important}
-  #communityChatModal .community-composer-field .community-chat-input{position:absolute!important;inset:0!important;width:100%!important;height:48px!important;min-height:48px!important;margin:0!important;padding:11px 104px 11px 52px!important;box-sizing:border-box!important;border-radius:16px!important}
-  #communityChatModal .community-composer-field .community-attach-wrap{position:absolute!important;left:7px!important;top:50%!important;transform:translateY(-50%)!important;width:38px!important;min-width:38px!important;height:38px!important;z-index:20!important}
-  #communityChatModal .community-composer-field .community-attach-btn{width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;font-size:22px!important}
-  #communityChatModal .community-composer-field .community-chat-formatbar{position:absolute!important;right:7px!important;top:50%!important;transform:translateY(-50%)!important;display:flex!important;gap:3px!important;padding:0!important;z-index:20!important;direction:rtl!important}
-  #communityChatModal .community-composer-field .community-chat-formatbar button{width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;padding:0!important;border-radius:9px!important;font-size:16px!important}
-  #communityChatModal .community-chat-send{flex:0 0 auto!important;height:48px!important;min-width:68px!important;padding:0 13px!important;border-radius:14px!important}
-}
-@media(max-width:390px){
-  #communityChatModal .community-composer-field .community-chat-input{padding-right:96px!important;padding-left:48px!important}
-  #communityChatModal .community-composer-field .community-attach-wrap{left:5px!important}
-  #communityChatModal .community-composer-field .community-chat-formatbar{right:5px!important;gap:2px!important}
-  #communityChatModal .community-composer-field .community-chat-formatbar button{width:30px!important;min-width:30px!important;height:30px!important;min-height:30px!important;font-size:14px!important}
-  #communityChatModal .community-chat-send{min-width:64px!important;padding:0 10px!important}
-}
-</style><style id="communityComposerFinalPositionV2">
-@media (max-width:700px){
-  #communityChatModal .community-chat-compose{
-    position:relative!important;
-    display:flex!important;
-    flex-direction:row!important;
-    align-items:center!important;
-    gap:7px!important;
-    width:100%!important;
-    box-sizing:border-box!important;
-    padding:9px 10px!important;
-  }
-  #communityChatModal .community-composer-field{
-    position:relative!important;
-    display:block!important;
-    flex:1 1 auto!important;
-    width:auto!important;
-    min-width:0!important;
-    height:48px!important;
-    min-height:48px!important;
-    margin:0!important;
-    box-sizing:border-box!important;
-  }
-  #communityChatModal .community-composer-field > .community-chat-input{
-    position:absolute!important;
-    left:0!important;
-    top:0!important;
-    right:0!important;
-    bottom:0!important;
-    width:100%!important;
-    height:48px!important;
-    min-height:48px!important;
-    margin:0!important;
-    box-sizing:border-box!important;
-    padding:10px 100px 10px 52px!important;
-    border-radius:16px!important;
-  }
-  #communityChatModal .community-composer-field > .community-attach-wrap{
-    position:absolute!important;
-    left:8px!important;
-    right:auto!important;
-    top:50%!important;
-    bottom:auto!important;
-    transform:translateY(-50%)!important;
-    display:block!important;
-    width:38px!important;
-    min-width:38px!important;
-    height:38px!important;
-    min-height:38px!important;
-    margin:0!important;
-    padding:0!important;
-    z-index:100!important;
-    box-sizing:border-box!important;
-  }
-  #communityChatModal .community-composer-field > .community-attach-wrap > .community-attach-btn{
-    position:relative!important;
-    display:flex!important;
-    align-items:center!important;
-    justify-content:center!important;
-    width:38px!important;
-    min-width:38px!important;
-    height:38px!important;
-    min-height:38px!important;
-    margin:0!important;
-    padding:0!important;
-    border:0!important;
-    background:transparent!important;
-    box-shadow:none!important;
-    font-size:22px!important;
-  }
-  #communityChatModal .community-composer-field > .community-chat-formatbar{
-    position:absolute!important;
-    left:auto!important;
-    right:8px!important;
-    top:50%!important;
-    bottom:auto!important;
-    transform:translateY(-50%)!important;
-    display:flex!important;
-    align-items:center!important;
-    gap:3px!important;
-    width:auto!important;
-    height:34px!important;
-    margin:0!important;
-    padding:0!important;
-    z-index:101!important;
-  }
-  #communityChatModal .community-composer-field > .community-chat-formatbar button{
-    width:32px!important;
-    min-width:32px!important;
-    height:32px!important;
-    min-height:32px!important;
-    margin:0!important;
-    padding:0!important;
-  }
-  #communityChatModal .community-chat-send{
-    position:relative!important;
-    flex:0 0 auto!important;
-    width:auto!important;
-    min-width:68px!important;
-    height:48px!important;
-    min-height:48px!important;
-    margin:0!important;
-    z-index:102!important;
-  }
-}
-@media (max-width:390px){
-  #communityChatModal .community-composer-field > .community-chat-input{
-    padding-right:96px!important;
-    padding-left:48px!important;
-  }
-  #communityChatModal .community-composer-field > .community-attach-wrap{
-    left:5px!important;
-  }
-  #communityChatModal .community-composer-field > .community-chat-formatbar{
-    right:5px!important;
-    gap:2px!important;
-  }
-  #communityChatModal .community-composer-field > .community-chat-formatbar button{
-    width:30px!important;
-    min-width:30px!important;
-    height:30px!important;
-    min-height:30px!important;
-  }
-  #communityChatModal .community-chat-send{
-    min-width:64px!important;
-  }
-}
-</style><style id="communityChatEmojiInlineFixV1">
-/* V1 — Keep emoji/symbols visually attached to the message text, including Arabic RTL text. */
-#communityChatModal .community-chat-msg-body{
-  direction:auto!important;
-  unicode-bidi:plaintext!important;
-  white-space:pre-wrap!important;
-  overflow-wrap:anywhere!important;
-  word-break:normal!important;
-  text-align:start!important;
-}
-#communityChatModal .community-chat-msg-body strong{
-  display:inline!important;
-  white-space:pre-wrap!important;
-}
-</style><style id="communityAttachmentMenuFinalPositionV1">
-/* V1 — Keep the attachment menu fully visible inside the mobile chat field. */
-@media(max-width:700px){
-  #communityChatModal .community-composer-field > .community-attach-wrap{
-    overflow:visible!important;
-  }
-  #communityChatModal .community-composer-field > .community-attach-wrap > .community-attach-menu{
-    position:absolute!important;
-    left:0!important;
-    right:auto!important;
-    bottom:calc(100% + 8px)!important;
-    width:min(190px,calc(100vw - 28px))!important;
-    max-width:calc(100vw - 28px)!important;
-    min-width:0!important;
-    z-index:1000000!important;
-    box-sizing:border-box!important;
-    display:grid!important;
-  }
-}
-@media(max-width:390px){
-  #communityChatModal .community-composer-field > .community-attach-wrap > .community-attach-menu{
-    left:0!important;
-    width:min(180px,calc(100vw - 24px))!important;
-    max-width:calc(100vw - 24px)!important;
-  }
-}
-</style><style id="dxnRemoveLegacyInAppNavV1">
-/* إزالة نهائية لأزرار التنقل القديمة من جميع المقاسات والمعاينات. */
-#dxnInAppNav{display:none!important}
-</style><style id="dxnRemoveLegacyInAppNavV2">
-/* V2 — force-remove legacy bottom navigation, including stale DOM created by cached code. */
-#dxnInAppNav,
-body > #dxnInAppNav,
-.dxn-inapp-nav,
-nav.dxn-inapp-nav{
-  display:none!important;
-  visibility:hidden!important;
-  opacity:0!important;
-  pointer-events:none!important;
-  width:0!important;
-  height:0!important;
-  min-width:0!important;
-  min-height:0!important;
-  overflow:hidden!important;
-}
-</style><style id="dxnLegacyNavKillV3">
-/* V3 — legacy page-navigation controls are no longer part of the product. */
-#dxnInAppNav,
-.dxn-inapp-nav,
-.dxn-nav-btn,
-nav[aria-label="التنقل بين الصفحات"]{
-  display:none!important;
-  visibility:hidden!important;
-  opacity:0!important;
-  pointer-events:none!important;
-}
-</style><style id="ragwanMobileBackButtonV1">
-/* زر رجوع مستقل للموبايل — ثابت أسفل اليمين ولا يحجب محتوى الخطة. */
-.ragwan-mobile-back{display:none!important}
-@media(max-width:799px){
-  .ragwan-mobile-back{
-    display:grid!important;
-    position:fixed!important;
-    left:10px!important;
-    right:auto!important;
-    bottom:calc(12px + env(safe-area-inset-bottom))!important;
-    width:44px!important;
-    height:44px!important;
-    min-width:44px!important;
-    min-height:44px!important;
-    padding:0!important;
-    margin:0!important;
-    place-items:center!important;
-    border:1px solid #cfe0d8!important;
-    border-radius:50%!important;
-    background:rgba(255,255,255,.96)!important;
-    color:#0f513f!important;
-    font-size:28px!important;
-    font-weight:900!important;
-    line-height:1!important;
-    box-shadow:0 7px 20px rgba(0,0,0,.18)!important;
-    z-index:9990!important;
-    cursor:pointer!important;
-    backdrop-filter:blur(6px)!important;
-  }
-  .ragwan-mobile-back:active{transform:scale(.94)!important}
-  .ragwan-mobile-back[disabled]{opacity:.45!important}
-}
-</style><style id="dxnRemoveMobileLegacyNavV4">
-/* V4 — إزالة نهائية لأي نسخة قديمة من أزرار رجوع/تقدم الموبايل. */
-#dxnInAppNav,
-.dxn-inapp-nav,
-nav[aria-label="التنقل بين الصفحات"],
-button[aria-label="الرجوع للصفحة السابقة"],
-button[aria-label="التقدم إلى الصفحة التالية"]{
-  display:none!important;
-  visibility:hidden!important;
-  opacity:0!important;
-  pointer-events:none!important;
-  width:0!important;
-  height:0!important;
-  min-width:0!important;
-  min-height:0!important;
-  margin:0!important;
-  padding:0!important;
-  border:0!important;
-}
-</style>
-<script id="dxnRemoveMobileLegacyNavV4Script">
-(function(){
-  function removeLegacyNav(){
-    var selectors=[
-      '#dxnInAppNav',
-      '.dxn-inapp-nav',
-      'nav[aria-label="التنقل بين الصفحات"]',
-      'button[aria-label="الرجوع للصفحة السابقة"]',
-      'button[aria-label="التقدم إلى الصفحة التالية"]'
-    ];
-    selectors.forEach(function(sel){
-      document.querySelectorAll(sel).forEach(function(el){el.remove();});
-    });
-  }
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',removeLegacyNav,{once:true});
-  }else{
-    removeLegacyNav();
-  }
-  new MutationObserver(removeLegacyNav).observe(document.documentElement,{childList:true,subtree:true});
-})();
-</script>
-<style id="ragwan-mobile-door-text-fix-v1">
-/* تحسين قراءة نصوص الأبواب على الموبايل دون تغيير أي محتوى أو بيانات. */
-@media(max-width:650px){
-  .ragwan-journey .ragwan-door{
-    overflow:hidden!important;
-  }
-  .ragwan-journey .ragwan-door-content{
-    inset:0!important;
-    padding:0 5px!important;
-  }
-  .ragwan-journey .ragwan-door-num{
-    top:9px!important;
-    width:32px!important;
-    height:32px!important;
-    font-size:17px!important;
-    z-index:4!important;
-  }
-  .ragwan-journey .ragwan-door-icon{
-    top:49px!important;
-    font-size:20px!important;
-    z-index:4!important;
-  }
-  .ragwan-journey .ragwan-door-label{
-    top:82px!important;
-    left:7%!important;
-    right:7%!important;
-    font-size:9px!important;
-    line-height:1.35!important;
-    min-height:25px!important;
-    max-height:38px!important;
-    font-weight:950!important;
-    color:#fff!important;
-    text-shadow:0 1px 3px rgba(0,0,0,.95),0 0 5px rgba(0,0,0,.75)!important;
-    z-index:4!important;
-    -webkit-line-clamp:2!important;
-    overflow:hidden!important;
-  }
-  .ragwan-journey .ragwan-door-detail{
-    display:none!important;
-  }
-  .ragwan-journey .ragwan-door-status{
-    bottom:8px!important;
-    left:50%!important;
-    transform:translateX(-50%)!important;
-    padding:3px 7px!important;
-    font-size:8px!important;
-    line-height:1.2!important;
-    white-space:nowrap!important;
-    z-index:4!important;
-  }
-}
-</style>
-</head><body>
+</script></head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
   <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
   <div class="pwa-install-actions"><button id="pwaInstallBtn" class="primary" type="button">تثبيت</button><button id="pwaInstallClose" class="pwa-install-close" type="button">لاحقًا</button></div>
@@ -1672,8 +1081,7 @@ window.DXNI18N={setLanguage:(l)=>{if(packs[l]){current=l;apply()}},getLanguage:(
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=86.50.3"></script>
-<script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=86.44.7"></script><script>
 function validateDXNAge18(birthDate){
   if(!birthDate) return {ok:false, message:'يرجى إدخال تاريخ التولد.'};
   const d = new Date(birthDate + 'T00:00:00');
@@ -1735,11 +1143,10 @@ if(!window.__DXN_UI_STATE_SCROLL_BOUND__){
   },{passive:true});
 }
 
-// V87 — Unified current-account identity.
-// A leader is NEVER resolved from the team-members array.
-const DXN_LEADER_IDENTITY_OVERRIDES={
-  '820469486':'وائل حاتم'
-};
+// V86 — Unified current-account identity.
+// All personalized UI must use this single identity source.
+// Member: name/member_no come from the authenticated bootstrap member.
+// Leader: name comes from the authenticated login identity, never from another member record.
 function currentAccountIdentity(){
   const loginNo=String(localStorage.getItem('dxn_login_no')||'').trim();
   const loginRole=String(localStorage.getItem('dxn_login_role')||'').trim().toLowerCase();
@@ -1751,15 +1158,12 @@ function currentAccountIdentity(){
     };
   }
   if(role==='leader' || loginRole==='leader'){
-    const candidate=data?.leader||data?.user||data?.profile||data?.account||{};
-    const name=String(
-      DXN_LEADER_IDENTITY_OVERRIDES[loginNo]||
-      data?.leader_name||data?.leaderName||
-      candidate.name||candidate.full_name||candidate.display_name||candidate.displayName||
-      localStorage.getItem('dxn_leader_name')||
-      'القائد'
-    ).trim();
-    return {type:'leader',name,member_no:'',login_no:loginNo};
+    return {
+      type:'leader',
+      name:String(localStorage.getItem('dxn_leader_name')||'القائد').trim(),
+      member_no:'',
+      login_no:loginNo
+    };
   }
   return {type:'guest',name:'زائر',member_no:'',login_no:loginNo};
 }
@@ -1777,21 +1181,7 @@ document.addEventListener('submit',function(e){
   if(typeof login==='function') login();
 });
 function ready(){return C.SUPABASE_URL&&C.SUPABASE_ANON_KEY&&!C.SUPABASE_URL.includes('YOUR-PROJECT')&&!C.SUPABASE_ANON_KEY.includes('YOUR_')}
-async function rpc(fn,args){
-  if(!sb)throw Object.assign(new Error('لم يتم إعداد Supabase'),{code:'DXN_NO_SUPABASE'});
-  const {data:d,error}=await sb.rpc(fn,args);
-  if(error){
-    const e=new Error(String(error.message||error.error_description||'تعذر تنفيذ العملية'));
-    e.code=error.code||'';
-    e.details=error.details||'';
-    e.hint=error.hint||'';
-    e.status=error.status||error.statusCode||'';
-    e.rpc=fn;
-    e.raw=error;
-    throw e;
-  }
-  return d;
-}
+async function rpc(fn,args){if(!sb)throw Error('لم يتم إعداد Supabase');const {data:d,error}=await sb.rpc(fn,args);if(error)throw error;return d}
 function siteVisitSessionKey(){const now=Date.now(),ttl=30*60*1000;let k=localStorage.getItem('dxn_site_visit_session'),at=Number(localStorage.getItem('dxn_site_visit_session_at')||0);if(!k||!at||now-at>ttl){k=(window.crypto&&typeof window.crypto.randomUUID==='function')?window.crypto.randomUUID():'sv-'+now+'-'+Math.random().toString(36).slice(2)+'-'+Math.random().toString(36).slice(2);localStorage.setItem('dxn_site_visit_session',k)}localStorage.setItem('dxn_site_visit_session_at',String(now));return k}
 async function recordSiteVisit(type='visitor',view='landing'){if(!sb)return;try{const safeType=['visitor','member','leader'].includes(type)?type:'visitor';await rpc('record_site_visit',{p_session_key:siteVisitSessionKey(),p_token:token||null,p_visit_type:safeType,p_view:String(view||'landing').slice(0,120)});}catch(e){console.debug('site visit tracking unavailable',e)}}
 async function loadSiteVisitStats(){if(role!=='leader')return;try{siteVisitStats=await rpc('leader_site_visit_stats',{p_token:token})||{};}catch(e){siteVisitStats={};}}
@@ -1884,37 +1274,8 @@ async function boot(){
   const issued=Number(localStorage.getItem('dxn_session_issued')||0);
   if(!issued||Date.now()-issued>SESSION_MAX_MS){localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');token='';renderLogin();toast('انتهت الجلسة، يرجى تسجيل الدخول من جديد.');return}
   try{
-    let d;
-    let lastBootError=null;
-    for(let bootAttempt=1;bootAttempt<=3;bootAttempt++){
-      try{
-        d=await rpc('bootstrap',{p_token:token});
-        lastBootError=null;
-        break;
-      }catch(bootError){
-        lastBootError=bootError;
-        const bootStatus=Number(bootError?.status||0);
-        const isServerFailure=bootStatus===500||bootStatus===502||bootStatus===503||bootStatus===504;
-        if(!isServerFailure||bootAttempt===3) throw bootError;
-        await new Promise(resolve=>setTimeout(resolve,700*bootAttempt));
-      }
-    }
-    if(lastBootError&&!d) throw lastBootError;
-    data=d;role=d.role;
-    // Never treat the first team member as the leader.
-    me=role==='member' ? ((d.members||[])[0]||null) : null;
-    if(role==='leader'){
-      // Never derive the leader identity from d.members.
-      // The members array is the team list, not the current leader account.
-      const leaderCandidate=d.leader||d.user||d.profile||d.account||{};
-      const leaderName=String(
-        d.leader_name||d.leaderName||
-        leaderCandidate.name||leaderCandidate.full_name||
-        leaderCandidate.display_name||leaderCandidate.displayName||''
-      ).trim();
-      if(leaderName) localStorage.setItem('dxn_leader_name',leaderName);
-    }
-    invalidateNotificationCache();
+    const d=await rpc('bootstrap',{p_token:token});
+    data=d;role=d.role;me=(d.members||[])[0]||null;invalidateNotificationCache();
     // ارسم الواجهة الأساسية فور اكتمال bootstrap، ولا تجعل بيانات الأقسام الثانوية تحجب التنقل.
     render();
     restoreDxnUiState();
@@ -1959,41 +1320,7 @@ async function boot(){
       }catch(e){console.debug('DXN background data load',e)}
     });
     recordSiteVisit(role==='leader'?'leader':'member','dashboard');
-  }catch(e){
-  console.error('DXN boot failure',e);
-  var m=(e&&e.message)||String(e||'خطأ غير معروف'),
-      sessionExpired=/انتهت الجلسة|session expired/i.test(String(m));
-  if(sessionExpired){
-    localStorage.removeItem('dxn_session');
-    localStorage.removeItem('dxn_session_issued');
-    token='';
-    me=null;
-    data=null;
-    role=null;
-    trainingData={lessons:[],my_progress:[],member_progress:[]};
-    tab='home';
-    var expiredDiag=document.getElementById('dxnBootFailureDiag');
-    if(expiredDiag) expiredDiag.remove();
-    try{renderLogin();}catch(_){}
-    try{toast('انتهت جلسة الدخول. سجّل الدخول من جديد.');}catch(_){}
-    return;
-  }
-  var
-      d=(e&&e.details)||'',
-      h=(e&&e.hint)||'',
-      code=(e&&e.code)||'',
-      status=(e&&e.status)||'',
-      rpcName=(e&&e.rpc)||'',
-      rawError=(e&&e.raw)?JSON.stringify(e.raw,null,2):'',
-      issuedAt=Number(localStorage.getItem('dxn_session_issued')||0);
-  var b=document.getElementById('dxnBootFailureDiag');
-  if(!b){b=document.createElement('div');b.id='dxnBootFailureDiag';document.body.appendChild(b)}
-  b.setAttribute('role','alert');
-  b.style.cssText='position:fixed;inset:0;z-index:100000;background:#fff;padding:24px;overflow:auto;direction:rtl;text-align:right;font-family:system-ui,sans-serif;color:#182234';
-  var clean=v=>String(v??'').replace(/[<>]/g,'');
-  var issuedText=issuedAt?new Date(issuedAt).toLocaleString('ar-IQ'):'غير متوفر';
-  b.innerHTML='<div style="max-width:760px;margin:7vh auto;padding:22px;border:3px solid #b42318;border-radius:20px;background:#fff5f4"><h2 style="margin-top:0;color:#9f2118">تم قبول الدخول لكن تعذر تحميل الحساب</h2><p><b>الخطأ:</b> '+clean(m)+'</p><p><b>RPC:</b> '+clean(rpcName||'bootstrap')+'</p><p><b>Code:</b> '+clean(code||'غير متوفر')+'</p><p><b>Status:</b> '+clean(status||'غير متوفر')+'</p><p><b>Details:</b> '+clean(d||'غير متوفر')+'</p><p><b>Hint:</b> '+clean(h||'غير متوفر')+'</p><details style="margin-top:12px"><summary style="cursor:pointer;font-weight:800">التفاصيل الخام من Supabase</summary><pre style="direction:ltr;text-align:left;white-space:pre-wrap;max-height:260px;overflow:auto;margin-top:8px;padding:10px;background:#fff;border:1px solid #e2c8c5;border-radius:10px;font-size:12px">'+clean(rawError||'غير متوفر')+'</pre></details><p><b>وقت إنشاء الجلسة:</b> '+clean(issuedText)+'</p><p>تم إبقاء الجلسة محفوظة لتشخيص المشكلة. لا يتم عرض رمز الجلسة نفسه.</p><button class="primary" onclick="location.reload()">إعادة المحاولة</button></div>';
-}
+  }catch(e){console.error('DXN boot failure',e);var m=(e&&e.message)||String(e||'خطأ غير معروف'),d=(e&&e.details)||'',h=(e&&e.hint)||'';var b=document.getElementById('dxnBootFailureDiag');if(!b){b=document.createElement('div');b.id='dxnBootFailureDiag';document.body.appendChild(b)}b.setAttribute('role','alert');b.style.cssText='position:fixed;inset:0;z-index:100000;background:#fff;padding:24px;overflow:auto;direction:rtl;text-align:right;font-family:system-ui,sans-serif;color:#182234';b.innerHTML='<div style="max-width:760px;margin:7vh auto;padding:22px;border:3px solid #b42318;border-radius:20px;background:#fff5f4"><h2 style="margin-top:0;color:#9f2118">تم قبول الدخول لكن تعذر تحميل الحساب</h2><p><b>الخطأ:</b> '+String(m).replace(/[<>]/g,'')+'</p><p><b>Details:</b> '+String(d).replace(/[<>]/g,'')+'</p><p><b>Hint:</b> '+String(h).replace(/[<>]/g,'')+'</p><p>تم إبقاء الجلسة محفوظة لتشخيص المشكلة.</p><button class="primary" onclick="location.reload()">إعادة المحاولة</button></div>';}
 }
 function renderSetup(){ $('app').innerHTML=`<div class="login card"><img class="logo" src="/logo.png" alt="شعار مجتمع الصحة والثراء"><h1>مجتمع الصحة والثراء</h1><h2>إعداد النسخة Online</h2><p class="muted">النسخة جاهزة للربط بقاعدة بيانات Supabase. افتح ملف <b>config.js</b> وضع رابط المشروع وPublic anon key، ثم ارفع المجلد إلى Vercel أو أي استضافة ثابتة.</p><div class="card leaderbox"><b>الخطوات:</b><ol><li>أنشئ مشروع Supabase.</li><li>نفّذ ملف schema.sql بالكامل في SQL Editor.</li><li>ضع بيانات المشروع في config.js.</li><li>ارفع المجلد إلى Vercel.</li></ol></div></div>`}
 function renderLogin(){
@@ -2199,24 +1526,9 @@ async function login(){
     // the browser's password manager, not stored in our localStorage.
     localStorage.setItem('dxn_login_role',loginRole);
     localStorage.setItem('dxn_login_no',loginNo);
-    if(loginRole==='leader') localStorage.removeItem('dxn_leader_name');
 
     const r=await rpc('login',{p_login_no:loginNo,p_pin:pin});
     token=r.token;
-    const loginIdentity=r&&(
-      r.user||r.profile||r.account||r.leader||
-      (r.leader_name?{name:r.leader_name}:null)
-    );
-    const loginLeaderName=String(
-      r&&(
-        r.leader_name||r.leaderName||
-        loginIdentity?.name||loginIdentity?.full_name||loginIdentity?.display_name||loginIdentity?.displayName
-      )||''
-    ).trim();
-    if(loginRole==='leader'){
-      const fixedLeaderName=DXN_LEADER_IDENTITY_OVERRIDES[loginNo]||loginLeaderName;
-      if(fixedLeaderName) localStorage.setItem('dxn_leader_name',fixedLeaderName);
-    }
     localStorage.setItem('dxn_session',token);
     localStorage.setItem('dxn_session_issued',String(Date.now()));
     await boot();
@@ -2293,9 +1605,9 @@ function dxnNavRestore(target){
   }finally{dxnNav.restoring=false;renderInAppNav();}
 }
 function renderInAppNav(){
-  // تم إلغاء أزرار «رجوع / تقدم» القديمة من الواجهة.
-  const el=document.getElementById('dxnInAppNav');
-  if(el)el.remove();
+  let el=document.getElementById('dxnInAppNav');
+  if(!el){el=document.createElement('nav');el.id='dxnInAppNav';el.className='dxn-inapp-nav';el.setAttribute('aria-label','التنقل بين الصفحات');document.body.appendChild(el);}
+  el.innerHTML=`<button type="button" class="dxn-nav-btn" ${dxnNav.back.length?'':'disabled'} onclick="event.preventDefault();this.blur();dxnNavGoBack()" aria-label="الرجوع للصفحة السابقة" title="الرجوع للصفحة السابقة">◀️ <span>رجوع</span></button><button type="button" class="dxn-nav-btn" ${dxnNav.forward.length?'':'disabled'} onclick="event.preventDefault();this.blur();dxnNavGoForward()" aria-label="التقدم إلى الصفحة التالية" title="التقدم إلى الصفحة التالية"><span>تقدم</span> ▶️</button>`;
 }
 function scrollToTabContent(){return;}
 function switchTab(next){if(next==='training'&&!canAccessTraining())return;if(next==='training')trainingSubtab='home';tab=next;saveDxnUiState({tab:next,trainingSubtab});try{render();dxnNavPush(`tab:${next}`);recordSiteVisit(role||'visitor',next)}catch(e){console.error(e);toast('تعذر فتح القسم: '+(e.message||e))}}
@@ -2432,7 +1744,7 @@ function notificationOpen(id){const n=notificationItems().find(x=>String(x.id)==
 function markAllNotificationsRead(){markNotificationsRead(notificationItems().map(n=>n.id));toast('تم تحديد الإشعارات كمقروءة.');render();}
 function notifications(){return notificationsCard();}
 
-function render(){updateSiteMeta();if(role==='leader'&&!me)me=null;const notifSummary=notificationSummary();const badge=role==='member'&&me?topBadge():null;let identity=role==='member'&&me?`<div class="member-identity"><span class="role-label">👤 العضو</span><b>${esc(me.name||'')} ${badge?`<span class="badge-strip"><span class="name-badge" title="${esc(badge.name)}">${badge.icon}</span></span>`:''}</b><span>🪪 ${esc(me.member_no||'')}</span><button class="logout-top" onclick="logout()">🚪 تسجيل الخروج</button></div>`:`<div class="member-identity"><span class="role-label">👑 القائد</span><b>${esc(currentAccountName())}</b><button class="logout-top" onclick="logout()">🚪 تسجيل الخروج</button></div>`;let mobileIdentity=identity.replace("member-identity","mobile-member-identity");let html=`<div class="view-switch" id="viewSwitch"></div><div class="top login-header-top">${identity}</div>${mobileIdentity}`;html+=`<div class="tabs"><button class="tab ${tab==='home'?'active':''}" onclick="switchTab('home')">الرئيسية 📊</button><button class="tab notif-tab ${tab==='notifications'?'active':''}" onclick="switchTab('notifications')">🔔 الإشعارات ${notifSummary.unread.length?`<span class="notif-count">${notifSummary.unread.length}</span>`:''}</button><button class="tab ${tab==='ch'?'active':''}" onclick="switchTab('ch')">التحديات 🎯</button><button class="tab ${tab==='teams'?'active':''}" onclick="switchTab('teams')">الأعضاء والفرق 👥</button><button class="tab team-member-tab" type="button" onclick="window.__DXN_OPEN_TEAM_MEMBER_V4__&&window.__DXN_OPEN_TEAM_MEMBER_V4__()">🌳 فريقي</button>${role==='member'&&me?`<button class="tab ${tab==='progress'?'active':''}" onclick="switchTab('progress')">📊 تقدّمي</button>`:''}${canAccessTraining()?`<button class="tab ${tab==='training'?'active':''}" onclick="switchTab('training')">📚 الشروحات والتدريبات</button>`:''}${role==='leader'?`<button class="tab ${tab==='leader'?'active':''}" onclick="switchTab('leader')">إدارة القائد 👑</button>`:''}<button class="tab ${tab==='advanced'?'active':''}" onclick="switchTab('advanced')">🚀 المركز الذكي</button><button class="tab community-tab ${tab==='community'?'active':''}" onclick="switchTab('community')">🌐 المجتمع</button></div>`;html+=tab==='home'?home():tab==='notifications'?notificationsCard(notifSummary):tab==='ch'?challenges():tab==='teams'?teams():tab==='path'&&role==='member'&&me?memberPathMap():tab==='progress'&&role==='member'&&me?progressPage():tab==='training'&&canAccessTraining()?'<div id="section-training">'+trainings()+'</div>':tab==='community'?community():tab==='advanced'?advancedCenter():leader();html+=nav();$('app').innerHTML=html;document.querySelectorAll('.login-header-top .logo,.login-header-top h1,.login-header-top p,.login-header-top img').forEach(el=>el.remove());renderViewSwitch();maybeShowLevelUp()}
+function render(){updateSiteMeta();if(role==='leader'&&!me)me=null;const notifSummary=notificationSummary();const badge=role==='member'&&me?topBadge():null;let identity=role==='member'&&me?`<div class="member-identity"><span class="role-label">👤 العضو</span><b>${esc(me.name||'')} ${badge?`<span class="badge-strip"><span class="name-badge" title="${esc(badge.name)}">${badge.icon}</span></span>`:''}</b><span>🪪 ${esc(me.member_no||'')}</span><button class="logout-top" onclick="logout()">🚪 تسجيل الخروج</button></div>`:`<div class="member-identity"><span class="role-label">👑 القائد</span><b>${esc(localStorage.getItem('dxn_login_no')||'LEADER')}</b><button class="logout-top" onclick="logout()">🚪 تسجيل الخروج</button></div>`;let mobileIdentity=identity.replace("member-identity","mobile-member-identity");let html=`<div class="view-switch" id="viewSwitch"></div><div class="top login-header-top">${identity}</div>${mobileIdentity}`;html+=`<div class="tabs"><button class="tab ${tab==='home'?'active':''}" onclick="switchTab('home')">الرئيسية 📊</button><button class="tab notif-tab ${tab==='notifications'?'active':''}" onclick="switchTab('notifications')">🔔 الإشعارات ${notifSummary.unread.length?`<span class="notif-count">${notifSummary.unread.length}</span>`:''}</button><button class="tab ${tab==='ch'?'active':''}" onclick="switchTab('ch')">التحديات 🎯</button><button class="tab ${tab==='teams'?'active':''}" onclick="switchTab('teams')">الأعضاء والفرق 👥</button><button class="tab team-member-tab" type="button" onclick="window.__DXN_OPEN_TEAM_MEMBER_V4__&&window.__DXN_OPEN_TEAM_MEMBER_V4__()">🌳 فريقي</button>${role==='member'&&me?`<button class="tab ${tab==='progress'?'active':''}" onclick="switchTab('progress')">📊 تقدّمي</button>`:''}${canAccessTraining()?`<button class="tab ${tab==='training'?'active':''}" onclick="switchTab('training')">📚 الشروحات والتدريبات</button>`:''}${role==='leader'?`<button class="tab ${tab==='leader'?'active':''}" onclick="switchTab('leader')">إدارة القائد 👑</button>`:''}<button class="tab ${tab==='advanced'?'active':''}" onclick="switchTab('advanced')">🚀 المركز الذكي</button><button class="tab community-tab ${tab==='community'?'active':''}" onclick="switchTab('community')">🌐 المجتمع</button></div>`;html+=tab==='home'?home():tab==='notifications'?notificationsCard(notifSummary):tab==='ch'?challenges():tab==='teams'?teams():tab==='path'&&role==='member'&&me?memberPathMap():tab==='progress'&&role==='member'&&me?progressPage():tab==='training'&&canAccessTraining()?'<div id="section-training">'+trainings()+'</div>':tab==='community'?community():tab==='advanced'?advancedCenter():leader();html+=nav();$('app').innerHTML=html;document.querySelectorAll('.login-header-top .logo,.login-header-top h1,.login-header-top p,.login-header-top img').forEach(el=>el.remove());renderViewSwitch();maybeShowLevelUp()}
 const DXN_LEVELS=[
  {stars:0,icon:'🌱',name:'البداية'},
  {stars:100,icon:'🔥',name:'عضو نشيط'},
@@ -2610,35 +1922,9 @@ function openMemberProfile(id){
  const approved=subs.filter(x=>x.status==='approved').length;
  const mp=(trainingData?.member_progress||[]).find(x=>String(x.member_id||x.memberId)===String(id));
  const total=Number(mp?.total_lessons||0),done=Number(mp?.completed_lessons||0),pct=total?Math.round(done*100/total):0;
- const target=Math.max(0,100-Number(snap._pts||0));
+ const target=Math.max(0,100-snap._pts);
  const badgeCount=(()=>{const old=me;me=m;const n=getBadges().filter(b=>b.earned).length;me=old;return n;})();
- const rating=memberRatingCard(id,typeof role!=='undefined'?role:'leader');
- const lastActivity=snap._days===null?'لم يبدأ بعد':snap._days===0?'اليوم':'منذ '+snap._days+' أيام';
- const joined=snap._joinedDays===null?'غير مسجلة':String(snap._joinedDays)+' يوم';
- const targetText=target?'باقي '+target+' نقطة':'🎉 التارجت محقق';
- const html=[
-  '<div class="evidence-backdrop" onclick="closeMemberProfile()"></div>',
-  '<div class="evidence-modal card" style="max-width:760px;max-height:90vh;overflow:auto">',
-  '<div class="row"><div><h2 style="margin:0">👤 '+esc(m.name||'عضو')+'</h2><div class="muted">🪪 '+esc(m.member_no||'')+' · '+esc(m.team_name||'بدون فريق')+'</div></div><button onclick="closeMemberProfile()">✖️</button></div>',
-  '<div class="command-grid">',
-  '<div class="command-card"><div class="muted">⭐ النجوم</div><div class="command-big stars">'+Number(m.stars||0)+'</div><div class="muted">'+esc(getLevel(m.stars).current.name)+'</div></div>',
-  '<div class="command-card"><div class="muted">🎯 نقاط DXN</div><div class="command-big">'+Number(snap._pts||0)+'/100</div><div class="bar"><span style="width:'+Math.min(100,Number(snap._pts||0))+'%"></span></div><div class="muted">'+targetText+'</div></div>',
-  '<div class="command-card"><div class="muted">📚 التدريب</div><div class="command-big">'+done+'/'+total+'</div><div class="bar"><span style="width:'+pct+'%"></span></div></div>',
-  '<div class="command-card"><div class="muted">🏅 الشارات</div><div class="command-big">'+badgeCount+'</div><div class="muted">شارات مكتسبة</div></div>',
-  '</div>',rating,
-  '<div class="card" style="margin-top:10px"><b>📊 الحالة التشغيلية</b>',
-  '<div class="row"><span>آخر نشاط</span><b>'+lastActivity+'</b></div>',
-  '<div class="row"><span>⏳ إنجازات معلقة</span><b>'+Number(snap._pending||0)+'</b></div>',
-  '<div class="row"><span>✅ إنجازات معتمدة</span><b>'+approved+'</b></div>',
-  '<div class="row"><span>📅 مدة العضوية</span><b>'+joined+'</b></div>',
-  '</div>',
-  '<div class="command-actions"><button class="primary" onclick="closeMemberProfile();switchTab(\'teams\')">👥 إدارة العضو</button><button onclick="closeMemberProfile();switchTab(\'leader\')">👑 العودة لمركز القيادة</button></div>',
-  '</div>'
- ].join('');
- const modal=document.createElement('div');
- modal.id='memberProfileModal';
- modal.innerHTML=html;
- document.body.appendChild(modal);
+ const modal=document.createElement('div');modal.id='memberProfileModal';modal.innerHTML=`<div class="evidence-backdrop" onclick="closeMemberProfile()"></div><div class="evidence-modal card" style="max-width:760px;max-height:90vh;overflow:auto"><div class="row"><div><h2 style="margin:0">👤 ${esc(m.name||'عضو')}</h2><div class="muted">🪪 ${esc(m.member_no||'')} · ${esc(m.team_name||'بدون فريق')}</div></div><button onclick="closeMemberProfile()">✖️</button></div><div class="command-grid"><div class="command-card"><div class="muted">⭐ النجوم</div><div class="command-big stars">${Number(m.stars||0)}</div><div class="muted">${esc(getLevel(m.stars).current.name)}</div></div><div class="command-card"><div class="muted">🎯 نقاط DXN</div><div class="command-big">${snap._pts}/100</div><div class="bar"><span style="width:${Math.min(100,snap._pts)}%"></span></div><div class="muted">${target?`باقي ${target} نقطة`:'🎉 التارجت محقق'}</div></div><div class="command-card"><div class="muted">📚 التدريب</div><div class="command-big">${done}/${total}</div><div class="bar"><span style="width:${pct}%"></span></div></div><div class="command-card"><div class="muted">🏅 الشارات</div><div class="command-big">${badgeCount}</div><div class="muted">شارات مكتسبة</div></div></div>${memberRatingCard(id,role)}<div class="card" style="margin-top:10px"><b>📊 الحالة التشغيلية</b><div class="row"><span>آخر نشاط</span><b>${snap._days===null?'لم يبدأ بعد':snap._days===0?'اليوم':`منذ ${snap._days} أيام`}</b></div><div class="row"><span>⏳ إنجازات معلقة</span><b>${snap._pending}</b></div><div class="row"><span>✅ إنجازات معتمدة</span><b>${approved}</b></div><div class="row"><span>📅 مدة العضوية</span><b>${snap._joinedDays===null?'غير مسجلة':`${snap._joinedDays} يوم`}</b></div></div><div class="command-actions"><button class="primary" onclick="closeMemberProfile();switchTab('teams')">👥 إدارة العضو</button><button onclick="closeMemberProfile();switchTab('leader')">👑 العودة لمركز القيادة</button></div></div>`;document.body.appendChild(modal);
 }
 function closeMemberProfile(){const x=$('memberProfileModal');if(x)x.remove()}
 function advancedLeader(){
@@ -2678,29 +1964,15 @@ function advancedMember(){
  <div class="card"><div class="title">🎖️ إنجازاتي المتقدمة</div><div class="command-grid"><div class="command-card"><b>🌱 البداية</b><div class="muted">أول إنجاز معتمد</div></div><div class="command-card"><b>🔥 الاستمرارية</b><div class="muted">7 أيام نشاط متتابع</div></div><div class="command-card"><b>🎯 التارجت</b><div class="muted">الوصول إلى 100 نقطة DXN</div></div><div class="command-card"><b>💎 التميز</b><div class="muted">الوصول إلى 2000 نجمة</div></div></div><p class="muted">الشارات التي تحققت فعليًا تظهر في بطاقة «شاراتي» على الرئيسية.</p></div>`;
 }
 function communityEscapeHtml(v){return String(v??'').replace(/[&<>"']/g,function(ch){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[ch]})}
-async function communityChatRpc(fn,args){
-  const token=String(localStorage.getItem('dxn_session')||'').trim();
-  if(!token){toast('انتهت جلسة الدخول. أعد تسجيل الدخول.');return null}
-  try{
-    const response=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn,args:{...(args||{}),p_token:token,p_display_name:currentAccountName()}}),cache:'no-store'});
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok||data?.error) throw new Error(data?.error||'تعذر تنفيذ العملية');
-    return data;
-  }catch(error){
-    console.error('Community chat:',error);
-    toast(error?.message||'تعذر الاتصال بمحادثة المجتمع.');
-    return null;
-  }
-}
-async function communityChatOpen(){
+function communityChatOpen(){
   if(document.getElementById('communityChatModal'))return;
+  const saved=JSON.parse(localStorage.getItem('dxn_community_chat_local')||'[]');
   const modal=document.createElement('div'); modal.id='communityChatModal'; modal.className='community-chat-modal';
   modal.innerHTML='<div class="community-chat-box" role="dialog" aria-modal="true" aria-label="محادثة المجتمع">'
-   +'<div class="community-chat-head"><div class="community-chat-head-info"><div class="community-chat-head-icon">💬</div><div><b>محادثة المجتمع</b><small>رسائل المجتمع المحفوظة</small></div></div><button class="community-chat-close" onclick="communityChatClose()">×</button></div>'
-   +'<div class="community-chat-messages" id="communityChatMessages"><div class="community-chat-empty"><div class="icon">⏳</div><span>جارٍ تحميل المحادثة...</span></div></div>'
+   +'<div class="community-chat-head"><div class="community-chat-head-info"><div class="community-chat-head-icon">💬</div><div><b>محادثة المجتمع</b><small>مساحة المحادثة</small></div></div><button class="community-chat-close" onclick="communityChatClose()">×</button></div>'
+   +'<div class="community-chat-messages" id="communityChatMessages"></div>'
    +'<div class="community-attachment-preview" id="communityAttachmentPreview" style="display:none"></div>'
    +'<form class="community-chat-compose" onsubmit="communityChatSend(event)">'
-   +'<div class="community-composer-field">'
    +'<div class="community-attach-wrap"><button type="button" class="community-attach-btn" onclick="communityAttachToggle(event)" aria-label="المرفقات">📎</button><div class="community-attach-menu" id="communityAttachMenu" style="display:none">'
    +'<button type="button" onclick="communityPickFiles(\'image/*\',false)"><span class="attach-icon">🖼️</span>الصور</button>'
    +'<button type="button" onclick="communityPickFiles(\'video/*\',false)"><span class="attach-icon">🎬</span>الفيديو</button>'
@@ -2711,371 +1983,23 @@ async function communityChatOpen(){
    +'</div></div>'
    +'<input id="communityFilePicker" type="file" multiple hidden onchange="communityFilesSelected(event)">'
    +'<input id="communityCameraPicker" type="file" accept="image/*" capture="environment" hidden onchange="communityFilesSelected(event)">'
-   +'<div class="community-chat-formatbar" aria-label="تنسيق الرسالة"><button type="button" id="communityBoldButton" aria-label="غامق" title="غامق" onmousedown="event.preventDefault()" onclick="communityToggleBold()">B</button><button type="button" aria-label="الإيموجي" title="الإيموجي" onmousedown="event.preventDefault()" onclick="communityOpenEmojiPicker(\'communityChatInput\')">😀</button><button type="button" aria-label="الملصقات" title="الملصقات" onmousedown="event.preventDefault()" onclick="communityOpenStickerPicker(\'communityChatInput\')">🧩</button></div>'+'<textarea id="communityChatInput" class="community-chat-input" autocomplete="off" placeholder="اكتب رسالتك هنا..." maxlength="1000" rows="1"></textarea>'
-   +'</div><button class="community-chat-send" type="submit">إرسال</button></form>'   +'</div>';
+   +'<input id="communityChatInput" class="community-chat-input" autocomplete="off" placeholder="اكتب رسالتك هنا..." maxlength="1000"><button class="community-chat-send" type="submit">إرسال</button></form>'
+   +'</div>';
   modal.addEventListener('click',e=>{if(e.target===modal)communityChatClose()});
-  document.body.appendChild(modal);
-  const box=document.getElementById('communityChatMessages');
-  if(box) box.innerHTML='<div class="community-chat-empty"><div class="icon">💬</div><b>المحادثة جاهزة</b><span>يمكنك كتابة رسالتك الآن… جارٍ جلب الرسائل السابقة في الخلفية.</span></div>';
-  setTimeout(()=>document.getElementById('communityChatInput')?.focus(),50);
-  communityChatRpc('community_chat_list',{p_limit:100}).then(messages=>{if(messages)communityChatRender(messages);else{const b=document.getElementById('communityChatMessages');if(b)b.innerHTML='<div class="community-chat-empty"><div class="icon">⚠️</div><b>تعذر تحميل الرسائل</b><span>تحقق من الاتصال ثم أعد فتح المحادثة.</span></div>';}});
-  clearInterval(window.communityChatRefreshTimer);
-  window.communityChatRefreshTimer=setInterval(()=>{if(!document.getElementById('communityChatModal')){clearInterval(window.communityChatRefreshTimer);window.communityChatRefreshTimer=null;return;} communityChatRpc('community_chat_list',{p_limit:100}).then(messages=>{if(messages)communityChatRender(messages);});},4000);
+  document.body.appendChild(modal); communityChatRender(saved); setTimeout(()=>document.getElementById('communityChatInput')?.focus(),50);
 }
-function communityChatInsertSymbol(targetId,symbol){
-  const input=document.getElementById(targetId);
-  if(!input)return;
-  const start=Number(input.selectionStart??input.value.length);
-  const end=Number(input.selectionEnd??input.value.length);
-  input.focus();
-  input.setRangeText(String(symbol),start,end,'end');
-  const pos=start+String(symbol).length;
-  input.selectionStart=pos;
-  input.selectionEnd=pos;
-  input.dispatchEvent(new Event('input',{bubbles:true}));
-  communityCloseSymbolPicker();
-}
-function communityCloseSymbolPicker(){
-  document.getElementById('communitySymbolPicker')?.remove();
-}
-function communityOpenSymbolPicker(targetId,title,items){
-  communityCloseSymbolPicker();
-  const panel=document.createElement('div');
-  panel.id='communitySymbolPicker';
-  panel.className='community-symbol-picker';
-  panel.innerHTML='<div class="community-symbol-head"><b>'+communityEscapeHtml(title)+'</b><button type="button" onclick="communityCloseSymbolPicker()">×</button></div><div class="community-symbol-grid">'+items.map(x=>'<button type="button" title="'+communityEscapeHtml(x.label)+'" onclick="communityChatInsertSymbol('+JSON.stringify(String(targetId))+','+JSON.stringify(x.value)+')">'+x.value+'</button>').join('')+'</div>';
-  document.body.appendChild(panel);
-  const target=document.getElementById(targetId);
-  if(target){
-    const rect=target.getBoundingClientRect();
-    const width=Math.min(360,window.innerWidth-20);
-    let left=Math.max(10,Math.min(rect.left,window.innerWidth-width-10));
-    panel.style.width=width+'px';
-    panel.style.left=left+'px';
-    // ضع اللوحة فوق مربع الكتابة أولاً، ثم انقلها للأسفل فقط إذا لم تتسع المساحة.
-    const panelHeight=panel.offsetHeight||300;
-    let top=rect.top-panelHeight-10;
-    if(top<10)top=Math.min(rect.bottom+10,window.innerHeight-panelHeight-10);
-    top=Math.max(10,Math.min(top,window.innerHeight-panelHeight-10));
-    panel.style.top=top+'px';
-  }
-  setTimeout(()=>document.addEventListener('click',communitySymbolOutside,{capture:true}),0);
-}
-function communitySymbolOutside(e){
-  const panel=document.getElementById('communitySymbolPicker');
-  if(panel&&!panel.contains(e.target))communityCloseSymbolPicker();
-}
-function communityOpenEmojiPicker(targetId){
-  const items=['😀','😃','😄','😁','😂','🤣','😊','😍','🥰','😘','😎','🤩','🤗','🤔','😢','😭','😡','😱','👏','👍','🙏','❤️','💚','💙','💜','🔥','✨','🌟','🎉','🎊','🏆','💯','🌹','☀️','🌙','⭐','😊'];
-  communityOpenSymbolPicker(targetId,'الإيموجي',items.map(v=>({value:v,label:v})));
-}
-function communityOpenStickerPicker(targetId){
-  const items=[
-    {value:'🎉',label:'احتفال'},{value:'🥳',label:'فرح'},{value:'👏',label:'تصفيق'},{value:'🙌',label:'إنجاز'},
-    {value:'💪',label:'قوة'},{value:'🔥',label:'حماس'},{value:'🏆',label:'نجاح'},{value:'👑',label:'قيادة'},
-    {value:'❤️',label:'محبة'},{value:'🌹',label:'وردة'},{value:'🙏',label:'شكر'},{value:'🤝',label:'تعاون'},
-    {value:'💯',label:'ممتاز'},{value:'🚀',label:'انطلاق'},{value:'⭐',label:'نجمة'},{value:'🌟',label:'تألق'},
-    {value:'🎁',label:'هدية'},{value:'☀️',label:'إيجابية'}
-  ];
-  communityOpenSymbolPicker(targetId,'الملصقات',items);
-}
-function communityChatClose(){clearInterval(window.communityChatRefreshTimer);window.communityChatRefreshTimer=null;document.getElementById('communityChatModal')?.remove()}
-function communityAttachToggle(e){e?.stopPropagation();const m=document.getElementById('communityAttachMenu');if(m)m.style.display=m.style.display==='none'?'grid':'none'}
+function communityChatClose(){document.getElementById('communityChatModal')?.remove()}function communityAttachToggle(e){e?.stopPropagation();const m=document.getElementById('communityAttachMenu');if(m)m.style.display=m.style.display==='none'?'grid':'none'}
 function communityPickFiles(accept,multi,camera=false){document.getElementById('communityAttachMenu')?.style.setProperty('display','none');const el=document.getElementById(camera?'communityCameraPicker':'communityFilePicker');if(!el)return;el.accept=accept;el.multiple=!!multi;el.value='';el.click()}
-function communityRenderPendingFiles(){
-  const box=document.getElementById('communityAttachmentPreview');
-  if(!box)return;
-  const files=[...(window.communityPendingFiles||[])];
-  box.innerHTML='';
-  if(!files.length){box.style.display='none';return}
-  box.style.display='flex';
-  files.forEach((file,index)=>{
-    const chip=document.createElement('div');
-    chip.className='community-attachment-chip';
-    chip.dataset.fileIndex=String(index);
-    const icon=file.type?.startsWith('image/')?'🖼️':file.type?.startsWith('video/')?'🎬':file.type?.startsWith('audio/')?'🎙️':'📎';
-    chip.innerHTML='<span>'+icon+'</span><span>'+communityEscapeHtml(file.name)+'</span><button type="button" aria-label="إزالة">×</button>';
-    chip.querySelector('button').onclick=()=>{
-      const next=[...(window.communityPendingFiles||[])];
-      next.splice(index,1);
-      window.communityPendingFiles=next;
-      communityRenderPendingFiles();
-    };
-    box.appendChild(chip);
-  });
-}
-function communityFilesSelected(e){
-  const files=[...(e.target.files||[])];
-  if(!files.length)return;
-  const existing=[...(window.communityPendingFiles||[])];
-  const merged=[...existing,...files].slice(0,10);
-  window.communityPendingFiles=merged;
-  communityRenderPendingFiles();
-}
+function communityFilesSelected(e){const files=[...(e.target.files||[])];if(!files.length)return;const box=document.getElementById('communityAttachmentPreview');if(!box)return;box.style.display='flex';files.forEach(file=>{const chip=document.createElement('div');chip.className='community-attachment-chip';chip.dataset.fileName=file.name;chip.innerHTML='<span>📎</span><span>'+communityEscapeHtml(file.name)+'</span><button type="button" aria-label="إزالة">×</button>';chip.querySelector('button').onclick=()=>{chip.remove();if(!box.children.length)box.style.display='none'};box.appendChild(chip)});window.communityPendingFiles=files}
 let communityAudioRecorder=null,communityAudioChunks=[];
-async function communityRecordAudio(){
-  try{
-    if(communityAudioRecorder?.state==='recording'){
-      communityAudioRecorder.stop();
-      return;
-    }
-    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-    communityAudioChunks=[];
-    communityAudioRecorder=new MediaRecorder(stream);
-    communityAudioRecorder.ondataavailable=e=>{if(e.data.size)communityAudioChunks.push(e.data)};
-    communityAudioRecorder.onstop=()=>{
-      stream.getTracks().forEach(t=>t.stop());
-      const blob=new Blob(communityAudioChunks,{type:'audio/webm'});
-      const file=new File([blob],'تسجيل-صوتي-'+Date.now()+'.webm',{type:'audio/webm'});
-      window.communityPendingFiles=[...(window.communityPendingFiles||[]),file];
-      communityRenderPendingFiles();
-      toast('تم تجهيز التسجيل الصوتي للإرسال.');
-    };
-    communityAudioRecorder.start();
-    toast('جارٍ تسجيل الصوت... اضغط «تسجيل صوت» مرة أخرى لإيقاف التسجيل.');
-  }catch(e){
-    toast('تعذر الوصول إلى الميكروفون. تحقق من صلاحية المتصفح.');
-  }
-}
-function communityChatParsePayload(value){
-  const raw=String(value??'');
-  const prefix='[[DXN_CHAT_V2]]';
-  if(!raw.startsWith(prefix))return null;
-  try{
-    const data=JSON.parse(raw.slice(prefix.length));
-    return data&&Array.isArray(data.attachments)?data:null;
-  }catch(_){return null}
-}
-function communityChatAttachmentHtml(a){
-  const url=communityEscapeHtml(a?.url||'');
-  const name=communityEscapeHtml(a?.name||'مرفق');
-  const type=String(a?.type||'').toLowerCase();
-  if(!url)return '';
-  if(type.startsWith('image/')) return '<a class="community-chat-attachment-image" href="'+url+'" target="_blank" rel="noopener"><img src="'+url+'" alt="'+name+'" loading="lazy"></a>';
-  if(type.startsWith('video/')) return '<video class="community-chat-attachment-video" controls preload="metadata" src="'+url+'"></video>';
-  if(type.startsWith('audio/')) return '<audio class="community-chat-attachment-audio" controls preload="metadata" src="'+url+'"></audio>';
-  return '<a class="community-chat-attachment-file" href="'+url+'" target="_blank" rel="noopener" download>📎 '+name+'</a>';
-}
-function communityChatToggleActions(button,e){
-  e?.preventDefault();
-  e?.stopPropagation();
-  const holder=button?.parentElement;
-  const menu=holder?.querySelector('.community-chat-actions-menu');
-  if(!menu)return;
-  document.querySelectorAll('.community-chat-actions-menu.open').forEach(other=>{
-    if(other!==menu){
-      other.classList.remove('open');
-      other.style.position='';
-      other.style.top='';
-      other.style.left='';
-      other.style.right='';
-      other.style.width='';
-    }
-  });
-  const opening=!menu.classList.contains('open');
-  if(!opening){
-    menu.classList.remove('open');
-    menu.style.position='';
-    menu.style.top='';
-    menu.style.left='';
-    menu.style.right='';
-    menu.style.width='';
-    return;
-  }
-  const rect=button.getBoundingClientRect();
-  const menuWidth=Math.min(185,Math.max(165,window.innerWidth-24));
-  const gap=6;
-  const leftSide=!holder.closest('.community-chat-msg')?.classList.contains('mine');
-  let left=leftSide?rect.left:(rect.right-menuWidth);
-  left=Math.max(12,Math.min(left,window.innerWidth-menuWidth-12));
-  let top=rect.bottom+gap;
-  const menuHeight=Math.min(110,window.innerHeight-24);
-  if(top+menuHeight>window.innerHeight-12)top=Math.max(12,rect.top-menuHeight-gap);
-  menu.style.position='fixed';
-  menu.style.left=left+'px';
-  menu.style.right='auto';
-  menu.style.top=top+'px';
-  menu.style.width=menuWidth+'px';
-  menu.style.maxWidth=menuWidth+'px';
-  menu.style.zIndex='100000';
-  menu.classList.add('open');
-}
-function communityEditToggleBold(){
-  const input=document.getElementById('communityChatEditText');
-  if(!input)return;
-  const start=Number(input.selectionStart||0), end=Number(input.selectionEnd||0);
-  const value=String(input.value||'');
-  const selected=value.slice(start,end);
-  if(start===end){
-    input.setRangeText('****',start,end,'end');
-    input.selectionStart=input.selectionEnd=start+2;
-  }else{
-    const alreadyBold=selected.startsWith('**')&&selected.endsWith('**')&&selected.length>=4;
-    if(alreadyBold){
-      const plain=selected.slice(2,-2);
-      input.setRangeText(plain,start,end,'select');
-      input.selectionStart=start;
-      input.selectionEnd=start+plain.length;
-    }else{
-      input.setRangeText('**'+selected+'**',start,end,'select');
-      input.selectionStart=start;
-      input.selectionEnd=end+4;
-    }
-  }
-  input.focus();
-}
-function communityChatCloseEdit(){
-  const modal=document.getElementById('communityChatEditModal');
-  if(modal)modal.remove();
-}
-async function communityChatEditMessage(id){
-  document.querySelectorAll('.community-chat-actions-menu').forEach(menu=>menu.classList.remove('open'));
-  const messages=await communityChatRpc('community_chat_list',{p_limit:200});
-  if(!messages)return;
-  const row=messages.find(m=>String(m.id)===String(id));
-  if(!row)return;
-  const payload=communityChatParsePayload(row.message_text||'');
-  const current=payload?String(payload.text||''):String(row.message_text||'');
-  communityChatCloseEdit();
-  const modal=document.createElement('div');
-  modal.id='communityChatEditModal';
-  modal.className='community-chat-edit-modal';
-  modal.innerHTML='<div class="community-chat-edit-card" role="dialog" aria-modal="true" aria-label="تعديل الرسالة"><div class="community-chat-edit-title">✏️ تعديل الرسالة</div><div class="community-chat-edit-formatbar"><button type="button" aria-label="غامق" title="غامق" onmousedown="event.preventDefault()" onclick="communityEditToggleBold()">B</button><button type="button" aria-label="الإيموجي" title="الإيموجي" onmousedown="event.preventDefault()" onclick="communityOpenEmojiPicker(\'communityChatEditText\')">😀</button><button type="button" aria-label="الملصقات" title="الملصقات" onmousedown="event.preventDefault()" onclick="communityOpenStickerPicker(\'communityChatEditText\')">🧩</button></div><textarea id="communityChatEditText" dir="auto" rows="7"></textarea><div class="community-chat-edit-actions"><button type="button" class="community-chat-edit-cancel" onclick="communityChatCloseEdit()">إلغاء</button><button type="button" class="community-chat-edit-save" onclick="communityChatSaveEdit('+JSON.stringify(String(id))+')">حفظ التعديل</button></div></div>';
-  document.body.appendChild(modal);
-  const textarea=document.getElementById('communityChatEditText');
-  if(textarea){
-    textarea.value=current;
-    textarea.focus();
-    textarea.setSelectionRange(textarea.value.length,textarea.value.length);
-  }
-  modal.addEventListener('click',e=>{if(e.target===modal)communityChatCloseEdit()});
-}
-async function communityChatSaveEdit(id){
-  const textarea=document.getElementById('communityChatEditText');
-  const text=String(textarea?.value||'').trim();
-  if(!text){toast('لا يمكن أن تكون الرسالة فارغة.');return}
-  const saveButton=document.querySelector('.community-chat-edit-save');
-  if(saveButton){saveButton.disabled=true;saveButton.textContent='جارٍ الحفظ…'}
-  try{
-    const saved=await communityChatRpc('community_chat_edit',{p_id:id,p_message:text});
-    if(saved){
-      communityChatCloseEdit();
-      const fresh=await communityChatRpc('community_chat_list',{p_limit:100});
-      if(fresh)communityChatRender(fresh);
-      toast('تم تعديل الرسالة.');
-    }
-  }catch(error){
-    toast(error?.message||'تعذر تعديل الرسالة.');
-    if(saveButton){saveButton.disabled=false;saveButton.textContent='حفظ التعديل'}
-  }
-}
-async function communityChatDeleteMessage(id,hasImage){
-  document.querySelectorAll('.community-chat-actions-menu').forEach(menu=>menu.classList.remove('open'));
-  const message=hasImage?'حذف الصورة لدى الجميع؟':'حذف الرسالة لدى الجميع؟';
-  if(!window.confirm(message+'\n\nلن تعود ظاهرة لأي عضو في المجتمع.'))return;
-  const saved=await communityChatRpc('community_chat_delete',{p_id:id});
-  if(saved){
-    const fresh=await communityChatRpc('community_chat_list',{p_limit:100});
-    if(fresh)communityChatRender(fresh);
-    toast(hasImage?'تم حذف الصورة لدى الجميع.':'تم حذف الرسالة لدى الجميع.');
-  }
-}
+async function communityRecordAudio(){try{if(communityAudioRecorder?.state==='recording'){communityAudioRecorder.stop();return}const stream=await navigator.mediaDevices.getUserMedia({audio:true});communityAudioChunks=[];communityAudioRecorder=new MediaRecorder(stream);communityAudioRecorder.ondataavailable=e=>{if(e.data.size)communityAudioChunks.push(e.data)};communityAudioRecorder.onstop=()=>{stream.getTracks().forEach(t=>t.stop());const blob=new Blob(communityAudioChunks,{type:'audio/webm'});const file=new File([blob],'تسجيل-صوتي-'+Date.now()+'.webm',{type:'audio/webm'});window.communityPendingFiles=[...(window.communityPendingFiles||[]),file];communityFilesSelected({target:{files:[file]}});toast('تم تجهيز التسجيل الصوتي للإرسال.')};communityAudioRecorder.start();toast('جارٍ تسجيل الصوت... اضغط المرفقات ثم تسجيل صوت لإيقافه.')}catch(e){toast('تعذر الوصول إلى الميكروفون. تحقق من صلاحية المتصفح.')}}
+
 function communityChatRender(messages){
   const box=document.getElementById('communityChatMessages'); if(!box)return;
-  if(!Array.isArray(messages)||!messages.length){box.innerHTML='<div class="community-chat-empty"><div class="icon">💬</div><b>ابدأ أول محادثة</b><span>اكتب رسالتك في الأسفل لبدء المحادثة.</span></div>';return}
-  const identity=currentAccountIdentity();
-  box.innerHTML=messages.map(m=>{
-    const mine=(String(m.sender_member_no||'')&&String(m.sender_member_no||'')===String(identity.member_no||''))||(identity.type==='leader'&&m.sender_role==='leader'&&String(m.sender_name||'')===String(identity.name||''));
-    const payload=communityChatParsePayload(m.message_text||'');
-    const hasImage=!!(payload&&payload.attachments||[]).find(a=>String(a?.type||'').toLowerCase().startsWith('image/'));
-    const body=payload
-      ? communityChatFormatMessage(payload.text||'')+'<div class="community-chat-attachment-grid">'+payload.attachments.map(communityChatAttachmentHtml).join('')+'</div>'
-      : communityChatFormatMessage(m.message_text||'');
-    const sender=communityEscapeHtml(m.sender_name||(m.sender_role==='leader'?'القائد':'عضو المجتمع'));
-    const when=new Date(m.created_at||Date.now()).toLocaleString('ar-IQ');
-    const edited=String(m.updated_at||'')&&String(m.updated_at)!==String(m.created_at||'');
-    const messageId=String(m.id||'').replace(/\\/g,'\\\').replace(/'/g,"\'");
-    const actions=mine
-      ? '<div class="community-chat-actions"><button type="button" class="community-chat-actions-trigger" aria-label="خيارات الرسالة" onclick="communityChatToggleActions(this,event)">⋮</button><div class="community-chat-actions-menu" data-message-id="'+communityEscapeHtml(messageId)+'"><button type="button" onclick="communityChatEditMessage(\''+messageId+'\')">✏️ تعديل الرسالة</button><button type="button" class="danger" onclick="communityChatDeleteMessage(\''+messageId+'\','+(hasImage?'true':'false')+')">'+(hasImage?'🗑️ حذف الصورة لدى الجميع':'🗑️ حذف لدى الجميع')+'</button></div></div>'
-      : '';
-    return '<div class="community-chat-msg '+(mine?'mine':'')+'"><div class="community-chat-msg-top"><div class="community-chat-sender">'+sender+'</div>'+actions+'</div><div class="community-chat-msg-body" dir="auto">'+body+'</div><small>'+when+(edited?' · معدلة':'')+'</small></div>';
-  }).join('');
-  box.scrollTop=box.scrollHeight;
+  if(!messages.length){box.innerHTML='<div class="community-chat-empty"><div class="icon">💬</div><b>ابدأ أول محادثة</b><span>اكتب رسالتك في الأسفل لبدء المحادثة.</span></div>';return}
+  box.innerHTML=messages.map(m=>{const body=m.type==='image'&&m.url?'<img src="'+m.url+'" alt="'+communityEscapeHtml(m.name||'صورة')+'">':m.type==='video'&&m.url?'<video src="'+m.url+'" controls></video>':m.type==='audio'&&m.url?'<audio src="'+m.url+'" controls></audio>':m.type==='file'?'<div>📄 '+communityEscapeHtml(m.name||m.text)+'</div>':communityEscapeHtml(m.text||'');return '<div class="community-chat-msg mine '+(m.type&&m.type!=='text'?'attach':'')+'">'+body+'<small>'+new Date(m.time).toLocaleString('ar-IQ')+'</small></div>'}).join(''); box.scrollTop=box.scrollHeight;
 }
-function communityChatFormatMessage(value){
-  const raw=String(value??'');
-  const escaped=communityEscapeHtml(raw);
-  return escaped.replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>');
-}
-function communityToggleBold(){
-  const input=document.getElementById('communityChatInput');
-  if(!input)return;
-  const start=Number(input.selectionStart||0), end=Number(input.selectionEnd||0);
-  const value=String(input.value||'');
-  const selected=value.slice(start,end);
-  if(start===end){
-    input.setRangeText('****',start,end,'end');
-    input.selectionStart=input.selectionEnd=start+2;
-  }else{
-    input.setRangeText('**'+selected+'**',start,end,'select');
-    input.selectionStart=start;
-    input.selectionEnd=end+4;
-  }
-  input.focus();
-}
-async function communityUploadFile(file){
-  if(!file||!file.size)throw new Error('المرفق فارغ');
-  if(file.size>4*1024*1024)throw new Error('حجم «'+file.name+'» أكبر من 4 ميغابايت');
-  const token=String(localStorage.getItem('dxn_session')||'').trim();
-  if(!token)throw new Error('انتهت جلسة الدخول. أعد تسجيل الدخول.');
-  const response=await fetch('/api/community-chat-upload',{
-    method:'POST',
-    headers:{
-      'Content-Type':file.type||'application/octet-stream',
-      'X-DXN-Session':token,
-      'X-DXN-File-Name':encodeURIComponent(file.name)
-    },
-    body:file,
-    cache:'no-store'
-  });
-  const data=await response.json().catch(()=>({}));
-  if(!response.ok||!data?.ok)throw new Error(data?.error||'تعذر رفع المرفق');
-  return {url:data.url,path:data.path||'',name:data.name||file.name,type:data.type||file.type||'application/octet-stream',size:data.size||file.size};
-}
-async function communityChatSend(e){
-  e.preventDefault();
-  const input=document.getElementById('communityChatInput');
-  const rawText=String(input?.value??'');
-  const text=rawText.trim();
-  const files=[...(window.communityPendingFiles||[])];
-  if(!text&&!files.length)return;
-  const sendButton=e.submitter||document.querySelector('#communityChatModal .community-chat-send');
-  if(sendButton)sendButton.disabled=true;
-  try{
-    let payload=text;
-    if(files.length){
-      const attachments=[];
-      for(let i=0;i<files.length;i++){
-        toast('جارٍ رفع المرفق '+(i+1)+' من '+files.length+'…');
-        attachments.push(await communityUploadFile(files[i]));
-      }
-      payload='[[DXN_CHAT_V2]]'+JSON.stringify({text,attachments});
-    }
-    const saved=await communityChatRpc('community_chat_send',{p_message:payload});
-    if(saved){
-      if(input)input.value='';
-      window.communityPendingFiles=[];
-      communityRenderPendingFiles();
-      const messages=await communityChatRpc('community_chat_list',{p_limit:100});
-      if(messages)communityChatRender(messages);
-      input?.focus();
-    }
-  }catch(error){
-    toast(error?.message||'تعذر إرسال المرفق');
-  }finally{
-    if(sendButton)sendButton.disabled=false;
-  }
-}
+function communityChatSend(e){e.preventDefault();const input=document.getElementById('communityChatInput');const text=String(input?.value||'').trim();const files=[...(window.communityPendingFiles||[])];if(!text&&!files.length)return;const messages=JSON.parse(localStorage.getItem('dxn_community_chat_local')||'[]');if(text)messages.push({text,time:new Date().toISOString(),type:'text'});files.forEach(file=>{const url=URL.createObjectURL(file);let type=file.type.startsWith('image/')?'image':file.type.startsWith('video/')?'video':file.type.startsWith('audio/')?'audio':'file';messages.push({text:file.name,time:new Date().toISOString(),type,url,name:file.name})});localStorage.setItem('dxn_community_chat_local',JSON.stringify(messages.slice(-100)));input.value='';window.communityPendingFiles=[];const box=document.getElementById('communityAttachmentPreview');if(box){box.innerHTML='';box.style.display='none'}communityChatRender(messages.slice(-100));input.focus()}
 function communityComingSoon(){toast("هذه الوظيفة ستُفعّل في المرحلة التالية.");}function community(){return '<div id="section-community" class="community-page" dir="rtl"><section class="community-hero community-hero-v2"><div class="community-glow glow-a"></div><div class="community-glow glow-b"></div><div class="community-leaf leaf-a">✦</div><div class="community-leaf leaf-b">✦</div><div class="community-live-badge"><span></span> مجتمع نشط الآن</div><div class="community-hero-content"><div class="community-brand-panel"><div class="community-logo-wrap"><img src="/logo.png" alt="مجتمع الصحة والثراء"></div><div class="community-brand-name">مجتمع الصحة والثراء</div><div class="community-brand-tag">بناء إنسان · صحة أوفر · مستقبل أجمل</div><div class="community-brand-line"></div><div class="community-mini-stats"><span><b>💬</b> تواصل</span><span><b>🎙️</b> صوت</span><span><b>📹</b> لقاءات</span></div></div><div class="community-hero-copy"><div class="community-kicker">🌐 مساحة المجتمع الرقمية</div><h1>مكان يجمعنا…<br><strong>لنتواصل ونتعلم ونلتقي</strong></h1><p>هنا تبدأ الحياة الاجتماعية للمجتمع: محادثات، صوتيات، وسائط، ولقاءات مباشرة في مساحة واحدة مصممة لتبقى قريبًا من فريقك.</p><div class="community-hero-actions"><button class="community-main-action" onclick="communityChatOpen()">💬 ابدأ محادثة</button><button class="community-secondary-action" onclick="communityCreateMeeting()">📹 إنشاء لقاء</button></div></div></div></section><section class="community-quick-grid"><button class="community-quick chat" onclick="communityChatOpen()"><span class="quick-icon">💬</span><span><b>الدردشة</b><small>رسائل فردية ومجموعات</small></span></button><button class="community-quick voice" onclick="communityVoiceOpen()"><span class="quick-icon">🎙️</span><span><b>البصمات الصوتية</b><small>سجل وأرسل صوتك</small></span></button><button class="community-quick media" onclick="communityMediaOpen()"><span class="quick-icon">🎬</span><span><b>الصور والفيديو</b><small>شارك لحظاتك مع المجتمع</small></span></button><button class="community-quick meetings" onclick="communityMeetingsOpen()"><span class="quick-icon">📹</span><span><b>اللقاءات والاجتماعات</b><small>صوت وصورة ومشاركة شاشة</small></span></button></section><section class="community-main-grid"><div class="community-feed-card"><div class="community-section-head"><div><span class="community-label">المجتمع الآن</span><h2>🔥 أحدث النشاطات</h2></div><button onclick="communityShowAll()">عرض الكل</button></div><div class="community-post"><div class="community-avatar avatar-green">و</div><div class="community-post-body"><div class="community-post-top"><b>مجتمع الصحة والثراء</b><time>الآن</time></div><p>مرحبًا بك في مساحتنا الجديدة. هنا ستلتقي بالأعضاء، تتبادل الخبرات، وتحضر اللقاءات القادمة.</p><div class="community-post-actions"><button onclick="communityComment()">💬 تعليق</button><button onclick="communityReact(this)">❤️ تفاعل</button><button onclick="communityShare()">↗ مشاركة</button></div></div></div><div class="community-post"><div class="community-avatar avatar-gold">🎓</div><div class="community-post-body"><div class="community-post-top"><b>لقاء المجتمع القادم</b><time>قريبًا</time></div><p>يمكنك من هنا الاطلاع على تفاصيل اللقاء القادم ورابط الدخول والموعد المحدد.</p><div class="community-event-mini"><span>📅</span><b>لقاء مباشر بالصوت والصورة</b><button onclick="communityMeetingDetails()">التفاصيل</button></div></div></div></div><aside class="community-side-card"><div class="community-section-head"><div><span class="community-label">حضورك</span><h2>✨ مساحة العضو</h2></div></div><div class="community-profile-mini"><div class="community-profile-avatar">👤</div><div><b>عضو المجتمع</b><small>مرحبًا بك في المجتمع</small></div></div><div class="community-stat-row"><span>🟢 المتصلون الآن</span><strong>—</strong></div><div class="community-stat-row"><span>💬 المحادثات</span><strong>—</strong></div><div class="community-stat-row"><span>📅 اللقاءات القادمة</span><strong>—</strong></div><button class="community-full-btn" onclick="communitySettingsOpen()">⚙️ إعدادات المجتمع</button></aside></section><section class="community-meet-banner"><div><span class="community-label">متاح الآن</span><h2>📹 قاعة اللقاءات</h2><p>أنشئ لقاءك، حدّد الموعد، وأضف رابط الدخول ليظهر اللقاء في جدول المجتمع.</p></div><div class="community-meet-actions"><button onclick="communityCreateMeeting()">＋ إنشاء لقاء</button><button onclick="communityScheduleOpen()">📅 جدول اللقاءات</button></div></section></div>';}
 
 function communityUiModal(title,body,actions=''){const old=document.getElementById('communityUiModal');if(old)old.remove();const m=document.createElement('div');m.id='communityUiModal';m.className='community-chat-modal';m.innerHTML='<div class="community-chat-box community-ui-box" role="dialog" aria-modal="true"><div class="community-chat-head"><div class="community-chat-head-info"><div class="community-chat-head-icon">🌐</div><div><b>'+communityEscapeHtml(title)+'</b><small>مجتمع الصحة والثراء</small></div></div><button class="community-chat-close" onclick="communityUiClose()">×</button></div><div class="community-ui-body">'+body+'</div>'+actions+'</div>';m.addEventListener('click',e=>{if(e.target===m)communityUiClose()});document.body.appendChild(m);return m}
@@ -3084,7 +2008,7 @@ async function communityMeetingRpc(fn,args){
   const token=String(localStorage.getItem('dxn_session')||'').trim();
   if(!token){toast('انتهت جلسة الدخول. أعد تسجيل الدخول.');return null}
   try{
-    const response=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn,args:{...(args||{}),p_token:token,p_display_name:currentAccountName()}}),cache:'no-store'});
+    const response=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn,args:{...(args||{}),p_token:token}}),cache:'no-store'});
     const data=await response.json().catch(()=>({}));
     if(!response.ok||data?.error) throw new Error(data?.error||'تعذر تنفيذ العملية');
     return data;
@@ -3937,7 +2861,6 @@ function ragwanDoorJourneyMarkup(){
       '</div>'+
     '</div>'+
     '<div class="ragwan-door-controls"><button type="button" class="ragwan-door-nav" onclick="ragwanPrevDoor()">‹</button>'+chips+'<button type="button" class="ragwan-door-nav" onclick="ragwanNextDoor()">›</button></div>'+
-    '<button type="button" class="ragwan-mobile-back" onclick="ragwanMobileBackOneStep(event)" aria-label="الرجوع خطوة واحدة" title="الرجوع خطوة واحدة">‹</button>'+
     '<div class="ragwan-journey-note">✨ خطوات بسيطة اليوم... تصنع نجاحات كبيرة غدًا</div>'+
   '</section>';
 }
@@ -5836,17 +4759,7 @@ function ragwanEnterNextStep(){
   }
   ragwanStartStep();
 }
-function ragwanPrevDoor(){
-  const previous=Math.max(1,Number(ragwanCurrentStep||1)-1);
-  if(previous===ragwanCurrentStep)return;
-  ragwanOpenDoor(previous);
-}
-function ragwanMobileBackOneStep(event){
-  if(event){event.preventDefault();event.stopPropagation();}
-  const current=Math.max(1,Number(ragwanCurrentStep||1));
-  if(current<=1)return;
-  ragwanOpenDoor(current-1);
-}
+function ragwanPrevDoor(){ragwanOpenDoor(Math.max(1,ragwanCurrentStep-1));}
 function ragwanNextDoor(){
   const state=ragwanProgressLoad(),next=Math.min(10,ragwanCurrentStep+1);
   if(!ragwanIsPreviewMember() && next>ragwanProgressNextStep()&&!state.completed.includes(ragwanCurrentStep)){toast('🔒 أكمل الخطوة الحالية أولًا.');return;}
@@ -6594,7 +5507,7 @@ function printProspectLog(){
     'body{font-family:Arial,Tahoma,sans-serif;padding:28px;color:#173b32}h1{text-align:center;margin:0 0 8px;font-size:24px}p{text-align:center;color:#66756f;margin:0 0 22px}.print-table{width:100%;border-collapse:collapse;font-size:14px}.print-table th{background:#eef4f1;font-weight:900}.print-table th,.print-table td{border:1px solid #bfcfc8;padding:12px 14px;text-align:right;vertical-align:middle}.print-status{font-weight:900}.print-status-ok{color:#15803d}.print-status-no{color:#b91c1c}.print-status-wait{color:#b77900}@media print{body{padding:10px}button{display:none}}'+
     '</style></head><body><h1>📋 سجل طلبات التواصل</h1><p>مجتمع الصحة والثراء — جميع طلبات التواصل</p>'+
     clone.outerHTML.replace('class="prospect-log-table"','class="print-table"')+
-    '</body></html>');
+    '<!-- stable deployment refresh 2026-09-21 --></body></html>');
   w.document.close();
   setTimeout(function(){w.print();},300);
 }
@@ -7464,14 +6377,13 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 
 .community-chat-modal{position:fixed;inset:0;z-index:10050;background:rgba(3,20,16,.58);backdrop-filter:blur(7px);display:flex;align-items:center;justify-content:center;padding:20px}
 .community-chat-box{width:min(760px,96vw);height:min(680px,88vh);background:#fff;border:1px solid rgba(15,81,63,.16);border-radius:26px;box-shadow:0 30px 90px rgba(0,0,0,.28);display:flex;flex-direction:column;overflow:hidden;direction:rtl}
-@media(min-width:701px){#communityChatModal .community-chat-box{width:min(980px,88vw);height:min(760px,84vh)}}
 .community-chat-head{padding:16px 18px;background:linear-gradient(135deg,#0f513f,#176b55);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .community-chat-head-info{display:flex;align-items:center;gap:11px}.community-chat-head-icon{width:46px;height:46px;border-radius:15px;background:rgba(255,255,255,.14);display:grid;place-items:center;font-size:24px}.community-chat-head b{display:block;font-size:17px}.community-chat-head small{display:block;margin-top:3px;opacity:.78;font-size:11px}
 .community-chat-close{width:40px;height:40px;border:1px solid rgba(255,255,255,.22);border-radius:12px;background:rgba(255,255,255,.1);color:#fff;font-size:20px;cursor:pointer}
 .community-chat-messages{flex:1;overflow:auto;padding:22px;background:linear-gradient(180deg,#f4faf7,#edf5f1);display:flex;flex-direction:column;gap:12px}
 .community-chat-empty{margin:auto;text-align:center;color:#667085;max-width:380px}.community-chat-empty .icon{font-size:42px;margin-bottom:8px}.community-chat-empty b{display:block;color:#18352c;font-size:18px;margin-bottom:6px}
 .community-chat-msg{max-width:78%;padding:11px 14px;border-radius:16px;background:#fff;border:1px solid #e1ebe6;box-shadow:0 4px 14px rgba(15,81,63,.06);align-self:flex-start}.community-chat-msg.mine{align-self:flex-end;background:#0f513f;color:#fff;border-color:#0f513f}.community-chat-msg small{display:block;font-size:10px;opacity:.62;margin-top:5px}
-.community-chat-compose{padding:12px;border-top:1px solid #e2e8e5;background:#fff;display:flex;gap:9px;align-items:center;position:relative}.community-chat-compose .community-composer-field{flex:1 1 auto;min-width:0;width:auto}.community-chat-compose .community-chat-input{width:100%;box-sizing:border-box;min-width:0;border:1px solid #d7e3de;border-radius:14px;padding:12px 14px;font:inherit;outline:none}.community-chat-input:focus{border-color:#176b55;box-shadow:0 0 0 3px rgba(23,107,85,.1)}.community-chat-send{border:0;border-radius:14px;padding:0 20px;background:#f6c94f;color:#18352c;font-weight:900;cursor:pointer}.community-chat-send:disabled{opacity:.5;cursor:not-allowed}
+.community-chat-compose{padding:12px;border-top:1px solid #e2e8e5;background:#fff;display:flex;gap:9px;align-items:center;position:relative}.community-chat-input{flex:1;min-width:0;border:1px solid #d7e3de;border-radius:14px;padding:12px 14px;font:inherit;outline:none}.community-chat-input:focus{border-color:#176b55;box-shadow:0 0 0 3px rgba(23,107,85,.1)}.community-chat-send{border:0;border-radius:14px;padding:0 20px;background:#f6c94f;color:#18352c;font-weight:900;cursor:pointer}.community-chat-send:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:600px){.community-chat-modal{padding:8px}.community-chat-box{width:100%;height:94vh;border-radius:20px}.community-chat-msg{max-width:88%}}
 .community-hero-v2{min-height:380px!important;background-image:linear-gradient(90deg,rgba(3,31,25,.42),rgba(3,31,25,.20) 52%,rgba(3,31,25,.12)),url("community-networking-header.png?v=20260925-4")!important;background-size:cover!important;background-position:center 45%!important;background-repeat:no-repeat!important;border:1px solid rgba(246,209,106,.24);box-shadow:0 28px 65px rgba(3,45,35,.28)!important;isolation:isolate}.community-hero-v2 .community-hero-content{min-height:370px!important;padding:38px 44px!important;position:relative}.community-hero-v2:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 78% 45%,rgba(244,205,86,.18),transparent 25%),radial-gradient(circle at 18% 25%,rgba(76,205,135,.16),transparent 24%),linear-gradient(120deg,transparent 45%,rgba(255,255,255,.025));z-index:-1}.community-hero-v2:after{content:"";position:absolute;inset:auto -10% -65% -10%;height:240px;background:radial-gradient(ellipse,rgba(239,202,76,.18),transparent 65%);z-index:-1}.community-hero-v2 .community-glow{position:absolute;border-radius:50%;filter:blur(3px);opacity:.55;z-index:-1}.community-hero-v2 .glow-a{width:240px;height:240px;left:7%;top:-70px;background:radial-gradient(circle,rgba(103,218,130,.32),transparent 68%)}.community-hero-v2 .glow-b{width:300px;height:300px;right:-80px;bottom:-130px;background:radial-gradient(circle,rgba(246,205,76,.22),transparent 68%)}.community-hero-v2 .community-live-badge{z-index:4;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.22);color:#fff}.community-brand-panel{width:310px;min-height:285px;border-radius:28px;padding:22px;text-align:center;background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.045));border:1px solid rgba(255,255,255,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 18px 40px rgba(0,0,0,.18);backdrop-filter:blur(12px);display:flex;flex-direction:column;align-items:center;justify-content:center}.community-logo-wrap{width:126px;height:126px;border-radius:34px;display:grid;place-items:center;background:radial-gradient(circle,#fff7c9 0%,#d8efaa 34%,#4caf72 66%,#0c5c45 100%);box-shadow:0 0 0 7px rgba(246,209,106,.14),0 0 38px rgba(246,209,106,.2);padding:14px}.community-logo-wrap img{max-width:100%;max-height:100%;object-fit:contain;filter:drop-shadow(0 7px 12px rgba(0,0,0,.2))}.community-brand-name{margin-top:13px;font-size:21px;font-weight:950;color:#fff}.community-brand-tag{margin-top:4px;color:#f6d16a;font-size:11px;font-weight:800}.community-brand-line{width:70px;height:2px;margin:13px 0 10px;background:linear-gradient(90deg,transparent,#f6d16a,transparent)}.community-mini-stats{display:flex;gap:15px;color:rgba(255,255,255,.82);font-size:10px}.community-mini-stats span{display:flex;align-items:center;gap:3px}.community-mini-stats b{font-size:13px}.community-hero-v2 .community-hero-copy{max-width:690px;margin-inline-start:auto}.community-hero-v2 .community-kicker{color:#f6d16a;font-size:13px;letter-spacing:.2px}.community-hero-v2 h1{font-size:clamp(32px,4.2vw,50px)!important;line-height:1.16!important;margin:6px 0 15px!important;text-shadow:0 5px 20px rgba(0,0,0,.2)}.community-hero-v2 h1 strong{color:#f7d45f}.community-hero-v2 .community-hero-copy p{max-width:650px;font-size:15px;line-height:1.9;color:rgba(255,255,255,.84)}.community-floating-card{position:absolute;z-index:4;padding:10px 14px;border-radius:15px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(10px);color:#fff;box-shadow:0 12px 28px rgba(0,0,0,.12)}.community-floating-card b{display:block;font-size:11px;color:#f7d45f}.community-floating-card span{display:block;font-size:9px;color:rgba(255,255,255,.72);margin-top:2px}.float-one{left:37%;top:22px}.float-two{left:34%;bottom:25px}.community-leaf{position:absolute;color:#7ed69a;opacity:.25;font-size:30px;transform:rotate(35deg);z-index:-1}.leaf-a{left:28%;top:45px}.leaf-b{right:24%;bottom:40px}.community-hero-v2 .community-hero-actions button{min-height:50px;padding:12px 23px;border-radius:16px}.community-hero-v2 .community-main-action{box-shadow:0 10px 25px rgba(246,207,78,.22)!important}.community-quick{min-height:86px!important}.community-quick .quick-icon{box-shadow:inset 0 1px 0 rgba(255,255,255,.7)}@media(max-width:900px){.community-hero-v2{min-height:500px!important}.community-hero-v2 .community-hero-content{min-height:500px!important;flex-direction:column;padding:28px 24px!important;justify-content:flex-end}.community-brand-panel{width:250px;min-height:205px;padding:15px;position:absolute;top:50px;left:50%;transform:translateX(-50%)}.community-logo-wrap{width:88px;height:88px;border-radius:25px}.community-brand-name{font-size:16px}.community-brand-tag{font-size:9px}.community-hero-v2 .community-hero-copy{width:100%;max-width:none;text-align:center}.community-hero-v2 .community-hero-copy p{font-size:13px}.community-hero-v2 .community-hero-actions{justify-content:center}.float-one{left:10px;top:120px}.float-two{right:10px;left:auto;bottom:155px}}@media(max-width:620px){.community-hero-v2{min-height:510px!important;border-radius:24px}.community-hero-v2 .community-hero-content{min-height:510px!important;padding:22px 15px!important}.community-brand-panel{top:54px;width:220px;min-height:190px}.community-logo-wrap{width:78px;height:78px}.community-brand-name{font-size:15px}.community-hero-v2 h1{font-size:29px!important}.community-hero-v2 .community-hero-copy p{font-size:12px;line-height:1.75}.community-hero-v2 .community-hero-actions{display:grid;grid-template-columns:1fr 1fr}.community-hero-v2 .community-hero-actions button{padding:10px 7px;min-height:45px}.community-floating-card{display:none}.community-quick{min-height:105px!important}}
 .community-page{margin-top:12px;color:#123b30}.community-hero{position:relative;overflow:hidden;min-height:310px;border-radius:30px;background:linear-gradient(135deg,#052f26,#0f513f 52%,#062e25);box-shadow:0 22px 55px rgba(5,48,38,.24);color:#fff}.community-hero-bg{position:absolute;inset:0;background-image:linear-gradient(90deg,rgba(3,36,29,.97),rgba(5,56,43,.84) 48%,rgba(5,45,35,.35)),url("/login-header.png");background-size:cover;background-position:center}.community-hero-content{position:relative;z-index:2;min-height:310px;padding:32px 38px;display:flex;align-items:center;gap:28px}.community-hero-copy{max-width:680px}.community-kicker{font-weight:950;color:#f6d16a;font-size:14px;margin-bottom:9px}.community-hero h1{font-size:clamp(28px,4vw,46px);line-height:1.15;margin:0 0 12px;font-weight:950;color:#fff}.community-hero p{font-size:16px;line-height:1.9;color:rgba(255,255,255,.9);margin:0 0 20px}.community-live-badge{position:absolute;top:22px;right:28px;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(10px);font-weight:900;font-size:12px}.community-live-badge span{display:inline-block;width:8px;height:8px;border-radius:50%;background:#35e08a;box-shadow:0 0 12px #35e08a;margin-left:5px}.community-hero-actions{display:flex;gap:10px;flex-wrap:wrap}.community-hero-actions button{min-height:48px;padding:12px 20px;border-radius:15px;font-weight:950}.community-main-action{background:#f5c84b!important;color:#17382d!important}.community-secondary-action{background:rgba(255,255,255,.12)!important;color:#fff!important;border:1px solid rgba(255,255,255,.3)!important}.community-hero-orb{margin-inline-start:auto;flex:0 0 210px;width:210px;height:210px;border-radius:50%;display:grid;place-items:center;text-align:center;background:radial-gradient(circle at 35% 30%,#e8ffb2,#57bd72 35%,#0c694e 68%,#063a2e);box-shadow:0 0 0 10px rgba(255,255,255,.05),0 0 65px rgba(84,218,133,.28);font-size:18px}.community-orb-icon{font-size:62px;line-height:1}.community-orb-ring{position:absolute;width:178px;height:178px;border:2px solid rgba(255,226,119,.65);border-radius:50%}.community-quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}.community-quick{display:flex;align-items:center;gap:12px;text-align:right;padding:15px;border-radius:20px;background:#fff;border:1px solid #dfece6;box-shadow:0 9px 25px rgba(15,81,63,.08);min-height:92px;transition:.2s}.community-quick:hover{transform:translateY(-3px)}.community-quick .quick-icon{width:50px;height:50px;display:grid;place-items:center;border-radius:15px;font-size:27px;flex:0 0 50px}.community-quick b{display:block;font-size:15px}.community-quick small{display:block;color:#6d7d76;font-size:11px;margin-top:4px}.community-main-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(280px,.8fr);gap:14px;margin-top:14px}.community-feed-card,.community-side-card{background:#fff;border:1px solid #dfece6;border-radius:24px;padding:18px;box-shadow:0 10px 28px rgba(15,81,63,.07)}.community-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.community-section-head h2{margin:3px 0 0;font-size:20px}.community-label{font-size:11px;color:#0f7a58;font-weight:950}.community-post{display:flex;gap:12px;padding:15px 0;border-bottom:1px solid #edf2ef}.community-post-body{min-width:0;flex:1}.community-post-top{display:flex;justify-content:space-between;gap:10px}.community-post-top time{font-size:11px;color:#91a098}.community-post p{margin:6px 0 10px;line-height:1.8;color:#43544d;font-size:13px}.community-post-actions{display:flex;gap:7px;flex-wrap:wrap}.community-post-actions button{min-height:34px;padding:6px 10px;font-size:11px;background:#f3f7f5}.community-avatar{width:48px;height:48px;flex:0 0 48px;border-radius:16px;display:grid;place-items:center;font-size:20px;font-weight:950}.avatar-green{background:#d9f5e7;color:#0f513f}.avatar-gold{background:#fff0c4;color:#785b00}.community-event-mini{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:14px;background:#f4faf7;border:1px solid #dceee5}.community-event-mini b{font-size:12px;flex:1}.community-profile-mini{display:flex;align-items:center;gap:12px;padding:12px;border-radius:18px;background:#f3faf7;border:1px solid #e0ece7;margin-bottom:12px}.community-profile-avatar{width:50px;height:50px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(135deg,#0f513f,#2c8b69);color:#fff;font-size:21px}.community-profile-mini b{display:block}.community-profile-mini small{display:block;color:#75857e;margin-top:3px}.community-stat-row{display:flex;justify-content:space-between;padding:12px 3px;border-bottom:1px solid #edf2ef;font-size:13px}.community-stat-row strong{color:#0f513f}.community-full-btn{width:100%;margin-top:14px;background:#0f513f;color:#fff}.community-meet-banner{margin-top:14px;border-radius:24px;padding:22px 24px;background:linear-gradient(110deg,#151a37,#24366d 55%,#6c43a5);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:20px}.community-meet-banner h2{margin:4px 0 6px;color:#fff}.community-meet-banner p{margin:0;color:rgba(255,255,255,.82);font-size:13px}.community-meet-actions{display:flex;gap:8px;flex-wrap:wrap}.community-meet-actions button{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);min-height:42px}.community-meet-actions button:first-child{background:#f4c94d;color:#1b3040;border:0}@media(max-width:900px){.community-quick-grid{grid-template-columns:repeat(2,1fr)}.community-main-grid{grid-template-columns:1fr}.community-hero-content{padding:28px 24px}.community-hero-orb{flex-basis:160px;width:160px;height:160px}.community-orb-ring{width:135px;height:135px}}@media(max-width:620px){.community-hero{min-height:420px}.community-hero-content{min-height:420px;padding:28px 18px;align-items:flex-end}.community-hero-copy{width:100%}.community-live-badge{top:16px;right:16px}.community-hero h1{font-size:30px}.community-hero p{font-size:13px}.community-hero-orb{position:absolute;top:64px;left:50%;transform:translateX(-50%);width:135px;height:135px;font-size:12px}.community-orb-ring{width:115px;height:115px}.community-orb-icon{font-size:42px}.community-hero-actions{display:grid;grid-template-columns:1fr 1fr}.community-hero-actions button{padding:10px 8px}.community-quick-grid{grid-template-columns:1fr 1fr;gap:9px}.community-quick{min-height:110px;padding:12px 9px;gap:7px}.community-quick .quick-icon{width:42px;height:42px;flex-basis:42px;font-size:22px}.community-quick b{font-size:12px}.community-quick small{font-size:10px}.community-feed-card,.community-side-card{padding:14px;border-radius:20px}.community-meet-banner{padding:18px;display:block}.community-meet-actions{margin-top:14px;display:grid;grid-template-columns:1fr 1fr}}
@@ -7776,8 +6688,8 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 </script>
 <script src="../training-assessment.js"></script><script src="../external-training-assessment-profile.js?v=3"></script>
 <script src="../training-assessment-buttons.js"></script>
-<script src="../training-assessment-layout.js?v=86.50.3"></script>
-<script src="../training-assessment-layout-fix.js?v=86.50.3"></script>
+<script src="../training-assessment-layout.js"></script>
+<script src="../training-assessment-layout-fix.js"></script>
 <script src="../training-assessment-lock.js"></script>
 <script src="../training-ai-grader.js"></script>
 <script src="../training-question-manager.js"></script>
@@ -8116,7 +7028,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 @media(max-width:650px){.ragwan-step5-video-share-btn{min-height:46px!important;font-size:13px!important}}
 </style>
 <style id="ragwan-welcome-preview-fix-v2">.ragwan-welcome-preview-wrap{min-width:0!important;max-width:100%!important;overflow:hidden!important}.ragwan-welcome-preview-wrap img#ragwanWelcomePreview{display:block!important;width:100%!important;max-width:100%!important;height:auto!important;max-height:78vh!important;object-fit:contain!important;margin:0 auto!important;border-radius:14px;box-sizing:border-box}</style><style id="global-preview-mode-v2">
-#globalPreviewLauncher{position:fixed;left:18px;bottom:118px;z-index:2147483000;display:none;direction:rtl}
+#globalPreviewLauncher{position:fixed;left:18px;bottom:18px;z-index:2147483000;display:none;direction:rtl}
 #globalPreviewLauncher.show{display:block}
 #globalPreviewLauncher .gp-launch{border:0;border-radius:16px;padding:11px 15px;background:#0f513f;color:#fff;font-weight:900;box-shadow:0 10px 28px rgba(0,0,0,.22);cursor:pointer}
 #globalPreviewPanel{position:fixed;inset:0;z-index:2147482999;display:none;background:rgba(8,24,20,.72);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:18px;direction:rtl}
@@ -8136,7 +7048,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 #globalPreviewPanel .gp-device.tablet{width:768px;height:1024px;border-radius:28px;border:10px solid #101613;box-sizing:content-box}
 #globalPreviewPanel .gp-device iframe{display:block;width:100%;height:100%;border:0;background:#fff}
 #globalPreviewPanel .gp-note{position:absolute;bottom:8px;left:12px;right:12px;text-align:center;color:#526760;font-size:11px;pointer-events:none}
-@media(max-width:700px){#globalPreviewLauncher{display:none!important;left:10px;bottom:76px}#globalPreviewPanel{padding:8px}#globalPreviewPanel .gp-shell{width:100%;height:100%;border-radius:18px}#globalPreviewPanel .gp-stage{padding:8px}#globalPreviewPanel .gp-device.portrait{width:min(390px,92vw);height:min(844px,calc(100vh - 130px));box-sizing:content-box}#globalPreviewPanel .gp-device.landscape{width:min(844px,96vw);height:min(390px,calc(100vh - 130px));box-sizing:content-box}}
+@media(max-width:700px){#globalPreviewLauncher{left:10px;bottom:10px}#globalPreviewPanel{padding:8px}#globalPreviewPanel .gp-shell{width:100%;height:100%;border-radius:18px}#globalPreviewPanel .gp-stage{padding:8px}#globalPreviewPanel .gp-device.portrait{width:min(390px,92vw);height:min(844px,calc(100vh - 130px));box-sizing:content-box}#globalPreviewPanel .gp-device.landscape{width:min(844px,96vw);height:min(390px,calc(100vh - 130px));box-sizing:content-box}}
 </style>
 <div id="globalPreviewLauncher" aria-hidden="true"><button type="button" class="gp-launch" id="globalPreviewOpen">👁️ معاينة الموقع</button></div>
 <div id="globalPreviewPanel" aria-hidden="true" role="dialog" aria-modal="true" aria-label="معاينة الموقع"><div class="gp-shell"><div class="gp-head"><div class="gp-title">👁️ معاينة الموقع — وضع الشرح</div><div class="gp-controls"><button type="button" data-preview-mode="desktop">🖥️ كمبيوتر</button><button type="button" data-preview-mode="portrait">📱 موبايل</button><button type="button" data-preview-mode="landscape">📲 أفقي</button><button type="button" data-preview-mode="tablet">📱 جهاز لوحي (آيباد)</button><button type="button" id="globalPreviewZoomOut" title="تصغير المعاينة">➖</button><button type="button" id="globalPreviewZoomReset" title="الحجم الطبيعي">100%</button><button type="button" id="globalPreviewZoomIn" title="تكبير المعاينة">➕</button><button type="button" class="gp-close" id="globalPreviewClose">✕ إغلاق</button></div></div><div class="gp-stage"><div id="globalPreviewDevice" class="gp-device portrait"><iframe id="globalPreviewFrame" title="معاينة نسخة الموبايل" loading="eager"></iframe></div><div class="gp-note">المعاينة تستخدم نافذة داخلية مستقلة؛ تصميم الصفحة الأصلي لا يتغير.</div></div></div></div>
@@ -8147,8 +7059,6 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
  if(embedded){if(launcher)launcher.remove();if(panel)panel.remove();window.addEventListener('message',function(e){if(!e.data||e.data.type!=='dxn-preview-sync')return;try{if(typeof tab!=='undefined'&&e.data.tab)tab=e.data.tab;if(typeof trainingSubtab!=='undefined'){trainingSubtab=e.data.tab==='training'?'home':(e.data.trainingSubtab||'home')}if(e.data.deviceMode==='tablet'){document.body.classList.add('tablet-preview-mode');if(typeof applyMode==='function')applyMode('mobile')}else{document.body.classList.remove('tablet-preview-mode');if(e.data.deviceMode&&typeof applyMode==='function'){applyMode(e.data.deviceMode)}}if(typeof render==='function')render()}catch(err){console.debug('preview sync',err)}});return;}
  function eligible(){
    if(embedded)return false;
-   // «معاينة الموقع» متاحة على الحاسوب فقط، ولا تظهر على شاشات الموبايل.
-   if(window.matchMedia && window.matchMedia('(max-width: 700px)').matches)return false;
    if(typeof role==='undefined')return false;
    if(role==='leader')return true;
    if(role!=='member')return false;
@@ -8170,7 +7080,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
  function show(){if(!eligible())return;panel.classList.add('show');panel.setAttribute('aria-hidden','false');mode('portrait');document.body.style.overflow='hidden'}
  function hide(){panel.classList.remove('show');panel.setAttribute('aria-hidden','true');document.body.style.overflow=''}
  function mount(){const ok=eligible();launcher.classList.toggle('show',ok);launcher.setAttribute('aria-hidden',String(!ok))}
- openBtn&&openBtn.addEventListener('click',show);closeBtn&&closeBtn.addEventListener('click',hide);zoomIn&&zoomIn.addEventListener('click',()=>changeZoom(.1));zoomOut&&zoomOut.addEventListener('click',()=>changeZoom(-.1));zoomReset&&zoomReset.addEventListener('click',()=>{previewZoom=1;const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});document.querySelectorAll('#globalPreviewPanel [data-preview-mode]').forEach(b=>b.addEventListener('click',()=>mode(b.dataset.previewMode)));frame&&frame.addEventListener('load',function(){hideEmbeddedScrollbars();try{frame.contentWindow.postMessage({type:'dxn-preview-auth',token:typeof token!=='undefined'?token:'',issued:localStorage.getItem('dxn_session_issued')||Date.now()},location.origin)}catch(e){}sync();const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});window.addEventListener('resize',function(){mount();const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&panel.classList.contains('show'))hide()});mount();const t=setInterval(()=>{if(eligible()){mount();clearInterval(t)}},500);
+ openBtn&&openBtn.addEventListener('click',show);closeBtn&&closeBtn.addEventListener('click',hide);zoomIn&&zoomIn.addEventListener('click',()=>changeZoom(.1));zoomOut&&zoomOut.addEventListener('click',()=>changeZoom(-.1));zoomReset&&zoomReset.addEventListener('click',()=>{previewZoom=1;const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});document.querySelectorAll('#globalPreviewPanel [data-preview-mode]').forEach(b=>b.addEventListener('click',()=>mode(b.dataset.previewMode)));frame&&frame.addEventListener('load',function(){hideEmbeddedScrollbars();try{frame.contentWindow.postMessage({type:'dxn-preview-auth',token:typeof token!=='undefined'?token:'',issued:localStorage.getItem('dxn_session_issued')||Date.now()},location.origin)}catch(e){}sync();const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});window.addEventListener('resize',function(){const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&panel.classList.contains('show'))hide()});mount();const t=setInterval(()=>{if(eligible()){mount();clearInterval(t)}},500);
 })();
 </script>
 </body>
