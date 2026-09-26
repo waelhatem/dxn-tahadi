@@ -2021,16 +2021,32 @@ async function communityChatOpen(){
     if(legacy.length) communityChatRender(legacy);
   }
   communityChatRpc('community_chat_list',{p_limit:100}).then(messages=>{
-    if(!document.getElementById('communityChatModal')) return;
-    if(Array.isArray(messages) && messages.length){
-      communityChatRender(messages);
-      return;
-    }
-    // إذا لم يرجع الخادم رسائل، أبقِ الرسائل المحلية القديمة ظاهرة.
-    if(box && (!Array.isArray(local)||!local.length)){
-      box.innerHTML='<div class="community-chat-empty"><div class="icon">⚠️</div><span>لا توجد رسائل محفوظة على الخادم.</span><button type="button" class="primary" style="margin-top:10px" onclick="communityChatRetry()">إعادة المحاولة</button></div>';
-    }
-  });
+     if(!document.getElementById('communityChatModal')) return;
+     const server=Array.isArray(messages)?messages:[];
+     // دمج سجل الخادم مع السجل المحلي القديم بدل استبداله.
+     const legacy=(Array.isArray(local)?local:[]).map(m=>({
+       sender_member_no:'',
+       sender_name:'أنت',
+       sender_role:'member',
+       message_text:String(m.text||''),
+       created_at:String(m.time||'')
+     })).filter(m=>m.message_text.trim());
+     const merged=[...legacy,...server].filter(m=>m&&String(m.message_text||'').trim());
+     merged.sort((a,b)=>new Date(a.created_at||0).getTime()-new Date(b.created_at||0).getTime());
+     const seen=new Set(), unique=[];
+     for(const item of merged){
+       const key=[String(item.message_text||''),String(item.created_at||'').slice(0,19),String(item.sender_member_no||''),String(item.sender_name||'')].join('|');
+       if(seen.has(key)) continue;
+       seen.add(key); unique.push(item);
+     }
+     if(unique.length){
+       communityChatRender(unique.slice(-200));
+       return;
+     }
+     if(box){
+       box.innerHTML='<div class="community-chat-empty"><div class="icon">⚠️</div><span>لا توجد رسائل محفوظة على الخادم.</span><button type="button" class="primary" style="margin-top:10px" onclick="communityChatRetry()">إعادة المحاولة</button></div>';
+     }
+   });
 }
 async function communityChatRetry(){
   const box=document.getElementById('communityChatMessages');
