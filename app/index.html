@@ -2143,7 +2143,7 @@ function communityToggleBold(){
   }
   input.focus();
 }
-function communityChatSend(e){
+async function communityChatSend(e){
   e.preventDefault();
   const input=document.getElementById('communityChatInput');
   const text=String(input?.value||'').trim();
