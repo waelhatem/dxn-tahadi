@@ -1142,6 +1142,34 @@ if(!window.__DXN_UI_STATE_SCROLL_BOUND__){
     t=setTimeout(()=>saveDxnUiState(),120);
   },{passive:true});
 }
+
+// V86 — Unified current-account identity.
+// All personalized UI must use this single identity source.
+// Member: name/member_no come from the authenticated bootstrap member.
+// Leader: name comes from the authenticated login identity, never from another member record.
+function currentAccountIdentity(){
+  const loginNo=String(localStorage.getItem('dxn_login_no')||'').trim();
+  const loginRole=String(localStorage.getItem('dxn_login_role')||'').trim().toLowerCase();
+  if(role==='member' && me){
+    return {
+      type:'member',
+      name:String(me.name||me.member_name||'عضو المجتمع').trim(),
+      member_no:String(me.member_no||me.membership_no||me.membership_number||loginNo).trim()
+    };
+  }
+  if(role==='leader' || loginRole==='leader'){
+    return {
+      type:'leader',
+      name:String(localStorage.getItem('dxn_leader_name')||'القائد').trim(),
+      member_no:'',
+      login_no:loginNo
+    };
+  }
+  return {type:'guest',name:'زائر',member_no:'',login_no:loginNo};
+}
+function currentAccountName(){return currentAccountIdentity().name}
+function currentAccountNo(){return currentAccountIdentity().member_no}
+
 const $=id=>document.getElementById(id); const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(s){$('toast').textContent=s;$('toast').classList.remove('hidden');setTimeout(()=>$('toast').classList.add('hidden'),2600)}
 
