@@ -1558,7 +1558,10 @@ async function login(){
         loginIdentity?.name||loginIdentity?.full_name||loginIdentity?.display_name||loginIdentity?.displayName
       )||''
     ).trim();
-    if(loginRole==='leader'&&loginLeaderName) localStorage.setItem('dxn_leader_name',loginLeaderName);
+    if(loginRole==='leader'){
+      const fixedLeaderName=DXN_LEADER_IDENTITY_OVERRIDES[loginNo]||loginLeaderName;
+      if(fixedLeaderName) localStorage.setItem('dxn_leader_name',fixedLeaderName);
+    }
     localStorage.setItem('dxn_session',token);
     localStorage.setItem('dxn_session_issued',String(Date.now()));
     await boot();
