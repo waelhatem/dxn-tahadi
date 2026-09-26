@@ -425,8 +425,11 @@ async function supabaseTableRequest(method,path,key,body){
 async function communitySession(token){
   const pToken=String(token||'').trim();
   if(!pToken) throw new Error('جلسة العضوية غير موجودة');
-  if(!SUPABASE_SECRET_KEY) throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
-  const boot=await supabaseRpcRequest('bootstrap',{p_token:pToken},SUPABASE_SECRET_KEY,10000);
+  // استخدم مفتاح الخادم عند توفره، وإلا استخدم المفتاح العام الذي يستطيع استدعاء bootstrap.
+  // هذا يمنع توقف المجتمع بالكامل بسبب غياب متغير SUPABASE_SECRET_KEY في Vercel.
+  const key=SUPABASE_SECRET_KEY||SUPABASE_KEY;
+  if(!key) throw new Error('مفاتيح Supabase غير مضبوطة في Vercel');
+  const boot=await supabaseRpcRequest('bootstrap',{p_token:pToken},key,10000);
   if(!boot.ok) throw new Error((boot.data&&(boot.data.message||boot.data.error||boot.data.hint))||boot.text||'جلسة الدخول غير صالحة');
   const member=Array.isArray(boot.data&&boot.data.members)?boot.data.members[0]:null;
   return {
