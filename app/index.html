@@ -996,6 +996,23 @@ body:has(.login-header-top)::before{
   .community-chat-attachment-image img{max-height:300px}
   .community-chat-attachment-video{max-height:300px}
 }
+</style><style id="communityChatMessageActionsV1">
+.community-chat-msg{position:relative}
+.community-chat-msg-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.community-chat-msg-top .community-chat-sender{flex:1;min-width:0}
+.community-chat-actions{position:relative;flex:0 0 auto}
+.community-chat-actions-trigger{width:30px!important;height:28px!important;min-height:28px!important;padding:0!important;border:0!important;border-radius:8px!important;background:rgba(255,255,255,.72)!important;color:#174f40!important;font-size:21px!important;font-weight:900!important;line-height:1!important;cursor:pointer!important}
+.community-chat-msg.mine .community-chat-actions-trigger{background:rgba(255,255,255,.16)!important;color:#fff!important}
+.community-chat-actions-menu{display:none;position:absolute;top:31px;right:0;z-index:20;min-width:175px;padding:5px;border:1px solid #dce9e3;border-radius:12px;background:#fff;box-shadow:0 10px 28px rgba(0,0,0,.16)}
+.community-chat-actions-menu.open{display:grid}
+.community-chat-actions-menu button{border:0;background:transparent;color:#18352c;padding:9px 10px;border-radius:8px;text-align:right;cursor:pointer;font-weight:800;white-space:nowrap}
+.community-chat-actions-menu button:hover{background:#eef7f3}
+.community-chat-actions-menu button.danger{color:#a32118}
+.community-chat-actions-menu button.danger:hover{background:#fff0ee}
+.community-chat-msg.mine .community-chat-actions-menu{right:0}
+@media(max-width:700px){
+  .community-chat-actions-menu{min-width:165px}
+}
 </style><style id="communityChatMobileAttachmentFixV1">
 /* V1 — Keep the community attachment menu fully inside the phone viewport. */
 @media(max-width:700px){
@@ -2193,6 +2210,44 @@ function communityChatAttachmentHtml(a){
   if(type.startsWith('audio/')) return '<audio class="community-chat-attachment-audio" controls preload="metadata" src="'+url+'"></audio>';
   return '<a class="community-chat-attachment-file" href="'+url+'" target="_blank" rel="noopener" download>📎 '+name+'</a>';
 }
+function communityChatToggleActions(e,id){
+  e?.stopPropagation();
+  document.querySelectorAll('.community-chat-actions-menu.open').forEach(menu=>{
+    if(menu.dataset.messageId!==String(id))menu.classList.remove('open');
+  });
+  const menu=document.querySelector('.community-chat-actions-menu[data-message-id="'+CSS.escape(String(id))+'"]');
+  if(menu)menu.classList.toggle('open');
+}
+async function communityChatEditMessage(id){
+  document.querySelectorAll('.community-chat-actions-menu').forEach(menu=>menu.classList.remove('open'));
+  const messages=await communityChatRpc('community_chat_list',{p_limit:200});
+  if(!messages)return;
+  const row=messages.find(m=>String(m.id)===String(id));
+  if(!row)return;
+  const payload=communityChatParsePayload(row.message_text||'');
+  const current=payload?String(payload.text||''):String(row.message_text||'');
+  const next=window.prompt('تعديل الرسالة:',current);
+  if(next===null)return;
+  const text=String(next).trim();
+  if(!text){toast('لا يمكن أن تكون الرسالة فارغة.');return}
+  const saved=await communityChatRpc('community_chat_edit',{p_id:id,p_message:text});
+  if(saved){
+    const fresh=await communityChatRpc('community_chat_list',{p_limit:100});
+    if(fresh)communityChatRender(fresh);
+    toast('تم تعديل الرسالة.');
+  }
+}
+async function communityChatDeleteMessage(id,hasImage){
+  document.querySelectorAll('.community-chat-actions-menu').forEach(menu=>menu.classList.remove('open'));
+  const message=hasImage?'حذف الصورة لدى الجميع؟':'حذف الرسالة لدى الجميع؟';
+  if(!window.confirm(message+'\n\nلن تعود ظاهرة لأي عضو في المجتمع.'))return;
+  const saved=await communityChatRpc('community_chat_delete',{p_id:id});
+  if(saved){
+    const fresh=await communityChatRpc('community_chat_list',{p_limit:100});
+    if(fresh)communityChatRender(fresh);
+    toast(hasImage?'تم حذف الصورة لدى الجميع.':'تم حذف الرسالة لدى الجميع.');
+  }
+}
 function communityChatRender(messages){
   const box=document.getElementById('communityChatMessages'); if(!box)return;
   if(!Array.isArray(messages)||!messages.length){box.innerHTML='<div class="community-chat-empty"><div class="icon">💬</div><b>ابدأ أول محادثة</b><span>اكتب رسالتك في الأسفل لبدء المحادثة.</span></div>';return}
@@ -2200,12 +2255,17 @@ function communityChatRender(messages){
   box.innerHTML=messages.map(m=>{
     const mine=(String(m.sender_member_no||'')&&String(m.sender_member_no||'')===String(identity.member_no||''))||(identity.type==='leader'&&m.sender_role==='leader'&&String(m.sender_name||'')===String(identity.name||''));
     const payload=communityChatParsePayload(m.message_text||'');
+    const hasImage=!!(payload&&payload.attachments||[]).find(a=>String(a?.type||'').toLowerCase().startsWith('image/'));
     const body=payload
       ? communityChatFormatMessage(payload.text||'')+'<div class="community-chat-attachment-grid">'+payload.attachments.map(communityChatAttachmentHtml).join('')+'</div>'
       : communityChatFormatMessage(m.message_text||'');
     const sender=communityEscapeHtml(m.sender_name||(m.sender_role==='leader'?'القائد':'عضو المجتمع'));
     const when=new Date(m.created_at||Date.now()).toLocaleString('ar-IQ');
-    return '<div class="community-chat-msg '+(mine?'mine':'')+'"><div class="community-chat-sender">'+sender+'</div><div>'+body+'</div><small>'+when+'</small></div>';
+    const edited=String(m.updated_at||'')&&String(m.updated_at)!==String(m.created_at||'');
+    const actions=mine
+      ? '<div class="community-chat-actions"><button type="button" class="community-chat-actions-trigger" aria-label="خيارات الرسالة" onclick="communityChatToggleActions(event,'+JSON.stringify(String(m.id))+')">⋮</button><div class="community-chat-actions-menu" data-message-id="'+communityEscapeHtml(String(m.id))+'"><button type="button" onclick="communityChatEditMessage('+JSON.stringify(String(m.id))+')">✏️ تعديل الرسالة</button><button type="button" class="danger" onclick="communityChatDeleteMessage('+JSON.stringify(String(m.id))+','+(hasImage?'true':'false')+')">'+(hasImage?'🗑️ حذف الصورة لدى الجميع':'🗑️ حذف لدى الجميع')+'</button></div></div>'
+      : '';
+    return '<div class="community-chat-msg '+(mine?'mine':'')+'"><div class="community-chat-msg-top"><div class="community-chat-sender">'+sender+'</div>'+actions+'</div><div>'+body+'</div><small>'+when+(edited?' · معدلة':'')+'</small></div>';
   }).join('');
   box.scrollTop=box.scrollHeight;
 }
@@ -2247,7 +2307,7 @@ async function communityUploadFile(file){
   });
   const data=await response.json().catch(()=>({}));
   if(!response.ok||!data?.ok)throw new Error(data?.error||'تعذر رفع المرفق');
-  return {url:data.url,name:data.name||file.name,type:data.type||file.type||'application/octet-stream',size:data.size||file.size};
+  return {url:data.url,path:data.path||'',name:data.name||file.name,type:data.type||file.type||'application/octet-stream',size:data.size||file.size};
 }
 async function communityChatSend(e){
   e.preventDefault();
