@@ -1158,12 +1158,14 @@ function currentAccountIdentity(){
     };
   }
   if(role==='leader' || loginRole==='leader'){
-    return {
-      type:'leader',
-      name:String(localStorage.getItem('dxn_leader_name')||'القائد').trim(),
-      member_no:'',
-      login_no:loginNo
-    };
+    const candidate=data?.leader||data?.user||data?.profile||data?.account||{};
+    const name=String(
+      localStorage.getItem('dxn_leader_name')||
+      data?.leader_name||data?.leaderName||
+      candidate.name||candidate.full_name||candidate.display_name||candidate.displayName||
+      'القائد'
+    ).trim();
+    return {type:'leader',name,member_no:'',login_no:loginNo};
   }
   return {type:'guest',name:'زائر',member_no:'',login_no:loginNo};
 }
@@ -1275,7 +1277,19 @@ async function boot(){
   if(!issued||Date.now()-issued>SESSION_MAX_MS){localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');token='';renderLogin();toast('انتهت الجلسة، يرجى تسجيل الدخول من جديد.');return}
   try{
     const d=await rpc('bootstrap',{p_token:token});
-    data=d;role=d.role;me=(d.members||[])[0]||null;invalidateNotificationCache();
+    data=d;role=d.role;
+    // Never treat the first team member as the leader.
+    me=role==='member' ? ((d.members||[])[0]||null) : null;
+    if(role==='leader'){
+      const leaderCandidate=d.leader||d.user||d.profile||d.account||{};
+      const leaderName=String(
+        d.leader_name||d.leaderName||
+        leaderCandidate.name||leaderCandidate.full_name||
+        leaderCandidate.display_name||leaderCandidate.displayName||''
+      ).trim();
+      if(leaderName) localStorage.setItem('dxn_leader_name',leaderName);
+    }
+    invalidateNotificationCache();
     // ارسم الواجهة الأساسية فور اكتمال bootstrap، ولا تجعل بيانات الأقسام الثانوية تحجب التنقل.
     render();
     restoreDxnUiState();
@@ -1529,6 +1543,17 @@ async function login(){
 
     const r=await rpc('login',{p_login_no:loginNo,p_pin:pin});
     token=r.token;
+    const loginIdentity=r&&(
+      r.user||r.profile||r.account||r.leader||
+      (r.leader_name?{name:r.leader_name}:null)
+    );
+    const loginLeaderName=String(
+      r&&(
+        r.leader_name||r.leaderName||
+        loginIdentity?.name||loginIdentity?.full_name||loginIdentity?.display_name||loginIdentity?.displayName
+      )||''
+    ).trim();
+    if(loginRole==='leader'&&loginLeaderName) localStorage.setItem('dxn_leader_name',loginLeaderName);
     localStorage.setItem('dxn_session',token);
     localStorage.setItem('dxn_session_issued',String(Date.now()));
     await boot();
