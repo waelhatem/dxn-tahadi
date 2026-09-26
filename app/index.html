@@ -1967,16 +1967,18 @@ function communityEscapeHtml(v){return String(v??'').replace(/[&<>"']/g,function
 async function communityChatRpc(fn,args){
   const token=String(localStorage.getItem('dxn_session')||'').trim();
   if(!token){toast('انتهت جلسة الدخول. أعد تسجيل الدخول.');return null}
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),15000);
   try{
-    const response=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn,args:{...(args||{}),p_token:token}}),cache:'no-store'});
+    const response=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn,args:{...(args||{}),p_token:token}}),cache:'no-store',signal:controller.signal});
     const data=await response.json().catch(()=>({}));
     if(!response.ok||data?.error) throw new Error(data?.error||'تعذر تنفيذ العملية');
     return data;
   }catch(error){
     console.error('Community chat:',error);
-    toast(error?.message||'تعذر الاتصال بمحادثة المجتمع.');
+    toast(error?.name==='AbortError'?'انتهت مهلة تحميل المحادثة.':(error?.message||'تعذر الاتصال بمحادثة المجتمع.'));
     return null;
-  }
+  }finally{clearTimeout(timer)}
 }
 async function communityChatOpen(){
   if(document.getElementById('communityChatModal'))return;
