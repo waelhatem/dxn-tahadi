@@ -1867,7 +1867,22 @@ async function boot(){
   const issued=Number(localStorage.getItem('dxn_session_issued')||0);
   if(!issued||Date.now()-issued>SESSION_MAX_MS){localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');token='';renderLogin();toast('انتهت الجلسة، يرجى تسجيل الدخول من جديد.');return}
   try{
-    const d=await rpc('bootstrap',{p_token:token});
+    let d;
+    let lastBootError=null;
+    for(let bootAttempt=1;bootAttempt<=3;bootAttempt++){
+      try{
+        d=await rpc('bootstrap',{p_token:token});
+        lastBootError=null;
+        break;
+      }catch(bootError){
+        lastBootError=bootError;
+        const bootStatus=Number(bootError?.status||0);
+        const isServerFailure=bootStatus===500||bootStatus===502||bootStatus===503||bootStatus===504;
+        if(!isServerFailure||bootAttempt===3) throw bootError;
+        await new Promise(resolve=>setTimeout(resolve,700*bootAttempt));
+      }
+    }
+    if(lastBootError&&!d) throw lastBootError;
     data=d;role=d.role;
     // Never treat the first team member as the leader.
     me=role==='member' ? ((d.members||[])[0]||null) : null;
