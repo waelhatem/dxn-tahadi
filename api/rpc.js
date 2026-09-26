@@ -422,7 +422,7 @@ async function supabaseTableRequest(method,path,key,body){
   });
 }
 
-async function communitySession(token){
+async function communitySession(token,args={}){
   const pToken=String(token||'').trim();
   if(!pToken) throw new Error('جلسة العضوية غير موجودة');
   if(!SUPABASE_SECRET_KEY) throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
@@ -441,7 +441,7 @@ async function communitySession(token){
     leaderCandidate.displayName||
     ''
   ).trim();
-  const requestedDisplayName=String(args&&args.p_display_name||'').trim();
+  const requestedDisplayName=String(args?.p_display_name||'').trim();
   return {
     role:sessionRole,
     member_no:String(member&&member.member_no||'').trim(),
@@ -451,7 +451,7 @@ async function communitySession(token){
 }
 
 async function communityMeetingsList(args){
-  await communitySession(args.p_token);
+  await communitySession(args.p_token,args);
   const url='/rest/v1/community_meetings?select=id,organizer_member_no,organizer_name,title,scheduled_at,duration_minutes,description,meeting_url,status,created_at,updated_at&status=eq.scheduled&scheduled_at=gte.'+encodeURIComponent(new Date().toISOString())+'&order=scheduled_at.asc&limit=100';
   const rows=await supabaseTableRequest('GET',url,SUPABASE_SECRET_KEY);
   if(!rows.ok || !Array.isArray(rows.data)) throw new Error((rows.data&&(rows.data.message||rows.data.error||rows.data.hint))||rows.text||'تعذر تحميل جدول اللقاءات');
@@ -459,7 +459,7 @@ async function communityMeetingsList(args){
 }
 
 async function communityMeetingCreate(args){
-  const session=await communitySession(args.p_token);
+  const session=await communitySession(args.p_token,args);
   const title=String(args.p_title||'').trim();
   const scheduledAt=String(args.p_scheduled_at||'').trim();
   const duration=Math.max(5,Math.min(Number(args.p_duration_minutes)||60,720));
