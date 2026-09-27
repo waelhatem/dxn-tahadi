@@ -163,15 +163,10 @@ begin
           'other_member_no', coalesce(other_m.member_no,''),
           'last_message', lm.message_text,
           'last_message_at', c.last_message_at,
-          'unread_count', (
-            select count(*)
-            from public.community_private_messages um
-            where um.conversation_id = c.id
-              and um.recipient_user_id = v_user_id
-              and um.read_at is null
-          )
+          'unread_count', unread.unread_count
         ) as row_data,
-        c.last_message_at
+        c.last_message_at,
+        unread.unread_count
       from public.community_private_conversations c
       join public.app_users other_u
         on other_u.id = case when c.user_a = v_user_id then c.user_b else c.user_a end
@@ -183,8 +178,15 @@ begin
         order by pm.created_at desc
         limit 1
       ) lm on true
+      left join lateral (
+        select count(*)::integer as unread_count
+        from public.community_private_messages um
+        where um.conversation_id = c.id
+          and um.recipient_user_id = v_user_id
+          and um.read_at is null
+      ) unread on true
       where c.user_a = v_user_id or c.user_b = v_user_id
-      order by c.last_message_at desc
+      order by unread.unread_count desc, c.last_message_at desc
       limit v_limit
     ) q
   ), '[]'::jsonb);
