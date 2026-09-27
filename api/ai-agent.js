@@ -1435,7 +1435,8 @@ const LOCAL_KNOWLEDGE_FLAT=(()=>{
         content:text,
         priority:140,
         source:String(source?.slug||source?.source||'local_pdf'),
-        page:Number(page?.page||0)
+        page:Number(page?.page||0),
+        ...knowledgeAuthority({category:'source_pdf',priority:140,source:String(source?.slug||source?.source||'local_pdf')})
       });
     }
   }
@@ -1444,6 +1445,21 @@ const LOCAL_KNOWLEDGE_FLAT=(()=>{
 
 const durableKnowledgeCache=new Map();
 const DURABLE_KNOWLEDGE_CACHE_TTL_MS=2*60*1000;
+
+function knowledgeAuthority(item){
+  const category=String(item?.category||'').toLowerCase();
+  const source=String(item?.source||'').toLowerCase();
+  const priority=Math.max(0,Math.min(Number(item?.priority||0),100));
+  if(source.startsWith('uploaded_material:') || category==='uploaded_training' || category==='dxn_pdf_source_exact') return {score:1000+priority,label:'official_training_material'};
+  if(category==='dxn_ranks_authoritative') return {score:900+priority,label:'authoritative_dxn_knowledge'};
+  if(category==='dxn_marketing_plan_full' || category==='source_pdf') return {score:850+priority,label:'approved_source'};
+  if(category==='coach_behavior_permanent') return {score:800+priority,label:'approved_coach_behavior'};
+  if(category==='objections_training') return {score:750+priority,label:'training_material'};
+  if(category==='platform' || category==='training') return {score:600+priority,label:'platform_training'};
+  if(source.startsWith('learned_') || source.includes('conversation')) return {score:300+priority,label:'learned_experience'};
+  if(category.includes('memory') || source.includes('memory')) return {score:200+priority,label:'member_memory'};
+  return {score:100+priority,label:'general_knowledge'};
+}
 
 function knowledgeRoleScope(role){
   return String(role||'member').toLowerCase()==='leader'?'leader':'member';
@@ -1503,15 +1519,11 @@ async function loadAllDurableKnowledge(role){
     if(r.data.length<pageSize)break;
   }
 
-  const normalized=rows.map(x=>({
-    scope:x.scope||'global',
-    category:x.category||'platform',
-    title:x.title||null,
-    content:String(x.content||'').trim().slice(0,12000),
-    priority:Number(x.priority||0),
-    source:x.source||null,
-    updated_at:x.updated_at||null
-  })).filter(x=>x.content);
+  const normalized=rows.map(x=>{
+    const item={scope:x.scope||'global',category:x.category||'platform',title:x.title||null,content:String(x.content||'').trim().slice(0,12000),priority:Number(x.priority||0),source:x.source||null,updated_at:x.updated_at||null};
+    const authority=knowledgeAuthority(item);
+    return {...item,authority_score:authority.score,authority_label:authority.label};
+  }).filter(x=>x.content);
 
   durableKnowledgeCache.set(key,{at:Date.now(),rows:normalized});
   return normalized;
@@ -1527,16 +1539,11 @@ async function searchDurableKnowledge(token,role,query,limit=80){
       p_limit:Math.max(1,Math.min(Number(limit||80),80))
     });
     if(!r.ok||!Array.isArray(r.data))return [];
-    return r.data.map(x=>({
-      scope:x.scope||'global',
-      category:x.category||'platform',
-      title:x.title||null,
-      content:String(x.content||'').trim().slice(0,12000),
-      priority:Number(x.priority||0),
-      source:x.source||null,
-      updated_at:x.updated_at||null,
-      relevance:Number(x.relevance||0)
-    })).filter(x=>x.content);
+    return r.data.map(x=>{
+      const item={scope:x.scope||'global',category:x.category||'platform',title:x.title||null,content:String(x.content||'').trim().slice(0,12000),priority:Number(x.priority||0),source:x.source||null,updated_at:x.updated_at||null,relevance:Number(x.relevance||0)};
+      const authority=knowledgeAuthority(item);
+      return {...item,authority_score:authority.score,authority_label:authority.label};
+    }).filter(x=>x.content);
   }catch(_){return [];}
 }
 
@@ -2610,6 +2617,7 @@ function buildCostOptimizedAgentContext({
   const knowledgeLimit=rankRequest?36:(sourceRequest?60:(knowledgeRequest?24:6));
   const rankedKnowledge=chosenKnowledge.slice().sort((a,b)=>
     Number(b?.relevance||0)-Number(a?.relevance||0) ||
+    Number(b?.authority_score||0)-Number(a?.authority_score||0) ||
     Number(b?.priority||0)-Number(a?.priority||0)
   );
   for(const x of rankedKnowledge){
@@ -2623,7 +2631,9 @@ function buildCostOptimizedAgentContext({
       source:x?.source||null,
       page:x?.page||null,
       content:clipped,
-      priority:Number(x?.priority||0)
+      priority:Number(x?.priority||0),
+      authority_score:Number(x?.authority_score||0),
+      authority_label:x?.authority_label||'general_knowledge'
     };
     const chars=clipped.length+220;
     if(knowledgeChars+chars>75000)break;
