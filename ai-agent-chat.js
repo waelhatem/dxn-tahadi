@@ -4,7 +4,7 @@
   window.__DXN_AI_AGENT_CHAT_V1__=true;
 
   const STYLE=`
-  #dxnAgentLauncher{position:fixed;left:18px;bottom:78px;z-index:2147483000;width:56px;height:56px;border-radius:50%;background:#fff;color:#0f513f;border:2px solid #0f513f;box-shadow:0 8px 24px #0003;font-size:25px;font-weight:900;cursor:pointer}
+  #dxnAgentLauncher{position:fixed;left:18px;bottom:78px;z-index:2147483000;width:56px;height:56px;border-radius:50%;background:#fff;color:#0f513f;border:2px solid #0f513f;box-shadow:0 8px 24px #0003;font-size:25px;font-weight:900;cursor:pointer}#dxnAgentTrainingAdd{position:absolute;right:-5px;bottom:-4px;width:24px;height:24px;border-radius:50%;display:none;align-items:center;justify-content:center;background:#d99a18;color:#fff;border:2px solid #fff;font-size:14px;font-weight:950;box-shadow:0 4px 10px #0004;cursor:pointer;line-height:1}#dxnAgentLauncher.leader-mode #dxnAgentTrainingAdd{display:flex}
   #dxnAgentPanel{position:fixed;left:18px;bottom:145px;z-index:2147483001;width:min(420px,calc(100vw - 36px));height:min(620px,calc(100vh - 175px));background:#fff;border:1px solid #dce8e3;border-radius:22px;box-shadow:0 18px 55px #0004;display:none;overflow:hidden;direction:rtl}
   #dxnAgentPanel.show{display:flex;flex-direction:column}
   .dxn-agent-head{background:linear-gradient(135deg,#0c4738,#1a725b);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -421,10 +421,17 @@
   function mount(){
     if(document.getElementById('dxnAgentLauncher'))return;
     const style=el('style',{},STYLE);document.head.appendChild(style);
-    const btn=el('button',{id:'dxnAgentLauncher',type:'button',title:'المدرب وائل حاتم'},'🤖');
+    const btn=el('button',{id:'dxnAgentLauncher',type:'button',title:'المدرب وائل حاتم'},'🤖<span id="dxnAgentTrainingAdd" title="إضافة مادة تدريبية" aria-label="إضافة مادة تدريبية">📎</span>');
     const panel=el('section',{id:'dxnAgentPanel','aria-label':'محادثة المدرب وائل حاتم'});
+    const trainingFileInput=el('input',{id:'dxnAgentTrainingFileInput',type:'file',accept:'.pdf,image/*,video/*',multiple:'true'});trainingFileInput.style.display='none';document.body.appendChild(trainingFileInput);
     panel.innerHTML='<div class="dxn-agent-head"><div><b>🤖 المدرب وائل حاتم</b><small>مدربك داخل مجتمع الصحة والثراء</small></div><div class="dxn-agent-head-actions"><button id="dxnAgentPush" class="dxn-agent-push" type="button" title="تفعيل إشعارات المدرب وائل حاتم">🔔</button><button id="dxnAgentFollowupTest" class="dxn-agent-push" type="button" title="اختبار متابعة المدرب وائل حاتم">🧪</button><button class="dxn-agent-close" type="button">إغلاق</button></div></div><div id="dxnAgentMessages"></div><div id="dxnAgentStatus" class="dxn-agent-status"></div><form class="dxn-agent-form"><button id="dxnAgentMic" class="dxn-agent-mic" type="button" title="تحدث مع الوكيل">🎙️</button><textarea id="dxnAgentInput" placeholder="اكتب سؤالك هنا... أو اضغط 🎙️ للتحدث" rows="1"></textarea><button id="dxnAgentSend" type="submit">إرسال</button></form>';
     document.body.append(btn,panel);
+    function isLeaderForTraining(){try{const roleText=[...document.querySelectorAll('.mobile-member-identity .role-label,.member-identity .role-label')].map(x=>String(x.textContent||'')).join(' ');return roleText.includes('القائد');}catch(_){return false;}}
+    function syncTrainingAddIcon(){btn.classList.toggle('leader-mode',isLeaderForTraining());}
+    syncTrainingAddIcon();
+    const trainingRoleObserver=new MutationObserver(syncTrainingAddIcon);trainingRoleObserver.observe(document.body,{subtree:true,childList:true,characterData:true});
+    document.getElementById('dxnAgentTrainingAdd').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();if(!isLeaderForTraining())return;trainingFileInput.click();});
+    trainingFileInput.addEventListener('change',()=>{const files=[...trainingFileInput.files||[]];if(!files.length)return;panel.classList.add('show');addMsg('تم اختيار '+files.length+' مادة تدريبية. واجهة الإضافة جاهزة، والخطوة التالية هي ربطها بمعالجة PDF والصور والفيديو وتخزينها في قاعدة معرفة المدرب.','ai');trainingFileInput.value='';});
     btn.addEventListener('click',()=>{
       const opening=!panel.classList.contains('show');
       panel.classList.toggle('show');
