@@ -270,7 +270,7 @@ function isRankKnowledgeRequest(message){
 
 function isSourceKnowledgeRequest(message){
   const s=String(message||'').trim().toLowerCase();
-  return /(?:خطة\s*dxn|الخطة\s*المالية|الخطة\s*التسويقية|مراتب|رتب|رتبة|مستويات الشركة|وكيل نجم|نجم ياقوتي|النجم الماسي|السفير|qsa|qsd|sa|sr|sd|esd|ssd|essd|dd|edd|td|etd|gd|egd|cd|ecd|scd|escd|dcd|edcd|tcd|etcd|gcd|egcd|ca|عمولة|علاوة|حوافز|pv|sv|ppv|psv|pgpv|pgsv|dgpv|dgsv)/i.test(s);
+  return /(?:خطة\s*dxn|الخطة\s*المالية|الخطة\s*التسويقية|مراتب|رتب|رتبة|مستويات الشركة|وكيل نجم|نجم ياقوتي|النجم الماسي|السفير|qsa|qsd|sa|sr|sd|esd|ssd|essd|dd|edd|td|etd|gd|egd|cd|ecd|scd|escd|dcd|edcd|tcd|etcd|gcd|egcd|ca|عمولة|علاوة|حوافز|pv|sv|ppv|psv|pgpv|pgsv|dgpv|dgsv|استقطاب|دعوة|تشويق|التشويق|مرشح|المرشحين|قائمة المعارف|التنقيب|الجاذبية|الإصغاء|الانسجام|المواعيد|أماكن الدعوة|التجارة التقليدية|التجارة غير التقليدية|فنون الدعوة|مهارات الاستقطاب)/i.test(s);
 }
 
 function isDailyPlanRequest(message){
@@ -2605,8 +2605,9 @@ function buildCostOptimizedAgentContext({
   }else if(sourceRequest){
     chosenKnowledge=[...sourceRows,...relevantRows];
   }else if(knowledgeRequest){
-    // Source files participate in ordinary knowledge questions too.
-    // Do not require a brittle keyword pattern to recognize a trained topic.
+    // Source-file questions use the exact source layer. Training topics such as
+    // recruitment, invitation, curiosity and appointment rules are explicitly
+    // source-fidelity requests, even after a fresh session.
     chosenKnowledge=[...sourceRelevantRows,...relevantRows];
   }else{
     chosenKnowledge=relevantRows;
@@ -2846,7 +2847,7 @@ function instructions(context){
     'قاعدة صارمة لعزل السؤال: لا تستخدم أي معلومة من الذاكرة أو سجل الحوار أو الخطة اليومية إلا إذا كانت مرتبطة مباشرة بالسؤال الحالي. إذا تعارضت ذاكرة قديمة أو موضوع سابق مع الرسالة الحالية، تجاهل القديم وأجب عن الرسالة الحالية فقط. لا تجب عن سؤال آخر لم يُطرح.',
     'أولوية المعرفة: عندما يكون السؤال عن مادة تدريبية أو خطة DXN أو معلومة تم تثبيتها من ملف، استخدم knowledge_memory والمصدر الأصلي أولًا. لا تختصر قائمة أو جدولًا أو شروطًا متعددة إذا كان السؤال يطلبها كاملة، ولا تغيّر الأرقام أو أسماء المراتب. انقل الحقائق بأمانة ثم اشرحها بأسلوب احترافي.',
     'قاعدة تعارض المصادر: إذا أجابت أكثر من مادة عن نفس النقطة، فرتّب السلطة المعرفية هكذا: المعلومة الرسمية الحالية المعتمدة، ثم المادة التدريبية الرسمية التي رفعها القائد، ثم المعرفة المعتمدة الأقدم، ثم الخبرة المستخلصة من المحادثات والذاكرة، ثم المعرفة العامة أو الاستنتاج. داخل المستوى نفسه، قدّم المصدر الأحدث تحديثًا إذا كان أحدثه موثوقًا. لا تخلط بين مصدرين متعارضين وكأنهما حقيقة واحدة؛ إذا بقي التعارض بعد تطبيق هذه الأولوية، صرّح بوجود تعارض واذكر أي مصدر اعتمدته ولماذا. لا تحوّل تخمين النموذج إلى حقيقة لمجرد عدم وجود مصدر.',
-    'وضع أمانة المصدر: إذا كان السؤال يطلب معلومات من ملف تدريبي، فالمحتوى الموسوم source_pdf أو dxn_pdf_source_exact أو المصدر الأصلي للملف هو المرجع الأعلى. لا تستبدله بملخص من قاعدة المعرفة. عند وجود جدول أو قائمة في المصدر، حافظ على جميع العناصر والشروط التي طلبها العضو، ولا تقول إن التفاصيل غير موجودة إذا كانت موجودة في النص المصدر.',
+    'وضع أمانة المصدر: إذا كان السؤال يطلب معلومات من ملف تدريبي، فالمحتوى الموسوم source_pdf أو dxn_pdf_source_exact أو المصدر الأصلي للملف هو المرجع الأعلى. لا تستبدله بملخص من قاعدة المعرفة. عند وجود جدول أو قائمة في المصدر، حافظ على جميع العناصر والشروط التي طلبها العضو. إذا كان source_fidelity_mode = true وsource_knowledge_exact يحتوي مادة ذات صلة، فلا تقل إن نص المادة غير متاح أو إنك تحتاج إلى رفع الملف؛ استخدم النص الموجود في source_knowledge_exact وأجب منه مباشرة. لا تستخدم المعرفة العامة لاستبدال معلومة مصدرية موجودة.',
     'وجود coaching_session أو daily_auto_plan أو مهمة يومية في السياق لا يعني أن الرد يجب أن يكون عن التدريب. لا تجرّ السؤال الحالي إلى المهمة اليومية لمجرد وجود جلسة نشطة.',
     'إذا كان السؤال الحالي عن بيانات العضو أو فريقه أو أي موضوع آخر، ابقَ على موضوع السؤال. يمكن ذكر الجلسة أو الخطوة اليومية فقط بعد الإجابة وإذا كان ذلك مرتبطًا بشكل طبيعي بالطلب.',
     'لا تستخدم مرحلة الجلسة الحالية أو المهمة اليومية كبديل عن فهم الرسالة الحالية. القرار continue_daily_plan لا يُستخدم عندما تكون هناك نية مباشرة مثل ask_question أو request_help أو report_obstacle أو report_attempt.',
