@@ -703,39 +703,32 @@ async function aiTrainingMaterialProcess(args){
   if(String(boot.data?.role||'').trim().toLowerCase()!=='leader'){
     throw new Error('معالجة المواد التدريبية متاحة للقائد فقط');
   }
-  // لا نستدعي app_current_user_id هنا؛ هذه الدالة ليست ممنوحة لمفتاح الخدمة
-  // في بعض مشاريع Supabase. التحقق من أن الطالب قائد تم بالفعل عبر bootstrap،
-  // وسجل المادة نفسه أُنشئ بواسطة create_ai_training_material بعد التحقق من القائد.
-  // نستخدم UUID الخاص بالمادة للوصول إلى السجل مباشرة.
-  const rows=await supabaseTableRequest(
-    'GET',
-    '/rest/v1/ai_training_materials?select=id,title,material_type,mime_type,original_filename,storage_bucket,storage_path,domain,priority,status,metadata&id=eq.'+encodeURIComponent(materialId)+'&limit=1',
-    SUPABASE_SECRET_KEY
-  );
-  if(!rows.ok||!Array.isArray(rows.data)||!rows.data[0]){
-    throw new Error((rows.data?.message||rows.data?.error||rows.text||'المادة التدريبية غير موجودة'));
-  }
-  const material=rows.data[0];
+  const listed=await supabaseSecretRpc('get_ai_training_material_for_processing',{
+    p_token:token,
+    p_material_id:materialId
+  });
+  const material=Array.isArray(listed)?listed[0]:listed;
+  if(!material) throw new Error('المادة التدريبية غير موجودة أو غير مملوكة لهذا القائد');
   if(!['uploaded','failed','processing'].includes(String(material.status||''))){
     if(material.status==='ready') return {ok:true,material_id:materialId,status:'ready',chunks:0,already_ready:true};
     throw new Error('حالة المادة الحالية لا تسمح بالمعالجة: '+String(material.status||'غير معروفة'));
   }
 
-  await supabaseTableRequest(
-    'PATCH',
-    '/rest/v1/ai_training_materials?id=eq.'+encodeURIComponent(materialId),
-    SUPABASE_SECRET_KEY,
-    {status:'processing',error_message:null}
-  );
+  await supabaseSecretRpc('update_ai_training_material_processing',{
+    p_token:token,
+    p_material_id:materialId,
+    p_status:'processing',
+    p_error_message:null
+  });
 
   try{
     if(String(material.material_type)==='video'){
-      await supabaseTableRequest(
-        'PATCH',
-        '/rest/v1/ai_training_materials?id=eq.'+encodeURIComponent(materialId),
-        SUPABASE_SECRET_KEY,
-        {status:'uploaded',error_message:'الفيديو مخزن بنجاح، ومعالجة الصوت/الفيديو ستتم عبر عامل معالجة غير متزامن في المرحلة التالية.'}
-      );
+      await supabaseSecretRpc('update_ai_training_material_processing',{
+        p_token:token,
+        p_material_id:materialId,
+        p_status:'uploaded',
+        p_error_message:'الفيديو مخزن بنجاح، ومعالجة الصوت/الفيديو ستتم عبر عامل معالجة غير متزامن في المرحلة التالية.'
+      });
       return {ok:true,material_id:materialId,status:'uploaded',chunks:0,deferred:true,message:'تم التخزين، ومعالجة الفيديو مؤجلة للمرحلة التالية.'};
     }
 
@@ -818,21 +811,23 @@ async function aiTrainingMaterialProcess(args){
         extracted_at:new Date().toISOString()
       }
     };
-    await supabaseTableRequest(
-      'PATCH',
-      '/rest/v1/ai_training_materials?id=eq.'+encodeURIComponent(materialId),
-      SUPABASE_SECRET_KEY,
-      {status:'ready',processed_at:new Date().toISOString(),error_message:null,metadata}
-    );
+    await supabaseSecretRpc('update_ai_training_material_processing',{
+      p_token:token,
+      p_material_id:materialId,
+      p_status:'ready',
+      p_error_message:null,
+      p_metadata:metadata,
+      p_processed_at:new Date().toISOString()
+    });
 
     return {ok:true,material_id:materialId,status:'ready',chunks:saved.length};
   }catch(error){
-    await supabaseTableRequest(
-      'PATCH',
-      '/rest/v1/ai_training_materials?id=eq.'+encodeURIComponent(materialId),
-      SUPABASE_SECRET_KEY,
-      {status:'failed',error_message:String(error?.message||error).slice(0,1000)}
-    ).catch(()=>{});
+    await supabaseSecretRpc('update_ai_training_material_processing',{
+      p_token:token,
+      p_material_id:materialId,
+      p_status:'failed',
+      p_error_message:String(error?.message||error).slice(0,1000)
+    }).catch(()=>{});
     throw error;
   }
 }
