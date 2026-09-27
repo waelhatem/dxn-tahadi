@@ -2813,7 +2813,17 @@ function buildCostOptimizedAgentContext({
     if(compactTrainingMemory.length>Math.max(2,trainingRequest?6:3))break;
   }
 
-  const compactProfile=coachingProfile?{
+  if(sourceRequest){
+    // Strict source mode: keep the source material, but remove personal/learned memories
+    // that could cause the model to blend old training with the requested source.
+    compactCausal.length=0;
+    compactPatterns.length=0;
+    compactPermanent.length=0;
+    compactFacts.length=0;
+    compactTrainingMemory.length=0;
+  }
+
+  const compactProfile=sourceRequest?null:coachingProfile?{
     goal:coachingProfile.goal||null,
     experience_level:coachingProfile.experience_level||'unknown',
     focus_area:coachingProfile.focus_area||null,
@@ -2847,10 +2857,11 @@ function buildCostOptimizedAgentContext({
     permanent_memory:compactPermanent,
     learned_facts:compactFacts,
     member_training_memory:compactTrainingMemory,
-    knowledge_source_policy:'المعرفة المصدرية الكاملة للملفات التدريبية هي المرجع الأول للمعلومة. الذاكرة الشخصية للعضو للترابط والتخصيص. الرسالة الحالية تحدد موضوع الرد.',
+    knowledge_source_policy:'المعرفة المصدرية الكاملة للملفات التدريبية هي المرجع الأول للمعلومة. في وضع أمانة المصدر لا تستخدم الذاكرة الشخصية أو التعلم السابق لتأليف محتوى خارج المصدر.',
     source_fidelity_mode:sourceRequest||rankRequest,
+    strict_source_mode:sourceRequest,
     source_fidelity_rule:(sourceRequest||rankRequest)
-      ? 'استخدم النص المصدر ذي الصلة كما هو مرجعًا أولًا. لا تختصر أو تحذف عناصر جدول/قائمة عندما يطلب العضو التفاصيل.'
+      ? 'في وضع أمانة المصدر: استخدم المصدر المطلوب وحده كمرجع للإجابة. لا تعتمد على ذاكرة الحوار أو الذاكرة الشخصية أو التعلم السابق لإضافة أمثلة أو تفسيرات غير موجودة في المصدر. عندما يطلب العضو النقل كما ورد، انقل النص المصدر فقط.'
       : null,
     memory_continuity:{
       always_on:true,
@@ -2920,7 +2931,7 @@ function instructions(context){
     'قاعدة صارمة لعزل السؤال: لا تستخدم أي معلومة من الذاكرة أو سجل الحوار أو الخطة اليومية إلا إذا كانت مرتبطة مباشرة بالسؤال الحالي. إذا تعارضت ذاكرة قديمة أو موضوع سابق مع الرسالة الحالية، تجاهل القديم وأجب عن الرسالة الحالية فقط. لا تجب عن سؤال آخر لم يُطرح.',
     'أولوية المعرفة: عندما يكون السؤال عن مادة تدريبية أو خطة DXN أو معلومة تم تثبيتها من ملف، استخدم knowledge_memory والمصدر الأصلي أولًا. لا تختصر قائمة أو جدولًا أو شروطًا متعددة إذا كان السؤال يطلبها كاملة، ولا تغيّر الأرقام أو أسماء المراتب. انقل الحقائق بأمانة ثم اشرحها بأسلوب احترافي.',
     'قاعدة تعارض المصادر: إذا أجابت أكثر من مادة عن نفس النقطة، فرتّب السلطة المعرفية هكذا: المعلومة الرسمية الحالية المعتمدة، ثم المادة التدريبية الرسمية التي رفعها القائد، ثم المعرفة المعتمدة الأقدم، ثم الخبرة المستخلصة من المحادثات والذاكرة، ثم المعرفة العامة أو الاستنتاج. داخل المستوى نفسه، قدّم المصدر الأحدث تحديثًا إذا كان أحدثه موثوقًا. لا تخلط بين مصدرين متعارضين وكأنهما حقيقة واحدة؛ إذا بقي التعارض بعد تطبيق هذه الأولوية، صرّح بوجود تعارض واذكر أي مصدر اعتمدته ولماذا. لا تحوّل تخمين النموذج إلى حقيقة لمجرد عدم وجود مصدر.',
-    'وضع أمانة المصدر: إذا كان السؤال يطلب معلومات من ملف تدريبي، فالمحتوى الموسوم source_pdf أو dxn_pdf_source_exact أو المصدر الأصلي للملف هو المرجع الأعلى. لا تستبدله بملخص من قاعدة المعرفة. عند وجود جدول أو قائمة في المصدر، حافظ على جميع العناصر والشروط التي طلبها العضو. إذا كان source_fidelity_mode = true وsource_knowledge_exact يحتوي مادة ذات صلة، فلا تقل إن نص المادة غير متاح أو إنك تحتاج إلى رفع الملف؛ استخدم النص الموجود في source_knowledge_exact وأجب منه مباشرة. لا تستخدم المعرفة العامة لاستبدال معلومة مصدرية موجودة.',
+    'وضع أمانة المصدر: إذا كان السؤال يطلب معلومات من ملف تدريبي، فالمحتوى الموسوم source_pdf أو dxn_pdf_source_exact أو المصدر الأصلي للملف هو المرجع الأعلى. لا تستبدله بملخص من قاعدة المعرفة. عند وجود جدول أو قائمة في المصدر، حافظ على جميع العناصر والشروط التي طلبها العضو. إذا كان source_fidelity_mode = true وsource_knowledge_exact يحتوي مادة ذات صلة، فلا تقل إن نص المادة غير متاح أو إنك تحتاج إلى رفع الملف؛ استخدم النص الموجود في source_knowledge_exact وأجب منه مباشرة. وإذا كان strict_source_mode = true، فتجاهل تمامًا أي ذاكرة سابقة أو تعلم مستخلص أو أمثلة عامة، ولا تضف أي مثال أو تفسير أو استنتاج غير موجود في المصدر المطلوب. لا تستخدم المعرفة العامة لاستبدال معلومة مصدرية موجودة.',
     'المطابقة المصدرية معنوية وليست حرفية: لا تشترط أن يكون عنوان الوحدة أو العبارة الواردة في السؤال مطابقًا حرفيًا لعنوان المصدر. إذا كان محتوى source_knowledge_exact يشرح النقطة المطلوبة أو يذكر عناصرها، فهو جواب صالح للمطلوب.',
     'عندما يطلب العضو أمثلة أو نقاطًا أو عناصر أو ما ورد في المادة، استخرج العناصر من المحتوى المصدر نفسه حتى لو كان عنوان الوحدة مختلفًا. مثال: سؤال عن «أمثلة التشويق السيئ» يمكن أن يجيب منه نص «التشويق السيئ (السلبي)» الذي يسرد صور التشويق السيئ.',
     'إذا كان المصدر يحتوي على المعلومة المطلوبة بشكل مباشر، لا تقل إن المادة غير متاحة ولا تطلب رفع الملف لمجرد أن العبارة المطلوبة ليست عنوانًا حرفيًا في المصدر. استخدم النص المصدر أولًا ثم أجب بالنقاط المطلوبة دون إضافة من عندك.',
@@ -3472,8 +3483,11 @@ module.exports=async function handler(req,res){
     }
 
     const fallbackHistory=cleanHistory(body.history);
+    const strictSourceMode=isSourceKnowledgeRequest(message);
     const historySource=(persistentMemory.length?persistentMemory:fallbackHistory);
-    const history=historySource.slice(-24);
+    // Source-fidelity requests must not inherit prior conversation turns.
+    // The requested source is the authority for the answer.
+    const history=strictSourceMode?[]:historySource.slice(-24);
     const baseInput=[...history,{role:'user',content:message}];
     requestStage='build_state';
     const cognitiveState=buildCognitiveState({
