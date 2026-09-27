@@ -116,6 +116,50 @@ async function supabaseRestRequest(path,key,timeoutMs){
   });
 }
 
+async function directPrivateUserSearchFallback(args){
+  if(!SUPABASE_SECRET_KEY) throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
+  const token=String(args.p_token||'').trim();
+  if(!token) throw new Error('جلسة العضوية غير موجودة');
+
+  const current=await supabaseRpcRequest('app_current_user_id',{p_token:token},SUPABASE_SECRET_KEY,10000);
+  if(!current.ok || !current.data) throw new Error(current.data?.message||current.data?.error||current.text||'تعذر التحقق من الجلسة');
+  const currentUserId=String(current.data);
+
+  const users=await supabaseRestRequest(
+    '/rest/v1/app_users?select=id,login_no,role,display_name,member_id&active=eq.true&order=created_at.asc&limit=1000',
+    SUPABASE_SECRET_KEY,10000
+  );
+  if(!users.ok || !Array.isArray(users.data)){
+    throw new Error(users.data?.message||users.data?.error||users.text||'تعذر تحميل المستخدمين');
+  }
+
+  const members=await supabaseRestRequest(
+    '/rest/v1/members?select=id,member_no,name&limit=1000',
+    SUPABASE_SECRET_KEY,10000
+  );
+  if(!members.ok || !Array.isArray(members.data)){
+    throw new Error(members.data?.message||members.data?.error||members.text||'تعذر تحميل الأعضاء');
+  }
+
+  const memberMap=new Map(members.data.map(m=>[String(m.id),m]));
+  const q=String(args.p_query||'').trim().toLowerCase();
+  const limit=Math.max(1,Math.min(Number(args.p_limit)||50,50));
+  return users.data
+    .filter(u=>String(u.id)!==currentUserId)
+    .map(u=>{
+      const m=memberMap.get(String(u.member_id||''));
+      return {
+        user_id:u.id,
+        name:String(u.display_name||m?.name||u.login_no||'عضو المجتمع').trim(),
+        role:u.role,
+        member_no:String(m?.member_no||'')
+      };
+    })
+    .filter(u=>!q || u.name.toLowerCase().includes(q) || u.member_no.toLowerCase().includes(q) || String(users.data.find(x=>String(x.id)===String(u.user_id))?.login_no||'').toLowerCase().includes(q))
+    .sort((a,b)=>a.name.localeCompare(b.name,'ar'))
+    .slice(0,limit);
+}
+
 async function directTeamIntelligenceFromTable(args){
   if(!SUPABASE_SECRET_KEY) throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
   const token=String(args.p_token||'').trim();
@@ -652,6 +696,16 @@ module.exports = async function handler(req, res) {
     }
 
     const response=await supabaseRpcRequest(fn,args,privilegedTeamRpc ? SUPABASE_SECRET_KEY : SUPABASE_KEY,10000);
+    if(!response.ok && fn==='community_private_user_search'){
+      try{
+        const fallback=await directPrivateUserSearchFallback(args);
+        return res.status(200).json(fallback);
+      }catch(fallbackError){
+        return res.status(response.status||500).json({
+          error:String(fallbackError?.message||fallbackError)||response.text||'تعذر تحميل قائمة الأعضاء'
+        });
+      }
+    }
     return res.status(response.status||500).json(response.data||{error:response.text||'Supabase request failed'});
 
   } catch (error) {
