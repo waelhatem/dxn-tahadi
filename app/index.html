@@ -2403,7 +2403,7 @@ async function communityPrivateNew(){
   modal.className='community-private-modal';
   modal.innerHTML='<div class="community-private-box" role="dialog" aria-modal="true" aria-label="محادثة جديدة">'
     +'<div class="community-private-modal-head"><div><b>محادثة خاصة جديدة</b><small>اختر عضوًا لبدء محادثة</small></div><button class="community-private-close" onclick="communityPrivateCloseUsers()">×</button></div>'
-    +'<div class="community-private-search"><input id="communityPrivateUserSearch" autocomplete="off" placeholder="ابحث بالاسم أو رقم العضوية..."></div>'
+    +'<div class="community-private-search"><input id="communityPrivateUserSearch" autocomplete="off" placeholder="ابحث بالاسم أو جزء من الاسم أو رقم العضوية..."><button type="button" class="community-private-search-btn" id="communityPrivateUserSearchBtn" onclick="communityPrivateSearchSubmit()">🔎 بحث</button></div>'
     +'<div class="community-private-users" id="communityPrivateUsers"><div class="community-private-empty">جارٍ تحميل الأعضاء...</div></div></div>';
   modal.addEventListener('click',e=>{if(e.target===modal)communityPrivateCloseUsers()});
   document.body.appendChild(modal);
@@ -2412,8 +2412,27 @@ async function communityPrivateNew(){
     clearTimeout(communityPrivateSearchTimer);
     communityPrivateSearchTimer=setTimeout(()=>communityPrivateSearchUsers(input.value),220);
   });
+  input.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){
+      e.preventDefault();
+      communityPrivateSearchSubmit();
+    }
+  });
   await communityPrivateSearchUsers('');
   input.focus();
+}
+async function communityPrivateSearchSubmit(){
+  const input=document.getElementById('communityPrivateUserSearch');
+  const button=document.getElementById('communityPrivateUserSearchBtn');
+  const query=String(input?.value||'').trim();
+  clearTimeout(communityPrivateSearchTimer);
+  if(button)button.disabled=true;
+  try{
+    await communityPrivateSearchUsers(query);
+  }finally{
+    if(button&&button.isConnected)button.disabled=false;
+    input?.focus();
+  }
 }
 async function communityPrivateSearchUsers(query){
   const box=document.getElementById('communityPrivateUsers');
