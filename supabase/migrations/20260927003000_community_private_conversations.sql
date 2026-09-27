@@ -28,22 +28,7 @@ create table if not exists public.community_private_messages (
   read_at timestamptz,
   constraint community_private_messages_users_different check (sender_user_id <> recipient_user_id),
   constraint community_private_messages_text_required check (length(trim(message_text)) > 0),
-  constraint community_private_messages_sender_matches_conversation check (
-    sender_user_id = (
-      select c.user_a from public.community_private_conversations c where c.id = conversation_id
-    )
-    or sender_user_id = (
-      select c.user_b from public.community_private_conversations c where c.id = conversation_id
-    )
-  ),
-  constraint community_private_messages_recipient_matches_conversation check (
-    recipient_user_id = (
-      select c.user_a from public.community_private_conversations c where c.id = conversation_id
-    )
-    or recipient_user_id = (
-      select c.user_b from public.community_private_conversations c where c.id = conversation_id
-    )
-  )
+
 );
 
 create index if not exists community_private_messages_conversation_idx
@@ -51,6 +36,39 @@ create index if not exists community_private_messages_conversation_idx
 
 create index if not exists community_private_messages_recipient_unread_idx
   on public.community_private_messages(recipient_user_id, read_at, created_at desc);
+
+create or replace function public.community_private_message_validate_participants()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $
+declare
+  a uuid;
+  b uuid;
+begin
+  select user_a, user_b into a, b
+  from public.community_private_conversations
+  where id = new.conversation_id;
+
+  if a is null or b is null
+     or not (new.sender_user_id = a or new.sender_user_id = b)
+     or not (new.recipient_user_id = a or new.recipient_user_id = b)
+     or new.sender_user_id = new.recipient_user_id
+  then
+    raise exception 'المشاركون في الرسالة غير صالحين';
+  end if;
+
+  return new;
+end;
+$;
+
+drop trigger if exists community_private_message_participants_trg
+  on public.community_private_messages;
+
+create trigger community_private_message_participants_trg
+before insert or update on public.community_private_messages
+for each row execute function public.community_private_message_validate_participants();
 
 alter table public.community_private_conversations enable row level security;
 alter table public.community_private_messages enable row level security;
