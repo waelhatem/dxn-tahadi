@@ -1635,10 +1635,15 @@ async function loadContext(token){
   let training={lessons:[],my_progress:[]};
   const tr=await supabaseRpc('get_training_data',{p_token:token});
   if(tr.ok&&tr.data)training=tr.data;
-  // Never use members[0] to infer identity: leaders receive the whole team list, so index 0 can be another member.\n  // Only a member-role session may use its single member record as personal identity.\n  const member=role==='member' && Array.isArray(data.members)&&data.members[0]?data.members[0]:null;
+  // Identity must come from the authenticated session, never from members[0].
+  // A leader receives the whole team list, so members[0] is not the logged-in user.
+  const currentMember=data.current_member&&typeof data.current_member==='object' ? data.current_member : null;
+  const member=role==='member' && currentMember ? currentMember : null;
+  const currentUser=data.current_user&&typeof data.current_user==='object' ? data.current_user : null;
+  const userName=String(currentUser?.display_name||member?.name||'').trim();
   const lessons=(Array.isArray(training.lessons)?training.lessons:[]).map(l=>({id:l.id||l.lesson_id,lesson_id:l.lesson_id||l.id,lesson_no:l.lesson_no,title:l.title,description:l.description,active:l.active!==false}));
   const progress=(Array.isArray(training.my_progress)?training.my_progress:[]).map(p=>({lesson_id:p.lesson_id,completed:!!p.completed,watch_percent:Number(p.watch_percent||0)}));
-  return {role,member:member?{id:member.id,member_no:member.member_no,name:member.name||member.full_name,stars:Number(member.stars||0)}:null,lessons,progress};
+  return {role,member:member?{id:member.id,member_no:member.member_no,name:member.name||member.full_name,stars:Number(member.stars||0)}:null,user_name:userName||null,lessons,progress};
 }
 
 
@@ -1648,7 +1653,6 @@ const AGENT_TOOLS = {
 
   async get_dxn_team_intelligence(token,args={}){
     const ctx=await loadContext(token);
-    if(!ctx.member?.member_no) throw new Error('لا يمكن تحديد رقم عضوية العضو الحالي');
     const mode=['summary','member','downline','generation','line_summary'].includes(String(args.mode||'').toLowerCase())
       ? String(args.mode).toLowerCase()
       : 'summary';
@@ -2258,14 +2262,14 @@ async function buildMemoryState(token,message,cognitiveState,currentSession,coac
 }
 
 
-function firstMemberName(member){
-  const raw=String(member?.name||'').trim();
+function firstPersonName(member,userName){
+  const raw=String(member?.name||userName||'').trim();
   return raw?raw.split(/\s+/)[0]:'';
 }
 
-function buildDeterministicChatReply(message,member){
+function buildDeterministicChatReply(message,member,userName){
   const s=String(message||'').trim().toLowerCase().replace(/[،,!.؟?]+$/,'').trim();
-  const first=firstMemberName(member);
+  const first=firstPersonName(member,userName);
   const who=first?(' '+first):'';
   if(/^(?:هلا|هلا والله|هلا بيك|اهلا|أهلا|أهلًا|مرحبا|مرحبًا|السلام عليكم|السلام عليكم ورحمة الله|صباح الخير|مساء الخير)$/i.test(s)){
     return 'هلا'+who+' 🌷 شلون أگدر أساعدك هسه؟';
@@ -2823,10 +2827,10 @@ function instructions(context){
     'عند شرح موضوع تدريبي أو تقني، استخدم عراقية خفيفة ومفهومة مع الحفاظ على المصطلحات التقنية الواضحة. إذا طلب المستخدم الفصحى أو نصًا رسميًا، انتقل إلى الفصحى.',
     'شخصيتك: واثق من دون غرور، ودود من دون مبالغة، صريح من دون قسوة، ومشجع من دون وعود أو تهويل. لا تمدح المستخدم بلا سبب؛ اربط التشجيع بسلوك أو تقدم فعلي.',
     'أسلوب المحادثة: ابدأ من سؤال المستخدم مباشرة. لا تعيد صياغة سؤاله بلا فائدة. أعطِ إجابة عملية، ثم خطوة تالية واضحة عندما تكون مناسبة.',
-    'اسم العضو الحالي موجود في السياق داخل member.name. عند وجود الاسم، استخدمه كاسم المخاطبة الصحيح ولا تستبدله باسم آخر.',
-    'قاعدة التحية الشخصية: إذا كانت رسالة العضو تحية أو افتتاحًا اجتماعيًا قصيرًا مثل «هلا»، «مرحبا»، «السلام عليكم»، «شلونك» أو ما شابه، ابدأ ردك مباشرة بالاسم الأول للعضو فقط. استخرج الاسم الأول من member.name، وهو الجزء الأول من الاسم قبل أول مسافة. مثال: إذا كان الاسم «وائل حاتم» أو «وائل حاتم محمد»، تكون التحية «هلا وائل». لا تستخدم الاسم الكامل في التحية.',
+    'هوية المستخدم الحالية تأتي فقط من current_user/current_member المرتبطين بجلسة الدخول. للعضو استخدم member.name، وللقائد استخدم current_user.display_name إذا كانت موجودة. ممنوع نهائيًا استخدام أي عنصر من members[] لاستنتاج هوية المستخدم الحالي، وممنوع اختيار members[0].',
+    'قاعدة التحية الشخصية: إذا كانت الرسالة تحية أو افتتاحًا اجتماعيًا قصيرًا، استخدم الاسم الأول من هوية المستخدم الحالية فقط. للعضو استخرج الاسم من member.name، وللقائد من current_user.display_name. إذا لم توجد هوية اسمية موثوقة فلا تخمّن اسمًا ولا تستخدم اسم أي عضو آخر.',
     'إذا كان العضو قد بدأ سؤالًا أو طلبًا واضحًا، لا تضع اسمه في كل رد بشكل مصطنع؛ استخدم الاسم عندما يكون طبيعيًا، مع إلزام استخدامه في أول تحية/افتتاح اجتماعي.',
-    'لا تقل «حاتم سعيد» أو أي اسم كمثال إلا إذا كان هو فعلًا قيمة member.name في السياق. الاسم يجب أن يأتي من بيانات العضو الحالية فقط.',
+    'لا تستخدم اسمًا محفوظًا في الذاكرة أو اسم عضو من الفريق أو أي اسم كمثال على أنه اسم المستخدم الحالي. الاسم يجب أن يأتي من current_user أو current_member المرتبطين بجلسة الدخول فقط.',
 
     'أولوية الحوار: الرسالة الحالية للعضو هي المصدر الأول لتحديد موضوع الرد. إذا سأل سؤالًا مباشرًا أو طلب معلومة/مساعدة محددة، أجب عن هذا الطلب أولًا وبشكل مباشر.',
     'قاعدة صارمة لعزل السؤال: لا تستخدم أي معلومة من الذاكرة أو سجل الحوار أو الخطة اليومية إلا إذا كانت مرتبطة مباشرة بالسؤال الحالي. إذا تعارضت ذاكرة قديمة أو موضوع سابق مع الرسالة الحالية، تجاهل القديم وأجب عن الرسالة الحالية فقط. لا تجب عن سؤال آخر لم يُطرح.',
@@ -3241,7 +3245,7 @@ module.exports=async function handler(req,res){
     // Stage 8: deterministic replies for low-information social messages.
     // This preserves the member-first-name greeting rule without spending a model call.
     if(!sessionCommand && canUseDeterministicChatReply(message,currentSession,conversationState)){
-      const deterministicAnswer=buildDeterministicChatReply(message,context.member);
+      const deterministicAnswer=buildDeterministicChatReply(message,context.member,context.user_name);
       if(deterministicAnswer){
         await saveAgentMessage(token,'user',message).catch(()=>null);
         await saveAgentMessage(token,'assistant',deterministicAnswer).catch(()=>null);
