@@ -65,15 +65,15 @@ async function updateMaterial(token,id,status,errorMessage,metadata,processedAt)
 }
 
 async function signedDownloadUrl(bucket,path){
-  const r=await request(`${SUPABASE_URL}/storage/v1/object/sign/${encodeURIComponent(bucket)}`,'POST',{
-    expiresIn:3600,paths:[path]
+  const encodedPath=String(path||'').split('/').map(encodeURIComponent).join('/');
+  const r=await request(`${SUPABASE_URL}/storage/v1/object/sign/${encodeURIComponent(bucket)}/${encodedPath}`,'POST',{
+    expiresIn:3600
   },{
     apikey:SUPABASE_SECRET_KEY,
     Authorization:`Bearer ${SUPABASE_SECRET_KEY}`
   });
   if(!r.ok)throw new Error(r.data?.message||r.data?.error||r.text||'تعذر إنشاء رابط قراءة المادة');
-  const row=Array.isArray(r.data)?r.data[0]:null;
-  const signed=String(row?.signedURL||row?.signedUrl||'').trim();
+  const signed=String(r.data?.signedURL||r.data?.signedUrl||r.data?.url||'').trim();
   if(!signed)throw new Error('لم يُنشأ رابط قراءة للمادة');
   return /^https?:\/\//i.test(signed)?signed:`${SUPABASE_URL}/storage/v1${signed.startsWith('/')?signed:'/'}`;
 }
