@@ -459,46 +459,43 @@
     async function uploadTrainingFile(file,index,total){
       const token=sessionToken();
       const name=String(file.name||'material');
-      const type=String(file.type||'').toLowerCase();
+      const type=String(file.type||'').toLowerCase().split(';')[0];
+      if(!token)throw new Error('يرجى تسجيل الدخول أولًا.');
+      if(!file.size)throw new Error('الملف فارغ: '+name);
       let materialType='';
       if(type==='application/pdf') materialType='pdf';
       else if(type.startsWith('image/')) materialType='image';
       else if(type.startsWith('video/')) materialType='video';
-      if(!materialType) throw new Error('نوع الملف غير مدعوم: '+name);
-      if(file.size<1) throw new Error('الملف فارغ: '+name);
+      else throw new Error('نوع الملف غير مدعوم: '+name);
 
       setStatus('تحضير رفع المادة '+(index+1)+' من '+total+'...');
-      const prepResponse=await fetch('/api/rpc',{
+      const prepResponse=await fetch('/api/ai-training-material-upload',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
-          fn:'ai_training_material_prepare',
-          args:{
-            p_token:token,
-            p_title:name.replace(/\.[^.]+$/,'').slice(0,300),
-            p_mime_type:type||'application/octet-stream',
-            p_original_filename:name,
-            p_file_size:file.size,
-            p_domain:'general',
-            p_priority:80
-          }
+          action:'prepare',
+          p_token:token,
+          p_title:name.replace(/\.[^.]+$/,'').slice(0,300),
+          p_mime_type:type,
+          p_original_filename:name,
+          p_file_size:file.size,
+          p_domain:'general',
+          p_priority:80
         })
       });
       const prep=await prepResponse.json().catch(()=>({}));
-      if(!prepResponse.ok) throw new Error(prep.error||('HTTP '+prepResponse.status));
+      if(!prepResponse.ok)throw new Error(prep.error||('HTTP '+prepResponse.status));
 
       const progressMsg=addMsg('⬆️ '+name+' — 0%','ai');
       await new Promise((resolve,reject)=>{
         const xhr=new XMLHttpRequest();
         xhr.open('PUT',prep.signed_url,true);
-        // Supabase Storage's uploadToSignedUrl sends browser File/Blob bodies
-        // as FormData. Match that request shape instead of sending the raw File,
-        // which avoids the browser-side Storage upload failure seen here.
         xhr.setRequestHeader('x-upsert','false');
+        xhr.setRequestHeader('Content-Type',type);
         xhr.upload.onprogress=event=>{
           if(event.lengthComputable){
             const pct=Math.round((event.loaded/event.total)*100);
-            if(progressMsg) progressMsg.textContent='⬆️ '+name+' — '+pct+'%';
+            if(progressMsg)progressMsg.textContent='⬆️ '+name+' — '+pct+'%';
             setStatus('رفع '+name+' — '+pct+'%');
           }
         };
@@ -508,61 +505,36 @@
           try{const d=JSON.parse(xhr.responseText||'{}');detail=d.message||d.error||detail;}catch(_){}
           reject(new Error(detail));
         };
-        xhr.onerror=()=>{
-          let target='غير معروف';
-          try{
-            const u=new URL(prep.signed_url);
-            target=u.origin+u.pathname;
-          }catch(_){}
-          console.error('DXN training upload network error',{
-            target,
-            online:navigator.onLine,
-            readyState:xhr.readyState,
-            status:xhr.status,
-            response:xhr.responseText||''
-          });
-          reject(new Error('تعذر الاتصال بـ Supabase Storage أثناء الرفع — حالة الاتصال: '+(navigator.onLine?'متصل بالإنترنت':'غير متصل بالإنترنت')+'، راجع Console لمعرفة عنوان Storage وحالة الطلب.'));
-        };
+        xhr.onerror=()=>reject(new Error('تعذر الاتصال بـ Supabase Storage أثناء الرفع.'));
         xhr.onabort=()=>reject(new Error('تم إلغاء الرفع'));
-        const formData=new FormData();
-        formData.append('cacheControl','3600');
-        formData.append('',file);
-        xhr.send(formData);
+        xhr.send(file);
       });
 
-      const doneResponse=await fetch('/api/rpc',{
+      const doneResponse=await fetch('/api/ai-training-material-upload',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
-          fn:'ai_training_material_complete',
-          args:{p_token:token,p_material_id:prep.material_id,p_success:true}
+          action:'complete',
+          p_token:token,
+          p_material_id:prep.material_id,
+          p_success:true
         })
       });
       const done=await doneResponse.json().catch(()=>({}));
-      if(!doneResponse.ok) throw new Error(done.error||('HTTP '+doneResponse.status));
+      if(!doneResponse.ok)throw new Error(done.error||('HTTP '+doneResponse.status));
 
-      if(progressMsg) progressMsg.textContent='🧠 '+name+' — جارٍ تحليل المادة وتدريب المدرب...';
+      if(progressMsg)progressMsg.textContent='🧠 '+name+' — جارٍ تحليل المادة وتدريب المدرب...';
       setStatus('جارٍ تحليل '+name+' وحفظ المعرفة الجديدة لدى المدرب...');
 
-      const processResponse=await fetch('/api/rpc',{
+      const processResponse=await fetch('/api/ai-training-materials',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          fn:'ai_training_material_process',
-          args:{p_token:token,p_material_id:prep.material_id}
-        })
+        body:JSON.stringify({p_token:token,material_id:prep.material_id})
       });
       const processed=await processResponse.json().catch(()=>({}));
-      if(!processResponse.ok){
-        throw new Error(processed.error||('تعذر معالجة المادة — HTTP '+processResponse.status));
-      }
+      if(!processResponse.ok)throw new Error(processed.error||('تعذر معالجة المادة — HTTP '+processResponse.status));
 
-      if(processed.deferred){
-        if(progressMsg) progressMsg.textContent='💾 '+name+' — تم التخزين، والمعالجة مؤجلة';
-        return {...prep,processing_status:'deferred',chunks:0};
-      }
-
-      if(progressMsg) progressMsg.textContent='✅ '+name+' — تم الرفع والتحليل وحفظ المعرفة ('+Number(processed.chunks||0)+' أقسام)';
+      if(progressMsg)progressMsg.textContent='✅ '+name+' — تم الرفع والتحليل وحفظ المعرفة ('+Number(processed.chunks||0)+' أقسام)';
       return {...prep,processing_status:'ready',chunks:Number(processed.chunks||0)};
     }
 
