@@ -100,7 +100,8 @@ module.exports = async function handler(req,res){
     const owner=session.member_no || (session.role==='leader'?'leader':'member');
     const path=owner+'/'+Date.now()+'-'+Math.random().toString(36).slice(2,10)+'-'+safeName(originalName);
 
-    const upload=await request('POST','/storage/v1/object/'+BUCKET+'/'+path,body,{
+    const storagePath=path.split('/').map(encodeURIComponent).join('/');
+    const upload=await request('POST','/storage/v1/object/'+BUCKET+'/'+storagePath,body,{
       'Content-Type':contentType,'Cache-Control':'31536000','x-upsert':'false',
       apikey:SUPABASE_SECRET_KEY,Authorization:'Bearer '+SUPABASE_SECRET_KEY
     });
