@@ -526,8 +526,30 @@
       });
       const done=await doneResponse.json().catch(()=>({}));
       if(!doneResponse.ok) throw new Error(done.error||('HTTP '+doneResponse.status));
-      if(progressMsg) progressMsg.textContent='✅ '+name+' — تم الرفع والتخزين';
-      return prep;
+
+      if(progressMsg) progressMsg.textContent='🧠 '+name+' — جارٍ تحليل المادة وتدريب المدرب...';
+      setStatus('جارٍ تحليل '+name+' وحفظ المعرفة الجديدة لدى المدرب...');
+
+      const processResponse=await fetch('/api/rpc',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          fn:'ai_training_material_process',
+          args:{p_token:token,p_material_id:prep.material_id}
+        })
+      });
+      const processed=await processResponse.json().catch(()=>({}));
+      if(!processResponse.ok){
+        throw new Error(processed.error||('تعذر معالجة المادة — HTTP '+processResponse.status));
+      }
+
+      if(processed.deferred){
+        if(progressMsg) progressMsg.textContent='💾 '+name+' — تم التخزين، والمعالجة مؤجلة';
+        return {...prep,processing_status:'deferred',chunks:0};
+      }
+
+      if(progressMsg) progressMsg.textContent='✅ '+name+' — تم الرفع والتحليل وحفظ المعرفة ('+Number(processed.chunks||0)+' أقسام)';
+      return {...prep,processing_status:'ready',chunks:Number(processed.chunks||0)};
     }
 
     trainingFileInput.addEventListener('change',async()=>{
@@ -547,7 +569,7 @@
         }
       }
       setStatus('');
-      addMsg('اكتمل الرفع: '+success+' من '+files.length+' مادة. الحالة الحالية: تم التخزين فقط، وستأتي معالجة المحتوى في المرحلة التالية.','ai');
+      addMsg('اكتملت العملية: '+success+' من '+files.length+' مادة. تم رفع المواد، وتحليل المحتوى وحفظ المعرفة الجديدة للمدرب حسب نوع المادة.','ai');
       trainingFileInput.value='';
     });
     btn.addEventListener('click',()=>{
