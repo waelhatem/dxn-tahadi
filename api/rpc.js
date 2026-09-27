@@ -526,6 +526,19 @@ async function storageRequest(method,path,key,body){
   });
 }
 
+function normalizeStorageUrl(value){
+  const raw=String(value||'').trim();
+  if(!raw) throw new Error('رابط Storage فارغ');
+  const base=SUPABASE_URL+'/storage/v1';
+  const url=new URL(raw,base);
+  if(url.pathname==='/storage/v1'||url.pathname.startsWith('/storage/v1/')) return url.toString();
+  if(url.origin===new URL(SUPABASE_URL).origin){
+    url.pathname='/storage/v1'+(url.pathname.startsWith('/')?url.pathname:'/'+url.pathname);
+    return url.toString();
+  }
+  return url.toString();
+}
+
 function trainingMaterialTypeFromMime(mime){
   const m=String(mime||'').toLowerCase().trim();
   if(m==='application/pdf'||m.endsWith('/pdf')) return 'pdf';
@@ -616,10 +629,7 @@ async function aiTrainingMaterialPrepare(args){
   const relative=String(signed.data&&signed.data.url||'').trim();
   const tokenMatch=relative.match(/[?&]token=([^&]+)/);
   if(!relative||!tokenMatch) throw new Error('لم يرجع Storage رابط رفع صالحًا');
-  const signedUrlBase=relative.startsWith('/storage/v1/')
-    ? SUPABASE_URL
-    : SUPABASE_URL+'/storage/v1';
-  const signedUrl = new URL(relative, signedUrlBase).toString();
+  const signedUrl = normalizeStorageUrl(relative);
 
   return {
     material_id:materialId,
@@ -659,8 +669,7 @@ async function trainingMaterialSignedDownload(bucket,path,expiresIn=3600){
   }
   const relative=String(signed.data?.signedURL||signed.data?.signedUrl||signed.data?.url||'').trim();
   if(!relative) throw new Error('لم يرجع Storage رابط قراءة صالحًا');
-  const base=relative.startsWith('/storage/v1/')?SUPABASE_URL:SUPABASE_URL+'/storage/v1';
-  return new URL(relative,base).toString();
+  return normalizeStorageUrl(relative);
 }
 
 function parseTrainingExtraction(text){
