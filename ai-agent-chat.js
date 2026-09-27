@@ -428,36 +428,34 @@
     document.body.append(btn,panel);
     let trainingLeaderState=false;
     function isLeaderForTraining(){
-      if(trainingLeaderState)return true;
+      try{
+        // المصدر الأول: حالة الحساب الفعلية التي يعرّفها app/index.html.
+        if(typeof role!=='undefined' && String(role||'').trim().toLowerCase()==='leader') return true;
+        if(typeof me!=='undefined' && me && String(me.role||'').trim().toLowerCase()==='leader') return true;
+      }catch(_){}
+      // احتياطي للواجهات التي تعرض هوية القائد كنص.
       try{
         const roleText=[...document.querySelectorAll('.mobile-member-identity .role-label,.member-identity .role-label')].map(x=>String(x.textContent||'')).join(' ');
         return /القائد|leader/i.test(roleText);
       }catch(_){return false;}
     }
-    async function syncTrainingAddIcon(){
-      let leader=false;
-      try{
-        const token=sessionToken();
-        if(token){
-          const r=await fetch('/api/rpc',{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({fn:'bootstrap',args:{p_token:token}})
-          });
-          if(r.ok){
-            const d=await r.json().catch(()=>({}));
-            leader=String(d?.role||'').trim().toLowerCase()==='leader';
-          }
-        }
-      }catch(_){}
-      if(!leader)leader=isLeaderForTraining();
+    function syncTrainingAddIcon(){
+      const leader=isLeaderForTraining();
       trainingLeaderState=leader;
       btn.classList.toggle('leader-mode',leader);
+      const add=document.getElementById('dxnAgentTrainingAdd');
+      if(add){
+        add.style.display=leader?'flex':'none';
+        add.setAttribute('aria-hidden',leader?'false':'true');
+      }
     }
     syncTrainingAddIcon();
-    const trainingRoleObserver=new MutationObserver(()=>syncTrainingAddIcon());trainingRoleObserver.observe(document.body,{subtree:true,childList:true,characterData:true});
+    const trainingRoleObserver=new MutationObserver(syncTrainingAddIcon);
+    trainingRoleObserver.observe(document.body,{subtree:true,childList:true,characterData:true});
+    window.addEventListener('load',syncTrainingAddIcon,{once:true});
+    setTimeout(syncTrainingAddIcon,500);
     setTimeout(syncTrainingAddIcon,1500);
-    setTimeout(syncTrainingAddIcon,4000);
+    setTimeout(syncTrainingAddIcon,3000);
     document.getElementById('dxnAgentTrainingAdd').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();if(!isLeaderForTraining())return;trainingFileInput.click();});
     async function uploadTrainingFile(file,index,total){
       const token=sessionToken();
