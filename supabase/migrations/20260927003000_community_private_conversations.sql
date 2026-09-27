@@ -41,7 +41,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public, pg_temp
-as $
+as $func$
 declare
   a uuid;
   b uuid;
@@ -60,7 +60,7 @@ begin
 
   return new;
 end;
-$;
+$func$;
 
 drop trigger if exists community_private_message_participants_trg
   on public.community_private_messages;
