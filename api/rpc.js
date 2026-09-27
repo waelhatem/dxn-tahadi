@@ -433,10 +433,13 @@ async function communitySession(token){
   const boot=await supabaseRpcRequest('bootstrap',{p_token:pToken},key,10000);
   if(!boot.ok) throw new Error((boot.data&&(boot.data.message||boot.data.error||boot.data.hint))||boot.text||'جلسة الدخول غير صالحة');
   const member=Array.isArray(boot.data&&boot.data.members)?boot.data.members[0]:null;
+  const role=String(boot.data&&boot.data.role||'').trim().toLowerCase();
   return {
-    role:String(boot.data&&boot.data.role||'').trim().toLowerCase(),
-    member_no:String(member&&member.member_no||'').trim(),
-    member_name:String(member&&(member.member_name||member.name)||'').trim()
+    role,
+    member_no:role==='leader'?'':String(member&&member.member_no||'').trim(),
+    member_name:role==='leader'
+      ? String(process.env.DXN_LEADER_NAME||'وائل حاتم سعيد').trim()
+      : String(member&&(member.member_name||member.name)||'').trim()
   };
 }
 
