@@ -672,6 +672,38 @@ async function trainingMaterialSignedDownload(bucket,path,expiresIn=3600){
   return normalizeStorageUrl(relative);
 }
 
+async function downloadSignedMaterialAsDataUrl(url,mime){
+  return new Promise((resolve,reject)=>{
+    const target=new URL(String(url||''));
+    const request=https.get(target,{timeout:120000},response=>{
+      if(response.statusCode<200||response.statusCode>=300){
+        response.resume();
+        reject(new Error('تعذر تنزيل المادة من Storage للتحليل (HTTP '+response.statusCode+')'));
+        return;
+      }
+      const chunks=[];
+      let total=0;
+      const maxBytes=55*1024*1024;
+      response.on('data',chunk=>{
+        total+=chunk.length;
+        if(total>maxBytes){
+          request.destroy(new Error('حجم المادة يتجاوز الحد المسموح للتحليل حالياً (55MB)'));
+          return;
+        }
+        chunks.push(chunk);
+      });
+      response.on('end',()=>{
+        if(total>maxBytes) return;
+        const body=Buffer.concat(chunks);
+        resolve('data:'+(mime||'application/octet-stream')+';base64,'+body.toString('base64'));
+      });
+      response.on('error',reject);
+    });
+    request.on('timeout',()=>request.destroy(new Error('انتهت مهلة تنزيل المادة من Storage')));
+    request.on('error',reject);
+  });
+}
+
 function parseTrainingExtraction(text){
   const raw=String(text||'').trim();
   if(!raw) return [];
@@ -735,7 +767,7 @@ async function aiTrainingMaterialProcess(args){
     const signedUrl=await trainingMaterialSignedDownload(material.storage_bucket,material.storage_path,3600);
     const isPdf=String(material.material_type)==='pdf';
     const inputPart=isPdf
-      ? {type:'input_file',file_url:signedUrl}
+      ? {type:'input_file',file_data:await downloadSignedMaterialAsDataUrl(signedUrl,'application/pdf'),filename:'training.pdf'}
       : {type:'input_image',image_url:signedUrl,detail:'high'};
 
     const extractionPrompt=[
