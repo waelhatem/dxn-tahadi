@@ -802,44 +802,26 @@ async function aiTrainingMaterialProcess(args){
     if(!chunks.length) throw new Error('لم يتم استخراج معرفة قابلة للحفظ من المادة');
 
     const sourcePrefix='uploaded_material:'+materialId;
-    await supabaseTableRequest(
-      'DELETE',
-      '/rest/v1/ai_agent_knowledge?source=like.'+encodeURIComponent(sourcePrefix+'%'),
-      SUPABASE_SECRET_KEY
-    );
-
-    const saved=[];
-    for(let i=0;i<chunks.length;i++){
-      const content=String(chunks[i].content||'').trim().slice(0,4000);
-      if(!content) continue;
-      const title=String(chunks[i].title||('المادة — القسم '+(i+1))).trim().slice(0,300);
-      const row={
-        scope:'global',
-        category:isPdf?'dxn_pdf_source_exact':'uploaded_training',
-        title:(String(material.title||material.original_filename||'مادة تدريبية')+' — '+title).slice(0,300),
-        content,
-        priority:Math.max(0,Math.min(Number(material.priority)||80,100)),
-        active:true,
-        source:sourcePrefix+(isPdf?':uploaded_pdf_exact':':uploaded_image_exact')
-      };
-      const savedRow=await supabaseTableRequest(
-        'POST',
-        '/rest/v1/ai_agent_knowledge',
-        SUPABASE_SECRET_KEY,
-        row
-      );
-      if(!savedRow.ok){
-        throw new Error(savedRow.data?.message||savedRow.data?.error||savedRow.text||'تعذر حفظ المعرفة المستخرجة');
-      }
-      saved.push(Array.isArray(savedRow.data)?savedRow.data[0]:savedRow.data);
-    }
+    const knowledgeWrite=await supabaseSecretRpc('save_ai_training_material_knowledge',{
+      p_token:token,
+      p_material_id:materialId,
+      p_category:isPdf?'dxn_pdf_source_exact':'uploaded_training',
+      p_title_prefix:String(material.title||material.original_filename||'مادة تدريبية').trim().slice(0,300),
+      p_priority:Math.max(0,Math.min(Number(material.priority)||80,100)),
+      p_chunks:chunks.map((item,index)=>({
+        title:String(item?.title||('المادة — القسم '+(index+1))).trim().slice(0,300),
+        content:String(item?.content||'').trim().slice(0,4000)
+      })).filter(item=>item.content)
+    });
+    const savedCount=Number(knowledgeWrite)||0;
+    if(!savedCount) throw new Error('لم يتم حفظ المعرفة المستخرجة');
 
     const metadata={
       ...(material.metadata&&typeof material.metadata==='object'?material.metadata:{}),
       extraction:{
         version:1,
         model:OPENAI_MODEL,
-        chunks:saved.length,
+        chunks:savedCount,
         extracted_at:new Date().toISOString()
       }
     };
@@ -852,7 +834,7 @@ async function aiTrainingMaterialProcess(args){
       p_processed_at:new Date().toISOString()
     });
 
-    return {ok:true,material_id:materialId,status:'ready',chunks:saved.length};
+    return {ok:true,material_id:materialId,status:'ready',chunks:savedCount};
   }catch(error){
     await supabaseSecretRpc('update_ai_training_material_processing',{
       p_token:token,
