@@ -27,6 +27,7 @@ create table if not exists public.app_users (
   login_no text not null unique,
   pin_hash text not null,
   role text not null check (role in ('leader','member')),
+  display_name text,
   member_id uuid unique references public.members(id) on delete cascade,
   active boolean not null default true,
   created_at timestamptz not null default now()
