@@ -3,7 +3,7 @@ const https = require('https');
 const SUPABASE_URL = String(process.env.SUPABASE_URL || 'https://ryqpstkzppaifpvhezzn.supabase.co').trim().replace(/\/$/,'');
 const SUPABASE_SECRET_KEY = String(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 const BUCKET = 'community-chat';
-const MAX_BYTES = 4 * 1024 * 1024;
+const MAX_BYTES = 50 * 1024 * 1024;
 
 function request(method, path, body, headers={}){
   return new Promise((resolve,reject)=>{
@@ -69,7 +69,16 @@ async function ensureBucket(){
   const check=await request('GET','/storage/v1/bucket/'+encodeURIComponent(BUCKET),null,{
     apikey:SUPABASE_SECRET_KEY,Authorization:'Bearer '+SUPABASE_SECRET_KEY
   });
-  if(check.ok)return;
+  if(check.ok){
+    const current=check.data||{};
+    if(Number(current.file_size_limit||0)<MAX_BYTES){
+      const update=await request('PUT','/storage/v1/bucket/'+encodeURIComponent(BUCKET),{file_size_limit:MAX_BYTES,public:true},{
+        'Content-Type':'application/json',apikey:SUPABASE_SECRET_KEY,Authorization:'Bearer '+SUPABASE_SECRET_KEY
+      });
+      if(!update.ok)throw new Error('تعذر تحديث حد حجم المرفقات: '+((update.data&&(update.data.message||update.data.error||update.data.statusCode))||update.text||('HTTP '+update.status)));
+    }
+    return;
+  }
   if(check.status!==404)throw new Error('تعذر التحقق من مساحة المرفقات: '+((check.data&&(check.data.message||check.data.error||check.data.statusCode))||check.text||('HTTP '+check.status)));
   const r=await request('POST','/storage/v1/bucket',{id:BUCKET,name:BUCKET,public:true,file_size_limit:MAX_BYTES},{
     'Content-Type':'application/json',apikey:SUPABASE_SECRET_KEY,Authorization:'Bearer '+SUPABASE_SECRET_KEY
