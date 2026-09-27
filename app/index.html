@@ -2137,17 +2137,23 @@ function communityRenderPendingFiles(){
 async function communityQueueFiles(files){
   const selected=[...(files||[])].filter(f=>f&&f.size).slice(0,10-(window.communityPendingFiles||[]).length);
   if(!selected.length)return;
-  const items=selected.map(file=>({file,status:'uploading',uploaded:null,previewUrl:URL.createObjectURL(file)}));
+  const items=selected.map(file=>({file,status:'loading',uploaded:null,previewUrl:URL.createObjectURL(file)}));
   window.communityPendingFiles=[...(window.communityPendingFiles||[]),...items].slice(0,10);
   communityRenderPendingFiles();
   for(const item of items){
     try{
-      item.uploaded=await communityUploadFile(item.file);
+      if(item.file.type?.startsWith('image/')){
+        await new Promise((resolve,reject)=>{
+          const img=new Image();
+          img.onload=resolve;
+          img.onerror=reject;
+          img.src=item.previewUrl;
+        });
+      }
       item.status='ready';
     }catch(error){
       item.status='error';
-      item.error=String(error?.message||error||'تعذر رفع المرفق');
-      toast(item.error);
+      item.error='تعذر تجهيز معاينة الصورة.';
     }
     communityRenderPendingFiles();
   }
@@ -2229,19 +2235,33 @@ async function communityChatSend(e){
   if(communityChatSendActive)return;
   const input=document.getElementById('communityChatInput'), text=String(input?.value||'').trim(), items=[...(window.communityPendingFiles||[])];
   if(!text&&!items.length)return;
-  const uploading=items.filter(x=>x&&x.status==='uploading');
+  const loading=items.filter(x=>x&&x.status==='loading');
   const failed=items.filter(x=>x&&x.status==='error');
-  if(uploading.length){toast('انتظر اكتمال رفع المرفق أولًا.');return}
-  if(failed.length){toast('يوجد مرفق لم يكتمل رفعه. احذفه وأعد اختياره.');return}
+  if(loading.length){toast('انتظر اكتمال تجهيز المرفق أولًا.');return}
+  if(failed.length){toast('يوجد مرفق لم يتم تجهيزه. احذفه وأعد اختياره.');return}
   communityChatSendActive=true;
   communityChatSendController=new AbortController();
   const sendButton=e.submitter||document.querySelector('#communityChatModal .community-chat-send'); if(sendButton)sendButton.disabled=true;
   try{
     let payload=text;
     if(items.length){
-      const attachments=items.map(x=>x.uploaded).filter(Boolean);
-      if(attachments.length!==items.length)throw new Error('لم يكتمل رفع جميع المرفقات.');
-      payload='[[DXN_CHAT_V2]]'+JSON.stringify({text,attachments});
+      const attachments=[];
+      for(let i=0;i<items.length;i++){
+        const item=items[i];
+        item.status='uploading';
+        communityRenderPendingFiles();
+        try{
+          item.uploaded=await communityUploadFile(item.file);
+          item.status='ready';
+        }catch(error){
+          item.status='error';
+          item.error=String(error?.message||error||'تعذر رفع المرفق');
+          communityRenderPendingFiles();
+          throw error;
+        }
+        communityRenderPendingFiles();
+      }
+      payload='[[DXN_CHAT_V2]]'+JSON.stringify({text,attachments:items.map(x=>x.uploaded).filter(Boolean)});
     }
     if(!document.getElementById('communityChatModal'))return;
     const saved=await communityChatRpc('community_chat_send',{p_message:payload});
@@ -2251,36 +2271,20 @@ async function communityChatSend(e){
       window.communityPendingFiles=[];
       communityRenderPendingFiles();
       input?.focus();
-
       const currentBox=document.getElementById('communityChatMessages');
       if(currentBox){
-        let local=[];
-        try{local=JSON.parse(localStorage.getItem('dxn_community_chat_local')||'[]')}catch(_){local=[]}
         let existing=[];
-        try{existing=Array.isArray(window.communityChatMessages)?window.communityChatMessages:[]}catch(_){existing=[]}
-        const currentMessages=existing.length?existing:(Array.isArray(local)?local.map(m=>({
-          sender_member_no:'',
-          sender_name:'أنت',
-          sender_role:'member',
-          message_text:String(m.text||''),
-          created_at:String(m.time||'')
-        })).filter(m=>m.message_text.trim()):[]);
-        const next=[...currentMessages,saved].filter(m=>m&&String(m.message_text||'').trim());
-        communityChatRender(next.slice(-200));
+        try{existing=Array.isArray(window.communityChatMessages)?window.communityChatMessages:[]}catch(_){}
+        communityChatRender([...existing,saved].filter(m=>m&&String(m.message_text||'').trim()).slice(-200));
       }
-
       communityChatRpc('community_chat_list',{p_limit:100}).then(messages=>{
-        if(messages && document.getElementById('communityChatModal')){
-          let local=[];
-          try{local=JSON.parse(localStorage.getItem('dxn_community_chat_local')||'[]')}catch(_){local=[]}
-          const legacy=(Array.isArray(local)?local:[]).map(m=>({sender_member_no:'',sender_name:'أنت',sender_role:'member',message_text:String(m.text||''),created_at:String(m.time||'')})).filter(m=>m.message_text.trim());
-          const merged=[...legacy,...(Array.isArray(messages)?messages:[])].filter(m=>m&&String(m.message_text||'').trim()).sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));
-          communityChatRender(merged.slice(-200));
+        if(messages&&document.getElementById('communityChatModal')){
+          communityChatRender((Array.isArray(messages)?messages:[]).filter(m=>m&&String(m.message_text||'').trim()).slice(-200));
         }
       }).catch(error=>console.error('Community chat refresh:',error));
     }
   }catch(error){
-    if(error?.name!=='AbortError' && document.getElementById('communityChatModal'))toast(error?.message||'تعذر إرسال المرفق')
+    if(error?.name!=='AbortError'&&document.getElementById('communityChatModal'))toast(error?.message||'تعذر إرسال المرفق')
   }finally{
     communityChatSendActive=false;
     communityChatSendController=null;
