@@ -595,7 +595,13 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    const privilegedTeamRpc = fn === 'get_dxn_team_intelligence' || fn === 'leader_sync_dxn_team_members';
+    const privilegedTeamRpc =
+      fn === 'get_dxn_team_intelligence' ||
+      fn === 'leader_sync_dxn_team_members' ||
+      fn === 'community_private_user_search' ||
+      fn === 'community_private_conversations_list' ||
+      fn === 'community_private_chat_open' ||
+      fn === 'community_private_message_send';
 
     // Team Intelligence has existed in two RPC signatures in deployed environments:
     // newer deployments accept p_token; older deployments accept p_root_member_no.
