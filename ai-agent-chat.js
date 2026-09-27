@@ -426,10 +426,38 @@
     const trainingFileInput=el('input',{id:'dxnAgentTrainingFileInput',type:'file',accept:'.pdf,image/*,video/*',multiple:'true'});trainingFileInput.style.display='none';document.body.appendChild(trainingFileInput);
     panel.innerHTML='<div class="dxn-agent-head"><div><b>🤖 المدرب وائل حاتم</b><small>مدربك داخل مجتمع الصحة والثراء</small></div><div class="dxn-agent-head-actions"><button id="dxnAgentPush" class="dxn-agent-push" type="button" title="تفعيل إشعارات المدرب وائل حاتم">🔔</button><button id="dxnAgentFollowupTest" class="dxn-agent-push" type="button" title="اختبار متابعة المدرب وائل حاتم">🧪</button><button class="dxn-agent-close" type="button">إغلاق</button></div></div><div id="dxnAgentMessages"></div><div id="dxnAgentStatus" class="dxn-agent-status"></div><form class="dxn-agent-form"><button id="dxnAgentMic" class="dxn-agent-mic" type="button" title="تحدث مع الوكيل">🎙️</button><textarea id="dxnAgentInput" placeholder="اكتب سؤالك هنا... أو اضغط 🎙️ للتحدث" rows="1"></textarea><button id="dxnAgentSend" type="submit">إرسال</button></form>';
     document.body.append(btn,panel);
-    function isLeaderForTraining(){try{const roleText=[...document.querySelectorAll('.mobile-member-identity .role-label,.member-identity .role-label')].map(x=>String(x.textContent||'')).join(' ');return roleText.includes('القائد');}catch(_){return false;}}
-    function syncTrainingAddIcon(){btn.classList.toggle('leader-mode',isLeaderForTraining());}
+    let trainingLeaderState=false;
+    function isLeaderForTraining(){
+      if(trainingLeaderState)return true;
+      try{
+        const roleText=[...document.querySelectorAll('.mobile-member-identity .role-label,.member-identity .role-label')].map(x=>String(x.textContent||'')).join(' ');
+        return /القائد|leader/i.test(roleText);
+      }catch(_){return false;}
+    }
+    async function syncTrainingAddIcon(){
+      let leader=false;
+      try{
+        const token=sessionToken();
+        if(token){
+          const r=await fetch('/api/rpc',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({fn:'bootstrap',args:{p_token:token}})
+          });
+          if(r.ok){
+            const d=await r.json().catch(()=>({}));
+            leader=String(d?.role||'').trim().toLowerCase()==='leader';
+          }
+        }
+      }catch(_){}
+      if(!leader)leader=isLeaderForTraining();
+      trainingLeaderState=leader;
+      btn.classList.toggle('leader-mode',leader);
+    }
     syncTrainingAddIcon();
-    const trainingRoleObserver=new MutationObserver(syncTrainingAddIcon);trainingRoleObserver.observe(document.body,{subtree:true,childList:true,characterData:true});
+    const trainingRoleObserver=new MutationObserver(()=>syncTrainingAddIcon());trainingRoleObserver.observe(document.body,{subtree:true,childList:true,characterData:true});
+    setTimeout(syncTrainingAddIcon,1500);
+    setTimeout(syncTrainingAddIcon,4000);
     document.getElementById('dxnAgentTrainingAdd').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();if(!isLeaderForTraining())return;trainingFileInput.click();});
     async function uploadTrainingFile(file,index,total){
       const token=sessionToken();
