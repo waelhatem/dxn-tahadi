@@ -126,7 +126,7 @@ async function directPrivateUserSearchFallback(args){
   const currentUserId=String(current.data);
 
   const users=await supabaseRestRequest(
-    '/rest/v1/app_users?select=id,login_no,role,display_name,member_id&active=eq.true&order=created_at.asc&limit=1000',
+    '/rest/v1/app_users?select=id,login_no,role,display_name,member_id&active=eq.true&member_id=not.is.null&order=created_at.asc&limit=1000',
     SUPABASE_SECRET_KEY,10000
   );
   if(!users.ok || !Array.isArray(users.data)){
