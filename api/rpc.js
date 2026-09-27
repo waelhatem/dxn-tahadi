@@ -550,7 +550,7 @@ function trainingMaterialTypeFromMime(mime){
 function safeTrainingFilename(name){
   return String(name||'material')
     .normalize('NFKC')
-    .replace(/[^a-zA-Z0-9._\-\u0600-\u06ff ]+/g,'_')
+    .replace(/[^a-zA-Z0-9._\- ]+/g,'_')
     .replace(/\s+/g,' ')
     .trim()
     .slice(0,180) || 'material';
