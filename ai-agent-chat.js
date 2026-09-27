@@ -508,7 +508,21 @@
           try{const d=JSON.parse(xhr.responseText||'{}');detail=d.message||d.error||detail;}catch(_){}
           reject(new Error(detail));
         };
-        xhr.onerror=()=>reject(new Error('تعذر الاتصال بـ Supabase Storage أثناء الرفع'));
+        xhr.onerror=()=>{
+          let target='غير معروف';
+          try{
+            const u=new URL(prep.signed_url);
+            target=u.origin+u.pathname;
+          }catch(_){}
+          console.error('DXN training upload network error',{
+            target,
+            online:navigator.onLine,
+            readyState:xhr.readyState,
+            status:xhr.status,
+            response:xhr.responseText||''
+          });
+          reject(new Error('تعذر الاتصال بـ Supabase Storage أثناء الرفع — حالة الاتصال: '+(navigator.onLine?'متصل بالإنترنت':'غير متصل بالإنترنت')+'، راجع Console لمعرفة عنوان Storage وحالة الطلب.'));
+        };
         xhr.onabort=()=>reject(new Error('تم إلغاء الرفع'));
         const formData=new FormData();
         formData.append('cacheControl','3600');
