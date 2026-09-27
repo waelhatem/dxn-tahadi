@@ -245,6 +245,7 @@ begin
 
   return jsonb_build_object(
     'conversation_id', v_conversation_id,
+    'current_user_id', v_user_id,
     'other_user_id', p_other_user_id,
     'other_name', v_other_name,
     'other_role', v_other_role,
