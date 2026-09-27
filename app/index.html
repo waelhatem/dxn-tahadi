@@ -2181,9 +2181,27 @@ async function communityUploadFile(file){
   if(!file||!file.size)throw new Error('المرفق فارغ');
   if(file.size>4*1024*1024)throw new Error('حجم «'+file.name+'» أكبر من 4 ميغابايت');
   const token=String(localStorage.getItem('dxn_session')||'').trim(); if(!token)throw new Error('انتهت جلسة الدخول. أعد تسجيل الدخول.');
-  const response=await fetch('/api/community-chat-upload',{method:'POST',headers:{'Content-Type':file.type||'application/octet-stream','X-DXN-Session':token,'X-DXN-File-Name':encodeURIComponent(file.name)},body:file,cache:'no-store'});
-  const data=await response.json().catch(()=>({})); if(!response.ok||!data?.ok)throw new Error(data?.error||'تعذر رفع المرفق');
-  return {url:data.url,name:data.name||file.name,type:data.type||file.type||'application/octet-stream',size:data.size||file.size};
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),25000);
+  try{
+    const response=await fetch('/api/community-chat-upload',{
+      method:'POST',
+      headers:{
+        'Content-Type':file.type||'application/octet-stream',
+        'X-DXN-Session':token,
+        'X-DXN-File-Name':encodeURIComponent(file.name)
+      },
+      body:file,
+      cache:'no-store',
+      signal:controller.signal
+    });
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||!data?.ok)throw new Error(data?.error||('تعذر رفع المرفق (HTTP '+response.status+')'));
+    return {url:data.url,name:data.name||file.name,type:data.type||file.type||'application/octet-stream',size:data.size||file.size};
+  }catch(error){
+    if(error?.name==='AbortError')throw new Error('انتهت مهلة رفع الصورة. حاول مرة أخرى.');
+    throw error;
+  }finally{clearTimeout(timer)}
 }
 async function communityChatSend(e){
   e.preventDefault();
