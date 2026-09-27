@@ -1,7 +1,7 @@
 name: Build Istighfar APK
 on:
-  push:
-    branches: [ "build/istighfar-apk" ]
+  pull_request:
+    branches: [ "main" ]
   workflow_dispatch:
 jobs:
   build:
