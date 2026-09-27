@@ -1547,6 +1547,44 @@ async function searchDurableKnowledge(token,role,query,limit=80){
   }catch(_){return [];}
 }
 
+function isExactSourceListRequest(message){
+  const s=String(message||'').trim().toLowerCase();
+  if(!isSourceKnowledgeRequest(message))return false;
+  return /(?:كما ورد|دون إضافة|دون اضافه|بالنقاط|نص المادة|نص المصدر|ما هي.*(?:أمثلة|النقاط|العناصر)|اذكر.*(?:أمثلة|النقاط|العناصر)|ما هي.*صور)/i.test(s);
+}
+
+function buildDeterministicSourceListAnswer(message,knowledgeMemory){
+  if(!isExactSourceListRequest(message))return null;
+  const rows=Array.isArray(knowledgeMemory)?knowledgeMemory:[];
+  const sourceRows=rows.filter(x=>
+    /^(?:dxn_pdf_source_exact|source_pdf|dxn_marketing_plan_full)$/i.test(String(x?.category||'')) &&
+    String(x?.content||'').trim()
+  );
+  if(!sourceRows.length)return null;
+
+  const terms=memorySearchTerms(message);
+  const scored=sourceRows.map((row,index)=>{
+    const title=String(row?.title||'').toLowerCase();
+    const content=String(row?.content||'').toLowerCase();
+    let score=0;
+    for(const term of terms){
+      if(!term)continue;
+      if(title.includes(String(term).toLowerCase()))score+=6;
+      else if(content.includes(String(term).toLowerCase()))score+=3;
+    }
+    if(/التشويق السيئ|التشويق السلبي/.test(title)&&/تشويق/.test(String(message||'')))score+=15;
+    if(/استراتيجيات التشويق/.test(title)&&/استراتيجيات التشويق/.test(String(message||'')))score+=8;
+    return {row,score,index};
+  }).sort((a,b)=>b.score-a.score||Number(b.row?.relevance||0)-Number(a.row?.relevance||0)||a.index-b.index);
+
+  const hit=scored.find(x=>x.score>0);
+  if(!hit)return null;
+
+  // For exact-source list requests, return only the stored source text.
+  // This prevents the language model from inventing examples or commentary.
+  return String(hit.row.content||'').trim();
+}
+
 async function loadAgentKnowledge(token,role='member',message=''){
   const [durableAll,local]=await Promise.all([
     loadAllDurableKnowledge(role),
@@ -2775,7 +2813,17 @@ function buildCostOptimizedAgentContext({
     if(compactTrainingMemory.length>Math.max(2,trainingRequest?6:3))break;
   }
 
-  const compactProfile=coachingProfile?{
+  if(sourceRequest){
+    // Strict source mode: keep the source material, but remove personal/learned memories
+    // that could cause the model to blend old training with the requested source.
+    compactCausal.length=0;
+    compactPatterns.length=0;
+    compactPermanent.length=0;
+    compactFacts.length=0;
+    compactTrainingMemory.length=0;
+  }
+
+  const compactProfile=sourceRequest?null:coachingProfile?{
     goal:coachingProfile.goal||null,
     experience_level:coachingProfile.experience_level||'unknown',
     focus_area:coachingProfile.focus_area||null,
@@ -2809,10 +2857,11 @@ function buildCostOptimizedAgentContext({
     permanent_memory:compactPermanent,
     learned_facts:compactFacts,
     member_training_memory:compactTrainingMemory,
-    knowledge_source_policy:'المعرفة المصدرية الكاملة للملفات التدريبية هي المرجع الأول للمعلومة. الذاكرة الشخصية للعضو للترابط والتخصيص. الرسالة الحالية تحدد موضوع الرد.',
+    knowledge_source_policy:'المعرفة المصدرية الكاملة للملفات التدريبية هي المرجع الأول للمعلومة. في وضع أمانة المصدر لا تستخدم الذاكرة الشخصية أو التعلم السابق لتأليف محتوى خارج المصدر.',
     source_fidelity_mode:sourceRequest||rankRequest,
+    strict_source_mode:sourceRequest,
     source_fidelity_rule:(sourceRequest||rankRequest)
-      ? 'استخدم النص المصدر ذي الصلة كما هو مرجعًا أولًا. لا تختصر أو تحذف عناصر جدول/قائمة عندما يطلب العضو التفاصيل.'
+      ? 'في وضع أمانة المصدر: استخدم المصدر المطلوب وحده كمرجع للإجابة. لا تعتمد على ذاكرة الحوار أو الذاكرة الشخصية أو التعلم السابق لإضافة أمثلة أو تفسيرات غير موجودة في المصدر. عندما يطلب العضو النقل كما ورد، انقل النص المصدر فقط.'
       : null,
     memory_continuity:{
       always_on:true,
@@ -2882,7 +2931,10 @@ function instructions(context){
     'قاعدة صارمة لعزل السؤال: لا تستخدم أي معلومة من الذاكرة أو سجل الحوار أو الخطة اليومية إلا إذا كانت مرتبطة مباشرة بالسؤال الحالي. إذا تعارضت ذاكرة قديمة أو موضوع سابق مع الرسالة الحالية، تجاهل القديم وأجب عن الرسالة الحالية فقط. لا تجب عن سؤال آخر لم يُطرح.',
     'أولوية المعرفة: عندما يكون السؤال عن مادة تدريبية أو خطة DXN أو معلومة تم تثبيتها من ملف، استخدم knowledge_memory والمصدر الأصلي أولًا. لا تختصر قائمة أو جدولًا أو شروطًا متعددة إذا كان السؤال يطلبها كاملة، ولا تغيّر الأرقام أو أسماء المراتب. انقل الحقائق بأمانة ثم اشرحها بأسلوب احترافي.',
     'قاعدة تعارض المصادر: إذا أجابت أكثر من مادة عن نفس النقطة، فرتّب السلطة المعرفية هكذا: المعلومة الرسمية الحالية المعتمدة، ثم المادة التدريبية الرسمية التي رفعها القائد، ثم المعرفة المعتمدة الأقدم، ثم الخبرة المستخلصة من المحادثات والذاكرة، ثم المعرفة العامة أو الاستنتاج. داخل المستوى نفسه، قدّم المصدر الأحدث تحديثًا إذا كان أحدثه موثوقًا. لا تخلط بين مصدرين متعارضين وكأنهما حقيقة واحدة؛ إذا بقي التعارض بعد تطبيق هذه الأولوية، صرّح بوجود تعارض واذكر أي مصدر اعتمدته ولماذا. لا تحوّل تخمين النموذج إلى حقيقة لمجرد عدم وجود مصدر.',
-    'وضع أمانة المصدر: إذا كان السؤال يطلب معلومات من ملف تدريبي، فالمحتوى الموسوم source_pdf أو dxn_pdf_source_exact أو المصدر الأصلي للملف هو المرجع الأعلى. لا تستبدله بملخص من قاعدة المعرفة. عند وجود جدول أو قائمة في المصدر، حافظ على جميع العناصر والشروط التي طلبها العضو. إذا كان source_fidelity_mode = true وsource_knowledge_exact يحتوي مادة ذات صلة، فلا تقل إن نص المادة غير متاح أو إنك تحتاج إلى رفع الملف؛ استخدم النص الموجود في source_knowledge_exact وأجب منه مباشرة. لا تستخدم المعرفة العامة لاستبدال معلومة مصدرية موجودة.',
+    'وضع أمانة المصدر: إذا كان السؤال يطلب معلومات من ملف تدريبي، فالمحتوى الموسوم source_pdf أو dxn_pdf_source_exact أو المصدر الأصلي للملف هو المرجع الأعلى. لا تستبدله بملخص من قاعدة المعرفة. عند وجود جدول أو قائمة في المصدر، حافظ على جميع العناصر والشروط التي طلبها العضو. إذا كان source_fidelity_mode = true وsource_knowledge_exact يحتوي مادة ذات صلة، فلا تقل إن نص المادة غير متاح أو إنك تحتاج إلى رفع الملف؛ استخدم النص الموجود في source_knowledge_exact وأجب منه مباشرة. وإذا كان strict_source_mode = true، فتجاهل تمامًا أي ذاكرة سابقة أو تعلم مستخلص أو أمثلة عامة، ولا تضف أي مثال أو تفسير أو استنتاج غير موجود في المصدر المطلوب. لا تستخدم المعرفة العامة لاستبدال معلومة مصدرية موجودة.',
+    'المطابقة المصدرية معنوية وليست حرفية: لا تشترط أن يكون عنوان الوحدة أو العبارة الواردة في السؤال مطابقًا حرفيًا لعنوان المصدر. إذا كان محتوى source_knowledge_exact يشرح النقطة المطلوبة أو يذكر عناصرها، فهو جواب صالح للمطلوب.',
+    'عندما يطلب العضو أمثلة أو نقاطًا أو عناصر أو ما ورد في المادة، استخرج العناصر من المحتوى المصدر نفسه حتى لو كان عنوان الوحدة مختلفًا. مثال: سؤال عن «أمثلة التشويق السيئ» يمكن أن يجيب منه نص «التشويق السيئ (السلبي)» الذي يسرد صور التشويق السيئ.',
+    'إذا كان المصدر يحتوي على المعلومة المطلوبة بشكل مباشر، لا تقل إن المادة غير متاحة ولا تطلب رفع الملف لمجرد أن العبارة المطلوبة ليست عنوانًا حرفيًا في المصدر. استخدم النص المصدر أولًا ثم أجب بالنقاط المطلوبة دون إضافة من عندك.',
     'وجود coaching_session أو daily_auto_plan أو مهمة يومية في السياق لا يعني أن الرد يجب أن يكون عن التدريب. لا تجرّ السؤال الحالي إلى المهمة اليومية لمجرد وجود جلسة نشطة.',
     'إذا كان السؤال الحالي عن بيانات العضو أو فريقه أو أي موضوع آخر، ابقَ على موضوع السؤال. يمكن ذكر الجلسة أو الخطوة اليومية فقط بعد الإجابة وإذا كان ذلك مرتبطًا بشكل طبيعي بالطلب.',
     'لا تستخدم مرحلة الجلسة الحالية أو المهمة اليومية كبديل عن فهم الرسالة الحالية. القرار continue_daily_plan لا يُستخدم عندما تكون هناك نية مباشرة مثل ask_question أو request_help أو report_obstacle أو report_attempt.',
@@ -3418,9 +3470,24 @@ module.exports=async function handler(req,res){
       loadLearnedFacts(token),
       loadMemberTrainingMemory(token)
     ]);
+    const exactSourceAnswer=buildDeterministicSourceListAnswer(message,knowledgeMemory);
+    if(exactSourceAnswer){
+      await saveAgentMessage(token,'user',message).catch(()=>null);
+      await saveAgentMessage(token,'assistant',exactSourceAnswer).catch(()=>null);
+      return res.status(200).json({
+        ok:true,
+        answer:exactSourceAnswer,
+        deterministic:true,
+        source:'training-source-exact'
+      });
+    }
+
     const fallbackHistory=cleanHistory(body.history);
+    const strictSourceMode=isSourceKnowledgeRequest(message);
     const historySource=(persistentMemory.length?persistentMemory:fallbackHistory);
-    const history=historySource.slice(-24);
+    // Source-fidelity requests must not inherit prior conversation turns.
+    // The requested source is the authority for the answer.
+    const history=strictSourceMode?[]:historySource.slice(-24);
     const baseInput=[...history,{role:'user',content:message}];
     requestStage='build_state';
     const cognitiveState=buildCognitiveState({
