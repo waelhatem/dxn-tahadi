@@ -126,7 +126,7 @@ async function directPrivateUserSearchFallback(args){
   const currentUserId=String(current.data);
 
   const users=await supabaseRestRequest(
-    '/rest/v1/app_users?select=id,login_no,role,display_name,member_id&active=eq.true&member_id=not.is.null&order=created_at.asc&limit=1000',
+    '/rest/v1/app_users?select=id,login_no,role,display_name,member_id&active=eq.true&order=created_at.asc&limit=1000',
     SUPABASE_SECRET_KEY,10000
   );
   if(!users.ok || !Array.isArray(users.data)){
@@ -146,17 +146,18 @@ async function directPrivateUserSearchFallback(args){
   const q=String(args.p_query||'').trim().toLowerCase();
   const limit=Math.max(1,Math.min(Number(args.p_limit)||50,50));
   return users.data
-    .filter(u=>String(u.id)!==currentUserId)
+    .filter(u=>String(u.id)!==currentUserId && u.role==='member')
     .map(u=>{
       const m=memberMap.get(String(u.member_id||'')) || memberNoMap.get(String(u.login_no||'').trim());
+      if(!m) return null;
       return {
         user_id:u.id,
-        name:String(u.display_name||m?.name||u.login_no||'عضو المجتمع').trim(),
+        name:String(u.display_name||m.name||u.login_no||'عضو المجتمع').trim(),
         role:u.role,
-        member_no:String(m?.member_no||'')
+        member_no:String(m.member_no||u.login_no||'')
       };
     })
-    .filter(u=>!q || u.name.toLowerCase().includes(q) || u.member_no.toLowerCase().includes(q) || String(users.data.find(x=>String(x.id)===String(u.user_id))?.login_no||'').toLowerCase().includes(q))
+    .filter(u=>u && (!q || u.name.toLowerCase().includes(q) || u.member_no.toLowerCase().includes(q)))
     .sort((a,b)=>a.name.localeCompare(b.name,'ar'))
     .slice(0,limit);
 }
@@ -696,26 +697,22 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    const response=await supabaseRpcRequest(fn,args,privilegedTeamRpc ? SUPABASE_SECRET_KEY : SUPABASE_KEY,10000);
     if(fn==='community_private_user_search'){
-      // استخدم البحث المباشر أيضًا عندما يعيد RPC قائمة فارغة؛
-      // هذا يضمن أن البحث الجزئي مثل «وائل» يطابق «وائل حاتم» حتى
-      // إذا كانت نسخة PostgREST/RPC القديمة لا تطبق الفلترة كما يجب.
-      const rpcData=response.data;
-      const rpcEmpty=Array.isArray(rpcData) && rpcData.length===0;
-      if(!response.ok || rpcEmpty){
-        try{
-          const fallback=await directPrivateUserSearchFallback(args);
-          return res.status(200).json(fallback);
-        }catch(fallbackError){
-          if(!response.ok){
-            return res.status(response.status||500).json({
-              error:String(fallbackError?.message||fallbackError)||response.text||'تعذر تحميل قائمة الأعضاء'
-            });
-          }
-        }
+      // البحث الخاص يعتمد مباشرة على حسابات الموقع النشطة المرتبطة بسجل DXN.
+      // لا نعتمد على نتيجة RPC القديمة حتى لا تختفي الحسابات التي ربطت
+      // بالحساب بواسطة رقم العضوية بدل member_id.
+      try{
+        const registeredMembers=await directPrivateUserSearchFallback(args);
+        return res.status(200).json(registeredMembers);
+      }catch(fallbackError){
+        const response=await supabaseRpcRequest(fn,args,SUPABASE_SECRET_KEY,10000);
+        return res.status(response.status||500).json(response.data||{
+          error:String(fallbackError?.message||fallbackError)||response.text||'تعذر تحميل قائمة الأعضاء'
+        });
       }
     }
+
+    const response=await supabaseRpcRequest(fn,args,privilegedTeamRpc ? SUPABASE_SECRET_KEY : SUPABASE_KEY,10000);
     return res.status(response.status||500).json(response.data||{error:response.text||'Supabase request failed'});
 
   } catch (error) {
