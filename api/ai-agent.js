@@ -1562,20 +1562,72 @@ function buildDeterministicSourceListAnswer(message,knowledgeMemory){
   );
   if(!sourceRows.length)return null;
 
+  const s=String(message||'').toLowerCase();
+
+  // Exact-source requests must first lock onto an explicit topic phrase.
+  // Broad token scoring alone can select an unrelated training chunk such as
+  // PRO GO simply because it shares generic words with the question.
+  const topicRules=[
+    {
+      pattern:/التشويق\s*(?:السيئ|السلبي)|صور\s+التشويق\s*(?:السيئ|السلبي)/i,
+      rowPattern:/التشويق\s*(?:السيئ|السلبي)/i,
+      bonus:100
+    },
+    {
+      pattern:/استراتيجيات\s+التشويق/i,
+      rowPattern:/استراتيجيات\s+التشويق/i,
+      bonus:100
+    },
+    {
+      pattern:/التشويق\s+غير\s+المباشر|إثارة\s+الفضول/i,
+      rowPattern:/التشويق\s+غير\s+المباشر|إثارة\s+الفضول/i,
+      bonus:100
+    },
+    {
+      pattern:/التشويق\s+بالمقارنة/i,
+      rowPattern:/التشويق\s+بالمقارنة/i,
+      bonus:100
+    },
+    {
+      pattern:/التشويق\s+المباشر/i,
+      rowPattern:/التشويق\s+المباشر/i,
+      bonus:100
+    },
+    {
+      pattern:/التشويق\s+بالأخذ\s+بالرأي/i,
+      rowPattern:/التشويق\s+بالأخذ\s+بالرأي/i,
+      bonus:100
+    }
+  ];
+
+  const rule=topicRules.find(x=>x.pattern.test(s));
+  const scopedRows=rule
+    ? sourceRows.filter(row=>rule.rowPattern.test(String(row?.title||'')+' '+String(row?.content||'')))
+    : sourceRows;
+
+  if(rule && !scopedRows.length)return null;
+
+  const candidates=scopedRows.length?scopedRows:sourceRows;
   const terms=memorySearchTerms(message);
-  const scored=sourceRows.map((row,index)=>{
+  const scored=candidates.map((row,index)=>{
     const title=String(row?.title||'').toLowerCase();
     const content=String(row?.content||'').toLowerCase();
-    let score=0;
+    let score=rule?rule.bonus:0;
     for(const term of terms){
       if(!term)continue;
-      if(title.includes(String(term).toLowerCase()))score+=6;
-      else if(content.includes(String(term).toLowerCase()))score+=3;
+      const t=String(term).toLowerCase();
+      if(title.includes(t))score+=6;
+      else if(content.includes(t))score+=3;
     }
-    if(/التشويق السيئ|التشويق السلبي/.test(title)&&/تشويق/.test(String(message||'')))score+=15;
-    if(/استراتيجيات التشويق/.test(title)&&/استراتيجيات التشويق/.test(String(message||'')))score+=8;
+    // Prefer a title-level match over a generic content match.
+    if(rule && rule.rowPattern.test(title))score+=40;
     return {row,score,index};
-  }).sort((a,b)=>b.score-a.score||Number(b.row?.relevance||0)-Number(a.row?.relevance||0)||a.index-b.index);
+  }).sort((a,b)=>
+    b.score-a.score ||
+    Number(b.row?.relevance||0)-Number(a.row?.relevance||0) ||
+    Number(b.row?.priority||0)-Number(a.row?.priority||0) ||
+    a.index-b.index
+  );
 
   const hit=scored.find(x=>x.score>0);
   if(!hit)return null;
