@@ -647,6 +647,186 @@ async function aiTrainingMaterialComplete(args){
   return {ok:Boolean(ok),material_id:materialId,status:success?'uploaded':'failed'};
 }
 
+async function trainingMaterialSignedDownload(bucket,path,expiresIn=3600){
+  const signed=await storageRequest(
+    'POST',
+    '/object/sign/'+encodeURIComponent(bucket)+'/'+String(path||'').split('/').map(encodeURIComponent).join('/'),
+    SUPABASE_SECRET_KEY,
+    {expiresIn:Math.max(300,Math.min(Number(expiresIn)||3600,86400))}
+  );
+  if(!signed.ok){
+    throw new Error((signed.data&&(signed.data.message||signed.data.error))||signed.text||'تعذر إنشاء رابط قراءة المادة');
+  }
+  const relative=String(signed.data?.signedURL||signed.data?.signedUrl||signed.data?.url||'').trim();
+  if(!relative) throw new Error('لم يرجع Storage رابط قراءة صالحًا');
+  const base=relative.startsWith('/storage/v1/')?SUPABASE_URL:SUPABASE_URL+'/storage/v1';
+  return new URL(relative,base).toString();
+}
+
+function parseTrainingExtraction(text){
+  const raw=String(text||'').trim();
+  if(!raw) return [];
+  let candidate=raw.replace(/^\\s*```(?:json)?\\s*/i,'').replace(/\\s*```\\s*$/,'').trim();
+  try{
+    const parsed=JSON.parse(candidate);
+    const items=Array.isArray(parsed)?parsed:(Array.isArray(parsed?.chunks)?parsed.chunks:[]);
+    return items.map((item,index)=>({
+      title:String(item?.title||('المادة التدريبية — القسم '+(index+1))).trim().slice(0,300),
+      content:String(item?.content||'').trim()
+    })).filter(item=>item.content);
+  }catch(_){
+    return raw.split(/\\n\\s*\\n+/).map((part,index)=>({
+      title:'المادة التدريبية — القسم '+(index+1),
+      content:String(part||'').trim()
+    })).filter(item=>item.content);
+  }
+}
+
+async function aiTrainingMaterialProcess(args){
+  const token=String(args?.p_token||'').trim();
+  const materialId=String(args?.p_material_id||'').trim();
+  if(!token||!materialId) throw new Error('بيانات معالجة المادة ناقصة');
+  if(!SUPABASE_SECRET_KEY) throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
+  if(!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY غير مضبوط في Vercel');
+
+  const boot=await supabaseRpcRequest('bootstrap',{p_token:token},SUPABASE_SECRET_KEY,10000);
+  if(!boot.ok) throw new Error((boot.data?.message||boot.data?.error||boot.text||'جلسة الدخول غير صالحة'));
+  if(String(boot.data?.role||'').trim().toLowerCase()!=='leader'){
+    throw new Error('معالجة المواد التدريبية متاحة للقائد فقط');
+  }
+  const uid=String(await supabaseRpc('app_current_user_id',{p_token:token},SUPABASE_SECRET_KEY,10000)||'').trim();
+  if(!uid) throw new Error('تعذر تحديد القائد الحالي');
+
+  const rows=await supabaseTableRequest(
+    'GET',
+    '/rest/v1/ai_training_materials?select=id,title,material_type,mime_type,original_filename,storage_bucket,storage_path,domain,priority,status,metadata&id=eq.'+encodeURIComponent(materialId)+'&uploaded_by=eq.'+encodeURIComponent(uid)+'&limit=1',
+    SUPABASE_SECRET_KEY
+  );
+  if(!rows.ok||!Array.isArray(rows.data)||!rows.data[0]){
+    throw new Error((rows.data?.message||rows.data?.error||rows.text||'المادة التدريبية غير موجودة'));
+  }
+  const material=rows.data[0];
+  if(!['uploaded','failed','processing'].includes(String(material.status||''))){
+    if(material.status==='ready') return {ok:true,material_id:materialId,status:'ready',chunks:0,already_ready:true};
+    throw new Error('حالة المادة الحالية لا تسمح بالمعالجة: '+String(material.status||'غير معروفة'));
+  }
+
+  await supabaseTableRequest(
+    'PATCH',
+    '/rest/v1/ai_training_materials?id=eq.'+encodeURIComponent(materialId)+'&uploaded_by=eq.'+encodeURIComponent(uid),
+    SUPABASE_SECRET_KEY,
+    {status:'processing',error_message:null}
+  );
+
+  try{
+    if(String(material.material_type)==='video'){
+      await supabaseTableRequest(
+        'PATCH',
+        '/rest/v1/ai_training_materials?id=eq.'+encodeURIComponent(materialId)+'&uploaded_by=eq.'+encodeURIComponent(uid),
+        SUPABASE_SECRET_KEY,
+        {status:'uploaded',error_message:'الفيديو مخزن بنجاح، ومعالجة الصوت/الفيديو ستتم عبر عامل معالجة غير متزامن في المرحلة التالية.'}
+      );
+      return {ok:true,material_id:materialId,status:'uploaded',chunks:0,deferred:true,message:'تم التخزين، ومعالجة الفيديو مؤجلة للمرحلة التالية.'};
+    }
+
+    const signedUrl=await trainingMaterialSignedDownload(material.storage_bucket,material.storage_path,3600);
+    const isPdf=String(material.material_type)==='pdf';
+    const inputPart=isPdf
+      ? {type:'input_file',file_url:signedUrl,filename:String(material.original_filename||material.title||'training.pdf')}
+      : {type:'input_image',image_url:signedUrl,detail:'high'};
+
+    const extractionPrompt=[
+      'أنت محرك استخراج معرفة تدريبية موثوقة لمنصة «مجتمع الصحة والثراء».',
+      'حلّل المادة المرفقة كاملة، ولا تخترع أي معلومة غير موجودة فيها.',
+      'استخرج المعرفة القابلة للتدريب بصورة دقيقة ومفصلة، مع الحفاظ على المصطلحات والأرقام والشروط والخطوات والأمثلة المهمة.',
+      'حوّل المادة إلى أقسام معرفة مستقلة يمكن للمدرب استرجاعها لاحقًا.',
+      'لا تضع وعودًا أو استنتاجات من عندك. إذا كانت المادة تتضمن رأيًا أو مثالًا أو ادعاءً، حافظ على نسبته إلى المادة.',
+      'أعد JSON فقط بالشكل التالي:',
+      '[{"title":"عنوان القسم","content":"المحتوى التفصيلي"}]',
+      'كل قسم يجب أن يكون أقل من 3500 حرف، ويفضل إنشاء أقسام متعددة بدل ضغط المعلومات.',
+      'إذا كانت المادة تحتوي على جداول أو قوائم، حافظ على الأرقام والعناصر الأساسية نصيًا.'
+    ].join('\\n');
+
+    const response=await openaiResponses({
+      model:OPENAI_MODEL,
+      input:[{
+        role:'user',
+        content:[
+          {type:'input_text',text:extractionPrompt},
+          inputPart
+        ]
+      }],
+      max_output_tokens:12000
+    });
+    if(!response.ok){
+      throw new Error(response.data?.error?.message||response.text||('OpenAI HTTP '+response.status));
+    }
+
+    const extracted=outputText(response.data);
+    const chunks=parseTrainingExtraction(extracted);
+    if(!chunks.length) throw new Error('لم يتم استخراج معرفة قابلة للحفظ من المادة');
+
+    const sourcePrefix='uploaded_material:'+materialId;
+    await supabaseTableRequest(
+      'DELETE',
+      '/rest/v1/ai_agent_knowledge?source=like.'+encodeURIComponent(sourcePrefix+'%'),
+      SUPABASE_SECRET_KEY
+    );
+
+    const saved=[];
+    for(let i=0;i<chunks.length;i++){
+      const content=String(chunks[i].content||'').trim().slice(0,4000);
+      if(!content) continue;
+      const title=String(chunks[i].title||('المادة — القسم '+(i+1))).trim().slice(0,300);
+      const row={
+        scope:'global',
+        category:isPdf?'dxn_pdf_source_exact':'uploaded_training',
+        title:(String(material.title||material.original_filename||'مادة تدريبية')+' — '+title).slice(0,300),
+        content,
+        priority:Math.max(0,Math.min(Number(material.priority)||80,100)),
+        active:true,
+        source:sourcePrefix+(isPdf?':uploaded_pdf_exact':':uploaded_image_exact')
+      };
+      const savedRow=await supabaseTableRequest(
+        'POST',
+        '/rest/v1/ai_agent_knowledge',
+        SUPABASE_SECRET_KEY,
+        row
+      );
+      if(!savedRow.ok){
+        throw new Error(savedRow.data?.message||savedRow.data?.error||savedRow.text||'تعذر حفظ المعرفة المستخرجة');
+      }
+      saved.push(Array.isArray(savedRow.data)?savedRow.data[0]:savedRow.data);
+    }
+
+    const metadata={
+      ...(material.metadata&&typeof material.metadata==='object'?material.metadata:{}),
+      extraction:{
+        version:1,
+        model:OPENAI_MODEL,
+        chunks:saved.length,
+        extracted_at:new Date().toISOString()
+      }
+    };
+    await supabaseTableRequest(
+      'PATCH',
+      '/rest/v1/ai_training_materials?id=eq.'+encodeURIComponent(materialId)+'&uploaded_by=eq.'+encodeURIComponent(uid),
+      SUPABASE_SECRET_KEY,
+      {status:'ready',processed_at:new Date().toISOString(),error_message:null,metadata}
+    );
+
+    return {ok:true,material_id:materialId,status:'ready',chunks:saved.length};
+  }catch(error){
+    await supabaseTableRequest(
+      'PATCH',
+      '/rest/v1/ai_training_materials?id=eq.'+encodeURIComponent(materialId)+'&uploaded_by=eq.'+encodeURIComponent(uid),
+      SUPABASE_SECRET_KEY,
+      {status:'failed',error_message:String(error?.message||error).slice(0,1000)}
+    ).catch(()=>{});
+    throw error;
+  }
+}
+
 async function communitySession(token){
   const pToken=String(token||'').trim();
   if(!pToken) throw new Error('جلسة العضوية غير موجودة');
@@ -774,11 +954,13 @@ module.exports = async function handler(req, res) {
     }
 
 
-    if(fn==='ai_training_material_prepare' || fn==='ai_training_material_complete'){
+    if(fn==='ai_training_material_prepare' || fn==='ai_training_material_complete' || fn==='ai_training_material_process'){
       try{
         const data=fn==='ai_training_material_prepare'
           ? await aiTrainingMaterialPrepare(args)
-          : await aiTrainingMaterialComplete(args);
+          : fn==='ai_training_material_complete'
+            ? await aiTrainingMaterialComplete(args)
+            : await aiTrainingMaterialProcess(args);
         return res.status(200).json(data||{});
       }catch(error){
         console.error('ai training material RPC error:',error);
