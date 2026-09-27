@@ -1547,6 +1547,44 @@ async function searchDurableKnowledge(token,role,query,limit=80){
   }catch(_){return [];}
 }
 
+function isExactSourceListRequest(message){
+  const s=String(message||'').trim().toLowerCase();
+  if(!isSourceKnowledgeRequest(message))return false;
+  return /(?:كما ورد|دون إضافة|دون اضافه|بالنقاط|نص المادة|نص المصدر|ما هي.*(?:أمثلة|النقاط|العناصر)|اذكر.*(?:أمثلة|النقاط|العناصر)|ما هي.*صور)/i.test(s);
+}
+
+function buildDeterministicSourceListAnswer(message,knowledgeMemory){
+  if(!isExactSourceListRequest(message))return null;
+  const rows=Array.isArray(knowledgeMemory)?knowledgeMemory:[];
+  const sourceRows=rows.filter(x=>
+    /^(?:dxn_pdf_source_exact|source_pdf|dxn_marketing_plan_full)$/i.test(String(x?.category||'')) &&
+    String(x?.content||'').trim()
+  );
+  if(!sourceRows.length)return null;
+
+  const terms=memorySearchTerms(message);
+  const scored=sourceRows.map((row,index)=>{
+    const title=String(row?.title||'').toLowerCase();
+    const content=String(row?.content||'').toLowerCase();
+    let score=0;
+    for(const term of terms){
+      if(!term)continue;
+      if(title.includes(String(term).toLowerCase()))score+=6;
+      else if(content.includes(String(term).toLowerCase()))score+=3;
+    }
+    if(/التشويق السيئ|التشويق السلبي/.test(title)&&/تشويق/.test(String(message||'')))score+=15;
+    if(/استراتيجيات التشويق/.test(title)&&/استراتيجيات التشويق/.test(String(message||'')))score+=8;
+    return {row,score,index};
+  }).sort((a,b)=>b.score-a.score||Number(b.row?.relevance||0)-Number(a.row?.relevance||0)||a.index-b.index);
+
+  const hit=scored.find(x=>x.score>0);
+  if(!hit)return null;
+
+  // For exact-source list requests, return only the stored source text.
+  // This prevents the language model from inventing examples or commentary.
+  return String(hit.row.content||'').trim();
+}
+
 async function loadAgentKnowledge(token,role='member',message=''){
   const [durableAll,local]=await Promise.all([
     loadAllDurableKnowledge(role),
@@ -3421,6 +3459,18 @@ module.exports=async function handler(req,res){
       loadLearnedFacts(token),
       loadMemberTrainingMemory(token)
     ]);
+    const exactSourceAnswer=buildDeterministicSourceListAnswer(message,knowledgeMemory);
+    if(exactSourceAnswer){
+      await saveAgentMessage(token,'user',message).catch(()=>null);
+      await saveAgentMessage(token,'assistant',exactSourceAnswer).catch(()=>null);
+      return res.status(200).json({
+        ok:true,
+        answer:exactSourceAnswer,
+        deterministic:true,
+        source:'training-source-exact'
+      });
+    }
+
     const fallbackHistory=cleanHistory(body.history);
     const historySource=(persistentMemory.length?persistentMemory:fallbackHistory);
     const history=historySource.slice(-24);
