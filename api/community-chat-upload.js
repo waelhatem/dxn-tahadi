@@ -66,10 +66,15 @@ async function verifySession(token){
 }
 
 async function ensureBucket(){
+  const check=await request('GET','/storage/v1/bucket/'+encodeURIComponent(BUCKET),null,{
+    apikey:SUPABASE_SECRET_KEY,Authorization:'Bearer '+SUPABASE_SECRET_KEY
+  });
+  if(check.ok)return;
+  if(check.status!==404)throw new Error('تعذر التحقق من مساحة المرفقات: '+((check.data&&(check.data.message||check.data.error||check.data.statusCode))||check.text||('HTTP '+check.status)));
   const r=await request('POST','/storage/v1/bucket',{id:BUCKET,name:BUCKET,public:true,file_size_limit:MAX_BYTES},{
     'Content-Type':'application/json',apikey:SUPABASE_SECRET_KEY,Authorization:'Bearer '+SUPABASE_SECRET_KEY
   });
-  if(!r.ok && r.status!==409) throw new Error((r.data&&(r.data.message||r.data.error||r.data.statusCode))||r.text||'تعذر تجهيز مساحة المرفقات');
+  if(!r.ok && r.status!==409) throw new Error('تعذر إنشاء مساحة المرفقات: '+((r.data&&(r.data.message||r.data.error||r.data.statusCode))||r.text||('HTTP '+r.status)));
 }
 
 function safeName(name){
