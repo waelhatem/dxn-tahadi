@@ -431,7 +431,95 @@
     syncTrainingAddIcon();
     const trainingRoleObserver=new MutationObserver(syncTrainingAddIcon);trainingRoleObserver.observe(document.body,{subtree:true,childList:true,characterData:true});
     document.getElementById('dxnAgentTrainingAdd').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();if(!isLeaderForTraining())return;trainingFileInput.click();});
-    trainingFileInput.addEventListener('change',()=>{const files=[...trainingFileInput.files||[]];if(!files.length)return;panel.classList.add('show');addMsg('تم اختيار '+files.length+' مادة تدريبية. واجهة الإضافة جاهزة، والخطوة التالية هي ربطها بمعالجة PDF والصور والفيديو وتخزينها في قاعدة معرفة المدرب.','ai');trainingFileInput.value='';});
+    async function uploadTrainingFile(file,index,total){
+      const token=sessionToken();
+      const name=String(file.name||'material');
+      const type=String(file.type||'').toLowerCase();
+      let materialType='';
+      if(type==='application/pdf') materialType='pdf';
+      else if(type.startsWith('image/')) materialType='image';
+      else if(type.startsWith('video/')) materialType='video';
+      if(!materialType) throw new Error('نوع الملف غير مدعوم: '+name);
+      if(file.size<1) throw new Error('الملف فارغ: '+name);
+
+      setStatus('تحضير رفع المادة '+(index+1)+' من '+total+'...');
+      const prepResponse=await fetch('/api/rpc',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          fn:'ai_training_material_prepare',
+          args:{
+            p_token:token,
+            p_title:name.replace(/\.[^.]+$/,'').slice(0,300),
+            p_mime_type:type||'application/octet-stream',
+            p_original_filename:name,
+            p_file_size:file.size,
+            p_domain:'general',
+            p_priority:80
+          }
+        })
+      });
+      const prep=await prepResponse.json().catch(()=>({}));
+      if(!prepResponse.ok) throw new Error(prep.error||('HTTP '+prepResponse.status));
+
+      const progressMsg=addMsg('⬆️ '+name+' — 0%','ai');
+      await new Promise((resolve,reject)=>{
+        const xhr=new XMLHttpRequest();
+        xhr.open('PUT',prep.signed_url,true);
+        xhr.setRequestHeader('Content-Type',type||'application/octet-stream');
+        xhr.setRequestHeader('x-upsert','false');
+        xhr.upload.onprogress=event=>{
+          if(event.lengthComputable){
+            const pct=Math.round((event.loaded/event.total)*100);
+            if(progressMsg) progressMsg.textContent='⬆️ '+name+' — '+pct+'%';
+            setStatus('رفع '+name+' — '+pct+'%');
+          }
+        };
+        xhr.onload=()=>{
+          if(xhr.status>=200&&xhr.status<300){resolve();return;}
+          let detail='HTTP '+xhr.status;
+          try{const d=JSON.parse(xhr.responseText||'{}');detail=d.message||d.error||detail;}catch(_){}
+          reject(new Error(detail));
+        };
+        xhr.onerror=()=>reject(new Error('تعذر الاتصال بـ Supabase Storage أثناء الرفع'));
+        xhr.onabort=()=>reject(new Error('تم إلغاء الرفع'));
+        xhr.send(file);
+      });
+
+      const doneResponse=await fetch('/api/rpc',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          fn:'ai_training_material_complete',
+          args:{p_token:token,p_material_id:prep.material_id,p_success:true}
+        })
+      });
+      const done=await doneResponse.json().catch(()=>({}));
+      if(!doneResponse.ok) throw new Error(done.error||('HTTP '+doneResponse.status));
+      if(progressMsg) progressMsg.textContent='✅ '+name+' — تم الرفع والتخزين';
+      return prep;
+    }
+
+    trainingFileInput.addEventListener('change',async()=>{
+      const files=[...trainingFileInput.files||[]];
+      if(!files.length)return;
+      panel.classList.add('show');
+      const token=sessionToken();
+      if(!token){addMsg('يرجى تسجيل الدخول أولًا.','ai');trainingFileInput.value='';return;}
+      if(!isLeaderForTraining()){addMsg('إضافة المواد التدريبية متاحة للقائد فقط.','ai');trainingFileInput.value='';return;}
+      let success=0;
+      for(let i=0;i<files.length;i++){
+        try{
+          await uploadTrainingFile(files[i],i,files.length);
+          success++;
+        }catch(error){
+          addMsg('❌ تعذر رفع '+String(files[i].name||'المادة')+': '+String(error.message||error),'ai');
+        }
+      }
+      setStatus('');
+      addMsg('اكتمل الرفع: '+success+' من '+files.length+' مادة. الحالة الحالية: تم التخزين فقط، وستأتي معالجة المحتوى في المرحلة التالية.','ai');
+      trainingFileInput.value='';
+    });
     btn.addEventListener('click',()=>{
       const opening=!panel.classList.contains('show');
       panel.classList.toggle('show');
