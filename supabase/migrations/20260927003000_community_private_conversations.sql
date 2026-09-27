@@ -76,6 +76,8 @@ alter table public.community_private_messages enable row level security;
 grant usage on schema public to service_role;
 grant select, insert, update on public.community_private_conversations to service_role;
 grant select, insert, update on public.community_private_messages to service_role;
+revoke all on public.community_private_conversations from public, anon, authenticated;
+revoke all on public.community_private_messages from public, anon, authenticated;
 
 create or replace function public.community_private_user_search(
   p_token uuid,
@@ -100,25 +102,33 @@ begin
   return coalesce((
     select jsonb_agg(
       jsonb_build_object(
-        'user_id', u.id,
-        'name', coalesce(nullif(btrim(u.display_name),''), nullif(btrim(m.name),''), u.login_no),
-        'role', u.role,
-        'member_no', coalesce(m.member_no,'')
+        'user_id', q.id,
+        'name', q.name,
+        'role', q.role,
+        'member_no', q.member_no
       )
-      order by coalesce(nullif(btrim(u.display_name),''), nullif(btrim(m.name),''), u.login_no)
+      order by q.name
     )
-    from public.app_users u
-    left join public.members m on m.id = u.member_id
-    where u.active
-      and u.id <> v_user_id
-      and (
-        v_q = ''
-        or lower(coalesce(u.display_name,'')) like '%' || v_q || '%'
-        or lower(coalesce(m.name,'')) like '%' || v_q || '%'
-        or lower(coalesce(u.login_no,'')) like '%' || v_q || '%'
-        or coalesce(m.member_no,'') like '%' || v_q || '%'
-      )
-    limit v_limit
+    from (
+      select
+        u.id,
+        coalesce(nullif(btrim(u.display_name),''), nullif(btrim(m.name),''), u.login_no) as name,
+        u.role,
+        coalesce(m.member_no,'') as member_no
+      from public.app_users u
+      left join public.members m on m.id = u.member_id
+      where u.active
+        and u.id <> v_user_id
+        and (
+          v_q = ''
+          or lower(coalesce(u.display_name,'')) like '%' || v_q || '%'
+          or lower(coalesce(m.name,'')) like '%' || v_q || '%'
+          or lower(coalesce(u.login_no,'')) like '%' || v_q || '%'
+          or coalesce(m.member_no,'') like '%' || v_q || '%'
+        )
+      order by coalesce(nullif(btrim(u.display_name),''), nullif(btrim(m.name),''), u.login_no)
+      limit v_limit
+    ) q
   ), '[]'::jsonb);
 end;
 $$;
