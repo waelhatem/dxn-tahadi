@@ -2599,16 +2599,38 @@ function buildCostOptimizedAgentContext({
     }
   );
 
+  // Rank the exact source pages before the context-size limit. A long
+  // uploaded PDF can otherwise push the page containing the answer out of
+  // the 75k-character model context.
+  const sourceTerms=memorySearchTerms(message);
+  const scoreSourceRow=(row)=>{
+    const hay=[row?.title,row?.content].filter(Boolean).join(' ').toLowerCase();
+    let score=0;
+    for(const term of sourceTerms){
+      if(term && hay.includes(String(term).toLowerCase())) score+=3;
+    }
+    const title=String(row?.title||'').toLowerCase();
+    if(/التشويق|الدعوة|الاستقطاب|المواعيد|الاماكن|الأماكن|قائمة المعارف/.test(title)) score+=2;
+    return score;
+  };
+  const rankedSourceRows=sourceRows
+    .map((row,index)=>({...row,__source_match_score:scoreSourceRow(row),__source_index:index}))
+    .sort((a,b)=>
+      Number(b.__source_match_score||0)-Number(a.__source_match_score||0) ||
+      Number(b?.priority||0)-Number(a?.priority||0) ||
+      Number(a.__source_index||0)-Number(b.__source_index||0)
+    );
+
   let chosenKnowledge;
   if(rankRequest){
-    chosenKnowledge=[...rankRows,...rankSourcePages,...sourceRelevantRows,...relevantRows];
+    chosenKnowledge=[...rankRows,...rankedSourceRows,...relevantRows];
   }else if(sourceRequest){
-    chosenKnowledge=[...sourceRows,...relevantRows];
+    chosenKnowledge=[...rankedSourceRows,...relevantRows];
   }else if(knowledgeRequest){
     // Source-file questions use the exact source layer. Training topics such as
     // recruitment, invitation, curiosity and appointment rules are explicitly
     // source-fidelity requests, even after a fresh session.
-    chosenKnowledge=[...sourceRelevantRows,...relevantRows];
+    chosenKnowledge=[...rankedSourceRows,...relevantRows];
   }else{
     chosenKnowledge=relevantRows;
   }
@@ -2617,6 +2639,7 @@ function buildCostOptimizedAgentContext({
   let knowledgeChars=0;
   const knowledgeLimit=rankRequest?36:(sourceRequest?60:(knowledgeRequest?24:6));
   const rankedKnowledge=chosenKnowledge.slice().sort((a,b)=>
+    Number(b?.__source_match_score||0)-Number(a?.__source_match_score||0) ||
     Number(b?.relevance||0)-Number(a?.relevance||0) ||
     Number(b?.authority_score||0)-Number(a?.authority_score||0) ||
     Number(b?.priority||0)-Number(a?.priority||0)
@@ -2636,6 +2659,8 @@ function buildCostOptimizedAgentContext({
       authority_score:Number(x?.authority_score||0),
       authority_label:x?.authority_label||'general_knowledge'
     };
+    delete item.__source_match_score;
+    delete item.__source_index;
     const chars=clipped.length+220;
     if(knowledgeChars+chars>75000)break;
     compactKnowledge.push(item);
