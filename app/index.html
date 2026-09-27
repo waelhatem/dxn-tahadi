@@ -2121,11 +2121,22 @@ function communityRenderPendingFiles(){
     const file=item&&item.file?item.file:item;
     if(!file)return;
     const status=item&&item.status?item.status:'ready';
+    const url=item&&item.previewUrl?item.previewUrl:URL.createObjectURL(file);
+    const state=status==='uploading'
+      ?'<span class="community-upload-spinner" aria-label="جارٍ الرفع"></span>'
+      :status==='ready'
+        ?'<span class="community-upload-done" aria-label="اكتمل الرفع">✓</span>'
+        :'<span class="community-upload-error" aria-label="فشل الرفع">!</span>';
+    const media=file.type?.startsWith('image/')
+      ?'<div class="community-attachment-media-wrap"><img class="community-attachment-thumb" src="'+url+'" alt="'+communityEscapeHtml(file.name)+'">'+state+'</div>'
+      :file.type?.startsWith('video/')
+        ?'<div class="community-attachment-file-icon">🎬'+state+'</div>'
+        :file.type?.startsWith('audio/')
+          ?'<div class="community-attachment-file-icon">🎵'+state+'</div>'
+          :'<div class="community-attachment-file-icon">📄'+state+'</div>';
     const chip=document.createElement('div');
     chip.className='community-attachment-chip community-attachment-preview-item';
-    const url=item&&item.previewUrl?item.previewUrl:URL.createObjectURL(file);
-    let preview=file.type?.startsWith('image/')?'<div class="community-attachment-media-wrap"><img class="community-attachment-thumb" src="'+url+'" alt="'+communityEscapeHtml(file.name)+'">'+(status==='uploading'?'<span class="community-upload-spinner" aria-label="جارٍ الرفع"></span>':status==='ready'?'<span class="community-upload-done" aria-label="اكتمل الرفع">✓</span>':'<span class="community-upload-error" aria-label="فشل الرفع">!</span>')+'</div>':file.type?.startsWith('video/')?'<div class="community-attachment-file-icon">🎬'+(status==='uploading'?'<span class="community-upload-spinner small"></span>':'')+'</div>':file.type?.startsWith('audio/')?'<div class="community-attachment-file-icon">🎵'+(status==='uploading'?'<span class="community-upload-spinner small"></span>':'')+'</div>':'<div class="community-attachment-file-icon">📄'+(status==='uploading'?'<span class="community-upload-spinner small"></span>':'')+'</div>';
-    chip.innerHTML=preview+'<span class="community-attachment-name">'+communityEscapeHtml(file.name)+'</span><button type="button" aria-label="إزالة">×</button>';
+    chip.innerHTML=media+'<span class="community-attachment-name">'+communityEscapeHtml(file.name)+'</span><button type="button" aria-label="إزالة">×</button>';
     chip.querySelector('button').onclick=()=>{
       const next=[...(window.communityPendingFiles||[])]; next.splice(index,1); window.communityPendingFiles=next;
       if(item&&item.previewUrl)URL.revokeObjectURL(item.previewUrl);
@@ -2137,23 +2148,17 @@ function communityRenderPendingFiles(){
 async function communityQueueFiles(files){
   const selected=[...(files||[])].filter(f=>f&&f.size).slice(0,10-(window.communityPendingFiles||[]).length);
   if(!selected.length)return;
-  const items=selected.map(file=>({file,status:'loading',uploaded:null,previewUrl:URL.createObjectURL(file)}));
+  const items=selected.map(file=>({file,status:'uploading',uploaded:null,previewUrl:URL.createObjectURL(file)}));
   window.communityPendingFiles=[...(window.communityPendingFiles||[]),...items].slice(0,10);
   communityRenderPendingFiles();
   for(const item of items){
     try{
-      if(item.file.type?.startsWith('image/')){
-        await new Promise((resolve,reject)=>{
-          const img=new Image();
-          img.onload=resolve;
-          img.onerror=reject;
-          img.src=item.previewUrl;
-        });
-      }
+      item.uploaded=await communityUploadFile(item.file);
       item.status='ready';
     }catch(error){
       item.status='error';
-      item.error='تعذر تجهيز معاينة الصورة.';
+      item.error=String(error?.message||error||'تعذر رفع المرفق');
+      toast(item.error);
     }
     communityRenderPendingFiles();
   }
@@ -2297,6 +2302,44 @@ async function communityChatSend(e){
   const failed=items.filter(x=>x&&x.status==='error');
   if(loading.length){toast('انتظر اكتمال تجهيز المرفق أولًا.');return}
   if(failed.length){toast('يوجد مرفق لم يتم تجهيزه. احذفه وأعد اختياره.');return}
+  communityChatSendActive=true;
+  communityChatSendController=new AbortController();
+  const sendButton=e.submitter||document.querySelector('#communityChatModal .community-chat-send'); if(sendButton)sendButton.disabled=true;
+  try{
+    let payload=text;
+    if(items.length){
+      const attachments=items.map(x=>x.uploaded).filter(Boolean);
+      if(attachments.length!==items.length)throw new Error('لم يكتمل رفع جميع المرفقات بعد.');
+      payload='[[DXN_CHAT_V2]]'+JSON.stringify({text,attachments});
+    }
+    if(!document.getElementById('communityChatModal'))return;
+    const saved=await communityChatRpc('community_chat_send',{p_message:payload});
+    if(saved){
+      if(input)input.value='';
+      for(const item of items){if(item?.previewUrl)URL.revokeObjectURL(item.previewUrl)}
+      window.communityPendingFiles=[];
+      communityRenderPendingFiles();
+      input?.focus();
+      const currentBox=document.getElementById('communityChatMessages');
+      if(currentBox){
+        let existing=[];
+        try{existing=Array.isArray(window.communityChatMessages)?window.communityChatMessages:[]}catch(_){}
+        communityChatRender([...existing,saved].filter(m=>m&&String(m.message_text||'').trim()).slice(-200));
+      }
+      communityChatRpc('community_chat_list',{p_limit:100}).then(messages=>{
+        if(messages&&document.getElementById('communityChatModal')){
+          communityChatRender((Array.isArray(messages)?messages:[]).filter(m=>m&&String(m.message_text||'').trim()).slice(-200));
+        }
+      }).catch(error=>console.error('Community chat refresh:',error));
+    }
+  }catch(error){
+    if(error?.name!=='AbortError'&&document.getElementById('communityChatModal'))toast(error?.message||'تعذر إرسال المرفق')
+  }finally{
+    communityChatSendActive=false;
+    communityChatSendController=null;
+    if(sendButton)sendButton.disabled=false
+  }
+}    const loading=items.filter(x=>x&&x.status==='uploading');
   communityChatSendActive=true;
   communityChatSendController=new AbortController();
   const sendButton=e.submitter||document.querySelector('#communityChatModal .community-chat-send'); if(sendButton)sendButton.disabled=true;
@@ -6723,7 +6766,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 /* Community chat — first active function */
 .community-ui-box{height:min(620px,82vh)}.community-ui-body{padding:22px;overflow:auto;display:flex;flex-direction:column;gap:13px;background:#f7fbf9}.community-form-label{display:flex;flex-direction:column;gap:7px;font-weight:800;color:#18352c;font-size:13px}.community-form-label textarea{resize:vertical}.community-ui-actions{padding:12px;border-top:1px solid #e2e8e5;background:#fff;display:flex;justify-content:flex-start;gap:8px}.community-ui-list{display:flex;flex-direction:column;gap:10px}.community-ui-list>div{background:#fff;border:1px solid #e1ebe6;border-radius:14px;padding:13px;color:#18352c}.community-ui-list small{display:block;color:#667085;margin-top:5px}.community-ui-empty{text-align:center;color:#667085;padding:35px 10px}.community-settings-list{display:flex;flex-direction:column;gap:10px}.community-settings-list label{background:#fff;border:1px solid #e1ebe6;border-radius:14px;padding:14px;display:flex;gap:9px;align-items:center;font-weight:700;color:#18352c}.community-settings-list input{accent-color:#0f513f}
 
-.community-attach-wrap{position:relative;flex:0 0 auto}.community-attach-btn{width:46px;height:46px;border:1px solid #d7e3de;border-radius:14px;background:#f5faf7;color:#0f513f;font-size:22px;cursor:pointer;display:grid;place-items:center}.community-attach-btn:hover{background:#eaf5f0}.community-attach-menu{position:absolute;bottom:56px;right:0;width:235px;padding:9px;border:1px solid #dce8e3;border-radius:18px;background:#fff;box-shadow:0 18px 45px rgba(0,0,0,.16);display:grid;grid-template-columns:1fr 1fr;gap:7px;z-index:20}.community-attach-menu button{border:1px solid #e5ece9;background:#fff;border-radius:13px;padding:10px 7px;font:inherit;font-size:12px;font-weight:800;color:#18352c;cursor:pointer}.community-attach-menu button:hover{background:#f1f8f5}.community-attach-menu .attach-icon{display:block;font-size:21px;margin-bottom:4px}.community-chat-attachment-grid{display:grid;gap:8px;margin-top:9px;max-width:min(420px,100%)}.community-chat-attachment-image{display:block;max-width:100%;overflow:hidden;border-radius:13px;background:#edf4f1}.community-chat-attachment-image img{display:block;width:100%;max-height:360px;object-fit:contain;background:#f3f7f5}.community-chat-attachment-video{display:block;width:min(100%,420px);max-height:360px;border-radius:13px;background:#111}.community-chat-attachment-audio{display:block;width:min(100%,360px);height:42px}.community-chat-attachment-file{display:flex;align-items:center;gap:7px;padding:10px 12px;border-radius:12px;background:#f1f7f4;color:#0f513f;font-weight:900;text-decoration:none;overflow-wrap:anywhere}.community-attachment-preview{padding:8px 12px;border-top:1px solid #edf1ef;background:#fbfdfc;display:flex;gap:8px;flex-wrap:wrap;max-height:180px;overflow:auto}.community-attachment-chip{position:relative;display:flex;align-items:center;gap:7px;padding:7px 9px;border:1px solid #d8e7e0;border-radius:11px;background:#f7fbf9;font-size:11px;color:#18352c;max-width:100%}.community-attachment-preview-item{min-height:70px}.community-attachment-thumb{width:110px;height:70px;object-fit:cover;border-radius:9px;border:1px solid #cfe1d9;display:block}.community-attachment-media-wrap{position:relative;width:110px;height:70px}.community-attachment-media-wrap .community-attachment-thumb{width:100%;height:100%}.community-upload-spinner{position:absolute;inset:50% auto auto 50%;width:30px;height:30px;margin:-15px;border:3px solid rgba(255,255,255,.65);border-top-color:#0f513f;border-radius:50%;animation:communityUploadSpin .8s linear infinite;box-shadow:0 2px 8px rgba(0,0,0,.18)}.community-upload-spinner.small{position:absolute;inset:auto 50% 50% auto;width:22px;height:22px;margin:-11px;border-width:3px}.community-upload-done,.community-upload-error{position:absolute;right:-5px;bottom:-5px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:15px;font-weight:900;border:2px solid #fff}.community-upload-done{background:#15956f}.community-upload-error{background:#c0392b}@keyframes communityUploadSpin{to{transform:rotate(360deg)}}.community-attachment-file-icon{width:60px;height:60px;border-radius:9px;background:#fff;display:grid;place-items:center;font-size:28px;border:1px solid #d7e9e1;flex:0 0 60px}.community-attachment-name{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.community-attachment-chip button{border:0;background:#fee4e2;color:#a32318;cursor:pointer;font-size:16px;font-weight:900;line-height:1;width:28px;height:28px;border-radius:8px}@media(max-width:600px){
+.community-attach-wrap{position:relative;flex:0 0 auto}.community-attach-btn{width:46px;height:46px;border:1px solid #d7e3de;border-radius:14px;background:#f5faf7;color:#0f513f;font-size:22px;cursor:pointer;display:grid;place-items:center}.community-attach-btn:hover{background:#eaf5f0}.community-attach-menu{position:absolute;bottom:56px;right:0;width:235px;padding:9px;border:1px solid #dce8e3;border-radius:18px;background:#fff;box-shadow:0 18px 45px rgba(0,0,0,.16);display:grid;grid-template-columns:1fr 1fr;gap:7px;z-index:20}.community-attach-menu button{border:1px solid #e5ece9;background:#fff;border-radius:13px;padding:10px 7px;font:inherit;font-size:12px;font-weight:800;color:#18352c;cursor:pointer}.community-attach-menu button:hover{background:#f1f8f5}.community-attach-menu .attach-icon{display:block;font-size:21px;margin-bottom:4px}.community-chat-attachment-grid{display:grid;gap:8px;margin-top:9px;max-width:min(420px,100%)}.community-chat-attachment-image{display:block;max-width:100%;overflow:hidden;border-radius:13px;background:#edf4f1}.community-chat-attachment-image img{display:block;width:100%;max-height:360px;object-fit:contain;background:#f3f7f5}.community-chat-attachment-video{display:block;width:min(100%,420px);max-height:360px;border-radius:13px;background:#111}.community-chat-attachment-audio{display:block;width:min(100%,360px);height:42px}.community-chat-attachment-file{display:flex;align-items:center;gap:7px;padding:10px 12px;border-radius:12px;background:#f1f7f4;color:#0f513f;font-weight:900;text-decoration:none;overflow-wrap:anywhere}.community-attachment-preview{padding:8px 12px;border-top:1px solid #edf1ef;background:#fbfdfc;display:flex;gap:8px;flex-wrap:wrap;max-height:180px;overflow:auto}.community-attachment-chip{position:relative;display:flex;align-items:center;gap:7px;padding:7px 9px;border:1px solid #d8e7e0;border-radius:11px;background:#f7fbf9;font-size:11px;color:#18352c;max-width:100%}.community-attachment-preview-item{min-height:70px}.community-attachment-thumb{width:110px;height:70px;object-fit:cover;border-radius:9px;border:1px solid #cfe1d9;display:block}.community-attachment-media-wrap{position:relative;width:110px;height:70px}.community-attachment-media-wrap .community-attachment-thumb{width:100%;height:100%}.community-upload-spinner{position:absolute;inset:50% auto auto 50%;width:30px;height:30px;margin:-15px;border:3px solid rgba(255,255,255,.65);border-top-color:#0f513f;border-radius:50%;animation:communityUploadSpin .8s linear infinite;box-shadow:0 2px 8px rgba(0,0,0,.18)}.community-upload-spinner.small{position:absolute;inset:auto 50% 50% auto;width:22px;height:22px;margin:-11px;border-width:3px}.community-upload-done,.community-upload-error{position:absolute;right:-5px;bottom:-5px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:15px;font-weight:900;border:2px solid #fff}.community-upload-done{background:#15956f}.community-upload-error{background:#c0392b}@keyframes communityUploadSpin{to{transform:rotate(360deg)}}.community-attachment-file-icon{width:60px;height:60px;border-radius:9px;background:#fff;display:grid;place-items:center;font-size:28px;border:1px solid #d7e9e1;flex:0 0 60px}.community-attachment-file-icon{position:relative}.community-attachment-name{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.community-attachment-chip button{border:0;background:#fee4e2;color:#a32318;cursor:pointer;font-size:16px;font-weight:900;line-height:1;width:28px;height:28px;border-radius:8px}@media(max-width:600px){
   .community-chat-compose{flex-wrap:wrap!important;gap:7px!important}
   .community-attach-wrap{position:static!important;flex:0 0 100%!important;width:100%!important;order:1!important}
   .community-attach-btn{display:none!important}
