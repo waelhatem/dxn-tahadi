@@ -66,7 +66,7 @@ begin
       )
     end,
     'teams', (select coalesce(json_agg(x order by x.name),'[]'::json) from public.team_stats x),
-    'members', (select coalesce(json_agg(x order by x.stars desc,x.name),'[]'::json') from public.member_stats x where r='leader' or x.id=memberid),
+    'members', (select coalesce(json_agg(x order by x.stars desc,x.name),'[]'::json) from public.member_stats x where r='leader' or x.id=memberid),
     'challenges', (select coalesce(json_agg(c order by c.type,c.created_at),'[]'::json) from public.challenges c where c.active),
     'questions', (select coalesce(json_agg(q order by q.question_no),'[]'::json) from public.monthly_questions q where q.month_key=mk and q.active),
     'my_answers', (select coalesce(json_agg(a),'[]'::json) from public.question_answers a join public.monthly_questions q on q.id=a.question_id where q.month_key=mk and (r='leader' or a.member_id=memberid)),
