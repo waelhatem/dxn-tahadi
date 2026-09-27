@@ -694,7 +694,11 @@ async function aiTrainingMaterialProcess(args){
   if(String(boot.data?.role||'').trim().toLowerCase()!=='leader'){
     throw new Error('معالجة المواد التدريبية متاحة للقائد فقط');
   }
-  const uid=String(await supabaseRpc('app_current_user_id',{p_token:token},SUPABASE_SECRET_KEY,10000)||'').trim();
+  const currentUser=await supabaseRpcRequest('app_current_user_id',{p_token:token},SUPABASE_SECRET_KEY,10000);
+  if(!currentUser.ok || !currentUser.data){
+    throw new Error(currentUser.data?.message||currentUser.data?.error||currentUser.text||'تعذر تحديد القائد الحالي');
+  }
+  const uid=String(currentUser.data?.id||currentUser.data||'').trim();
   if(!uid) throw new Error('تعذر تحديد القائد الحالي');
 
   const rows=await supabaseTableRequest(
