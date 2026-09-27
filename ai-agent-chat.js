@@ -4,7 +4,7 @@
   window.__DXN_AI_AGENT_CHAT_V1__=true;
 
   const STYLE=`
-  #dxnAgentLauncher{position:fixed;left:18px;bottom:78px;z-index:2147483000;width:56px;height:56px;border-radius:50%;background:#fff;color:#0f513f;border:2px solid #0f513f;box-shadow:0 8px 24px #0003;font-size:25px;font-weight:900;cursor:pointer}#dxnAgentTrainingAdd{position:absolute;right:-5px;bottom:-4px;width:24px;height:24px;border-radius:50%;display:none;align-items:center;justify-content:center;background:#d99a18;color:#fff;border:2px solid #fff;font-size:14px;font-weight:950;box-shadow:0 4px 10px #0004;cursor:pointer;line-height:1}#dxnAgentLauncher.leader-mode #dxnAgentTrainingAdd{display:flex}
+  #dxnAgentLauncher{position:fixed;left:18px;bottom:78px;z-index:2147483000;width:56px;height:56px;border-radius:50%;background:#fff;color:#0f513f;border:2px solid #0f513f;box-shadow:0 8px 24px #0003;font-size:25px;font-weight:900;cursor:pointer}#dxnAgentTrainingAdd{position:absolute;right:-5px;bottom:-4px;z-index:2147483002;width:24px;height:24px;border-radius:50%;display:flex!important;align-items:center;justify-content:center;background:#d99a18;color:#fff;border:2px solid #fff;font-size:14px;font-weight:950;box-shadow:0 4px 10px #0004;cursor:pointer;line-height:1;visibility:visible!important;opacity:1!important}#dxnAgentLauncher.leader-mode #dxnAgentTrainingAdd{display:flex!important}
   #dxnAgentPanel{position:fixed;left:18px;bottom:145px;z-index:2147483001;width:min(420px,calc(100vw - 36px));height:min(620px,calc(100vh - 175px));background:#fff;border:1px solid #dce8e3;border-radius:22px;box-shadow:0 18px 55px #0004;display:none;overflow:hidden;direction:rtl}
   #dxnAgentPanel.show{display:flex;flex-direction:column}
   .dxn-agent-head{background:linear-gradient(135deg,#0c4738,#1a725b);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -456,7 +456,7 @@
     setTimeout(syncTrainingAddIcon,500);
     setTimeout(syncTrainingAddIcon,1500);
     setTimeout(syncTrainingAddIcon,3000);
-    document.getElementById('dxnAgentTrainingAdd').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();if(!isLeaderForTraining())return;trainingFileInput.click();});
+    document.getElementById('dxnAgentTrainingAdd').addEventListener('click',async e=>{e.preventDefault();e.stopPropagation();if(!isLeaderForTraining()){addMsg('إضافة المواد التدريبية متاحة للقائد فقط.','ai');return;}trainingFileInput.click();});
     async function uploadTrainingFile(file,index,total){
       const token=sessionToken();
       const name=String(file.name||'material');
