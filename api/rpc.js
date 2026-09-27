@@ -142,12 +142,13 @@ async function directPrivateUserSearchFallback(args){
   }
 
   const memberMap=new Map(members.data.map(m=>[String(m.id),m]));
+  const memberNoMap=new Map(members.data.map(m=>[String(m.member_no||'').trim(),m]).filter(([k])=>k));
   const q=String(args.p_query||'').trim().toLowerCase();
   const limit=Math.max(1,Math.min(Number(args.p_limit)||50,50));
   return users.data
     .filter(u=>String(u.id)!==currentUserId)
     .map(u=>{
-      const m=memberMap.get(String(u.member_id||''));
+      const m=memberMap.get(String(u.member_id||'')) || memberNoMap.get(String(u.login_no||'').trim());
       return {
         user_id:u.id,
         name:String(u.display_name||m?.name||u.login_no||'عضو المجتمع').trim(),
