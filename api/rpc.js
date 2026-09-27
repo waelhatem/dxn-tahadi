@@ -125,39 +125,56 @@ async function directPrivateUserSearchFallback(args){
   if(!current.ok || !current.data) throw new Error(current.data?.message||current.data?.error||current.text||'تعذر التحقق من الجلسة');
   const currentUserId=String(current.data);
 
+  // مصدر الحقيقة للمحادثات الخاصة هو نفس سجل الفريق الذي تستخدمه نافذة «فريقي».
+  // نقرأ جميع أعضاء الفريق من dxn_team_members، ثم نربط العضو بحساب الموقع
+  // بواسطة رقم العضوية. بهذه الطريقة لا نعتمد على member_id الذي قد يكون
+  // غير موجود في بعض الحسابات القديمة.
+  const team=await supabaseRestRequest(
+    '/rest/v1/dxn_team_members?select=member_no,member_name,sponsor_member_no,rank,dxn_status,downline_status&limit=10000',
+    SUPABASE_SECRET_KEY,15000
+  );
+  if(!team.ok || !Array.isArray(team.data)){
+    throw new Error(team.data?.message||team.data?.error||team.text||'تعذر تحميل سجل أعضاء الفريق');
+  }
+
   const users=await supabaseRestRequest(
-    '/rest/v1/app_users?select=id,login_no,role,display_name,member_id&active=eq.true&order=created_at.asc&limit=1000',
+    '/rest/v1/app_users?select=id,login_no,role,display_name,member_id,active&active=eq.true&role=eq.member&limit=10000',
     SUPABASE_SECRET_KEY,10000
   );
   if(!users.ok || !Array.isArray(users.data)){
-    throw new Error(users.data?.message||users.data?.error||users.text||'تعذر تحميل المستخدمين');
+    throw new Error(users.data?.message||users.data?.error||users.text||'تعذر تحميل حسابات أعضاء الموقع');
   }
 
-  const members=await supabaseRestRequest(
-    '/rest/v1/members?select=id,member_no,name&limit=1000',
-    SUPABASE_SECRET_KEY,10000
+  const teamByNo=new Map(
+    team.data
+      .map(m=>[String(m.member_no||'').trim(),m])
+      .filter(([no])=>no)
   );
-  if(!members.ok || !Array.isArray(members.data)){
-    throw new Error(members.data?.message||members.data?.error||members.text||'تعذر تحميل الأعضاء');
-  }
-
-  const memberMap=new Map(members.data.map(m=>[String(m.id),m]));
-  const memberNoMap=new Map(members.data.map(m=>[String(m.member_no||'').trim(),m]).filter(([k])=>k));
   const q=String(args.p_query||'').trim().toLowerCase();
   const limit=Math.max(1,Math.min(Number(args.p_limit)||50,50));
+
   return users.data
-    .filter(u=>String(u.id)!==currentUserId && u.role==='member')
+    .filter(u=>String(u.id)!==currentUserId)
     .map(u=>{
-      const m=memberMap.get(String(u.member_id||'')) || memberNoMap.get(String(u.login_no||'').trim());
-      if(!m) return null;
+      const no=String(u.login_no||'').trim();
+      const member=teamByNo.get(no);
+      if(!member) return null;
+      const name=String(u.display_name||member.member_name||no||'عضو المجتمع').trim();
       return {
         user_id:u.id,
-        name:String(u.display_name||m.name||u.login_no||'عضو المجتمع').trim(),
+        name,
         role:u.role,
-        member_no:String(m.member_no||u.login_no||'')
+        member_no:no,
+        rank:String(member.rank||''),
+        dxn_status:String(member.dxn_status||''),
+        downline_status:String(member.downline_status||'')
       };
     })
-    .filter(u=>u && (!q || u.name.toLowerCase().includes(q) || u.member_no.toLowerCase().includes(q)))
+    .filter(u=>u && (
+      !q ||
+      u.name.toLowerCase().includes(q) ||
+      u.member_no.toLowerCase().includes(q)
+    ))
     .sort((a,b)=>a.name.localeCompare(b.name,'ar'))
     .slice(0,limit);
 }
