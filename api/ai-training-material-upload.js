@@ -24,7 +24,8 @@ function rpc(fn,args){
 function safeName(name){
   const raw=decodeURIComponent(String(name||'material')).normalize('NFKC');
   const ext=(raw.match(/\.[A-Za-z0-9]{1,10}$/)||[''])[0].toLowerCase();
-  return (raw.replace(/\.[^/.]+$/,'').replace(/[^\p{L}\p{N}_-]+/gu,'-').replace(/^-+|-+$/g,'').slice(0,80)||'material')+ext;
+  const base=raw.replace(/\.[^/.]+$/,'').replace(/[^A-Za-z0-9_-]+/g,'-').replace(/-+/g,'-').replace(/^-+|-+$/g,'').slice(0,80);
+  return (base||'material')+ext;
 }
 async function ensureBucket(){
   const r=await request(SUPABASE_URL+'/storage/v1/bucket/'+encodeURIComponent(BUCKET),'GET',null,{apikey:SUPABASE_SECRET_KEY,Authorization:'Bearer '+SUPABASE_SECRET_KEY});
