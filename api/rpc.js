@@ -490,13 +490,18 @@ async function supabaseTableRequest(method,path,key,body){
 async function storageRequest(method,path,key,body){
   return new Promise((resolve,reject)=>{
     const base=new URL(SUPABASE_URL);
+    const rawPath=String(path||'').trim();
+    // Supabase Storage REST API lives under /storage/v1.
+    // Callers pass only the Storage-relative path (for example /object/...)
+    // so this helper must add the API prefix exactly once.
+    const storagePath='/storage/v1/'+rawPath.replace(/^\/+/,'').replace(/^storage\/v1\//,'');
     const payload=body==null?null:JSON.stringify(body);
     const request=https.request({
       protocol:base.protocol,
       hostname:base.hostname,
       port:base.port||443,
       method,
-      path,
+      path:storagePath,
       headers:{
         Accept:'application/json',
         ...(payload?{'Content-Type':'application/json'}:{}),
