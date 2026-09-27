@@ -65,22 +65,29 @@ async function verifySession(token){
   };
 }
 
+const ALLOWED_MIME_TYPES=['image/*','video/*','audio/*','application/pdf','text/plain','application/zip','application/msword','application/vnd.ms-excel','application/vnd.ms-powerpoint','application/vnd.openxmlformats-officedocument.*','application/octet-stream'];
 async function ensureBucket(){
   const check=await request('GET','/storage/v1/bucket/'+encodeURIComponent(BUCKET),null,{
     apikey:SUPABASE_SECRET_KEY,Authorization:'Bearer '+SUPABASE_SECRET_KEY
   });
   if(check.ok){
     const current=check.data||{};
-    if(Number(current.file_size_limit||0)<MAX_BYTES){
-      const update=await request('PUT','/storage/v1/bucket/'+encodeURIComponent(BUCKET),{file_size_limit:MAX_BYTES,public:true},{
+    const currentTypes=Array.isArray(current.allowed_mime_types)?current.allowed_mime_types:[];
+    const missing=ALLOWED_MIME_TYPES.some(type=>!currentTypes.includes(type));
+    if(Number(current.file_size_limit||0)<MAX_BYTES||missing||current.public!==true){
+      const update=await request('PUT','/storage/v1/bucket/'+encodeURIComponent(BUCKET),{
+        file_size_limit:MAX_BYTES,public:true,allowed_mime_types:ALLOWED_MIME_TYPES
+      },{
         'Content-Type':'application/json',apikey:SUPABASE_SECRET_KEY,Authorization:'Bearer '+SUPABASE_SECRET_KEY
       });
-      if(!update.ok)throw new Error('تعذر تحديث حد حجم المرفقات: '+((update.data&&(update.data.message||update.data.error||update.data.statusCode))||update.text||('HTTP '+update.status)));
+      if(!update.ok)throw new Error('تعذر تحديث إعدادات مساحة المرفقات: '+((update.data&&(update.data.message||update.data.error||update.data.statusCode))||update.text||('HTTP '+update.status)));
     }
     return;
   }
   if(check.status!==404)throw new Error('تعذر التحقق من مساحة المرفقات: '+((check.data&&(check.data.message||check.data.error||check.data.statusCode))||check.text||('HTTP '+check.status)));
-  const r=await request('POST','/storage/v1/bucket',{id:BUCKET,name:BUCKET,public:true,file_size_limit:MAX_BYTES},{
+  const r=await request('POST','/storage/v1/bucket',{
+    id:BUCKET,name:BUCKET,public:true,file_size_limit:MAX_BYTES,allowed_mime_types:ALLOWED_MIME_TYPES
+  },{
     'Content-Type':'application/json',apikey:SUPABASE_SECRET_KEY,Authorization:'Bearer '+SUPABASE_SECRET_KEY
   });
   if(!r.ok && r.status!==409) throw new Error('تعذر إنشاء مساحة المرفقات: '+((r.data&&(r.data.message||r.data.error||r.data.statusCode))||r.text||('HTTP '+r.status)));
