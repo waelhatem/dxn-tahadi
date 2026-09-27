@@ -2501,7 +2501,7 @@ function adaptiveReasoningEffort(message,cognitiveState,currentSession){
 function adaptiveOutputTokenBudget(message,cognitiveState,currentSession){
   const s=String(message||'').trim().toLowerCase();
   const intent=String(cognitiveState?.user_intent||'general_conversation');
-  const sourceRequest=isSourceKnowledgeRequest(message);
+  const sourceRequest=isSourceKnowledgeRequest(message) || /استقطاب|دعوة|تشويق|مرشح|المرشحين|قائمة المعارف|التنقيب|الجاذبية|الإصغاء|الانسجام|المواعيد|أماكن الدعوة|التجارة التقليدية|التجارة غير التقليدية|فنون الدعوة|مهارات الاستقطاب/i.test(s);
   const complex=/(حلل|تحليل|قارن|مقارنة|خطة|استراتيجية|اشرح بالتفصيل|بالتفصيل|أريد شرح|اريد شرح|اعتراض|عمولات|نقاط|فريق|downline|الأجيال|الخطوط|roleplay|محاكاة|تمثيل|اختبار|تدريب)/i.test(s);
   if(sourceRequest) return 1400;
   if(currentSession?.active) return 900;
@@ -2535,7 +2535,7 @@ function buildCostOptimizedAgentContext({
   const teamRequest=isTeamIntelligenceRequest(message);
   const trainingRequest=!!currentSession?.active || /تدريب|التدريبات|اختبار|الاختبارات|تقدم|المشاهدة|شاهدت|نسبة|إكمال|اكتمال|جلسة تدريب/i.test(s);
   const coachingRequest=trainingRequest || /عائق|محتار|متردد|جربت|طبقت|نفذت|رفض|ما نفع|نجح|فشل|نتيجة|خطوة|هدف/i.test(s);
-  const knowledgeRequest=trainingRequest || isRankKnowledgeRequest(message) || /dxn|ديكسن|اعتراض|اعتراضات|تسويق|بيع مباشر|عضوية|تسجيل|نقاط|pv|sv|عمولة|عمولات|منتج|منتجات|شرعي|حرام|خطة|مراتب|رتب|رتبة|مستويات/i.test(s);
+  const knowledgeRequest=trainingRequest || isRankKnowledgeRequest(message) || /dxn|ديكسن|اعتراض|اعتراضات|تسويق|بيع مباشر|عضوية|تسجيل|نقاط|pv|sv|عمولة|عمولات|منتج|منتجات|شرعي|حرام|خطة|مراتب|رتب|رتبة|مستويات|استقطاب|دعوة|تشويق|مرشح|المرشحين|قائمة المعارف|التنقيب|الجاذبية|الإصغاء|الانسجام|المواعيد|أماكن الدعوة|التجارة التقليدية|التجارة غير التقليدية/i.test(s);
 
   const lessons=Array.isArray(context.lessons)?context.lessons:[];
   const progress=Array.isArray(context.progress)?context.progress:[];
