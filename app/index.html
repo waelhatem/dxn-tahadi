@@ -2459,6 +2459,7 @@ async function communityPrivateOpenChat(otherUserId){
     return;
   }
   communityPrivateCurrentConversation=String(data.conversation_id||'');
+  window.__dxnPrivateCurrentUserId=String(data.current_user_id||'');
   const title=document.getElementById('communityPrivateChatTitle');
   if(title)title.textContent=String(data.other_name||'محادثة خاصة');
   communityPrivateRenderMessages(Array.isArray(data.messages)?data.messages:[]);
