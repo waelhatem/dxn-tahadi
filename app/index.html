@@ -2162,16 +2162,74 @@ function communityFilesSelected(e){
   const files=[...(e.target.files||[])]; e.target.value='';
   if(files.length)communityQueueFiles(files);
 }
-let communityAudioRecorder=null,communityAudioChunks=[];
+let communityAudioRecorder=null,communityAudioChunks=[],communityAudioStream=null;
 async function communityRecordAudio(){
   try{
-    if(communityAudioRecorder?.state==='recording'){communityAudioRecorder.stop();return}
-    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-    communityAudioChunks=[]; communityAudioRecorder=new MediaRecorder(stream);
-    communityAudioRecorder.ondataavailable=e=>{if(e.data.size)communityAudioChunks.push(e.data)};
-    communityAudioRecorder.onstop=()=>{stream.getTracks().forEach(t=>t.stop());const blob=new Blob(communityAudioChunks,{type:'audio/webm'});const file=new File([blob],'تسجيل-صوتي-'+Date.now()+'.webm',{type:'audio/webm'});communityQueueFiles([file]);toast('جارٍ رفع التسجيل الصوتي...')};
-    communityAudioRecorder.start(); toast('جارٍ تسجيل الصوت... اضغط «تسجيل صوت» مرة أخرى لإيقاف التسجيل.');
-  }catch(e){toast('تعذر الوصول إلى الميكروفون. تحقق من صلاحية المتصفح.')}
+    if(communityAudioRecorder?.state==='recording'){
+      communityAudioRecorder.stop();
+      return;
+    }
+    if(!window.isSecureContext){
+      toast('تسجيل الصوت يحتاج إلى اتصال آمن HTTPS.');
+      return;
+    }
+    if(!navigator.mediaDevices?.getUserMedia){
+      toast('المتصفح لا يدعم الوصول إلى الميكروفون.');
+      return;
+    }
+    if(typeof MediaRecorder==='undefined'){
+      toast('المتصفح لا يدعم تسجيل الصوت.');
+      return;
+    }
+    communityAudioStream=await navigator.mediaDevices.getUserMedia({audio:{
+      echoCancellation:true,
+      noiseSuppression:true,
+      autoGainControl:true
+    }});
+    communityAudioChunks=[];
+    const preferred=['audio/webm;codecs=opus','audio/webm','audio/mp4'];
+    const mime=preferred.find(type=>MediaRecorder.isTypeSupported(type))||'';
+    communityAudioRecorder=mime?new MediaRecorder(communityAudioStream,{mimeType:mime}):new MediaRecorder(communityAudioStream);
+    communityAudioRecorder.ondataavailable=e=>{
+      if(e.data&&e.data.size)communityAudioChunks.push(e.data);
+    };
+    communityAudioRecorder.onerror=()=>{
+      try{communityAudioRecorder?.stop()}catch(_){}
+      toast('حدث خطأ أثناء تسجيل الصوت.');
+    };
+    communityAudioRecorder.onstop=()=>{
+      try{communityAudioStream?.getTracks().forEach(t=>t.stop())}catch(_){}
+      communityAudioStream=null;
+      const actualType=communityAudioRecorder?.mimeType||mime||'audio/webm';
+      const extension=actualType.includes('mp4')?'m4a':'webm';
+      const blob=new Blob(communityAudioChunks,{type:actualType});
+      if(!blob.size){
+        toast('لم يتم تسجيل أي صوت.');
+        communityAudioRecorder=null;
+        return;
+      }
+      const file=new File([blob],'تسجيل-صوتي-'+Date.now()+'.'+extension,{type:actualType});
+      communityAudioRecorder=null;
+      communityQueueFiles([file]);
+      toast('تم تجهيز التسجيل الصوتي. اضغط «إرسال» لإرساله.');
+    };
+    communityAudioRecorder.start(250);
+    toast('🎙️ جاري التسجيل... اضغط «تسجيل صوت» مرة أخرى لإيقافه.');
+  }catch(e){
+    try{communityAudioStream?.getTracks().forEach(t=>t.stop())}catch(_){}
+    communityAudioStream=null;
+    communityAudioRecorder=null;
+    const name=String(e?.name||'');
+    if(name==='NotAllowedError'||name==='PermissionDeniedError'){
+      toast('تم رفض صلاحية الميكروفون. اسمح للموقع باستخدام الميكروفون من رمز القفل بجانب عنوان الموقع ثم حاول مرة أخرى.');
+    }else if(name==='NotFoundError'){
+      toast('لم يتم العثور على ميكروفون متصل بالجهاز.');
+    }else if(name==='NotReadableError'){
+      toast('الميكروفون مستخدم من برنامج آخر. أغلقه ثم حاول مرة أخرى.');
+    }else{
+      toast('تعذر تشغيل تسجيل الصوت: '+String(e?.message||'تحقق من صلاحية الميكروفون.'));
+    }
+  }
 }
 function communityChatFormatMessage(value){
   const text=String(value??'').replace(/\r\n?/g,'\n');
