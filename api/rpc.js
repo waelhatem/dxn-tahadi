@@ -438,7 +438,7 @@ async function communitySession(token){
     role,
     member_no:role==='leader'?'':String(member&&member.member_no||'').trim(),
     member_name:role==='leader'
-      ? String(process.env.DXN_LEADER_NAME||'وائل حاتم سعيد').trim()
+      ? String(process.env.DXN_LEADER_NAME||'القائد').trim()
       : String(member&&(member.member_name||member.name)||'').trim()
   };
 }
