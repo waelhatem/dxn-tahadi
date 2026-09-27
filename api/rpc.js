@@ -696,14 +696,23 @@ module.exports = async function handler(req, res) {
     }
 
     const response=await supabaseRpcRequest(fn,args,privilegedTeamRpc ? SUPABASE_SECRET_KEY : SUPABASE_KEY,10000);
-    if(!response.ok && fn==='community_private_user_search'){
-      try{
-        const fallback=await directPrivateUserSearchFallback(args);
-        return res.status(200).json(fallback);
-      }catch(fallbackError){
-        return res.status(response.status||500).json({
-          error:String(fallbackError?.message||fallbackError)||response.text||'تعذر تحميل قائمة الأعضاء'
-        });
+    if(fn==='community_private_user_search'){
+      // استخدم البحث المباشر أيضًا عندما يعيد RPC قائمة فارغة؛
+      // هذا يضمن أن البحث الجزئي مثل «وائل» يطابق «وائل حاتم» حتى
+      // إذا كانت نسخة PostgREST/RPC القديمة لا تطبق الفلترة كما يجب.
+      const rpcData=response.data;
+      const rpcEmpty=Array.isArray(rpcData) && rpcData.length===0;
+      if(!response.ok || rpcEmpty){
+        try{
+          const fallback=await directPrivateUserSearchFallback(args);
+          return res.status(200).json(fallback);
+        }catch(fallbackError){
+          if(!response.ok){
+            return res.status(response.status||500).json({
+              error:String(fallbackError?.message||fallbackError)||response.text||'تعذر تحميل قائمة الأعضاء'
+            });
+          }
+        }
       }
     }
     return res.status(response.status||500).json(response.data||{error:response.text||'Supabase request failed'});
