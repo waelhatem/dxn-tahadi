@@ -2146,6 +2146,10 @@ async function communityRecordAudio(){
     communityAudioRecorder.start(); toast('جارٍ تسجيل الصوت... اضغط «تسجيل صوت» مرة أخرى لإيقاف التسجيل.');
   }catch(e){toast('تعذر الوصول إلى الميكروفون. تحقق من صلاحية المتصفح.')}
 }
+function communityChatFormatMessage(value){
+  const text=String(value??'').replace(/\r\n?/g,'\n');
+  return communityEscapeHtml(text).replace(/\n/g,'<br>');
+}
 function communityChatParsePayload(value){
   const raw=String(value??''), prefix='[[DXN_CHAT_V2]]'; if(!raw.startsWith(prefix))return null;
   try{const data=JSON.parse(raw.slice(prefix.length));return data&&Array.isArray(data.attachments)?data:null}catch(_){return null}
