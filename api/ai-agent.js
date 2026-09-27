@@ -1469,7 +1469,7 @@ function fetchKnowledgePage(role,from,to){
   return new Promise(resolve=>{
     if(!SUPABASE_SECRET_KEY)return resolve({ok:false,data:[],status:0});
     const q=new URLSearchParams();
-    q.set('select','scope,category,title,content,priority,updated_at');
+    q.set('select','scope,category,title,content,priority,updated_at,source');
     q.set('active','eq.true');
     q.set('scope',`in.(global,${knowledgeRoleScope(role)})`);
     q.set('order','priority.desc,updated_at.desc');
@@ -1561,8 +1561,16 @@ async function loadAgentKnowledge(token,role='member',message=''){
     const aliases=memorySearchTerms(message);
     const queries=[String(message).trim()];
     if(aliases.length)queries.push(aliases.join(' '));
+    // Source-fidelity training questions get explicit topic probes so a
+    // paraphrased user question cannot miss the exact uploaded chunk.
+    if(isSourceKnowledgeRequest(message)){
+      const s=String(message||'').toLowerCase();
+      if(/تشويق|دعوة|استقطاب/.test(s)){
+        queries.push('التشويق السيئ التشويق السلبي استراتيجيات التشويق التشويق الحسن التشويق المباشر التشويق غير المباشر التشويق بالمقارنة التشويق بالأخذ بالرأي');
+      }
+    }
     const results=await Promise.all(
-      queries.slice(0,2).map(q=>searchDurableKnowledge(token,role,q,80))
+      queries.slice(0,3).map(q=>searchDurableKnowledge(token,role,q,80))
     );
     const seen=new Set();
     for(const rows of results){
@@ -2434,6 +2442,8 @@ function memorySearchTerms(message){
     'شنويا','يعني','هسه'
   ]);
   const aliases=[
+    ['التشويق السيئ','التشويق السلبي','سيئ','سلبي','negative curiosity','negative'],
+    ['استراتيجيات التشويق','التشويق الحسن','التشويق المباشر','التشويق غير المباشر','التشويق بالمقارنة','التشويق بالأخذ بالرأي'],
     ['نجم ياقوتي','sr','ياقوت','star ruby'],
     ['نجم ماسي','qsd','ماسي','diamond'],
     ['وكيل نجم','qsa','sa','star agent'],
