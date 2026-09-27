@@ -27,8 +27,7 @@ create table if not exists public.community_private_messages (
   created_at timestamptz not null default now(),
   read_at timestamptz,
   constraint community_private_messages_users_different check (sender_user_id <> recipient_user_id),
-  constraint community_private_messages_text_required check (length(trim(message_text)) > 0),
-
+  constraint community_private_messages_text_required check (length(trim(message_text)) > 0)
 );
 
 create index if not exists community_private_messages_conversation_idx
