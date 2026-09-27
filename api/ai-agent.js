@@ -1635,7 +1635,7 @@ async function loadContext(token){
   let training={lessons:[],my_progress:[]};
   const tr=await supabaseRpc('get_training_data',{p_token:token});
   if(tr.ok&&tr.data)training=tr.data;
-  const member=Array.isArray(data.members)&&data.members[0]?data.members[0]:null;
+  // Never use members[0] to infer identity: leaders receive the whole team list, so index 0 can be another member.\n  // Only a member-role session may use its single member record as personal identity.\n  const member=role==='member' && Array.isArray(data.members)&&data.members[0]?data.members[0]:null;
   const lessons=(Array.isArray(training.lessons)?training.lessons:[]).map(l=>({id:l.id||l.lesson_id,lesson_id:l.lesson_id||l.id,lesson_no:l.lesson_no,title:l.title,description:l.description,active:l.active!==false}));
   const progress=(Array.isArray(training.my_progress)?training.my_progress:[]).map(p=>({lesson_id:p.lesson_id,completed:!!p.completed,watch_percent:Number(p.watch_percent||0)}));
   return {role,member:member?{id:member.id,member_no:member.member_no,name:member.name||member.full_name,stars:Number(member.stars||0)}:null,lessons,progress};
