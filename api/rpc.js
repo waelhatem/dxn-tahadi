@@ -735,7 +735,7 @@ async function aiTrainingMaterialProcess(args){
     const signedUrl=await trainingMaterialSignedDownload(material.storage_bucket,material.storage_path,3600);
     const isPdf=String(material.material_type)==='pdf';
     const inputPart=isPdf
-      ? {type:'input_file',file_url:signedUrl,filename:String(material.original_filename||material.title||'training.pdf')}
+      ? {type:'input_file',file_url:signedUrl}
       : {type:'input_image',image_url:signedUrl,detail:'high'};
 
     const extractionPrompt=[
