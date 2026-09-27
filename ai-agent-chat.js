@@ -491,7 +491,9 @@
       await new Promise((resolve,reject)=>{
         const xhr=new XMLHttpRequest();
         xhr.open('PUT',prep.signed_url,true);
-        xhr.setRequestHeader('Content-Type',type||'application/octet-stream');
+        // Supabase Storage's uploadToSignedUrl sends browser File/Blob bodies
+        // as FormData. Match that request shape instead of sending the raw File,
+        // which avoids the browser-side Storage upload failure seen here.
         xhr.setRequestHeader('x-upsert','false');
         xhr.upload.onprogress=event=>{
           if(event.lengthComputable){
@@ -508,7 +510,10 @@
         };
         xhr.onerror=()=>reject(new Error('تعذر الاتصال بـ Supabase Storage أثناء الرفع'));
         xhr.onabort=()=>reject(new Error('تم إلغاء الرفع'));
-        xhr.send(file);
+        const formData=new FormData();
+        formData.append('cacheControl','3600');
+        formData.append('',file);
+        xhr.send(formData);
       });
 
       const doneResponse=await fetch('/api/rpc',{
