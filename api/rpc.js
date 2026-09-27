@@ -616,7 +616,10 @@ async function aiTrainingMaterialPrepare(args){
   const relative=String(signed.data&&signed.data.url||'').trim();
   const tokenMatch=relative.match(/[?&]token=([^&]+)/);
   if(!relative||!tokenMatch) throw new Error('لم يرجع Storage رابط رفع صالحًا');
-  const signedUrl = new URL(relative, SUPABASE_URL).toString();
+  const signedUrlBase=relative.startsWith('/storage/v1/')
+    ? SUPABASE_URL
+    : SUPABASE_URL+'/storage/v1';
+  const signedUrl = new URL(relative, signedUrlBase).toString();
 
   return {
     material_id:materialId,
