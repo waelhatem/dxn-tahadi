@@ -486,6 +486,159 @@ async function supabaseTableRequest(method,path,key,body){
   });
 }
 
+
+async function storageRequest(method,path,key,body){
+  return new Promise((resolve,reject)=>{
+    const base=new URL(SUPABASE_URL);
+    const payload=body==null?null:JSON.stringify(body);
+    const request=https.request({
+      protocol:base.protocol,
+      hostname:base.hostname,
+      port:base.port||443,
+      method,
+      path,
+      headers:{
+        Accept:'application/json',
+        ...(payload?{'Content-Type':'application/json'}:{}),
+        ...(key?{apikey:key,Authorization:`Bearer ${key}`}:{}),
+        ...(payload?{'Content-Length':Buffer.byteLength(payload)}:{})
+      },
+      timeout:15000
+    },response=>{
+      let text='';
+      response.setEncoding('utf8');
+      response.on('data',chunk=>{text+=chunk});
+      response.on('end',()=>{
+        let data=null;
+        try{data=text?JSON.parse(text):null}catch(_){data=text}
+        resolve({ok:response.statusCode>=200&&response.statusCode<300,status:response.statusCode||0,data,text});
+      });
+    });
+    request.on('timeout',()=>request.destroy(new Error('انتهت مهلة الاتصال بـ Supabase Storage')));
+    request.on('error',reject);
+    if(payload) request.write(payload);
+    request.end();
+  });
+}
+
+function trainingMaterialTypeFromMime(mime){
+  const m=String(mime||'').toLowerCase().trim();
+  if(m==='application/pdf'||m.endsWith('/pdf')) return 'pdf';
+  if(m.startsWith('image/')) return 'image';
+  if(m.startsWith('video/')) return 'video';
+  return '';
+}
+
+function safeTrainingFilename(name){
+  return String(name||'material')
+    .normalize('NFKC')
+    .replace(/[^a-zA-Z0-9._\-\u0600-\u06ff ]+/g,'_')
+    .replace(/\s+/g,' ')
+    .trim()
+    .slice(0,180) || 'material';
+}
+
+async function ensureTrainingMaterialBucket(){
+  if(!SUPABASE_SECRET_KEY) throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
+  const bucketId='ai-training-materials';
+  const existing=await storageRequest('GET','/bucket/'+encodeURIComponent(bucketId),SUPABASE_SECRET_KEY);
+  if(existing.ok) return bucketId;
+  const created=await storageRequest('POST','/bucket',SUPABASE_SECRET_KEY,{
+    id:bucketId,
+    name:bucketId,
+    public:false
+  });
+  if(created.ok || created.status===409) return bucketId;
+  throw new Error((created.data&&(created.data.message||created.data.error))||created.text||'تعذر إنشاء مخزن المواد التدريبية');
+}
+
+async function aiTrainingMaterialPrepare(args){
+  const token=String(args&&args.p_token||'').trim();
+  if(!token) throw new Error('جلسة الدخول غير موجودة');
+  if(!SUPABASE_SECRET_KEY) throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
+
+  const mime=String(args.p_mime_type||'').trim().toLowerCase();
+  const materialType=trainingMaterialTypeFromMime(mime);
+  if(!materialType) throw new Error('يسمح فقط بملفات PDF والصور والفيديو');
+  const fileSize=Number(args.p_file_size||0);
+  if(!Number.isFinite(fileSize)||fileSize<1) throw new Error('حجم الملف غير صالح');
+  if(fileSize>2*1024*1024*1024) throw new Error('حجم الملف يتجاوز 2GB في مرحلة الرفع الحالية');
+
+  const title=String(args.p_title||args.p_original_filename||'مادة تدريبية').trim().slice(0,300);
+  const originalFilename=safeTrainingFilename(args.p_original_filename||'material');
+  const uniquePart=Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);
+  const storageBucket='ai-training-materials';
+  const storagePath='leader/'+uniquePart+'-'+originalFilename;
+
+  await ensureTrainingMaterialBucket();
+
+  const created=await supabaseSecretRpc('create_ai_training_material',{
+    p_token:token,
+    p_title:title||originalFilename,
+    p_material_type:materialType,
+    p_mime_type:mime||'application/octet-stream',
+    p_original_filename:originalFilename,
+    p_storage_bucket:storageBucket,
+    p_storage_path:storagePath,
+    p_file_size:fileSize,
+    p_domain:String(args.p_domain||'general').trim().slice(0,120)||'general',
+    p_priority:Number.isFinite(Number(args.p_priority))?Number(args.p_priority):80,
+    p_metadata:{
+      source:'leader_upload',
+      upload_stage:1,
+      client_name:String(args.p_original_filename||'').slice(0,500)
+    }
+  });
+  const materialId=String(created||'').trim();
+  if(!materialId) throw new Error('تعذر إنشاء سجل المادة التدريبية');
+
+  const signed=await storageRequest(
+    'POST',
+    '/object/upload/sign/'+storageBucket+'/'+storagePath.split('/').map(encodeURIComponent).join('/'),
+    SUPABASE_SECRET_KEY,
+    null
+  );
+  if(!signed.ok){
+    try{
+      await supabaseSecretRpc('complete_ai_training_material_upload',{
+        p_token:token,p_material_id:materialId,p_success:false,
+        p_error_message:(signed.data&&(signed.data.message||signed.data.error))||signed.text||'تعذر إنشاء رابط الرفع'
+      });
+    }catch(_){}
+    throw new Error((signed.data&&(signed.data.message||signed.data.error))||signed.text||'تعذر إنشاء رابط الرفع');
+  }
+
+  const relative=String(signed.data&&signed.data.url||'').trim();
+  const tokenMatch=relative.match(/[?&]token=([^&]+)/);
+  if(!relative||!tokenMatch) throw new Error('لم يرجع Storage رابط رفع صالحًا');
+  const signedUrl=new URL(relative,SUPABASE_URL+'/storage/v1').toString();
+
+  return {
+    material_id:materialId,
+    bucket:storageBucket,
+    path:storagePath,
+    signed_url:signedUrl,
+    signed_token:decodeURIComponent(tokenMatch[1]),
+    title:title||originalFilename,
+    material_type:materialType,
+    original_filename:originalFilename
+  };
+}
+
+async function aiTrainingMaterialComplete(args){
+  const token=String(args&&args.p_token||'').trim();
+  const materialId=String(args&&args.p_material_id||'').trim();
+  if(!token||!materialId) throw new Error('بيانات إكمال الرفع ناقصة');
+  const success=String(args.p_success===false?'false':'true')==='true';
+  const ok=await supabaseSecretRpc('complete_ai_training_material_upload',{
+    p_token:token,
+    p_material_id:materialId,
+    p_success:success,
+    p_error_message:String(args.p_error_message||'').trim().slice(0,1000)||null
+  });
+  return {ok:Boolean(ok),material_id:materialId,status:success?'uploaded':'failed'};
+}
+
 async function communitySession(token){
   const pToken=String(token||'').trim();
   if(!pToken) throw new Error('جلسة العضوية غير موجودة');
@@ -610,6 +763,19 @@ module.exports = async function handler(req, res) {
 
     if (!/^[a-zA-Z0-9_]+$/.test(fn)) {
       return res.status(400).json({ error: 'Invalid RPC name' });
+    }
+
+
+    if(fn==='ai_training_material_prepare' || fn==='ai_training_material_complete'){
+      try{
+        const data=fn==='ai_training_material_prepare'
+          ? await aiTrainingMaterialPrepare(args)
+          : await aiTrainingMaterialComplete(args);
+        return res.status(200).json(data||{});
+      }catch(error){
+        console.error('ai training material RPC error:',error);
+        return res.status(400).json({error:String(error&&error.message||error)});
+      }
     }
 
     if(fn==='community_meetings_list' || fn==='community_meeting_create' || fn==='community_meeting_get' || fn==='community_meeting_cancel' || fn==='community_chat_list' || fn==='community_chat_send'){
