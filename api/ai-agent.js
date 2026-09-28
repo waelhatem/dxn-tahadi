@@ -1208,12 +1208,15 @@ async function extractBackgroundMemoryBundle({
     String(answer||'').slice(0,3000)
   ].join('\\n');
 
+  let r=null,text='',stage='request';
   try{
-    const r=await openai({
+    r=await openai({
       model:OPENAI_HELPER_MODEL,
       instructions:'أنت محلل ذاكرة خلفي موحد. أعد JSON فقط. لا تخترع.',
       input:[{role:'user',content:prompt}],
       reasoning:{effort:OPENAI_HELPER_REASONING_EFFORT},
+      // JSON mode: the Responses API returns a single valid JSON object.
+      text:{format:{type:'json_object'}},
       max_output_tokens:420
     });
     if(!r.ok){
@@ -1224,10 +1227,17 @@ async function extractBackgroundMemoryBundle({
       }));
       return null;
     }
-    const text=outputText(r.data);
+    text=outputText(r.data);
     const start=text.indexOf('{'),end=text.lastIndexOf('}');
-    if(start<0||end<=start)return null;
+    if(start<0||end<=start){
+      console.error('[ai-agent] background memory helper returned no JSON object',JSON.stringify(
+        backgroundHelperOutputShape(r,text,'no_json_object')
+      ));
+      return null;
+    }
+    stage='parse';
     const p=JSON.parse(text.slice(start,end+1));
+    stage='normalize';
     const phases=['discover','explain','practice','feedback','next_step','complete'];
     const states=['open','waiting_member','closed'];
     const signals=['neutral','positive','hesitant','confused','frustrated','rushed'];
@@ -1309,9 +1319,27 @@ async function extractBackgroundMemoryBundle({
       causal_event:causal,
       learning_pattern:learning
     };
-  }catch(_){
+  }catch(error){
+    // error.name only: a JSON.parse message can quote part of the member's text.
+    console.error('[ai-agent] background memory helper output unusable',JSON.stringify({
+      ...backgroundHelperOutputShape(r,text,stage),
+      error:error?.name||'Error'
+    }));
     return null;
   }
+}
+
+// Diagnostic shape of a helper response without any conversation content.
+function backgroundHelperOutputShape(r,text,reason){
+  return {
+    model:OPENAI_HELPER_MODEL,
+    reason,
+    http_status:r?.status??null,
+    response_status:r?.data?.status||null,
+    incomplete_reason:r?.data?.incomplete_details?.reason||null,
+    output_tokens:r?.data?.usage?.output_tokens??null,
+    text_length:String(text||'').length
+  };
 }
 
 async function extractPersonalTrainingMemory(message,answer,context,currentSession,recentTraining,learnedFacts){
