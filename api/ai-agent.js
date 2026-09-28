@@ -1552,7 +1552,9 @@ async function searchDurableKnowledge(token,role,query,limit=80){
 // model: the answer is the matched source text or a deterministic reply.
 function isVerbatimSourceRequest(message){
   const s=String(message||'').trim();
-  return /(?:كما\s*ورد|(?:دون|بدون)\s*(?:إضافة|اضافة|اضافه|إضافه)|نص\s*المادة|نص\s*المصدر|حرفي(?:ًا|ا|ة)?(?=$|[\s.,،؟?!:])|[أا]جب\s*بالنقاط)/i.test(s);
+  // "كما ورد/وردت" and "حرفيًا" must stand as whole words, so everyday text
+  // such as "كما وردني" or "مهارات حرفية" is not treated as a quote request.
+  return /(?:كما\s*وردت?(?=$|[\s.,،؛;:؟?!)])|(?:دون|بدون)\s*(?:إضافة|اضافة|اضافه|إضافه)|نص\s*المادة|نص\s*المصدر|حرفي(?:ًا|اً|ا)(?=$|[\s.,،؛;:؟?!)])|[أا]جب\s*بالنقاط)/i.test(s);
 }
 
 function isExactSourceListRequest(message){

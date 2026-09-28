@@ -34,7 +34,10 @@ const GENERIC_HEADING_WORDS=new Set([
   'مقدمه','المقدمه','خلاصه','الخلاصه','ملخص','الملخص','تمهيد','تعريف','التعريف',
   'امثله','الامثله','مثال','المثال','شروط','الشروط','خطوات','الخطوات','نقاط','النقاط',
   'عناصر','العناصر','ملاحظات','ملاحظه','تمارين','تمرين','اسئله','الاسئله','اجوبه','الاجوبه',
-  'الاول','الثاني','الثالث','الرابع','الخامس','السادس','السابع','الثامن','التاسع','العاشر'
+  'الاول','الثاني','الثالث','الرابع','الخامس','السادس','السابع','الثامن','التاسع','العاشر',
+  'الاولي','الثانيه','الثالثه','الرابعه','الخامسه','السادسه','السابعه','الثامنه','التاسعه','العاشره',
+  // Structural nouns that only name a position ("الخطوة الأولى", "القاعدة الثانية").
+  'الخطوه','خطوه','المرحله','مرحله','القاعده','قاعده','النقطه','نقطه','الدرس','درس','المحور','محور'
 ]);
 
 // Lead-in words that often end a heading line ("... كالتالي:") without being part of its identity.
@@ -179,22 +182,34 @@ function materialPhrases(entry){
   return phrases.filter(Boolean);
 }
 
-function removePhrase(normalizedText,normalizedPhrase){
-  return (' '+normalizedText+' ').split(' '+normalizedPhrase+' ').join(' ').replace(/\s+/g,' ').trim();
+function namedMaterialPhrases(normalizedQuestion,entries){
+  const phrases=new Set();
+  for(const entry of entries){
+    for(const phrase of materialPhrases(entry)){
+      if(containsPhrase(normalizedQuestion,phrase))phrases.add(phrase);
+    }
+  }
+  return [...phrases];
 }
 
-// If the question names a material, restrict the search to it and remove the
-// material name so it cannot also match a unit heading.
-function scopeByNamedMaterial(normalizedQuestion,entries){
-  const named=new Map();
-  for(const entry of entries){
-    const phrase=materialPhrases(entry).find(p=>containsPhrase(normalizedQuestion,p));
-    if(phrase)named.set(entry.normalizedMaterial,phrase);
-  }
-  if(!named.size)return {question:normalizedQuestion,entries};
-  let question=normalizedQuestion;
-  for(const phrase of named.values())question=removePhrase(question,phrase);
-  return {question,entries:entries.filter(e=>named.has(e.normalizedMaterial))};
+function isMaterialNamed(normalizedQuestion,entry){
+  return materialPhrases(entry).some(p=>containsPhrase(normalizedQuestion,p));
+}
+
+// A heading that is only part of a material name the question mentions
+// ("... في نظام البيع المباشر") is the material reference, not the topic.
+// It is set aside only when another heading also matched.
+function withoutMaterialNameHeadings(matches,namedPhrases){
+  if(!namedPhrases.length)return matches;
+  const topical=matches.filter(m=>!namedPhrases.some(p=>containsPhrase(p,m.heading.variant)));
+  return topical.length?topical:matches;
+}
+
+// The material name never narrows the search; it only breaks a tie between
+// equally ranked matches from different records.
+function breakTieByNamedMaterial(normalizedQuestion,top){
+  const named=top.filter(m=>isMaterialNamed(normalizedQuestion,m.entry));
+  return named.length?named:top;
 }
 
 function collectMatches(normalizedQuestion,entries){
@@ -250,14 +265,15 @@ function ambiguityOptions(matches){
 //       | {status:'not_found'}
 function selectExactSource(message,rows,{bundledRows=[]}={}){
   const bundled=new Set(bundledRows);
-  const allEntries=uniqueSourceRows(rows).map(row=>entryFor(row,bundled));
-  const scoped=scopeByNamedMaterial(normalizeArabic(message),allEntries);
-  const matches=collectMatches(scoped.question,scoped.entries).sort(compareMatches);
+  const entries=uniqueSourceRows(rows).map(row=>entryFor(row,bundled));
+  const question=normalizeArabic(message);
+  const namedPhrases=namedMaterialPhrases(question,entries);
+  const matches=withoutMaterialNameHeadings(collectMatches(question,entries),namedPhrases).sort(compareMatches);
   if(!matches.length)return {status:'not_found'};
 
-  const top=matches.filter(m=>compareMatches(m,matches[0])===0);
-  const distinctRows=new Set(top.map(m=>m.entry.row));
-  if(distinctRows.size>1)return {status:'ambiguous',options:ambiguityOptions(top)};
+  let top=matches.filter(m=>compareMatches(m,matches[0])===0);
+  if(new Set(top.map(m=>m.entry.row)).size>1)top=breakTieByNamedMaterial(question,top);
+  if(new Set(top.map(m=>m.entry.row)).size>1)return {status:'ambiguous',options:ambiguityOptions(top)};
 
   const best=top[0];
   return {
