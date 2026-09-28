@@ -1214,7 +1214,14 @@ async function extractBackgroundMemoryBundle({
       reasoning:{effort:'none'},
       max_output_tokens:420
     });
-    if(!r.ok)return null;
+    if(!r.ok){
+      console.error('[ai-agent] background memory helper failed',JSON.stringify({
+        model:OPENAI_HELPER_MODEL,
+        status:r.status,
+        error:r.data?.error?.message||r.data?.message||r.text||null
+      }));
+      return null;
+    }
     const text=outputText(r.data);
     const start=text.indexOf('{'),end=text.lastIndexOf('}');
     if(start<0||end<=start)return null;
