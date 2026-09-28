@@ -6,6 +6,7 @@ const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY || '').trim().replace(/
 const OPENAI_MODEL = process.env.AI_AGENT_MODEL || 'gpt-5.6-luna';
 const OPENAI_HELPER_MODEL = process.env.AI_AGENT_HELPER_MODEL || 'gpt-5-nano';
 const {detectTrainingAssessmentQuestion}=require('../training-assessment-protection');
+const {selectExactSource}=require('./_exact-source-index');
 
 const LOCAL_KNOWLEDGE_SOURCES=[
   require('./knowledge/objections_mmahmoud.json'),
@@ -1547,94 +1548,43 @@ async function searchDurableKnowledge(token,role,query,limit=80){
   }catch(_){return [];}
 }
 
-function isExactSourceListRequest(message){
-  const s=String(message||'').trim().toLowerCase();
-  if(!isSourceKnowledgeRequest(message))return false;
-  return /(?:كما ورد|دون إضافة|دون اضافه|بالنقاط|نص المادة|نص المصدر|ما هي.*(?:أمثلة|النقاط|العناصر)|اذكر.*(?:أمثلة|النقاط|العناصر)|ما هي.*صور)/i.test(s);
+// Explicit requests to quote the material. These never reach the language
+// model: the answer is the matched source text or a deterministic reply.
+function isVerbatimSourceRequest(message){
+  const s=String(message||'').trim();
+  // "كما ورد/وردت" and "حرفيًا" must stand as whole words, so everyday text
+  // such as "كما وردني" or "مهارات حرفية" is not treated as a quote request.
+  return /(?:كما\s*وردت?(?=$|[\s.,،؛;:؟?!)])|(?:دون|بدون)\s*(?:إضافة|اضافة|اضافه|إضافه)|نص\s*المادة|نص\s*المصدر|حرفي(?:ًا|اً|ا)(?=$|[\s.,،؛;:؟?!)])|[أا]جب\s*بالنقاط)/i.test(s);
 }
 
-function buildDeterministicSourceListAnswer(message,knowledgeMemory){
+function isExactSourceListRequest(message){
+  if(isVerbatimSourceRequest(message))return true;
+  const s=String(message||'').trim().toLowerCase();
+  if(!isSourceKnowledgeRequest(message))return false;
+  return /(?:بالنقاط|ما هي.*(?:أمثلة|النقاط|العناصر)|اذكر.*(?:أمثلة|النقاط|العناصر)|ما هي.*صور)/i.test(s);
+}
+
+const EXACT_SOURCE_AMBIGUOUS_INTRO='وجدت هذا العنوان في أكثر من موضع في المواد التدريبية، ولن أختار بينها بالتخمين. حدّد المادة أو الوحدة التي تقصدها:';
+const EXACT_SOURCE_NOT_FOUND_REPLY='لم أجد في المواد التدريبية المعتمدة وحدةً بعنوان يطابق طلبك، ولن أنقل من مادة أخرى أو أضيف من عندي.\nاكتب عنوان الوحدة كما يظهر في المادة، ويمكنك ذكر اسم المادة أيضًا.';
+
+// Source selection for exact-source requests is by unit-title identity (see
+// api/_exact-source-index.js), not by counting shared words.
+function resolveExactSourceRequest(message,knowledgeMemory){
   if(!isExactSourceListRequest(message))return null;
-  const rows=Array.isArray(knowledgeMemory)?knowledgeMemory:[];
-  const sourceRows=rows.filter(x=>
-    /^(?:dxn_pdf_source_exact|source_pdf|dxn_marketing_plan_full)$/i.test(String(x?.category||'')) &&
-    String(x?.content||'').trim()
-  );
-  if(!sourceRows.length)return null;
-
-  const s=String(message||'').toLowerCase();
-
-  // Exact-source requests must first lock onto an explicit topic phrase.
-  // Broad token scoring alone can select an unrelated training chunk such as
-  // PRO GO simply because it shares generic words with the question.
-  const topicRules=[
-    {
-      pattern:/التشويق\s*(?:السيئ|السلبي)|صور\s+التشويق\s*(?:السيئ|السلبي)/i,
-      rowPattern:/التشويق\s*(?:السيئ|السلبي)/i,
-      bonus:100
-    },
-    {
-      pattern:/استراتيجيات\s+التشويق/i,
-      rowPattern:/استراتيجيات\s+التشويق/i,
-      bonus:100
-    },
-    {
-      pattern:/التشويق\s+غير\s+المباشر|إثارة\s+الفضول/i,
-      rowPattern:/التشويق\s+غير\s+المباشر|إثارة\s+الفضول/i,
-      bonus:100
-    },
-    {
-      pattern:/التشويق\s+بالمقارنة/i,
-      rowPattern:/التشويق\s+بالمقارنة/i,
-      bonus:100
-    },
-    {
-      pattern:/التشويق\s+المباشر/i,
-      rowPattern:/التشويق\s+المباشر/i,
-      bonus:100
-    },
-    {
-      pattern:/التشويق\s+بالأخذ\s+بالرأي/i,
-      rowPattern:/التشويق\s+بالأخذ\s+بالرأي/i,
-      bonus:100
-    }
-  ];
-
-  const rule=topicRules.find(x=>x.pattern.test(s));
-  const scopedRows=rule
-    ? sourceRows.filter(row=>rule.rowPattern.test(String(row?.title||'')+' '+String(row?.content||'')))
-    : sourceRows;
-
-  if(rule && !scopedRows.length)return null;
-
-  const candidates=scopedRows.length?scopedRows:sourceRows;
-  const terms=memorySearchTerms(message);
-  const scored=candidates.map((row,index)=>{
-    const title=String(row?.title||'').toLowerCase();
-    const content=String(row?.content||'').toLowerCase();
-    let score=rule?rule.bonus:0;
-    for(const term of terms){
-      if(!term)continue;
-      const t=String(term).toLowerCase();
-      if(title.includes(t))score+=6;
-      else if(content.includes(t))score+=3;
-    }
-    // Prefer a title-level match over a generic content match.
-    if(rule && rule.rowPattern.test(title))score+=40;
-    return {row,score,index};
-  }).sort((a,b)=>
-    b.score-a.score ||
-    Number(b.row?.relevance||0)-Number(a.row?.relevance||0) ||
-    Number(b.row?.priority||0)-Number(a.row?.priority||0) ||
-    a.index-b.index
-  );
-
-  const hit=scored.find(x=>x.score>0);
-  if(!hit)return null;
-
-  // For exact-source list requests, return only the stored source text.
-  // This prevents the language model from inventing examples or commentary.
-  return String(hit.row.content||'').trim();
+  const result=selectExactSource(message,knowledgeMemory,{bundledRows:LOCAL_KNOWLEDGE_FLAT});
+  if(result.status==='found'){
+    return {status:'found',answer:result.answer,title:result.title};
+  }
+  if(result.status==='ambiguous'){
+    const options=result.options.map(x=>'• '+x.material+' — '+x.heading).join('\n');
+    return {status:'ambiguous',answer:EXACT_SOURCE_AMBIGUOUS_INTRO+'\n'+options,title:null};
+  }
+  // Only an explicit quote request is closed here. Other list-style questions
+  // keep the existing model path when no unit title matches.
+  if(isVerbatimSourceRequest(message)){
+    return {status:'not_found',answer:EXACT_SOURCE_NOT_FOUND_REPLY,title:null};
+  }
+  return null;
 }
 
 async function loadAgentKnowledge(token,role='member',message=''){
@@ -3522,15 +3472,17 @@ module.exports=async function handler(req,res){
       loadLearnedFacts(token),
       loadMemberTrainingMemory(token)
     ]);
-    const exactSourceAnswer=buildDeterministicSourceListAnswer(message,knowledgeMemory);
-    if(exactSourceAnswer){
+    const exactSource=resolveExactSourceRequest(message,knowledgeMemory);
+    if(exactSource){
       await saveAgentMessage(token,'user',message).catch(()=>null);
-      await saveAgentMessage(token,'assistant',exactSourceAnswer).catch(()=>null);
+      await saveAgentMessage(token,'assistant',exactSource.answer).catch(()=>null);
       return res.status(200).json({
         ok:true,
-        answer:exactSourceAnswer,
+        answer:exactSource.answer,
         deterministic:true,
-        source:'training-source-exact'
+        source:'training-source-exact',
+        source_match:exactSource.status,
+        source_title:exactSource.title
       });
     }
 
