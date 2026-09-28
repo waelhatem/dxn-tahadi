@@ -257,7 +257,7 @@ function cleanHistory(history){
   return history.slice(-24).map(x=>{
     const role=String(x&&x.role||'user').toLowerCase()==='assistant'?'assistant':'user';
     const content=String(x&&x.content||'').trim().slice(0,5000);
-    return content?{role,content}:null;
+    return content?{role,content,created_at:x?.created_at||null}:null;
   }).filter(Boolean);
 }
 
@@ -1129,6 +1129,26 @@ async function loadMemberTrainingMemory(token){
   }catch(_){return [];}
 }
 
+function buildTrainingSessionTranscript(history,currentSession,message,answer){
+  const rows=Array.isArray(history)?history:[];
+  const startedAt=Date.parse(String(currentSession?.started_at||''));
+  const sessionRows=Number.isFinite(startedAt)
+    ? rows.filter(row=>{
+        const created=Date.parse(String(row?.created_at||''));
+        return !Number.isFinite(created) || created>=startedAt;
+      })
+    : rows.slice(-12);
+
+  return [
+    ...sessionRows.slice(-16).map(row=>({
+      role:row?.role==='assistant'?'assistant':'user',
+      content:String(row?.content||'').trim().slice(0,5000)
+    })),
+    {role:'user',content:String(message||'').trim().slice(0,5000)},
+    {role:'assistant',content:String(answer||'').trim().slice(0,5000)}
+  ].filter(x=>x.content).slice(-20);
+}
+
 async function extractBackgroundMemoryBundle({
   message,
   answer,
@@ -1140,6 +1160,7 @@ async function extractBackgroundMemoryBundle({
   permanentMemory,
   causalMemory,
   learningPatterns,
+  sessionTranscript,
   doPersonalTraining,
   doDurableFacts,
   doConversationState,
@@ -1155,6 +1176,11 @@ async function extractBackgroundMemoryBundle({
     'لا تحفظ معلومات صحية أو سياسية أو أسرارًا أو بيانات شديدة الحساسية.',
     'لا تجعل التحية أو الشكر أو التفاصيل العابرة ذاكرة.',
     'personal_training: احفظ محاولة/نتيجة/تصحيح/درس/هدف/عقبة/تقدم/خطوة تالية واضحة، مع member_facts للمعلومات الثابتة التي صرح بها العضو.',
+    'في التدريب متعدد الأدوار، لا تحلل الرسالة الحالية وحدها. استخدم session_transcript كاملًا مع الجلسة الحالية لإعادة بناء التدريب الجاري.',
+    'في personal_training يجوز استخدام رسائل المدرب لاستخراج coach_action وlesson وnext_step وoutcome عندما تكون صريحة في رد المدرب؛ هذه الحقول توثق ما حدث في التدريب وليست حقائق عن العضو.',
+    'member_statement يجب أن يعتمد على محاولة العضو الفعلية من رسائل user داخل session_transcript، لا على إعادة صياغة من المدرب.',
+    'إذا كانت الجلسة الحالية active وكان session_transcript يثبت وجود تمرين وتصحيح أو درس، املأ training حتى لو كانت رسالة العضو الأخيرة قصيرة أو لا تحتوي كلمات مثل «جربت» أو «تعلمت». استخدم currentSession.objective لتثبيت الموضوع والهدف عندما يكونان واضحين.',
+    'لا تجعل member_facts شرطًا لكتابة سجل التدريب؛ سجل التدريب نفسه هو المطلوب في جلسة coaching.',
     'durable_facts: احفظ فقط المعلومات التي تستحق الاستمرار طويلًا. scope أحد global أو leader أو member.',
     'conversation_state: احفظ موضوع الحوار المفتوح والسؤال أو الإجراء الذي ما زال ينتظر العضو، مع interaction_signal محصورًا في neutral,positive,hesitant,confused,frustrated,rushed ودون أي تشخيص.',
     'causal_event: استخرج محاولة -> نتيجة -> ملاحظة -> سبب محتمل -> تعديل فقط إذا كانت هناك تجربة أو عائق واضح. hypothesis ليس حقيقة.',
@@ -1202,9 +1228,11 @@ async function extractBackgroundMemoryBundle({
     JSON.stringify((Array.isArray(causalMemory)?causalMemory.slice(0,4):[])),
     'دروس التعلم السابقة:',
     JSON.stringify((Array.isArray(learningPatterns)?learningPatterns.slice(0,4):[])),
-    'رسالة العضو:',
+    'session_transcript للتدريب الحالي (user/assistant):',
+    JSON.stringify(Array.isArray(sessionTranscript)?sessionTranscript:[]),
+    'رسالة العضو الحالية:',
     String(message||'').slice(0,3000),
-    'رد المدرب:',
+    'رد المدرب الحالي:',
     String(answer||'').slice(0,3000)
   ].join('\\n');
 
@@ -3708,7 +3736,17 @@ module.exports=async function handler(req,res){
     );
     const causalRequested=backgroundValue && causalMemoryLikely(message,cognitiveState,causalMemory);
     const durableRequested=backgroundValue && durableLearningLikely(message,context.role);
-    const personalRequested=context.role==='member' && backgroundValue;
+    const personalTrainingContextActive =
+      context.role==='member' &&
+      (
+        currentSession?.active ||
+        (
+          currentSession?.phase==='complete' &&
+          Number.isFinite(Date.parse(String(currentSession?.started_at||''))) &&
+          Date.now()-Date.parse(String(currentSession.started_at)) < 2*60*60*1000
+        )
+      );
+    const personalRequested=context.role==='member' && (backgroundValue || personalTrainingContextActive);
     const conversationRequested=backgroundValue && !skipTurnAnalysis;
     const learningRequested=causalRequested && (Array.isArray(causalMemory)&&causalMemory.length>=1);
     const needBackgroundAnalysis=backgroundValue && (
@@ -3728,6 +3766,7 @@ module.exports=async function handler(req,res){
         permanentMemory,
         causalMemory,
         learningPatterns,
+        sessionTranscript:buildTrainingSessionTranscript(history,currentSession,message,answer),
         doPersonalTraining:personalRequested,
         doDurableFacts:durableRequested,
         doConversationState:conversationRequested,
