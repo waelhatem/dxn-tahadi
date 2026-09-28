@@ -1578,7 +1578,12 @@ const EXACT_SOURCE_NOT_FOUND_REPLY='لم أجد في المواد التدريب
 // api/_exact-source-index.js), not by counting shared words.
 function resolveExactSourceRequest(message,knowledgeMemory){
   if(!isExactSourceListRequest(message))return null;
-  const result=selectExactSource(message,knowledgeMemory,{bundledRows:LOCAL_KNOWLEDGE_FLAT});
+  // List-style questions without an explicit quote request ("ما هي أهم النقاط…")
+  // match unit titles only; headings inside page text need an explicit request.
+  const result=selectExactSource(message,knowledgeMemory,{
+    bundledRows:LOCAL_KNOWLEDGE_FLAT,
+    allowContentHeadings:isVerbatimSourceRequest(message)
+  });
   if(result.status==='found'){
     return {status:'found',answer:result.answer,title:result.title};
   }

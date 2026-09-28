@@ -5,7 +5,8 @@
   "description": "مجتمع الصحة والثراء — Render/Abasthan runtime",
   "scripts": {
     "start": "node server.js",
-    "build": "node -e \"console.log('DXN build complete')\""
+    "build": "node -e \"console.log('DXN build complete')\"",
+    "test": "node --test tests/exact-source-index.test.js"
   },
   "engines": {
     "node": ">=20"
