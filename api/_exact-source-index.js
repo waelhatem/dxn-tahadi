@@ -230,12 +230,16 @@ function compareMatches(a,b){
     a.entry.origin-b.entry.origin;
 }
 
+// A numbered question ("س/5 …", "س5-", "سؤال 5") starts a new item in
+// question-and-answer material even though the line does not end with ":".
+const NUMBERED_QUESTION_LINE=/^\s*(?:س|سؤال)\s*[\/\\\-:.)]?\s*\d+/;
+
 function blockFromHeading(content,line){
   const lines=String(content||'').split(/\r?\n/);
   const headingLines=new Set(contentHeadings(content).map(h=>h.line));
   let end=lines.length;
   for(let i=line+1;i<lines.length;i++){
-    if(headingLines.has(i)){end=i;break;}
+    if(headingLines.has(i)||NUMBERED_QUESTION_LINE.test(lines[i])){end=i;break;}
   }
   return lines.slice(line,end).join('\n').trim();
 }
@@ -263,12 +267,18 @@ function ambiguityOptions(matches){
 // Returns {status:'found',row,title,heading,answer}
 //       | {status:'ambiguous',options}
 //       | {status:'not_found'}
-function selectExactSource(message,rows,{bundledRows=[]}={}){
+//
+// allowContentHeadings=false restricts matching to unit titles. A heading
+// inside a page's text (for example "في البيع المباشر :") is only reliable
+// when the member explicitly asked to quote the material.
+function selectExactSource(message,rows,{bundledRows=[],allowContentHeadings=true}={}){
   const bundled=new Set(bundledRows);
   const entries=uniqueSourceRows(rows).map(row=>entryFor(row,bundled));
   const question=normalizeArabic(message);
   const namedPhrases=namedMaterialPhrases(question,entries);
-  const matches=withoutMaterialNameHeadings(collectMatches(question,entries),namedPhrases).sort(compareMatches);
+  const candidates=collectMatches(question,entries)
+    .filter(m=>allowContentHeadings||m.heading.kind===KIND_TITLE);
+  const matches=withoutMaterialNameHeadings(candidates,namedPhrases).sort(compareMatches);
   if(!matches.length)return {status:'not_found'};
 
   let top=matches.filter(m=>compareMatches(m,matches[0])===0);
