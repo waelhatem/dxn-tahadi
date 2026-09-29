@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "build": "node -e \"console.log('DXN build complete')\"",
-    "test": "node --test tests/exact-source-index.test.js tests/helper-reasoning-effort.test.js tests/helper-json-output.test.js tests/helper-prompt.test.js"
+    "test": "node --test tests/exact-source-index.test.js tests/helper-reasoning-effort.test.js tests/helper-json-output.test.js tests/helper-prompt.test.js tests/academy-tab.test.js"
   },
   "engines": {
     "node": ">=20"

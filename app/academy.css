@@ -1,0 +1,166 @@
+/* V86.72 — «🎓 أكاديمية المنصة»: a plain, clear video library styled as a native section
+   of the site (colours from :root and the existing card/button/badge/progress styles
+   in index.html). Motion is limited to a short opacity fade between videos, a light
+   desktop hover, a small button press and the loading bar; all of it is switched off
+   under prefers-reduced-motion. Every selector starts with .academy-. */
+.academy-root{--academy-green:var(--green,#0f513f);--academy-green-2:var(--green2,#176b55);--academy-gold:var(--gold,#d99a18);--academy-gold-light:#f2bf4a;--academy-text:var(--text,#182234);--academy-muted:var(--muted,#667085);--academy-line:var(--line,#e2e8e5);--academy-card:var(--card,#fff);--academy-deep:#071a14;--academy-shadow:0 8px 22px rgba(15,81,63,.08);display:flex;flex-direction:column;gap:12px;margin:4px 0 96px;color:var(--academy-text);direction:rtl}
+
+/* Header — the site's green header style, compact */
+.academy-header{display:grid;gap:8px;justify-items:start;padding:22px 22px 20px;border-radius:20px;color:#fff;background:linear-gradient(135deg,var(--academy-green),var(--academy-green-2));box-shadow:var(--academy-shadow)}
+.academy-header-kicker{font-size:12.5px;font-weight:900;color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:5px 11px}
+.academy-header-title{margin:0;font-size:clamp(22px,3vw,28px);line-height:1.3;font-weight:950;color:#fff}
+.academy-header-text{margin:0;font-size:14.5px;line-height:1.75;color:rgba(255,255,255,.85)}
+.academy-header-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:4px}
+.academy-header-stat{font-size:13px;font-weight:800;color:#f6d16a;font-variant-numeric:tabular-nums}
+.academy-cta{min-height:44px;padding:10px 18px;border:0;border-radius:14px;cursor:pointer;font:inherit;font-size:14.5px;font-weight:950;color:#7a5300;background:#fff4d5}
+.academy-cta:disabled{cursor:default;color:rgba(255,255,255,.75);background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25)}
+
+/* Progress card — a site card with the site's level progress bar */
+.academy-tour{display:grid;gap:10px;padding:16px 18px;border-radius:20px;background:var(--academy-card);border:1px solid var(--academy-line)}
+.academy-tour>*{min-width:0}
+.academy-tour-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.academy-tour-label{font-size:15px;font-weight:900;color:#123b30}
+.academy-tour-value{font-size:14px;font-weight:900;color:var(--academy-green);font-variant-numeric:tabular-nums}
+.academy-progress{height:12px;overflow:hidden;border-radius:999px;background:#edf0ed}
+.academy-progress-fill{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--academy-gold),var(--academy-gold-light));transition:width .4s ease}
+.academy-next{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:#f7fbf9;border:1px solid var(--academy-line)}
+.academy-next-muted .academy-next-title{white-space:normal;font-weight:700;color:var(--academy-muted)}
+.academy-next-number{flex:none;display:grid;place-items:center;width:38px;height:38px;border-radius:12px;font-weight:950;color:#fff;background:var(--academy-green)}
+.academy-next-text{flex:1;min-width:0}
+.academy-next-kicker{font-size:12px;font-weight:900;color:#7a5300}
+.academy-next-title{font-size:14px;font-weight:900;line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.academy-next-button{flex:none;cursor:pointer;min-height:38px;font:inherit;font-size:13px;font-weight:900;padding:7px 14px;border-radius:11px;color:#17473a;background:#fff;border:1px solid #d4e2dc}
+
+/* Player — a site card; only the screen itself is dark */
+.academy-stage{display:grid;gap:14px;padding:14px;border-radius:20px;background:var(--academy-card);border:1px solid var(--academy-line);scroll-margin-top:90px}
+.academy-stage>*{transition:opacity .16s ease}
+.academy-stage-fading>*{opacity:0}
+.academy-screen{position:relative;overflow:hidden;aspect-ratio:16/9;border-radius:14px;background:var(--academy-deep)}
+.academy-video{display:block;width:100%;height:100%;object-fit:contain;background:#000}
+.academy-screen-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:20px;text-align:center;color:#fff;background:linear-gradient(135deg,var(--academy-green),var(--academy-green-2))}
+.academy-screen-icon{display:grid;place-items:center;width:56px;height:56px;border-radius:50%;padding-left:3px;font-size:18px;color:#7a5300;background:#fff4d5}
+.academy-screen-title{font-size:17px;font-weight:950}
+.academy-screen-note{max-width:420px;font-size:13.5px;line-height:1.7;color:rgba(255,255,255,.85)}
+
+/* Loading bar: a clear full-width bar across the top of the screen plus a label */
+.academy-screen-loader{position:absolute;inset:0 0 auto 0;z-index:2;display:none;pointer-events:none}
+.academy-screen-loading .academy-screen-loader{display:block}
+.academy-screen-loader-bar{position:relative;height:5px;overflow:hidden;background:rgba(255,255,255,.18)}
+.academy-screen-loader-bar span{position:absolute;top:0;right:0;width:35%;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--academy-gold),var(--academy-gold-light));animation:academy-loading 1.2s ease-in-out infinite}
+.academy-screen-loader-label{position:absolute;top:14px;right:14px;padding:5px 11px;border-radius:999px;font-size:12px;font-weight:900;color:#7a5300;background:#fff4d5}
+/* Error note: shown only when loading fails, and never together with the "next video" card */
+.academy-screen-error-note{position:absolute;right:14px;bottom:56px;left:14px;z-index:2;display:none;padding:10px 14px;border-radius:12px;text-align:center;font-size:13px;font-weight:800;color:#fff;background:rgba(3,31,25,.84)}
+.academy-screen-error .academy-screen-error-note{display:block}
+.academy-screen-ended .academy-screen-error-note,.academy-screen-ended .academy-screen-loader{display:none}
+
+/* "Next video" card shown on the screen when a video ends (no autoplay) */
+.academy-upnext{position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;padding:16px;text-align:center;color:#fff;background:rgba(3,31,25,.9);animation:academy-fade .25s ease both}
+.academy-upnext-body{display:flex;flex-direction:column;align-items:center;gap:8px;max-width:520px}
+.academy-upnext-kicker{font-size:12.5px;font-weight:900;color:#f6d16a}
+.academy-upnext-title{font-size:clamp(16px,2vw,21px);font-weight:950;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.academy-upnext-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:4px}
+.academy-upnext-play,.academy-upnext-replay{cursor:pointer;min-height:42px;padding:9px 16px;border-radius:13px;font:inherit;font-size:14px;font-weight:950}
+.academy-upnext-play{border:0;color:#7a5300;background:#fff4d5}
+.academy-upnext-replay{color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25)}
+
+.academy-stage-info{display:grid;gap:8px;padding:0 4px}
+.academy-stage-meta{display:flex;flex-wrap:wrap;gap:8px}
+.academy-stage-title{margin:0;font-size:clamp(19px,2.2vw,23px);line-height:1.4;font-weight:950;color:#123b30}
+.academy-stage-text{margin:0;font-size:14px;line-height:1.8;color:var(--academy-muted)}
+.academy-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:11.5px;font-weight:900;color:#17473a;background:#eef8f2;border:1px solid #c7dfd3;font-variant-numeric:tabular-nums}
+.academy-chip-gold{color:#7a5300;background:#fff4d5;border-color:#f0d58a}
+.academy-chip-done{color:var(--academy-green);background:#eaf7ef;border-color:#cfe4da}
+.academy-controls{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px}
+.academy-control{min-height:44px;padding:9px 16px;border-radius:13px;cursor:pointer;font:inherit;font-size:14px;font-weight:900;color:#17473a;background:#f6faf8;border:1px solid #d4e2dc}
+.academy-control-prev{justify-self:start}
+.academy-control-next{justify-self:end;color:#fff;background:var(--academy-green);border-color:transparent}
+.academy-control:disabled{cursor:default;opacity:.45;color:#17473a;background:#f6faf8;border-color:#d4e2dc}
+
+/* Video list — site cards */
+.academy-library{display:grid;gap:12px;padding:16px;border-radius:20px;background:var(--academy-card);border:1px solid var(--academy-line);scroll-margin-top:90px}
+.academy-library-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.academy-library-title{margin:0;font-size:17px;font-weight:950;color:#123b30}
+.academy-library-sub{margin-top:2px;font-size:12.5px;color:var(--academy-muted)}
+.academy-library-count{font-size:13px;font-weight:800;color:var(--academy-muted)}
+.academy-episodes-empty{font-size:13px;color:var(--academy-muted)}
+.academy-episodes{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.academy-episode{display:grid;align-content:start;gap:8px;padding:9px;text-align:right;cursor:pointer;font:inherit;color:inherit;border-radius:16px;background:#fff;border:1px solid var(--academy-line)}
+.academy-episode-active{border-color:var(--academy-green);background:#f7fbf9;box-shadow:inset 0 0 0 1px var(--academy-green)}
+.academy-episode-thumb{position:relative;aspect-ratio:16/9;border-radius:12px;background:linear-gradient(135deg,var(--academy-green),var(--academy-green-2));background-size:cover;background-position:center}
+.academy-episode-number{position:absolute;top:7px;right:7px;display:grid;place-items:center;min-width:26px;height:26px;padding:0 6px;border-radius:999px;font-size:12px;font-weight:950;color:#7a5300;background:#fff4d5}
+.academy-episode-duration{position:absolute;bottom:7px;left:7px;padding:2px 7px;border-radius:7px;font-size:11px;font-weight:900;color:#fff;background:rgba(3,31,25,.66);font-variant-numeric:tabular-nums}
+.academy-episode-watched .academy-episode-thumb{box-shadow:inset 0 -4px 0 var(--academy-gold)}
+.academy-episode-body{display:grid;gap:6px;justify-items:start}
+.academy-episode-title{font-size:14px;font-weight:900;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.academy-episode-section{font-size:12px;font-weight:800;color:#17473a}
+.academy-episode-status{font-size:11px;font-weight:900;padding:3px 9px;border-radius:999px;border:1px solid transparent}
+.academy-status-now{color:#fff;background:var(--academy-green)}
+.academy-status-done{color:var(--academy-green);background:#eaf7ef;border-color:#cfe4da}
+.academy-status-next{color:#7a5300;background:#fff4d5;border-color:#f0d58a}
+.academy-status-todo{color:var(--academy-muted);background:#f3f7f5;border-color:var(--academy-line)}
+
+/* Leader-only form (UI only) */
+.academy-studio{display:grid;gap:12px;padding:14px 16px;border-radius:20px;background:#fffaf0;border:1px solid #f0d58a}
+.academy-studio-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.academy-studio-title{font-size:15px;font-weight:950;color:#123b30}
+.academy-studio-sub{font-size:12px;color:var(--academy-muted)}
+.academy-studio-banner{display:block;width:100%;padding:0;overflow:hidden;cursor:pointer;border:1px solid #f0d58a;border-radius:16px;background:var(--academy-deep)}
+.academy-studio-image{display:block;width:100%;height:auto;aspect-ratio:1983/793;object-fit:cover}
+.academy-upload-button{cursor:pointer;min-height:42px;border:0;border-radius:13px;padding:9px 16px;font:inherit;font-size:14px;font-weight:950;color:#fff;background:var(--academy-green)}
+.academy-upload-panel{display:grid;gap:12px;padding:14px;border-radius:14px;background:#fff;border:1px solid var(--academy-line)}
+.academy-upload-panel[hidden]{display:none}
+.academy-field{display:grid;gap:6px;font-size:13px;font-weight:800;color:#17473a}
+.academy-field input{font:inherit;color:var(--academy-text);background:#f7fbf9;border:1px solid #d4e2dc;border-radius:12px;padding:10px 12px}
+.academy-upload-file{min-height:1em;font-size:13px;font-weight:800;color:var(--academy-green)}
+.academy-upload-actions{display:flex;flex-wrap:wrap;gap:10px}
+.academy-upload-submit,.academy-upload-cancel{cursor:pointer;min-height:44px;font:inherit;font-weight:900;border-radius:12px;padding:10px 18px}
+.academy-upload-submit{border:0;color:#fff;background:var(--academy-green)}
+.academy-upload-cancel{color:#17473a;background:#f6faf8;border:1px solid #d4e2dc}
+.academy-upload-note{font-size:13px;line-height:1.7;color:var(--academy-muted)}
+
+/* Button micro-interaction: colour change and a 1px press, nothing else */
+.academy-cta,.academy-control,.academy-next-button,.academy-upnext-play,.academy-upnext-replay,.academy-upload-button,.academy-upload-submit,.academy-upload-cancel,.academy-episode{transition:background-color .15s ease,border-color .15s ease,box-shadow .15s ease,transform .1s ease}
+.academy-cta:active:not(:disabled),.academy-control:active:not(:disabled),.academy-next-button:active,.academy-upnext-play:active,.academy-upnext-replay:active,.academy-upload-button:active,.academy-upload-submit:active,.academy-upload-cancel:active{transform:translateY(1px)}
+
+/* Focus — the site's focus ring */
+.academy-cta:focus-visible,.academy-studio-banner:focus-visible,.academy-control:focus-visible,.academy-next-button:focus-visible,.academy-upnext-play:focus-visible,.academy-upnext-replay:focus-visible,.academy-episode:focus-visible,.academy-upload-button:focus-visible,.academy-upload-submit:focus-visible,.academy-upload-cancel:focus-visible{outline:3px solid var(--academy-gold);outline-offset:3px}
+
+/* Very light hover, only with a real mouse/trackpad */
+@media (hover:hover) and (pointer:fine){
+  .academy-episode:not(.academy-episode-active):hover{border-color:#c7dfd3;box-shadow:var(--academy-shadow)}
+  .academy-control:hover:not(:disabled):not(.academy-control-next),.academy-next-button:hover,.academy-upload-cancel:hover{border-color:#c7dfd3;background:#eef8f2}
+  .academy-control-next:hover:not(:disabled),.academy-upload-button:hover,.academy-upload-submit:hover{background:var(--academy-green-2)}
+  .academy-cta:hover:not(:disabled),.academy-upnext-play:hover{background:#fff8e8}
+}
+
+/* Phone */
+@media (max-width:640px){
+  .academy-header{padding:18px 16px}
+  .academy-cta{width:100%}
+  .academy-tour{padding:14px}
+  .academy-stage{padding:10px}
+  .academy-controls{grid-template-columns:1fr 1fr}
+  .academy-control-prev,.academy-control-next{justify-self:stretch}
+  .academy-control-list{grid-column:1 / -1;order:3}
+  .academy-library{padding:14px}
+  .academy-episodes{grid-template-columns:1fr}
+  .academy-episode{grid-template-columns:132px 1fr;align-items:center}
+  .academy-studio-head .academy-upload-button{width:100%}
+  .academy-screen-loader-label{top:12px;right:10px}
+  .academy-screen-error-note{right:10px;bottom:48px;left:10px;font-size:12px}
+  .academy-studio-image{aspect-ratio:4/3;object-position:50% 60%}
+  .academy-upnext{padding:10px;background:var(--academy-deep)}
+  .academy-upnext-body{gap:6px}
+  .academy-upnext-kicker{font-size:11.5px}
+  .academy-upnext-title{font-size:15px;-webkit-line-clamp:1}
+  .academy-upnext-play,.academy-upnext-replay{min-height:38px;padding:7px 13px;font-size:13px}
+}
+
+/* Reduced motion: no fade, no loading animation, no transitions */
+@media (prefers-reduced-motion:reduce){
+  .academy-root *{animation:none!important;transition:none!important}
+  .academy-screen-loader-bar span{width:100%}
+}
+
+@keyframes academy-fade{from{opacity:0}to{opacity:1}}
+@keyframes academy-loading{0%{transform:translateX(0)}50%{transform:translateX(-185%)}100%{transform:translateX(0)}}
