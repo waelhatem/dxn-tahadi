@@ -1160,14 +1160,11 @@ async function extractBackgroundMemoryBundle({
     'causal_event: استخرج محاولة -> نتيجة -> ملاحظة -> سبب محتمل -> تعديل فقط إذا كانت هناك تجربة أو عائق واضح. hypothesis ليس حقيقة.',
     'learning_pattern: لا تنشئه إلا إذا أصبح لدينا دليل من تجربتين أو أكثر. استخدم CURRENT_EVENT عندما يكون الحدث الحالي نفسه جزءًا من الدليل.',
     'إذا لم توجد معلومة كافية في أي قسم، أعد القسم فارغًا بدل التخمين.',
-    'صيغة JSON المطلوبة:',
-    JSON.stringify({
-      personal_training:{training:null,member_facts:[]},
-      durable_facts:[],
-      conversation_state:null,
-      causal_event:null,
-      learning_pattern:null
-    }),
+    // Describe the shape instead of showing an empty instance: the helper
+    // model copied the empty instance as its answer even for requested sections.
+    'صيغة JSON المطلوبة: كائن واحد بالمفاتيح الخمسة personal_training و durable_facts و conversation_state و causal_event و learning_pattern. personal_training = {training: كائن training أو null, member_facts: مصفوفة عناصر member_facts}. durable_facts = مصفوفة عناصر durable_facts. الأقسام الثلاثة الأخرى كائن حسب تعريفه أو null.',
+    'تعريف عنصر member_facts:',
+    JSON.stringify({fact:'',supersedes_id:null}),
     'تعريف training عند الحاجة:',
     JSON.stringify({topic:null,objective:null,phase:null,member_statement:null,coach_action:null,outcome:null,lesson:null,next_step:null}),
     'تعريف durable_facts عند الحاجة:',
@@ -1186,6 +1183,7 @@ async function extractBackgroundMemoryBundle({
       doCausalMemory:!!doCausalMemory,
       doLearningPattern:!!doLearningPattern
     }),
+    'القسم الذي قيمته true مطلوب لأن الرسالة تحتوي ما يستحق الحفظ. إذا كان doDurableFacts = true وطلب العضو التذكّر أو صرّح بتفضيل أو معلومة ثابتة، فاحفظها في durable_facts بجملة واضحة. إذا كان doPersonalTraining = true والعضو يتدرّب أو يطلب تدريبًا أو يرد داخل موقف تدريبي، فاملأ training من رسالة العضو ورد المدرب.',
     'سياق العضو:',
     JSON.stringify(context.member||{}),
     'الجلسة الحالية:',
@@ -1206,7 +1204,7 @@ async function extractBackgroundMemoryBundle({
     String(message||'').slice(0,3000),
     'رد المدرب:',
     String(answer||'').slice(0,3000)
-  ].join('\\n');
+  ].join('\n');
 
   let r=null,text='',stage='request';
   try{
