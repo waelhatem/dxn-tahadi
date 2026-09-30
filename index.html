@@ -161,6 +161,8 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 #mobileNewVisitor{right:7%;bottom:13%;width:43%;height:9%}
 
 @media(max-width:700px){}
+/* <picture> wrappers must not change layout: the <img> inside keeps its existing rules. */
+picture{display:contents}
 </style>
 <link rel="manifest" href="/manifest.json?v=20260922-5"><script src="/pwa-install.js?v=20260922-5"></script>
 </head>
@@ -169,9 +171,18 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 <section id="desktopView" class="view desktop-view">
 <div class="desktop-backdrop" aria-hidden="true"></div>
 <div class="desktop-poster">
+<!-- Only the poster for the current device is downloaded; the ≤700px breakpoint matches the view switch below. -->
+<picture>
+<source media="(max-width:700px)" srcset="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
+<source type="image/webp" srcset="/desktop-home.webp?v=20260930">
 <img src="/desktop-home.png?v=20260918" alt="خلفية مجتمع الصحة والثراء">
+</picture>
 <div class="desktop-brand" aria-label="مجتمع الصحة والثراء">
+  <picture>
+  <source media="(max-width:700px)" srcset="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
+  <source type="image/webp" srcset="/logo-full.webp?v=20260930">
   <img src="/logo-full.png?v=20260920" alt="مجتمع الصحة والثراء">
+  </picture>
   <div class="desktop-tagline" aria-label="ابدأ بخطوة. اصنع مستقبل عائلتك بنفسك.">
     <span class="desktop-tagline-main">ابدأ بخطوة</span>
     <span class="desktop-tagline-sub">اصنع مستقبل عائلتك بنفسك</span>
@@ -207,7 +218,11 @@ body{overflow:hidden;font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif}
 </section>
 <section id="mobileView" class="view mobile-view hidden">
 <div class="mobile-poster">
+<picture>
+<source media="(min-width:701px)" srcset="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
+<source type="image/webp" srcset="/11.webp?v=20260930">
 <img src="11.png" alt="مجتمع الصحة والثراء">
+</picture>
 <button id="mobilePreviousUser" class="hotspot" type="button" aria-label="مستخدم سابق"></button>
 <button id="mobileNewVisitor" class="hotspot" type="button" aria-label="زائر جديد"></button>
 </div>
