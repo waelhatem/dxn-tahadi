@@ -1,30 +1,36 @@
-/* V86.72 — «🎓 أكاديمية المنصة»: a clear library of videos that explain how to use the
+/* V86.73 — «🎓 أكاديمية المنصة»: a clear library of videos that explain how to use the
    platform, styled as a native section of the site (no cinematic effects).
-   UI only: no Storage upload and no network call in this phase. Every global name
-   starts with academy so nothing collides with the other tabs. Switching videos
-   updates the academy in place (a short sequential fade) instead of calling the
-   app-wide render(). Nothing ever plays the next video automatically. */
+   Videos are YouTube links stored in the academy_videos table. The list is loaded from
+   /api/academy-videos when the tab opens; the selected video plays inside the academy
+   through the YouTube privacy-enhanced embed (youtube-nocookie.com), never in a new
+   window and never automatically. Leaders add videos with title, section and YouTube
+   link; the server checks the leader role. Every global name starts with academy so
+   nothing collides with the other tabs. */
 (function(){
   if(window.__DXN_ACADEMY_V1__)return;
   window.__DXN_ACADEMY_V1__=true;
 
   const ACADEMY_BANNER_SRC='/academy-video-upload-banner.png';
+  const ACADEMY_API='/api/academy-videos';
+  const ACADEMY_EMBED_ORIGIN='https://www.youtube-nocookie.com';
+  const ACADEMY_YOUTUBE_ORIGINS=['https://www.youtube-nocookie.com','https://www.youtube.com'];
   const ACADEMY_WATCHED_KEY='dxn_academy_watched_v1';
   const ACADEMY_WATCHED_RATIO=0.9;
   const ACADEMY_FADE_MS=160;
-  const ACADEMY_URL_PATTERN=/^(https:\/\/|\/)[^\s"'()<>\\]*$/;
+  const ACADEMY_PLAYER_ENDED=0;
+  const ACADEMY_PLAYER_PLAYING=1;
+  const ACADEMY_TITLE_MAX=160;
+  const ACADEMY_SECTION_MAX=80;
+  const ACADEMY_UPLOAD_HINT='الصق رابط الفيديو من YouTube بصيغة youtube.com/watch?v=… أو youtu.be/…';
+  // Same rules as api/_academy-youtube.js (the server re-checks every link).
+  const ACADEMY_YOUTUBE_ID=/^[A-Za-z0-9_-]{11}$/;
+  const ACADEMY_WATCH_HOSTS=['youtube.com','www.youtube.com','m.youtube.com'];
+  const ACADEMY_SHORT_HOSTS=['youtu.be','www.youtu.be'];
 
-  // Videos are supplied through academySetEpisodes(); the database source is added
-  // in a later phase, so the page shows its empty state until then.
-  const academyState={episodes:[],selectedIndex:0,watched:academyLoadWatched(),fadeTimer:0};
+  const academyState={episodes:[],selectedIndex:0,watched:academyLoadWatched(),fadeTimer:0,loaded:false,loading:false,loadError:'',saving:false,uploadOpen:false,uploadNote:ACADEMY_UPLOAD_HINT};
 
   function academyEscape(value){
     return String(value==null?'':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  }
-
-  function academySafeUrl(value){
-    const url=String(value||'').trim();
-    return ACADEMY_URL_PATTERN.test(url)?url:'';
   }
 
   function academyPad(n){
@@ -48,6 +54,30 @@
 
   function academyReducedMotion(){
     try{return window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(_){return false}
+  }
+
+  function academySessionToken(){
+    try{return String(localStorage.getItem('dxn_session')||'').trim()}catch(_){return ''}
+  }
+
+  // Returns the 11-character video id of a youtube.com/watch or youtu.be link, or ''.
+  function academyYouTubeId(input){
+    const raw=String(input==null?'':input).trim();
+    if(!raw||raw.length>500)return '';
+    let url;
+    try{url=new URL(/^[a-z][a-z0-9+.-]*:/i.test(raw)?raw:'https://'+raw);}catch(_){return '';}
+    if(url.protocol!=='https:'&&url.protocol!=='http:')return '';
+    const host=url.hostname.toLowerCase();
+    let id='';
+    if(ACADEMY_WATCH_HOSTS.includes(host)&&url.pathname==='/watch')id=url.searchParams.get('v')||'';
+    else if(ACADEMY_SHORT_HOSTS.includes(host))id=url.pathname.replace(/^\/+/,'').split('/')[0];
+    return ACADEMY_YOUTUBE_ID.test(id)?id:'';
+  }
+
+  function academyEmbedUrl(id){
+    let origin='';
+    try{origin=location.origin&&location.origin!=='null'?location.origin:''}catch(_){}
+    return `${ACADEMY_EMBED_ORIGIN}/embed/${id}?rel=0&playsinline=1&enablejsapi=1${origin?'&origin='+encodeURIComponent(origin):''}`;
   }
 
   // Watch status is a per-device convenience kept in localStorage; it never leaves
@@ -126,23 +156,26 @@
       ${academyUpNextCard()}`;
   }
 
+  // The selected video plays inside the academy (YouTube privacy-enhanced embed).
+  // Nothing starts on its own: the member presses play in the player.
   function academyScreen(episode,index){
-    const url=academySafeUrl(episode.url);
-    const poster=academySafeUrl(episode.poster);
-    const events=['loadstart','waiting','loadeddata','canplay','playing','play','error']
-      .map(type=>` on${type}="academyVideoEvent(this,'${type}')"`).join('');
     return `<div class="academy-screen academy-screen-loading" id="academyScreen">
-      <video class="academy-video" controls playsinline preload="metadata" src="${academyEscape(url)}"${poster?` poster="${academyEscape(poster)}"`:''}${events} ontimeupdate="academyTrackProgress(this,${index})" onended="academyMarkWatched(${index},true)"></video>
+      <iframe class="academy-video" id="academyPlayer" src="${academyEscape(academyEmbedUrl(episode.youtubeId))}" title="${academyEscape(episode.title)}" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" onload="academyEmbedLoaded(this,${index})"></iframe>
       <div class="academy-screen-loader" role="status" aria-live="polite"><div class="academy-screen-loader-bar"><span></span></div><div class="academy-screen-loader-label">جارٍ تحميل الفيديو…</div></div>
       <div class="academy-screen-error-note" role="status">تعذّر تحميل الفيديو حاليًا، حاول مرة أخرى لاحقًا.</div>
     </div>`;
   }
 
   function academyEmptyScreen(){
+    let title='لا توجد فيديوهات بعد';
+    let note='عند إضافة أول فيديو سيُعرض هنا مع شرح القسم الذي يتناوله.';
+    if(academyState.loading){title='جارٍ تحميل الفيديوهات…';note='لحظات وتظهر فيديوهات شرح المنصة.';}
+    else if(academyState.loadError){title='تعذّر تحميل الفيديوهات';note=academyState.loadError;}
     return `<div class="academy-screen academy-screen-empty">
       <div class="academy-screen-icon" aria-hidden="true">▶</div>
-      <div class="academy-screen-title">لا توجد فيديوهات بعد</div>
-      <div class="academy-screen-note">عند إضافة أول فيديو سيُعرض هنا مع شرح القسم الذي يتناوله.</div>
+      <div class="academy-screen-title">${academyEscape(title)}</div>
+      <div class="academy-screen-note">${academyEscape(note)}</div>
+      ${academyState.loadError?'<button type="button" class="academy-cta" onclick="academyReloadVideos()">إعادة المحاولة</button>':''}
     </div>`;
   }
 
@@ -162,26 +195,22 @@
     const episode=academyState.episodes[index];
     if(!episode)return `${academyEmptyScreen()}${academyControls()}`;
     const section=episode.section?`<span class="academy-chip">📍 ${academyEscape(episode.section)}</span>`:'';
-    const duration=episode.duration?`<span class="academy-chip">⏱ ${academyEscape(episode.duration)}</span>`:'';
     const watched=academyIsWatched(index)?'<span class="academy-chip academy-chip-done">✓ تمت مشاهدته</span>':'';
     return `${academyScreen(episode,index)}
       <div class="academy-stage-info">
-        <div class="academy-stage-meta"><span class="academy-chip academy-chip-gold">الفيديو ${academyPad(index+1)} من ${academyPad(total)}</span>${section}${duration}${watched}</div>
+        <div class="academy-stage-meta"><span class="academy-chip academy-chip-gold">الفيديو ${academyPad(index+1)} من ${academyPad(total)}</span>${section}${watched}</div>
         <h2 class="academy-stage-title">${academyEscape(episode.title)}</h2>
-        ${episode.description?`<p class="academy-stage-text">${academyEscape(episode.description)}</p>`:''}
       </div>
       ${academyControls()}`;
   }
 
   function academyCard(episode,index){
-    const poster=academySafeUrl(episode.poster);
     const status=academyStatus(index);
     const active=index===academyState.selectedIndex;
     const classes=`academy-episode${active?' academy-episode-active':''}${academyIsWatched(index)?' academy-episode-watched':''}`;
     return `<button type="button" class="${classes}" data-academy-index="${index}" onclick="academySelectEpisode(${index})"${active?' aria-current="true"':''}>
-      <div class="academy-episode-thumb"${poster?` style="background-image:url('${academyEscape(poster)}')"`:''}>
+      <div class="academy-episode-thumb">
         <span class="academy-episode-number">${academyPad(index+1)}</span>
-        ${episode.duration?`<span class="academy-episode-duration">${academyEscape(episode.duration)}</span>`:''}
       </div>
       <div class="academy-episode-body">
         <div class="academy-episode-title">${academyEscape(episode.title)}</div>
@@ -192,11 +221,15 @@
   }
 
   function academyLibraryList(){
-    if(!academyState.episodes.length)return '<div class="academy-episodes-empty">لم تُضف فيديوهات شرح المنصة بعد.</div>';
+    if(!academyState.episodes.length){
+      const text=academyState.loading?'جارٍ تحميل الفيديوهات…':academyState.loadError?'تعذّر تحميل الفيديوهات.':'لم تُضف فيديوهات شرح المنصة بعد.';
+      return `<div class="academy-episodes-empty">${text}</div>`;
+    }
     return `<div class="academy-episodes" id="academyEpisodes">${academyState.episodes.map(academyCard).join('')}</div>`;
   }
 
-  // Leader-only form (UI only in this phase; nothing is uploaded).
+  // Leader-only form. The server re-checks the leader role before saving. The open
+  // state and the last message survive re-renders.
   function academyUploadZone(){
     if(!academyIsLeader())return '';
     return `<section class="academy-studio" aria-label="إضافة فيديو">
@@ -207,22 +240,26 @@
       <button type="button" class="academy-studio-banner" onclick="academyToggleUpload()" aria-label="فتح لوحة إضافة فيديو">
         <img class="academy-studio-image" src="${ACADEMY_BANNER_SRC}" alt="" width="1983" height="793" loading="lazy" decoding="async">
       </button>
-      <div class="academy-upload-panel" id="academyUploadPanel" hidden>
-        <label class="academy-field"><span>عنوان الفيديو</span><input type="text" id="academyUploadTitle" maxlength="160" placeholder="مثال: كيف تستخدم المركز الذكي"></label>
-        <label class="academy-field"><span>القسم الذي يشرحه (اختياري)</span><input type="text" id="academyUploadSection" maxlength="80" placeholder="مثال: المركز الذكي"></label>
-        <label class="academy-field"><span>ملف الفيديو</span><input type="file" id="academyUploadFile" accept="video/*" onchange="academyPreviewFile()"></label>
-        <div class="academy-upload-file" id="academyUploadFileInfo"></div>
+      <div class="academy-upload-panel" id="academyUploadPanel"${academyState.uploadOpen?'':' hidden'}>
+        <label class="academy-field"><span>عنوان الفيديو</span><input type="text" id="academyUploadTitle" maxlength="${ACADEMY_TITLE_MAX}" placeholder="مثال: كيف تستخدم المركز الذكي"></label>
+        <label class="academy-field"><span>القسم الذي يشرحه (اختياري)</span><input type="text" id="academyUploadSection" maxlength="${ACADEMY_SECTION_MAX}" placeholder="مثال: المركز الذكي"></label>
+        <label class="academy-field"><span>رابط YouTube</span><input type="url" id="academyUploadUrl" dir="ltr" inputmode="url" maxlength="500" placeholder="https://youtu.be/..."></label>
         <div class="academy-upload-actions">
-          <button type="button" class="academy-upload-submit" onclick="academySubmitUpload()">حفظ الفيديو</button>
+          <button type="button" class="academy-upload-submit" id="academyUploadSubmit" onclick="academySubmitUpload()">حفظ الفيديو</button>
           <button type="button" class="academy-upload-cancel" onclick="academyToggleUpload()">إلغاء</button>
         </div>
-        <div class="academy-upload-note" id="academyUploadNote">رفع الفيديو إلى التخزين سيُفعَّل في المرحلة القادمة.</div>
+        <div class="academy-upload-note" id="academyUploadNote">${academyEscape(academyState.uploadNote)}</div>
       </div>
     </section>`;
   }
 
   window.academyPage=function(){
     const total=academyState.episodes.length;
+    // Opening the tab loads the list once; academySetEpisodes() re-renders with it.
+    if(!academyState.loaded&&!academyState.loading&&typeof document!=='undefined'&&typeof fetch==='function'){
+      academyState.loading=true;
+      setTimeout(()=>academyLoadVideos(),0);
+    }
     return `<div class="academy-root">
       ${academyHeader()}
       <section class="academy-tour" id="academyTour" aria-label="ما استكشفته من المنصة">${academyTourInner()}</section>
@@ -237,6 +274,41 @@
       </section>
     </div>`;
   };
+
+  async function academyApi(payload){
+    const token=academySessionToken();
+    if(!token)throw new Error('سجّل الدخول لعرض فيديوهات الأكاديمية.');
+    const response=await fetch(ACADEMY_API,{method:'POST',headers:{'Content-Type':'application/json','X-DXN-Session':token},body:JSON.stringify(payload)});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(data.error||'تعذّر الاتصال بالخادم.');
+    return data;
+  }
+
+  function academyRerender(){
+    if(typeof document!=='undefined'&&document.querySelector('.academy-root')&&typeof render==='function')render();
+  }
+
+  // Loads the published videos; selectId selects a given video after the load (used
+  // right after a leader saves a new one).
+  async function academyLoadVideos(selectId){
+    academyState.loading=true;
+    academyState.loadError='';
+    try{
+      const data=await academyApi({action:'list'});
+      academyState.loading=false;
+      academyState.loaded=true;
+      academySetEpisodes(Array.isArray(data.videos)?data.videos:[]);
+      if(selectId){
+        const index=academyState.episodes.findIndex(e=>e.id===selectId);
+        if(index>=0){academyState.selectedIndex=index;academyRerender();}
+      }
+    }catch(error){
+      academyState.loading=false;
+      academyState.loaded=true;
+      academyState.loadError=String(error&&error.message||error);
+      academyRerender();
+    }
+  }
 
   function academyRefreshCards(){
     const list=academyEl('academyEpisodes');
@@ -269,7 +341,8 @@
   }
 
   // Sequential fade: the current video fades out completely, then the new one fades
-  // in. Opacity only, so nothing is scaled and the two never overlap.
+  // in. Opacity only, so nothing is scaled and the two never overlap. Replacing the
+  // iframe stops the previous video.
   function academySwapStage(stage){
     clearTimeout(academyState.fadeTimer);
     const apply=()=>{
@@ -303,14 +376,46 @@
     screen.classList.remove('academy-screen-ended');
   }
 
+  // Sends a command to the embedded YouTube player (postMessage protocol of the embed).
+  function academyPlayerCommand(func,args){
+    const player=academyEl('academyPlayer');
+    if(!player||!player.contentWindow)return;
+    player.contentWindow.postMessage(JSON.stringify({event:'command',func,args:args||[]}),ACADEMY_EMBED_ORIGIN);
+  }
+
+  // Watch status from the embedded player: ended → watched + next-video card;
+  // 90% played → watched. Only messages from YouTube and from our own player count.
+  function academyOnPlayerMessage(event){
+    if(!ACADEMY_YOUTUBE_ORIGINS.includes(event.origin))return;
+    const player=academyEl('academyPlayer');
+    if(!player||event.source!==player.contentWindow)return;
+    let data;
+    try{data=typeof event.data==='string'?JSON.parse(event.data):event.data;}catch(_){return;}
+    if(!data||typeof data!=='object')return;
+    const index=academyState.selectedIndex;
+    const info=data.info&&typeof data.info==='object'?data.info:{};
+    const state=data.event==='onStateChange'?data.info:info.playerState;
+    if(state===ACADEMY_PLAYER_PLAYING)academyHideUpNext(academyEl('academyScreen'));
+    if(state===ACADEMY_PLAYER_ENDED){academyMarkWatched(index,true);return;}
+    const duration=Number(info.duration),current=Number(info.currentTime);
+    if(duration>0&&current/duration>=ACADEMY_WATCHED_RATIO&&!academyIsWatched(index))academyMarkWatched(index,false);
+  }
+
+  if(typeof window.addEventListener==='function')window.addEventListener('message',academyOnPlayerMessage);
+
+  window.academyEmbedLoaded=function(frame,index){
+    const screen=frame&&frame.closest&&frame.closest('.academy-screen');
+    if(screen)screen.classList.remove('academy-screen-loading');
+    // Ask the embed to report its state (used for the watch status only).
+    try{frame.contentWindow.postMessage(JSON.stringify({event:'listening',id:index,channel:'widget'}),ACADEMY_EMBED_ORIGIN);}catch(_){}
+  };
+
   window.academySelectEpisode=function(index){
     if(!Number.isInteger(index)||index<0||index>=academyState.episodes.length)return;
     const stage=academyEl('academyStage');
     if(index!==academyState.selectedIndex){
       academyState.selectedIndex=index;
       if(!stage){if(typeof render==='function')render();return;}
-      const playing=stage.querySelector('video');
-      if(playing)playing.pause();
       academySwapStage(stage);
     }
     academyScrollTo('academyStage');
@@ -333,23 +438,15 @@
     const screen=academyEl('academyScreen');
     if(!screen)return;
     academyHideUpNext(screen);
-    const video=screen.querySelector('video');
-    if(video){video.currentTime=0;const played=video.play();if(played&&played.catch)played.catch(()=>{});}
+    academyPlayerCommand('seekTo',[0,true]);
+    academyPlayerCommand('playVideo');
   };
 
-  // Loading and error states of the player.
-  window.academyVideoEvent=function(video,type){
-    const screen=video&&video.closest&&video.closest('.academy-screen');
-    if(!screen)return;
-    if(type==='loadstart'||type==='waiting')screen.classList.add('academy-screen-loading');
-    if(type==='loadeddata'||type==='canplay'||type==='playing')screen.classList.remove('academy-screen-loading','academy-screen-error');
-    if(type==='error'){screen.classList.remove('academy-screen-loading');screen.classList.add('academy-screen-error');}
-    if(type==='play')academyHideUpNext(screen);
-  };
-
-  window.academyTrackProgress=function(video,index){
-    if(!video||!video.duration||academyIsWatched(index))return;
-    if(video.currentTime/video.duration>=ACADEMY_WATCHED_RATIO)academyMarkWatched(index,false);
+  window.academyReloadVideos=function(){
+    academyState.loadError='';
+    academyState.loading=true;
+    academyRerender();
+    return academyLoadVideos();
   };
 
   window.academyMarkWatched=function(index,ended){
@@ -363,48 +460,61 @@
     if(ended)academyShowUpNext(index);
   };
 
-  // Entry point for the next phase (videos loaded from the database). Only https or
-  // same-origin URLs are kept.
+  window.academyYouTubeId=academyYouTubeId;
+
+  // Accepts the rows returned by /api/academy-videos (published only, by sort_order).
+  // Rows without a valid YouTube id are dropped.
   window.academySetEpisodes=function(list){
-    academyState.episodes=(Array.isArray(list)?list:[]).filter(item=>item&&typeof item.title==='string'&&academySafeUrl(item.url)).map(item=>({
-      id:item.id==null?'':String(item.id),
-      title:item.title,
-      url:item.url,
-      poster:item.poster||'',
-      section:typeof item.section==='string'?item.section:'',
-      duration:item.duration||'',
-      description:item.description||''
-    }));
+    academyState.episodes=(Array.isArray(list)?list:[])
+      .filter(item=>item&&typeof item.title==='string'&&ACADEMY_YOUTUBE_ID.test(String(item.youtube_id||item.youtubeId||'')))
+      .map((item,position)=>({
+        id:item.id==null?'':String(item.id),
+        title:item.title,
+        section:typeof item.section==='string'?item.section:'',
+        youtubeId:String(item.youtube_id||item.youtubeId),
+        sortOrder:Number.isFinite(Number(item.sort_order))?Number(item.sort_order):position,
+        position
+      }))
+      .sort((a,b)=>a.sortOrder-b.sortOrder||a.position-b.position);
     const next=academyNextIndex();
     academyState.selectedIndex=next<0?0:next;
-    if(typeof document!=='undefined'&&document.querySelector('.academy-root')&&typeof render==='function')render();
+    academyRerender();
   };
 
   window.academyToggleUpload=function(){
     if(!academyIsLeader())return;
+    academyState.uploadOpen=!academyState.uploadOpen;
     const panel=academyEl('academyUploadPanel');
-    if(panel)panel.hidden=!panel.hidden;
+    if(panel)panel.hidden=!academyState.uploadOpen;
   };
 
-  window.academyPreviewFile=function(){
-    const input=academyEl('academyUploadFile');
-    const info=academyEl('academyUploadFileInfo');
-    const file=input&&input.files&&input.files[0];
-    if(!info)return;
-    info.textContent=file?`${file.name} — ${(file.size/1024/1024).toFixed(1)} MB`:'';
-  };
-
-  window.academySubmitUpload=function(){
-    if(!academyIsLeader())return;
+  function academySetUploadNote(text){
+    academyState.uploadNote=text;
     const note=academyEl('academyUploadNote');
-    const file=academyEl('academyUploadFile')?.files?.[0];
+    if(note)note.textContent=text;
+  }
+
+  window.academySubmitUpload=async function(){
+    if(!academyIsLeader()||academyState.saving)return;
+    const button=academyEl('academyUploadSubmit');
     const title=String(academyEl('academyUploadTitle')?.value||'').trim();
-    if(!note)return;
-    if(!title||!file){
-      note.textContent='اكتب عنوان الفيديو واختر الملف أولًا.';
-      return;
+    const section=String(academyEl('academyUploadSection')?.value||'').trim();
+    const link=String(academyEl('academyUploadUrl')?.value||'').trim();
+    if(!title){academySetUploadNote('اكتب عنوان الفيديو أولًا.');return;}
+    if(!academyYouTubeId(link)){academySetUploadNote('رابط YouTube غير صالح. استخدم رابطًا بصيغة youtube.com/watch?v=… أو youtu.be/…');return;}
+    academyState.saving=true;
+    if(button)button.disabled=true;
+    academySetUploadNote('جارٍ حفظ الفيديو…');
+    try{
+      const saved=await academyApi({action:'create',title,section,youtube_url:link});
+      academySetUploadNote('تم حفظ الفيديو ونشره في الأكاديمية.');
+      await academyLoadVideos(saved.id);
+    }catch(error){
+      academySetUploadNote(String(error&&error.message||error));
+    }finally{
+      academyState.saving=false;
+      const again=academyEl('academyUploadSubmit');
+      if(again)again.disabled=false;
     }
-    // Phase one: no network call. Storage upload is added in the next phase.
-    note.textContent='تم تجهيز الفيديو محليًا. رفع الفيديو إلى التخزين سيُفعَّل في المرحلة القادمة.';
   };
 })();
