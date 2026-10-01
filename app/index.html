@@ -1275,7 +1275,8 @@ async function boot(){
   if(!issued||Date.now()-issued>SESSION_MAX_MS){localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');token='';renderLogin();toast('انتهت الجلسة، يرجى تسجيل الدخول من جديد.');return}
   try{
     const d=await rpc('bootstrap',{p_token:token});
-    data=d;role=d.role;me=(d.members||[])[0]||null;invalidateNotificationCache();
+    data=d;role=d.role;me=(d.members||[])[0]||null;
+    await loadServerNotifications();
     // ارسم الواجهة الأساسية فور اكتمال bootstrap، ولا تجعل بيانات الأقسام الثانوية تحجب التنقل.
     render();
     restoreDxnUiState();
@@ -1708,24 +1709,53 @@ function nav(){return `<div class="nav"><button onclick="switchTab('home')">🏠
 function notificationStorageKey(){return `dxn_notifications_seen_${role==='member'?(me?.id||'member'):'leader'}`}
 function getSeenNotifications(){try{return JSON.parse(localStorage.getItem(notificationStorageKey())||'[]')}catch{return[]}}
 let notificationCache=null;
+let serverNotifications=[];
+let notificationsLoading=false;
 function invalidateNotificationCache(){notificationCache=null}
-function markNotificationsRead(ids){const old=getSeenNotifications();const set=new Set(old);(ids||[]).forEach(id=>set.add(String(id)));localStorage.setItem(notificationStorageKey(),JSON.stringify([...set].slice(-300)));invalidateNotificationCache();}
+async function loadServerNotifications(){
+  if(role!=='member'||!token){serverNotifications=[];invalidateNotificationCache();return;}
+  notificationsLoading=true;
+  try{
+    const rows=await rpc('list_notifications',{p_token:token});
+    serverNotifications=Array.isArray(rows)?rows:[];
+  }catch(e){
+    console.debug('database notifications unavailable',e);
+    serverNotifications=[];
+  }finally{
+    notificationsLoading=false;
+    invalidateNotificationCache();
+  }
+}
+async function markNotificationsRead(ids){
+  const clean=[...(new Set((ids||[]).map(String)))];
+  if(!clean.length)return;
+  if(role==='member'){
+    try{
+      await rpc('mark_notifications_read',{p_token:token,p_ids:clean});
+      const seen=new Set(clean);
+      serverNotifications=serverNotifications.filter(n=>!seen.has(String(n.id)));
+    }catch(e){
+      console.debug('mark notifications read failed',e);
+    }
+    invalidateNotificationCache();
+    return;
+  }
+  const old=getSeenNotifications();const set=new Set(old);
+  clean.forEach(id=>set.add(id));
+  localStorage.setItem(notificationStorageKey(),JSON.stringify([...set].slice(-300)));
+  invalidateNotificationCache();
+}
+function notificationAction(tab){
+  return ()=>switchTab(tab||'notifications');
+}
 function notificationItems(){
  const items=[];
- const push=(id,icon,title,desc,action,actionLabel='فتح')=>items.push({id:String(id),icon,title,desc,action,actionLabel});
+ const push=(id,icon,title,desc,action,actionLabel='فتح',createdAt=null)=>items.push({id:String(id),icon,title,desc,action,actionLabel,created_at:createdAt});
  if(role==='member'&&me){
-   const subs=data?.my_submissions||[];
-   subs.filter(x=>x.status==='pending').forEach(x=>{const c=(data?.challenges||[]).find(c=>String(c.id)===String(x.challenge_id));push(`sub:${x.id}:pending`,'⏳','إنجازك بانتظار اعتماد القائد',`«${c?.title||x.challenge_title||'إنجاز تحدي'}» أرسلته للمراجعة. لا توجد مهمة جديدة من نفس النوع حتى يصدر القرار.`,()=>switchTab('ch'),'عرض التحديات');});
-   subs.filter(x=>x.status==='approved').forEach(x=>{const c=(data?.challenges||[]).find(c=>String(c.id)===String(x.challenge_id));push(`sub:${x.id}:approved`,'✅','تم اعتماد إنجازك',`تم اعتماد «${c?.title||x.challenge_title||'الإنجاز'}» وحصلت على ⭐${Number(x.reward_stars??x.stars??0)}.`,()=>switchTab('progress'),'عرض تقدّمي');});
-   subs.filter(x=>x.status==='rejected').forEach(x=>{const c=(data?.challenges||[]).find(c=>String(c.id)===String(x.challenge_id));push(`sub:${x.id}:rejected`,'❌','تم رفض إنجازك',`تم رفض «${c?.title||x.challenge_title||'الإنجاز'}». راجع الإثبات وأعد المحاولة.`,()=>switchTab('ch'),'إعادة المحاولة');});
-   (data?.my_answers||[]).filter(x=>x.status==='approved').forEach(x=>push(`ans:${x.id}:approved`,'✅','تم اعتماد إجابتك',`تم اعتماد إجابتك عن السؤال الشهري وحصلت على ⭐1.`,()=>switchTab('ch'),'عرض الأسئلة'));
-   (data?.my_answers||[]).filter(x=>x.status==='rejected').forEach(x=>push(`ans:${x.id}:rejected`,'❌','تحتاج إجابتك إلى مراجعة',`لم تتم الموافقة على إجابتك عن السؤال الشهري. يمكنك مراجعة الإجابة والمحاولة مجددًا عند إتاحة ذلك.`,()=>switchTab('ch'),'عرض الأسئلة'));
-   const lvl=getLevel(Number(me.stars||0)); if(lvl.current){push(`level:${lvl.current.name}`,'🏆',`وصلت إلى رتبة ${lvl.current.name}`,`رصيدك الحالي ⭐${Number(me.stars||0)}. استمر في النشاط للوصول إلى الرتبة التالية.`,()=>switchTab('progress'),'عرض تقدّمي');}
-   getBadges().filter(b=>b.earned).forEach(b=>push(`badge:${b.id}`,'🏅',`حصلت على شارة «${b.name}»`,b.desc,()=>switchTab('progress'),'عرض شاراتي'));
-   const t=currentMonthlyTarget(),pts=Number(t.dxn_points||0),target=Math.max(1,Number(t.target||100));
-   if(pts>=target)push(`target:${currentMonthKey()}:100`,'🎯','أحسنت! حققت التارجت الشهري',`حققت ${pts} نقطة DXN هذا الشهر، وتجاوزت الهدف بمقدار ${Math.max(0,pts-target)} نقطة.`,()=>switchTab('progress'),'عرض التقدم');
-   else if(pts>=80)push(`target:${currentMonthKey()}:80`,'🔥','اقتربت من التارجت الشهري',`لديك ${pts} نقطة DXN. بقي ${target-pts} نقطة للوصول إلى 100.`,()=>switchTab('progress'),'تحديث نقاطي');
-   const done=trainingCompletedCount(); if(done>0&&done<8)push(`training:${done}`,'📚','تم فتح التدريب التالي',`أكملت ${done} تدريبات. التدريب رقم ${done+1} متاح لك الآن.`,()=>switchTab('training'),'ابدأ التدريب');
+   serverNotifications.forEach(n=>{
+     push(n.id,n.icon||'🔔',n.title||'إشعار',n.desc||'',notificationAction(n.action_tab),n.action_label||'فتح',n.created_at);
+   });
+   return items;
  }
  if(role==='leader'){
    const subs=data?.my_submissions||[], answers=data?.my_answers||[], regs=data?.pending_registrations||[];
@@ -1734,16 +1764,42 @@ function notificationItems(){
    if(pa)push(`leader:q:${pa}`,'❓',`لديك ${pa} إجابات بانتظار المراجعة`,'راجع إجابات الأعضاء واعتمد المناسب منها.',()=>switchTab('leader'),'مراجعة الإجابات');
    if(pr)push(`leader:reg:${pr}`,'🟠',`لديك ${pr} طلبات عضوية جديدة`,'توجد حسابات أعضاء بانتظار موافقتك.',()=>switchTab('leader'),'مراجعة الطلبات');
    const monthly=data?.monthly||[], target100=monthly.filter(x=>Number(x.dxn_points||x.points||0)>=100).length;
-   if(target100)push(`leader:target:${currentMonthKey()}:${target100}`,'🎯',`${target100} أعضاء حققوا 100 نقطة DXN`,`يمكنك متابعة التارجت الشهري ومراجعة المكافآت المستحقة.`,()=>switchTab('leader'),'متابعة التارجت');
+   if(target100)push(`leader:target:${currentMonthKey()}:${target100}`,'🎯',`${target100} أعضاء حققوا 100 نقطة DXN`,'يمكنك متابعة التارجت الشهري ومراجعة المكافآت المستحقة.',()=>switchTab('leader'),'متابعة التارجت');
  }
  return items;
 }
-function notificationSummary(){if(notificationCache)return notificationCache;const all=notificationItems(),seen=new Set(getSeenNotifications());notificationCache={all,unread:all.filter(x=>!seen.has(String(x.id)))};return notificationCache;}
-function notificationsCard(summary=notificationSummary()){const {unread}=summary;return `<div class="card"><div class="title">🔔 الإشعارات ${unread.length?`<span class="notif-count">${unread.length}</span>`:''}</div><p class="muted">تظهر هنا الإشعارات غير المقروءة فقط. عند فتح الإشعار أو تحديده كمقروء يختفي من هذه القائمة.</p>${unread.length?`<div class="notif-actions"><button onclick="markAllNotificationsRead()">✓ تحديد الكل كمقروء</button></div>`:''}<div class="notif-list">${unread.map(n=>`<div class="notif-item unread"><div class="notif-icon">${n.icon}</div><div style="flex:1"><h3>${esc(n.title)}</h3><div class="muted">${esc(n.desc)}</div>${n.action?`<div class="notif-actions"><button class="primary" onclick="notificationOpen('${esc(n.id)}')">${esc(n.actionLabel||'فتح')}</button></div>`:''}</div></div>`).join('')||'<div class="notif-empty">🎉 لا توجد إشعارات جديدة حاليًا.</div>'}</div></div>`}
-function notificationOpen(id){const n=notificationItems().find(x=>String(x.id)===String(id));if(!n)return;markNotificationsRead([n.id]);if(typeof n.action==='function')n.action();else render();}
-function markAllNotificationsRead(){markNotificationsRead(notificationItems().map(n=>n.id));toast('تم تحديد الإشعارات كمقروءة.');render();}
+function notificationSummary(){
+ if(notificationCache)return notificationCache;
+ const all=notificationItems();
+ if(role==='member'){
+   notificationCache={all,unread:all};
+ }else{
+   const seen=new Set(getSeenNotifications());
+   notificationCache={all,unread:all.filter(x=>!seen.has(String(x.id)))};
+ }
+ return notificationCache;
+}
+function notificationsCard(summary=notificationSummary()){
+ const {unread}=summary;
+ return `<div class="card"><div class="title">🔔 الإشعارات ${unread.length?`<span class="notif-count">${unread.length}</span>`:''}</div><p class="muted">تظهر هنا الإشعارات الجديدة فقط. بعد فتح الإشعار أو تحديده كمقروء لا يعود للظهور.</p>${unread.length?`<div class="notif-actions"><button onclick="markAllNotificationsRead()">✓ تحديد الكل كمقروء</button></div>`:''}<div class="notif-list">${unread.map(n=>`<div class="notif-item unread"><div class="notif-icon">${n.icon}</div><div style="flex:1"><h3>${esc(n.title)}</h3><div class="muted">${esc(n.desc)}</div>${n.action?`<div class="notif-actions"><button class="primary" onclick="notificationOpen('${esc(n.id)}')">${esc(n.actionLabel||'فتح')}</button></div>`:''}</div></div>`).join('')||'<div class="notif-empty">🎉 لا توجد إشعارات جديدة حاليًا.</div>'}</div></div>`;
+}
+async function notificationOpen(id){
+ const n=notificationItems().find(x=>String(x.id)===String(id));
+ if(!n)return;
+ await markNotificationsRead([n.id]);
+ if(typeof n.action==='function')n.action();else render();
+}
+async function markAllNotificationsRead(){
+ const ids=notificationItems().map(n=>n.id);
+ if(role==='member'){
+   if(ids.length)await markNotificationsRead(ids);
+ }else{
+   await markNotificationsRead(ids);
+ }
+ toast('تم تحديد الإشعارات كمقروءة.');
+ render();
+}
 function notifications(){return notificationsCard();}
-
 function render(){updateSiteMeta();if(role==='leader'&&!me)me=null;const notifSummary=notificationSummary();const badge=role==='member'&&me?topBadge():null;let identity=role==='member'&&me?`<div class="member-identity"><span class="role-label">👤 العضو</span><b>${esc(me.name||'')} ${badge?`<span class="badge-strip"><span class="name-badge" title="${esc(badge.name)}">${badge.icon}</span></span>`:''}</b><span>🪪 ${esc(me.member_no||'')}</span><button class="logout-top" onclick="logout()">🚪 تسجيل الخروج</button></div>`:`<div class="member-identity"><span class="role-label">👑 القائد</span><b>${esc(localStorage.getItem('dxn_login_no')||'LEADER')}</b><button class="logout-top" onclick="logout()">🚪 تسجيل الخروج</button></div>`;let mobileIdentity=identity.replace("member-identity","mobile-member-identity");let html=`<div class="view-switch" id="viewSwitch"></div><div class="top login-header-top">${identity}</div>${mobileIdentity}`;html+=`<div class="tabs"><button class="tab ${tab==='home'?'active':''}" onclick="switchTab('home')">الرئيسية 📊</button><button class="tab notif-tab ${tab==='notifications'?'active':''}" onclick="switchTab('notifications')">🔔 الإشعارات ${notifSummary.unread.length?`<span class="notif-count">${notifSummary.unread.length}</span>`:''}</button><button class="tab ${tab==='ch'?'active':''}" onclick="switchTab('ch')">التحديات 🎯</button><button class="tab ${tab==='teams'?'active':''}" onclick="switchTab('teams')">الأعضاء والفرق 👥</button><button class="tab team-member-tab" type="button" onclick="window.__DXN_OPEN_TEAM_MEMBER_V4__&&window.__DXN_OPEN_TEAM_MEMBER_V4__()">🌳 فريقي</button>${role==='member'&&me?`<button class="tab ${tab==='progress'?'active':''}" onclick="switchTab('progress')">📊 تقدّمي</button>`:''}${canAccessTraining()?`<button class="tab ${tab==='training'?'active':''}" onclick="switchTab('training')">📚 الشروحات والتدريبات</button>`:''}${role==='leader'?`<button class="tab ${tab==='leader'?'active':''}" onclick="switchTab('leader')">إدارة القائد 👑</button>`:''}<button class="tab ${tab==='advanced'?'active':''}" onclick="switchTab('advanced')">🚀 المركز الذكي</button><button class="tab academy-tab ${tab==='academy'?'active':''}" onclick="switchTab('academy')">🎓 أكاديمية المنصة</button><button class="tab community-tab ${tab==='community'?'active':''}" onclick="switchTab('community')">🌐 المجتمع</button></div>`;html+=tab==='home'?home():tab==='notifications'?notificationsCard(notifSummary):tab==='ch'?challenges():tab==='teams'?teams():tab==='path'&&role==='member'&&me?memberPathMap():tab==='progress'&&role==='member'&&me?progressPage():tab==='training'&&canAccessTraining()?'<div id="section-training">'+trainings()+'</div>':tab==='community'?community():tab==='advanced'?advancedCenter():tab==='academy'?(typeof academyPage==='function'?academyPage():''):leader();html+=nav();$('app').innerHTML=html;document.querySelectorAll('.login-header-top .logo,.login-header-top h1,.login-header-top p,.login-header-top img').forEach(el=>el.remove());renderViewSwitch();maybeShowLevelUp()}
 const DXN_LEVELS=[
  {stars:0,icon:'🌱',name:'البداية'},
@@ -6547,7 +6603,8 @@ async function decide(id,q,ok){try{await rpc(q?'approve_question':'approve_chall
 async function setPoints(id){const v=prompt('أدخل نقاط DXN الفعلية لهذا العضو هذا الشهر:','100');if(v===null)return;try{await rpc('set_monthly_points',{p_token:token,p_member:id,p_points:Number(v)});if(Number(v)>=100&&confirm('العضو حقق 100 نقطة. هل تضيف مكافأة ⭐100؟'))await rpc('award_monthly_target',{p_token:token,p_member:id});toast('تم تحديث التارجت.');await refresh()}catch(e){toast(e.message||'تعذر تحديث التارجت')}}
 async function refresh(){
   const d=await rpc('bootstrap',{p_token:token});
-  data=d;role=d.role;me=(d.members||[]).find(x=>role==='member')||null;invalidateNotificationCache();
+  data=d;role=d.role;me=(d.members||[]).find(x=>role==='member')||null;
+  await loadServerNotifications();
   const trainingP=rpc('get_training_data',{p_token:token}).catch(()=>({lessons:[],my_progress:[],member_progress:[]}));
   const extras=role==='leader'
     ? Promise.all([
