@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DXN Realtime Diagnostic</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../app/config.js?v=86.44.7"></script>
+<style>
+body{font-family:Arial,sans-serif;background:#f5f7f6;padding:30px;color:#18352d}
+.card{max-width:760px;margin:auto;background:#fff;border-radius:18px;padding:24px;box-shadow:0 8px 30px #0001}
+h1{margin-top:0}.status{padding:16px;border-radius:12px;background:#eef2f1;margin:15px 0;white-space:pre-wrap}
+.ok{background:#e8f7ed;color:#126b35}.bad{background:#fff0f0;color:#a51d2d}.wait{background:#fff8df;color:#765b00}
+small{color:#687772}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>🧪 اختبار Supabase Realtime</h1>
+<p>هذا الاختبار معزول. لا يغيّر قاعدة البيانات ولا تسجيل الدخول.</p>
+<div id="status" class="status wait">جارٍ بدء الاختبار...</div>
+<div id="details"><small></small></div>
+</div>
+<script>
+(async()=>{
+  const out=document.getElementById('status');
+  const details=document.getElementById('details');
+  const cfg=window.DXN_CONFIG||{};
+  if(!cfg.SUPABASE_URL||!cfg.SUPABASE_ANON_KEY){
+    out.className='status bad';
+    out.textContent='❌ لم يتم العثور على إعدادات Supabase من config.js';
+    return;
+  }
+  details.innerHTML='<small>Project: '+cfg.SUPABASE_URL+'<br>Key type: '+(String(cfg.SUPABASE_ANON_KEY).startsWith('sb_publishable_')?'sb_publishable':'other')+'</small>';
+  try{
+    const client=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY,{
+      realtime:{params:{eventsPerSecond:10}}
+    });
+    const channel=client.channel('dxn-realtime-diagnostic',{config:{presence:{enabled:true}}});
+    channel.on('presence',{event:'sync'},()=>{
+      out.className='status ok';
+      out.textContent='✅ نجح اتصال Realtime وPresence.\n\nالنتيجة: مفتاح المتصفح الحالي يستطيع فتح WebSocket مع Supabase.';
+    });
+    channel.subscribe(async(status,error)=>{
+      if(status==='SUBSCRIBED'){
+        try{
+          await channel.track({diagnostic:true,at:new Date().toISOString()});
+          setTimeout(()=>{
+            if(out.className.includes('wait')){
+              out.className='status ok';
+              out.textContent='✅ تم فتح قناة Realtime ونجح الاشتراك.\n\nلم ننتظر حدث sync كشرط للنجاح.';
+            }
+          },1500);
+        }catch(e){
+          out.className='status bad';
+          out.textContent='❌ فشل track بعد نجاح الاشتراك:\n'+(e?.message||e);
+        }
+      }else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){
+        out.className='status bad';
+        out.textContent='❌ فشل Realtime: '+status+'\n\n'+JSON.stringify(error||{},null,2);
+      }
+    });
+  }catch(e){
+    out.className='status bad';
+    out.textContent='❌ خطأ في إنشاء عميل Supabase:\n'+(e?.message||e);
+  }
+})();
+</script>
+</body>
+</html>
