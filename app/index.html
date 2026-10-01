@@ -1245,6 +1245,125 @@ async function loadAiUsageStats(){
 }
 async function refreshAiUsageStats(){await loadAiUsageStats();if(!$('aiUsagePanel'))render()}
 function startAiUsageAutoRefresh(){clearInterval(aiUsageTimer);if(role!=='leader')return;aiUsageTimer=setInterval(()=>{if(role==='leader')loadAiUsageStats().catch(()=>{})},5*60*1000)}
+let dxnOnlinePresenceChannel=null;
+let dxnOnlinePresenceState=[];
+let dxnOnlinePresenceStarted=false;
+
+function onlinePresenceIdentity(){
+  const loginNo=String(localStorage.getItem('dxn_login_no')||'').trim();
+  if(!loginNo)return null;
+  const name=role==='member'&&me
+    ? String(me.name||'عضو')
+    : String(localStorage.getItem('dxn_leader_name')||'القائد');
+  const memberNo=role==='member'&&me ? String(me.member_no||loginNo) : loginNo;
+  return {
+    key: loginNo,
+    name,
+    member_no: memberNo,
+    role: role==='leader'?'leader':'member',
+    online_at:new Date().toISOString()
+  };
+}
+
+function onlinePresenceList(){
+  const map=new Map();
+  (dxnOnlinePresenceState||[]).forEach(item=>{
+    const key=String(item.member_no||item.key||item.name||'');
+    if(!key)return;
+    map.set(key,item);
+  });
+  return [...map.values()].sort((a,b)=>{
+    if(a.role!==b.role)return a.role==='leader'?-1:1;
+    return String(a.name||'').localeCompare(String(b.name||''),'ar');
+  });
+}
+
+function renderOnlinePresence(){
+  const host=document.getElementById('dxnOnlinePresencePanel');
+  if(!host)return;
+  const list=onlinePresenceList();
+  host.innerHTML=`
+    <div class="online-presence-head">
+      <div>
+        <div class="title">🟢 المتواجدون الآن</div>
+        <div class="muted">الأشخاص الموجودون حاليًا في الموقع</div>
+      </div>
+      <span class="online-presence-count">${list.length}</span>
+    </div>
+    <div class="online-presence-list">
+      ${list.length
+        ? list.map(x=>`<div class="online-presence-item">
+            <span class="online-dot"></span>
+            <div class="online-presence-avatar">${x.role==='leader'?'👑':'👤'}</div>
+            <div class="online-presence-info">
+              <b>${esc(x.name||'مستخدم')}</b>
+              <span>${x.role==='leader'?'القائد':'عضو'}${x.member_no?` · ${esc(x.member_no)}`:''}</span>
+            </div>
+          </div>`).join('')
+        : '<div class="online-presence-empty">لا يوجد مستخدمون متصلون حاليًا.</div>'}
+    </div>
+  `;
+}
+
+function presenceStateToList(channel){
+  const state=channel?.presenceState?.()||{};
+  const rows=[];
+  Object.entries(state).forEach(([key,metas])=>{
+    (Array.isArray(metas)?metas:[metas]).forEach(meta=>{
+      const value=meta&&typeof meta==='object'?meta:{};
+      rows.push({...value,key});
+    });
+  });
+  dxnOnlinePresenceState=rows;
+  renderOnlinePresence();
+}
+
+async function startOnlinePresence(){
+  if(dxnOnlinePresenceStarted||!sb||!token)return;
+  const identity=onlinePresenceIdentity();
+  if(!identity)return;
+  dxnOnlinePresenceStarted=true;
+
+  try{
+    dxnOnlinePresenceChannel=sb.channel('dxn-site-online', {
+      config:{presence:{key:identity.key}}
+    });
+
+    dxnOnlinePresenceChannel
+      .on('presence',{event:'sync'},()=>{
+        presenceStateToList(dxnOnlinePresenceChannel);
+      })
+      .on('presence',{event:'join'},()=>{
+        presenceStateToList(dxnOnlinePresenceChannel);
+      })
+      .on('presence',{event:'leave'},()=>{
+        presenceStateToList(dxnOnlinePresenceChannel);
+      })
+      .subscribe(async status=>{
+        if(status==='SUBSCRIBED'){
+          await dxnOnlinePresenceChannel.track(onlinePresenceIdentity()||identity);
+        }
+      });
+  }catch(e){
+    console.debug('DXN online presence',e);
+    dxnOnlinePresenceStarted=false;
+    dxnOnlinePresenceChannel=null;
+  }
+}
+
+async function stopOnlinePresence(){
+  const channel=dxnOnlinePresenceChannel;
+  dxnOnlinePresenceChannel=null;
+  dxnOnlinePresenceStarted=false;
+  dxnOnlinePresenceState=[];
+  try{
+    if(channel)await channel.untrack();
+  }catch(_){}
+  try{
+    if(channel&&sb)await sb.removeChannel(channel);
+  }catch(_){}
+}
+
 async function boot(){
   const isPreviewFrame=new URLSearchParams(window.location.search).get('globalPreviewFrame')==='1';
   if(isPreviewFrame&&!token){
@@ -1281,6 +1400,7 @@ async function boot(){
     render();
     restoreDxnUiState();
     maybeShowCommunityChatNotificationPopup();
+    startOnlinePresence();
 
     // البيانات الثقيلة تُحمّل في الخلفية بعد ظهور الواجهة.
     // هذا يمنع انتظار التدريبات وإحصائيات القائد وسجل الفرق قبل فتح الموقع.
@@ -1538,7 +1658,7 @@ async function login(){
     toast(e.message||'تعذر الدخول');
   }
 }
-async function logout(){try{await rpc('logout',{p_token:token})}catch{}localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');localStorage.removeItem('dxn_login_no');token='';me=null;data=null;role=null;trainingData={lessons:[],my_progress:[],member_progress:[]};tab='home';var assessment=document.getElementById('dxn-training-assessment');if(assessment)assessment.remove();var memberAssessmentHistory=document.getElementById('dxn-member-external-assessment-history');if(memberAssessmentHistory)memberAssessmentHistory.remove();renderLogin()}
+async function logout(){try{await stopOnlinePresence()}catch{}try{await rpc('logout',{p_token:token})}catch{}localStorage.removeItem('dxn_session');localStorage.removeItem('dxn_session_issued');localStorage.removeItem('dxn_login_no');token='';me=null;data=null;role=null;trainingData={lessons:[],my_progress:[],member_progress:[]};tab='home';var assessment=document.getElementById('dxn-training-assessment');if(assessment)assessment.remove();var memberAssessmentHistory=document.getElementById('dxn-member-external-assessment-history');if(memberAssessmentHistory)memberAssessmentHistory.remove();renderLogin()}
 const DXN_NAV_KEY='dxn_inapp_nav_v1';
 let dxnNav={back:[],forward:[],current:null,restoring:false};
 function dxnNavLabel(v){return String(v||'home');}
@@ -1851,7 +1971,7 @@ async function markAllNotificationsRead(){
  render();
 }
 function notifications(){return notificationsCard();}
-function render(){updateSiteMeta();if(role==='leader'&&!me)me=null;const notifSummary=notificationSummary();const badge=role==='member'&&me?topBadge():null;let identity=role==='member'&&me?`<div class="member-identity"><span class="role-label">👤 العضو</span><b>${esc(me.name||'')} ${badge?`<span class="badge-strip"><span class="name-badge" title="${esc(badge.name)}">${badge.icon}</span></span>`:''}</b><span>🪪 ${esc(me.member_no||'')}</span><button class="logout-top" onclick="logout()">🚪 تسجيل الخروج</button></div>`:`<div class="member-identity"><span class="role-label">👑 القائد</span><b>${esc(localStorage.getItem('dxn_login_no')||'LEADER')}</b><button class="logout-top" onclick="logout()">🚪 تسجيل الخروج</button></div>`;let mobileIdentity=identity.replace("member-identity","mobile-member-identity");let html=`<div class="view-switch" id="viewSwitch"></div><div class="top login-header-top">${identity}</div>${mobileIdentity}`;html+=`<div class="tabs"><button class="tab ${tab==='home'?'active':''}" onclick="switchTab('home')">الرئيسية 📊</button><button class="tab notif-tab ${tab==='notifications'?'active':''}" onclick="switchTab('notifications')">🔔 الإشعارات ${notifSummary.unread.length?`<span class="notif-count">${notifSummary.unread.length}</span>`:''}</button><button class="tab ${tab==='ch'?'active':''}" onclick="switchTab('ch')">التحديات 🎯</button><button class="tab ${tab==='teams'?'active':''}" onclick="switchTab('teams')">الأعضاء والفرق 👥</button><button class="tab team-member-tab" type="button" onclick="window.__DXN_OPEN_TEAM_MEMBER_V4__&&window.__DXN_OPEN_TEAM_MEMBER_V4__()">🌳 فريقي</button>${role==='member'&&me?`<button class="tab ${tab==='progress'?'active':''}" onclick="switchTab('progress')">📊 تقدّمي</button>`:''}${canAccessTraining()?`<button class="tab ${tab==='training'?'active':''}" onclick="switchTab('training')">📚 الشروحات والتدريبات</button>`:''}${role==='leader'?`<button class="tab ${tab==='leader'?'active':''}" onclick="switchTab('leader')">إدارة القائد 👑</button>`:''}<button class="tab ${tab==='advanced'?'active':''}" onclick="switchTab('advanced')">🚀 المركز الذكي</button><button class="tab academy-tab ${tab==='academy'?'active':''}" onclick="switchTab('academy')">🎓 أكاديمية المنصة</button><button class="tab community-tab ${tab==='community'?'active':''}" onclick="switchTab('community')">🌐 المجتمع</button></div>`;html+=tab==='home'?home():tab==='notifications'?notificationsCard(notifSummary):tab==='ch'?challenges():tab==='teams'?teams():tab==='path'&&role==='member'&&me?memberPathMap():tab==='progress'&&role==='member'&&me?progressPage():tab==='training'&&canAccessTraining()?'<div id="section-training">'+trainings()+'</div>':tab==='community'?community():tab==='advanced'?advancedCenter():tab==='academy'?(typeof academyPage==='function'?academyPage():''):leader();html+=nav();$('app').innerHTML=html;document.querySelectorAll('.login-header-top .logo,.login-header-top h1,.login-header-top p,.login-header-top img').forEach(el=>el.remove());renderViewSwitch();maybeShowLevelUp()}
+function render(){updateSiteMeta();if(role==='leader'&&!me)me=null;const notifSummary=notificationSummary();const badge=role==='member'&&me?topBadge():null;let identity=role==='member'&&me?`<div class="member-identity"><span class="role-label">👤 العضو</span><b>${esc(me.name||'')} ${badge?`<span class="badge-strip"><span class="name-badge" title="${esc(badge.name)}">${badge.icon}</span></span>`:''}</b><span>🪪 ${esc(me.member_no||'')}</span><button class="logout-top" onclick="logout()">🚪 تسجيل الخروج</button></div>`:`<div class="member-identity"><span class="role-label">👑 القائد</span><b>${esc(localStorage.getItem('dxn_login_no')||'LEADER')}</b><button class="logout-top" onclick="logout()">🚪 تسجيل الخروج</button></div>`;let mobileIdentity=identity.replace("member-identity","mobile-member-identity");let html=`<div class="view-switch" id="viewSwitch"></div><div class="top login-header-top">${identity}</div>${mobileIdentity}`;html+=`<div class="tabs"><button class="tab ${tab==='home'?'active':''}" onclick="switchTab('home')">الرئيسية 📊</button><button class="tab notif-tab ${tab==='notifications'?'active':''}" onclick="switchTab('notifications')">🔔 الإشعارات ${notifSummary.unread.length?`<span class="notif-count">${notifSummary.unread.length}</span>`:''}</button><button class="tab ${tab==='ch'?'active':''}" onclick="switchTab('ch')">التحديات 🎯</button><button class="tab ${tab==='teams'?'active':''}" onclick="switchTab('teams')">الأعضاء والفرق 👥</button><button class="tab team-member-tab" type="button" onclick="window.__DXN_OPEN_TEAM_MEMBER_V4__&&window.__DXN_OPEN_TEAM_MEMBER_V4__()">🌳 فريقي</button>${role==='member'&&me?`<button class="tab ${tab==='progress'?'active':''}" onclick="switchTab('progress')">📊 تقدّمي</button>`:''}${canAccessTraining()?`<button class="tab ${tab==='training'?'active':''}" onclick="switchTab('training')">📚 الشروحات والتدريبات</button>`:''}${role==='leader'?`<button class="tab ${tab==='leader'?'active':''}" onclick="switchTab('leader')">إدارة القائد 👑</button>`:''}<button class="tab ${tab==='advanced'?'active':''}" onclick="switchTab('advanced')">🚀 المركز الذكي</button><button class="tab academy-tab ${tab==='academy'?'active':''}" onclick="switchTab('academy')">🎓 أكاديمية المنصة</button><button class="tab community-tab ${tab==='community'?'active':''}" onclick="switchTab('community')">🌐 المجتمع</button></div>`;html+=tab==='home'?home():tab==='notifications'?notificationsCard(notifSummary):tab==='ch'?challenges():tab==='teams'?teams():tab==='path'&&role==='member'&&me?memberPathMap():tab==='progress'&&role==='member'&&me?progressPage():tab==='training'&&canAccessTraining()?'<div id="section-training">'+trainings()+'</div>':tab==='community'?community():tab==='advanced'?advancedCenter():tab==='academy'?(typeof academyPage==='function'?academyPage():''):leader();html+=nav();$('app').innerHTML=html;renderOnlinePresence();document.querySelectorAll('.login-header-top .logo,.login-header-top h1,.login-header-top p,.login-header-top img').forEach(el=>el.remove());renderViewSwitch();maybeShowLevelUp()}
 const DXN_LEVELS=[
  {stars:0,icon:'🌱',name:'البداية'},
  {stars:100,icon:'🔥',name:'عضو نشيط'},
@@ -1967,7 +2087,7 @@ function dailyMissionCard(){
  const done=m.kind==='done'&&m.title.includes('أنجزت');
  return `<div class="card daily-mission-card ${done?'mission-done':''}"><div class="mission-head"><div><div class="title">🎯 مهمتك اليوم</div><h2 style="margin:6px 0 4px">${m.icon} ${m.title}</h2><p class="muted" style="margin:0">${m.desc}</p></div><div class="mission-star">${m.reward?`⭐${m.reward}`:'🔥'}</div></div>${m.action?`<button class="primary mission-btn" onclick="${m.action}">${m.label}</button>`:''}</div>`;
 }
-function home(){const notifSummary=notificationSummary();const teams=data.teams||[], members=data.members||[], ch=data.challenges||[];const totalStars=members.reduce((a,x)=>a+Number(x.stars||0),0);const teamStarsById={};members.forEach(m=>{if(m.active===false)return;const key=m.team_id??m.teamId??m.team_name;if(key==null)return;const k=String(key);teamStarsById[k]=(teamStarsById[k]||0)+Number(m.stars||0)});const maxTeamStars=teams.filter(t=>t.active!==false).reduce((mx,t)=>Math.max(mx,Number(teamStarsById[String(t.id)]??teamStarsById[String(t.name)]??0)),0);return `<div class="stats"><div class="stat"><div class="emoji">👥</div><div class="k">الأعضاء</div><b>${role==='leader'?members.length:1}</b></div><div class="stat"><div class="emoji">🏆</div><div class="k">الفرق</div><b>${teams.length}</b></div><div class="stat"><div class="emoji">⭐</div><div class="k">${role==='leader'?'أعلى رصيد فريق':'نجومي'}</div><b>${role==='leader'?maxTeamStars:(me?.stars||0)}</b></div><div class="stat"><div class="emoji">🎯</div><div class="k">إجمالي التحديات</div><b>${ch.length}</b></div></div><div class="card"><div class="title">🔔 آخر التنبيهات ${notifSummary.unread.length?`<span class="notif-count">${notifSummary.unread.length}</span>`:''}</div><div class="muted">${notificationSummary().unread.slice(0,3).map(n=>`• ${esc(n.title)}`).join('<br>')||'لا توجد تنبيهات جديدة حاليًا.'}</div><div class="notif-actions"><button class="primary" onclick="switchTab('notifications')">عرض كل الإشعارات</button></div></div>${role==='member'&&me?dailyMissionCard():''}${role==='member'&&me?memberAchievementCenter():''}${role==='member'&&me?levelCard(me.stars):`<div class="card level-card"><div class="title">🏅 مستويات الفريق</div><p class="muted">تُحسب الرتب تلقائيًا من رصيد النجوم الحالي دون تغيير نظام النجوم.</p><div class="level-grid">${levelDistribution(members)}</div></div>`}${role==='member'&&me?badgesCard():''}${role==='member'&&me?streakCard():''}${role==='member'&&me?monthlyTargetCard():''}<div class="card"><div class="title">🎯 تحديات النمو والتوسع</div>${ch.slice(0,1).map(c=>challengeCard(c)).join('')}</div><div class="card"><div class="title">👥 إنجازات الفرق</div>${teams.map(t=>{const ts=Number(teamStarsById[String(t.id)]||teamStarsById[String(t.name)]||0);return `<div class="teambar"><b>${esc(t.name)}</b><span>⭐ ${ts} · 🎯 ${t.approved_challenges||0} إنجاز</span></div>`}).join('')||'<div class="empty">لا توجد فرق بعد.</div>'}</div>`}
+function home(){const notifSummary=notificationSummary();const teams=data.teams||[], members=data.members||[], ch=data.challenges||[];const totalStars=members.reduce((a,x)=>a+Number(x.stars||0),0);const teamStarsById={};members.forEach(m=>{if(m.active===false)return;const key=m.team_id??m.teamId??m.team_name;if(key==null)return;const k=String(key);teamStarsById[k]=(teamStarsById[k]||0)+Number(m.stars||0)});const maxTeamStars=teams.filter(t=>t.active!==false).reduce((mx,t)=>Math.max(mx,Number(teamStarsById[String(t.id)]??teamStarsById[String(t.name)]??0)),0);return `<div class="stats"><div class="stat"><div class="emoji">👥</div><div class="k">الأعضاء</div><b>${role==='leader'?members.length:1}</b></div><div class="stat"><div class="emoji">🏆</div><div class="k">الفرق</div><b>${teams.length}</b></div><div class="stat"><div class="emoji">⭐</div><div class="k">${role==='leader'?'أعلى رصيد فريق':'نجومي'}</div><b>${role==='leader'?maxTeamStars:(me?.stars||0)}</b></div><div class="stat"><div class="emoji">🎯</div><div class="k">إجمالي التحديات</div><b>${ch.length}</b></div></div><div class="card online-presence-card" id="dxnOnlinePresencePanel"><div class="online-presence-head"><div><div class="title">🟢 المتواجدون الآن</div><div class="muted">جارٍ تحديث قائمة المتواجدين...</div></div></div></div><div class="card"><div class="title">🔔 آخر التنبيهات ${notifSummary.unread.length?`<span class="notif-count">${notifSummary.unread.length}</span>`:''}</div><div class="muted">${notificationSummary().unread.slice(0,3).map(n=>`• ${esc(n.title)}`).join('<br>')||'لا توجد تنبيهات جديدة حاليًا.'}</div><div class="notif-actions"><button class="primary" onclick="switchTab('notifications')">عرض كل الإشعارات</button></div></div>${role==='member'&&me?dailyMissionCard():''}${role==='member'&&me?memberAchievementCenter():''}${role==='member'&&me?levelCard(me.stars):`<div class="card level-card"><div class="title">🏅 مستويات الفريق</div><p class="muted">تُحسب الرتب تلقائيًا من رصيد النجوم الحالي دون تغيير نظام النجوم.</p><div class="level-grid">${levelDistribution(members)}</div></div>`}${role==='member'&&me?badgesCard():''}${role==='member'&&me?streakCard():''}${role==='member'&&me?monthlyTargetCard():''}<div class="card"><div class="title">🎯 تحديات النمو والتوسع</div>${ch.slice(0,1).map(c=>challengeCard(c)).join('')}</div><div class="card"><div class="title">👥 إنجازات الفرق</div>${teams.map(t=>{const ts=Number(teamStarsById[String(t.id)]||teamStarsById[String(t.name)]||0);return `<div class="teambar"><b>${esc(t.name)}</b><span>⭐ ${ts} · 🎯 ${t.approved_challenges||0} إنجاز</span></div>`}).join('')||'<div class="empty">لا توجد فرق بعد.</div>'}</div>`}
 function challengeCard(c){const mine=(data.my_submissions||[]).filter(x=>String(x.challenge_id||x.challengeId)===String(c.id));const pending=mine.some(x=>x.status==='pending');return `<div class="challenge"><h3>${esc(c.title)} <span class="stars">⭐${c.stars}</span></h3><div class="muted">${esc(c.type)} · ${esc(c.repeat_rule)}</div><p>${esc(c.description)}</p>${role==='member'?`<button class="primary" ${pending?'disabled':''} onclick="openChallengeSubmission('${c.id}')">${pending?'⏳ بانتظار اعتماد القائد':'✅ إنجاز التحدي وإرسال الإثبات'}</button>`:''}</div>`}
 function openChallengeSubmission(id){const c=(data.challenges||[]).find(x=>String(x.id)===String(id));if(!c)return;const title=(c.title||'')+' '+(c.type||'');const isConsume=/استهلاك|منتج/i.test(title);const isContact=/تواصل|استقطاب/i.test(title);const today=new Date().toISOString().slice(0,10);const body=isConsume?`<label>📦 اسم المنتج</label><input id="ev_product" placeholder="مثال: قهوة لينجزي"><label>📅 تاريخ الاستهلاك</label><input id="ev_date" type="date" value="${today}"><label>📝 ملاحظة</label><textarea id="ev_note" placeholder="ملاحظة مختصرة (اختياري)"></textarea><label>📷 صورة الإثبات <span class="muted">(حتى 5 MB)</span></label><input id="ev_file" type="file" accept="image/jpeg,image/png,image/webp" onchange="previewEvidence()"><div id="ev_preview"></div>`:isContact?`<label>👤 اسم الشخص المحتمل</label><input id="ev_person" placeholder="اسم الشخص"><label>🌍 البلد</label><input id="ev_country" placeholder="مثال: العراق"><label>📱 طريقة التواصل</label><select id="ev_method"><option>واتساب</option><option>اتصال هاتفي</option><option>لقاء مباشر</option><option>فيسبوك</option><option>أخرى</option></select><label>📅 تاريخ التواصل</label><input id="ev_date" type="date" value="${today}"><label>📝 ماذا حدث في التواصل؟</label><textarea id="ev_note" placeholder="اكتب نتيجة التواصل باختصار"></textarea><label>📷 صورة الإثبات <span class="muted">(حتى 5 MB)</span></label><input id="ev_file" type="file" accept="image/jpeg,image/png,image/webp" onchange="previewEvidence()"><div id="ev_preview"></div>`:`<label>📝 وصف الإنجاز</label><textarea id="ev_note" placeholder="اكتب وصفاً مختصراً لما أنجزته..."></textarea><label>📷 صورة الإثبات <span class="muted">(حتى 5 MB، إن وجدت)</span></label><input id="ev_file" type="file" accept="image/jpeg,image/png,image/webp" onchange="previewEvidence()"><div id="ev_preview"></div>`;const modal=document.createElement('div');modal.id='evidenceModal';modal.innerHTML=`<div class="evidence-backdrop" onclick="closeEvidenceModal()"></div><div class="evidence-modal card"><div class="row"><div><h2 style="margin:0">🎯 ${esc(c.title)}</h2><div class="muted">⭐${c.stars} · أرسل التفاصيل والإثبات للقائد للمراجعة</div></div><button onclick="closeEvidenceModal()">✖️</button></div>${body}<div class="actions"><button class="primary" onclick="sendChallengeEvidence('${c.id}')">📤 إرسال الإنجاز</button><button onclick="closeEvidenceModal()">إلغاء</button></div></div>`;document.body.appendChild(modal)}
 function closeEvidenceModal(){const m=$('evidenceModal');if(m)m.remove()}
@@ -6885,6 +7005,19 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
   .community-chat-notification-actions{flex-direction:column}
   .community-chat-notification-actions button{width:100%}
 }
+.online-presence-card{padding:16px}
+.online-presence-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.online-presence-head .title{margin:0}
+.online-presence-count{min-width:36px;height:36px;padding:0 10px;border-radius:999px;display:grid;place-items:center;background:#eaf7f0;color:#0f513f;font-weight:950}
+.online-presence-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.online-presence-item{display:flex;align-items:center;gap:9px;border:1px solid #e5ece8;border-radius:14px;padding:9px;background:#fbfdfc;min-width:0}
+.online-dot{width:9px;height:9px;border-radius:50%;background:#19a463;box-shadow:0 0 0 4px #19a46318;flex:0 0 auto}
+.online-presence-avatar{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:#eaf7f0;flex:0 0 auto}
+.online-presence-info{min-width:0}
+.online-presence-info b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+.online-presence-info span{display:block;color:#7a8a83;font-size:11px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.online-presence-empty{padding:12px;text-align:center;color:#7a8a83;font-size:13px}
+@media(max-width:600px){.online-presence-list{grid-template-columns:1fr}}
 .community-chat-modal{position:fixed;inset:0;z-index:10050;background:rgba(3,20,16,.58);backdrop-filter:blur(7px);display:flex;align-items:center;justify-content:center;padding:20px}
 .community-chat-box{width:min(760px,96vw);height:min(680px,88vh);background:#fff;border:1px solid rgba(15,81,63,.16);border-radius:26px;box-shadow:0 30px 90px rgba(0,0,0,.28);display:flex;flex-direction:column;overflow:hidden;direction:rtl}
 .community-chat-head{padding:16px 18px;background:linear-gradient(135deg,#0f513f,#176b55);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px}
