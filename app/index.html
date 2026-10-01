@@ -1280,6 +1280,7 @@ async function boot(){
     // ارسم الواجهة الأساسية فور اكتمال bootstrap، ولا تجعل بيانات الأقسام الثانوية تحجب التنقل.
     render();
     restoreDxnUiState();
+    maybeShowCommunityChatNotificationPopup();
 
     // البيانات الثقيلة تُحمّل في الخلفية بعد ظهور الواجهة.
     // هذا يمنع انتظار التدريبات وإحصائيات القائد وسجل الفرق قبل فتح الموقع.
@@ -1711,6 +1712,7 @@ function getSeenNotifications(){try{return JSON.parse(localStorage.getItem(notif
 let notificationCache=null;
 let serverNotifications=[];
 let notificationsLoading=false;
+let communityChatNotificationPopupShown=false;
 function invalidateNotificationCache(){notificationCache=null}
 async function loadServerNotifications(){
   if(role!=='member'||!token){serverNotifications=[];invalidateNotificationCache();return;}
@@ -1744,6 +1746,52 @@ async function markNotificationsRead(ids){
   clean.forEach(id=>set.add(id));
   localStorage.setItem(notificationStorageKey(),JSON.stringify([...set].slice(-300)));
   invalidateNotificationCache();
+}
+function maybeShowCommunityChatNotificationPopup(){
+  if(role!=='member'||communityChatNotificationPopupShown)return;
+  const unread=serverNotifications.filter(n=>String(n.event_type||'')==='community_chat_message');
+  if(!unread.length)return;
+  communityChatNotificationPopupShown=true;
+
+  const ids=unread.map(n=>String(n.id)).filter(Boolean);
+  const count=ids.length;
+  const senders=[...new Set(unread.map(n=>{
+    const text=String(n.desc||'');
+    const match=text.match(/أرسل (.+?) رسالة جديدة/);
+    return match&&match[1]?match[1]:'أحد أعضاء المجتمع';
+  }))];
+  const senderText=senders.length<=2
+    ? senders.join(' و ')
+    : senders.slice(0,2).join(' و ')+' وآخرون';
+
+  const old=document.getElementById('communityChatNotificationModal');
+  if(old)old.remove();
+
+  const modal=document.createElement('div');
+  modal.id='communityChatNotificationModal';
+  modal.className='community-chat-notification-modal';
+  modal.innerHTML='<div class="community-chat-notification-box" role="dialog" aria-modal="true" aria-label="رسائل جديدة في المجتمع">'
+    +'<div class="community-chat-notification-icon">💬</div>'
+    +'<div class="community-chat-notification-title">لديك رسالة جديدة في المجتمع</div>'
+    +'<div class="community-chat-notification-count">'+(count>1?'لديك '+count+' رسائل جديدة':'لديك رسالة جديدة')+'</div>'
+    +'<div class="community-chat-notification-body">'+communityEscapeHtml(senderText)+' في محادثة المجتمع.</div>'
+    +'<div class="community-chat-notification-actions">'
+    +'<button type="button" class="community-chat-notification-later" id="communityChatNotificationLater">لاحقًا</button>'
+    +'<button type="button" class="community-chat-notification-open" id="communityChatNotificationOpen">💬 فتح المحادثة</button>'
+    +'</div></div>';
+
+  const closeLater=()=>modal.remove();
+  modal.addEventListener('click',e=>{if(e.target===modal)closeLater()});
+  document.body.appendChild(modal);
+
+  modal.querySelector('#communityChatNotificationLater')?.addEventListener('click',closeLater);
+  modal.querySelector('#communityChatNotificationOpen')?.addEventListener('click',async()=>{
+    const button=modal.querySelector('#communityChatNotificationOpen');
+    if(button)button.disabled=true;
+    await markNotificationsRead(ids);
+    modal.remove();
+    await communityChatOpen();
+  });
 }
 function notificationAction(tab){
   return ()=>switchTab(tab||'notifications');
@@ -6817,6 +6865,23 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
   .community-chat-send{order:4!important}
 }
 
+.community-chat-notification-modal{position:fixed;inset:0;z-index:10060;background:rgba(3,20,16,.48);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:20px;direction:rtl}
+.community-chat-notification-box{width:min(460px,92vw);background:#fff;border:1px solid rgba(15,81,63,.16);border-radius:26px;box-shadow:0 30px 90px rgba(0,0,0,.32);padding:28px 24px 22px;text-align:center}
+.community-chat-notification-icon{width:72px;height:72px;margin:0 auto 14px;border-radius:22px;display:grid;place-items:center;background:#eaf7f0;font-size:38px;box-shadow:0 8px 24px rgba(15,81,63,.12)}
+.community-chat-notification-title{font-size:22px;font-weight:950;color:#123c30}
+.community-chat-notification-count{margin-top:7px;font-size:15px;font-weight:900;color:#0f513f}
+.community-chat-notification-body{margin-top:8px;color:#667085;line-height:1.8;font-size:14px}
+.community-chat-notification-actions{display:flex;gap:9px;justify-content:center;margin-top:22px}
+.community-chat-notification-actions button{border:0;border-radius:13px;padding:11px 17px;font:inherit;font-weight:900;cursor:pointer}
+.community-chat-notification-open{background:#0f513f;color:#fff;min-width:150px}
+.community-chat-notification-later{background:#eef3f1;color:#29473d}
+.community-chat-notification-open:disabled{opacity:.55;cursor:wait}
+@media(max-width:600px){
+  .community-chat-notification-modal{padding:14px}
+  .community-chat-notification-box{width:100%;border-radius:22px;padding:24px 18px 18px}
+  .community-chat-notification-actions{flex-direction:column}
+  .community-chat-notification-actions button{width:100%}
+}
 .community-chat-modal{position:fixed;inset:0;z-index:10050;background:rgba(3,20,16,.58);backdrop-filter:blur(7px);display:flex;align-items:center;justify-content:center;padding:20px}
 .community-chat-box{width:min(760px,96vw);height:min(680px,88vh);background:#fff;border:1px solid rgba(15,81,63,.16);border-radius:26px;box-shadow:0 30px 90px rgba(0,0,0,.28);display:flex;flex-direction:column;overflow:hidden;direction:rtl}
 .community-chat-head{padding:16px 18px;background:linear-gradient(135deg,#0f513f,#176b55);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px}
