@@ -52,7 +52,6 @@ begin
   where u.member_id = p_member_id
     and u.role = 'member'
     and u.active = true
-  order by u.created_at desc nulls last
   limit 1;
 
   if target_user_id is null then
