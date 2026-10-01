@@ -1715,7 +1715,7 @@ let notificationsLoading=false;
 let communityChatNotificationPopupShown=false;
 function invalidateNotificationCache(){notificationCache=null}
 async function loadServerNotifications(){
-  if(role!=='member'||!token){serverNotifications=[];invalidateNotificationCache();return;}
+  if(!token){serverNotifications=[];invalidateNotificationCache();return;}
   notificationsLoading=true;
   try{
     const rows=await rpc('list_notifications',{p_token:token});
@@ -1731,7 +1731,7 @@ async function loadServerNotifications(){
 async function markNotificationsRead(ids){
   const clean=[...(new Set((ids||[]).map(String)))];
   if(!clean.length)return;
-  if(role==='member'){
+  if(token){
     try{
       await rpc('mark_notifications_read',{p_token:token,p_ids:clean});
       const seen=new Set(clean);
@@ -1748,7 +1748,7 @@ async function markNotificationsRead(ids){
   invalidateNotificationCache();
 }
 function maybeShowCommunityChatNotificationPopup(){
-  if(role!=='member'||communityChatNotificationPopupShown)return;
+  if(!token||communityChatNotificationPopupShown)return;
   const unread=serverNotifications.filter(n=>String(n.event_type||'')==='community_chat_message');
   if(!unread.length)return;
   communityChatNotificationPopupShown=true;
@@ -1784,11 +1784,14 @@ function maybeShowCommunityChatNotificationPopup(){
   modal.addEventListener('click',e=>{if(e.target===modal)closeLater()});
   document.body.appendChild(modal);
 
+  // ظهور الإشعار يعني أن الرسالة أصبحت "مرئية" للمستخدم.
+  // لذلك نعلّمها كمقروءة فورًا حتى لا تتكرر عند إعادة فتح الحساب.
+  markNotificationsRead(ids).catch(()=>{});
+
   modal.querySelector('#communityChatNotificationLater')?.addEventListener('click',closeLater);
   modal.querySelector('#communityChatNotificationOpen')?.addEventListener('click',async()=>{
     const button=modal.querySelector('#communityChatNotificationOpen');
     if(button)button.disabled=true;
-    await markNotificationsRead(ids);
     modal.remove();
     await communityChatOpen();
   });
