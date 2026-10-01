@@ -22,7 +22,12 @@ function config(){
 }
 function sha256(value){return crypto.createHash('sha256').update(value).digest('hex');}
 function hmac(key,value,encoding){return crypto.createHmac('sha256',key).update(value).digest(encoding);}
-function signingKey(secret,date){return hmac(hmac(hmac(hmac('AWS4'+secret,date),REGION),SERVICE),'aws4_request');}
+function signingKey(secret,date,region=REGION,service=SERVICE){return hmac(hmac(hmac(hmac('AWS4'+secret,date),region),service),'aws4_request');}
+function signatureForCanonicalRequest(secret,date,region,service,amzDate,canonicalRequest){
+  const scope=date+'/'+region+'/'+service+'/aws4_request';
+  const stringToSign=[ALGORITHM,amzDate,scope,sha256(canonicalRequest)].join('\\n');
+  return hmac(signingKey(secret,date,region,service),stringToSign,'hex');
+}
 function awsEncode(value){return encodeURIComponent(String(value)).replace(/[!'()*]/g,c=>'%'+c.charCodeAt(0).toString(16).toUpperCase());}
 function canonicalPath(key){
   return '/'+String(key).split('/').map(awsEncode).join('/');
@@ -86,4 +91,4 @@ function headObject(key){
   });
 }
 
-module.exports={presignPut,headObject,config,canonicalPath,canonicalQuery,sha256};
+module.exports={presignPut,headObject,config,canonicalPath,canonicalQuery,sha256,signatureForCanonicalRequest};
