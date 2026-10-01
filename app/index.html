@@ -1248,6 +1248,7 @@ function startAiUsageAutoRefresh(){clearInterval(aiUsageTimer);if(role!=='leader
 let dxnOnlinePresenceChannel=null;
 let dxnOnlinePresenceState=[];
 let dxnOnlinePresenceStarted=false;
+let dxnOnlinePresenceError='';
 
 function onlinePresenceIdentity(){
   const loginNo=String(localStorage.getItem('dxn_login_no')||'').trim();
@@ -1256,13 +1257,115 @@ function onlinePresenceIdentity(){
     ? String(me.name||'عضو')
     : String(localStorage.getItem('dxn_leader_name')||'القائد');
   const memberNo=role==='member'&&me ? String(me.member_no||loginNo) : loginNo;
-  return {
-    key: loginNo,
-    name,
-    member_no: memberNo,
-    role: role==='leader'?'leader':'member',
-    online_at:new Date().toISOString()
-  };
+  return {key:loginNo,name,member_no:memberNo,role:role==='leader'?'leader':'member',online_at:new Date().toISOString()};
+}
+
+function onlinePresenceList(){
+  const map=new Map();
+  (dxnOnlinePresenceState||[]).forEach(item=>{
+    const key=String(item.member_no||item.key||item.name||'');
+    if(!key)return;
+    map.set(key,item);
+  });
+  return [...map.values()].sort((a,b)=>{
+    if(a.role!==b.role)return a.role==='leader'?-1:1;
+    return String(a.name||'').localeCompare(String(b.name||''),'ar');
+  });
+}
+
+function renderOnlinePresence(){
+  const host=document.getElementById('dxnOnlinePresencePanel');
+  if(!host)return;
+  const list=onlinePresenceList();
+  const statusText=dxnOnlinePresenceError
+    ? 'تعذر الاتصال بخدمة الحضور اللحظي.'
+    : 'الأشخاص الموجودون حاليًا في الموقع';
+  host.innerHTML=`
+    <div class="online-presence-head">
+      <div>
+        <div class="title">🟢 المتواجدون الآن</div>
+        <div class="muted">${statusText}</div>
+      </div>
+      <span class="online-presence-count">${list.length}</span>
+    </div>
+    <div class="online-presence-list">
+      ${list.length
+        ? list.map(x=>`<div class="online-presence-item">
+            <span class="online-dot"></span>
+            <div class="online-presence-avatar">${x.role==='leader'?'👑':'👤'}</div>
+            <div class="online-presence-info">
+              <b>${esc(x.name||'مستخدم')}</b>
+              <span>${x.role==='leader'?'القائد':'عضو'}${x.member_no?` · ${esc(x.member_no)}`:''}</span>
+            </div>
+          </div>`).join('')
+        : `<div class="online-presence-empty">${dxnOnlinePresenceError?'تعذر تحميل المتواجدين الآن.':'لا يوجد مستخدمون متصلون حاليًا.'}</div>`}
+    </div>
+  `;
+}
+
+function presenceStateToList(channel){
+  const state=channel?.presenceState?.()||{};
+  const rows=[];
+  Object.entries(state).forEach(([key,metas])=>{
+    (Array.isArray(metas)?metas:[metas]).forEach(meta=>{
+      const value=meta&&typeof meta==='object'?meta:{};
+      rows.push({...value,key});
+    });
+  });
+  dxnOnlinePresenceState=rows;
+  dxnOnlinePresenceError='';
+  renderOnlinePresence();
+}
+
+async function startOnlinePresence(){
+  if(dxnOnlinePresenceStarted||!sb||!token)return;
+  const identity=onlinePresenceIdentity();
+  if(!identity)return;
+  dxnOnlinePresenceStarted=true;
+  dxnOnlinePresenceError='';
+  try{
+    dxnOnlinePresenceChannel=sb.channel('dxn-site-online',{config:{presence:{enabled:true,key:identity.key}}});
+    dxnOnlinePresenceChannel
+      .on('presence',{event:'sync'},()=>presenceStateToList(dxnOnlinePresenceChannel))
+      .on('presence',{event:'join'},()=>presenceStateToList(dxnOnlinePresenceChannel))
+      .on('presence',{event:'leave'},()=>presenceStateToList(dxnOnlinePresenceChannel))
+      .subscribe(async(status,error)=>{
+        if(status==='SUBSCRIBED'){
+          try{
+            const tracked=await dxnOnlinePresenceChannel.track(onlinePresenceIdentity()||identity);
+            if(tracked!=='ok')throw new Error('Presence track failed: '+String(tracked||'unknown'));
+            presenceStateToList(dxnOnlinePresenceChannel);
+          }catch(e){
+            console.error('DXN online presence track error',e);
+            dxnOnlinePresenceError=e?.message||'track failed';
+            renderOnlinePresence();
+          }
+          return;
+        }
+        if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){
+          console.error('DXN online presence channel error',status,error);
+          dxnOnlinePresenceError=String(error?.message||status||'Realtime error');
+          renderOnlinePresence();
+          dxnOnlinePresenceStarted=false;
+        }
+      });
+  }catch(e){
+    console.error('DXN online presence setup error',e);
+    dxnOnlinePresenceError=e?.message||'Realtime setup failed';
+    dxnOnlinePresenceStarted=false;
+    dxnOnlinePresenceChannel=null;
+    renderOnlinePresence();
+  }
+}
+
+async function stopOnlinePresence(){
+  const channel=dxnOnlinePresenceChannel;
+  dxnOnlinePresenceChannel=null;
+  dxnOnlinePresenceStarted=false;
+  dxnOnlinePresenceState=[];
+  dxnOnlinePresenceError='';
+  try{if(channel)await channel.untrack()}catch(_){}
+  try{if(channel&&sb)await sb.removeChannel(channel)}catch(_){}
 }
 
 function onlinePresenceList(){
