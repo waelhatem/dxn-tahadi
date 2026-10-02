@@ -95,9 +95,37 @@ begin
   clean_path := nullif(trim(coalesce(p_path,'')),'');
 
   if clean_path is not null
-     and clean_path !~ ('^' || regexp_replace(member_no_value,'([^[:alnum:]_ -])','\\\\1','g') || '/[0-9]{10,}-[a-z0-9]+-[A-Za-z0-9._-]+$')
+     and position(member_no_value || '/' in clean_path) <> 1
   then
     raise exception 'مسار الصورة غير صالح';
+  end if;
+
+  if clean_path is not null
+     and substring(clean_path from length(member_no_value)+2) !~ '^[0-9]{10,}-[a-z0-9]+-[A-Za-z0-9._-]+
+
+  update public.members
+     set profile_photo_path=clean_path
+   where id=p_member;
+
+  return jsonb_build_object(
+    'ok',true,
+    'member_id',p_member,
+    'member_no',member_no_value,
+    'profile_photo_path',clean_path,
+    'old_profile_photo_path',old_path
+  );
+end;
+$$;
+
+revoke all on function public.list_profile_photos(uuid) from public, anon, authenticated;
+revoke all on function public.set_profile_photo(uuid,uuid,text) from public, anon, authenticated;
+grant execute on function public.list_profile_photos(uuid) to anon, authenticated;
+grant execute on function public.set_profile_photo(uuid,uuid,text) to anon, authenticated;
+
+notify pgrst, 'reload schema';
+
+  then
+    raise exception 'اسم الصورة غير صالح';
   end if;
 
   update public.members
