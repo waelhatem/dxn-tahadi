@@ -3453,7 +3453,7 @@ function ragwanClearSelectedTrainee(){
   ragwanRenderTraineePanel();
   ragwanRenderProgress();
 }
-async async function ragwanSearchTrainees(){
+async function ragwanSearchTrainees(){
   const input=document.getElementById('ragwanTraineeSearchInput'),list=document.getElementById('ragwanTraineeSearchResults');
   if(!input||!list)return;
   const q=String(input.value||'').trim();
@@ -3484,11 +3484,11 @@ async function ragwanOpenTraineesTable(){
     const out=await ragwanPlanApi('list_trainees'),rows=Array.isArray(out.trainees)?out.trainees:[];
     const body=$('ragwanTraineesTableBody');
     if(!rows.length){body.innerHTML='<div class="empty">لم تبدأ الخطة مع أي متدرب بعد.</div>';return}
-    body.innerHTML='<div class="ragwan-trainees-table-wrap"><table class="admin-table ragwan-trainees-table"><thead><tr><th>المتدرب</th><th>التقدم</th><th>الباب الحالي</th><th>آخر نشاط</th><th></th></tr></thead><tbody>'+
+    body.innerHTML='<div class="ragwan-trainees-table-wrap"><table class="admin-table ragwan-trainees-table"><thead><tr><th>المتدرب</th><th>حالة التدريب</th><th>التقدم</th><th>الباب الحالي</th><th>آخر نشاط</th><th></th></tr></thead><tbody>'+
       rows.map(m=>{
         const done=Number(m.completed_count||0),current=done<10?done+1:10;
         const activity=m.last_activity_at?new Date(m.last_activity_at).toLocaleString('ar-IQ',{dateStyle:'short',timeStyle:'short'}):'—';
-        return '<tr><td><b>'+esc(m.name||'')+'</b><div class="small muted">'+esc(m.member_no||'')+'</div></td><td>'+done+' / 10</td><td>'+(done===10?'🏆 مكتملة':'الباب '+current)+'</td><td>'+esc(activity)+'</td><td><button type="button" class="primary" onclick="ragwanSelectTrainee(\''+esc(String(m.member_id||''))+'\');document.getElementById(\'ragwanTraineesTableModal\')?.remove()">▶️ متابعة</button></td></tr>';
+        const completed=!!m.completed_at; const status=completed?'✅ أكمل التدريب':done===10?'📝 بانتظار تسجيل الإكمال':'⏳ قيد التدريب'; const stage=completed?'🏆 مكتملة':done===10?'✅ الأبواب العشرة مكتملة':'الباب '+current; return '<tr><td><b>'+esc(m.name||'')+'</b><div class="small muted">'+esc(m.member_no||'')+'</div></td><td><b>'+status+'</b>'+(completed&&m.completed_at?'<div class="small muted">'+esc(new Date(m.completed_at).toLocaleString('ar-IQ',{dateStyle:'short',timeStyle:'short'}))+'</div>':'')+'</td><td>'+done+' / 10</td><td>'+stage+'</td><td>'+esc(activity)+'</td><td><button type="button" class="primary" onclick="ragwanSelectTrainee(\''+esc(String(m.member_id||''))+'\');document.getElementById(\'ragwanTraineesTableModal\')?.remove()">▶️ متابعة</button></td></tr>';
       }).join('')+'</tbody></table></div>';
   }catch(e){const body=$('ragwanTraineesTableBody');if(body)body.innerHTML='<div class="muted">⚠️ '+esc(e.message||'تعذر تحميل المتدربين.')+'</div>'}
 }
@@ -3522,7 +3522,7 @@ function ragwanRenderProgress(){
   const done=document.getElementById('ragwanRealProgressDone');if(done)done.textContent=completed;
   const cur=document.getElementById('ragwanRealProgressCurrent');if(cur)cur.textContent=completed<10?current:'—';
   const rem=document.getElementById('ragwanRealProgressRemaining');if(rem)rem.textContent=remaining;
-  const stateLabel=document.getElementById('ragwanRealProgressState');if(stateLabel)stateLabel.textContent=completed===10?'🏆 الخطة مكتملة — أحسنت!':'الخطوة '+current+' هي خطوتك الحالية';
+  const stateLabel=document.getElementById('ragwanRealProgressState');if(stateLabel)stateLabel.textContent=completed===10?'🏆 أبواب الخطة مكتملة — بانتظار توثيق الإكمال النهائي':'الخطوة '+current+' هي الخطوة الحالية للمتدرب';
   if(typeof ragwanRenderPlanCompletionInline==='function')setTimeout(ragwanRenderPlanCompletionInline,0);
 }
 function ragwanDoorJourneyMarkup(){
@@ -5701,7 +5701,7 @@ function ragwanRenderPlanCompletionInline(){
   if(host.dataset.saved==='1')return;
   host.innerHTML='<label>🏆 الخطة مكتملة</label>'+
     '<div class="hint">أكملت الأبواب العشرة مع المتدرب: <b>'+esc(ragwanSelectedTrainee.name||'')+'</b></div>'+
-    '<div class="muted" style="margin-top:6px">سيُسجَّل الإكمال باسم هذا المتدرب، ويُحفظ في سجله، ويُرسل إشعار إلى القائد.</div>'+
+    '<div class="muted" style="margin-top:6px">سيُسجَّل الإكمال باسم هذا المتدرب، ويُحفظ في سجله، ويصل إشعار إلى السبونسر والقائد متضمنًا اسم كل طرف ورقم عضويته.</div>'+
     '<button type="button" class="save" id="ragwanPlanCompletionSaveInline" onclick="ragwanSavePlanCompletionMemberInline()">💾 تسجيل إكمال الخطة</button>'+
     '<div id="ragwanPlanCompletionInlineStatus" class="status" aria-live="polite"></div>';
 }
