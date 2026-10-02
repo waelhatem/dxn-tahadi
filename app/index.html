@@ -440,6 +440,37 @@ body:has(.login-header-top)::before{
 .ragwan-door.opening3d .ragwan-door-leaf{animation:none!important;transform:none!important;filter:none!important;}
 .ragwan-door.open{transform:translateY(-5px) scale(1.035)!important;z-index:6!important;box-shadow:0 0 0 3px rgba(240,199,88,.95),0 18px 38px rgba(15,81,63,.28)!important;}
 .ragwan-door.status-available{transform:translateY(-3px) scale(1.02)!important;z-index:5!important;box-shadow:0 0 0 3px rgba(240,199,88,.9),0 14px 30px rgba(15,81,63,.22)!important;}
+
+/* V91 — إظهار اللون الخاص بكل خطوة عند توفرها */
+.ragwan-door.status-available .ragwan-door-overlay,
+.ragwan-door.open .ragwan-door-overlay{
+  mix-blend-mode:screen!important;
+  opacity:.72!important;
+}
+.ragwan-door.status-available .ragwan-door-num,
+.ragwan-door.open .ragwan-door-num{
+  box-shadow:0 0 0 2px rgba(255,255,255,.8),0 7px 18px rgba(0,0,0,.28),0 0 18px var(--ragwan-step-glow)!important;
+}
+.ragwan-door-step-1{--ragwan-step-glow:#55d6b2}
+.ragwan-door-step-2{--ragwan-step-glow:#59b4ff}
+.ragwan-door-step-3{--ragwan-step-glow:#ff75a5}
+.ragwan-door-step-4{--ragwan-step-glow:#77f0be}
+.ragwan-door-step-5{--ragwan-step-glow:#ffe575}
+.ragwan-door-step-6{--ragwan-step-glow:#b97eff}
+.ragwan-door-step-7{--ragwan-step-glow:#ff6b70}
+.ragwan-door-step-8{--ragwan-step-glow:#62ebff}
+.ragwan-door-step-9{--ragwan-step-glow:#7090ff}
+.ragwan-door-step-10{--ragwan-step-glow:#4ae5bb}
+.ragwan-door.status-available .ragwan-door-overlay{
+  background:
+    radial-gradient(circle at 50% 30%,var(--ragwan-step-glow),transparent 52%),
+    linear-gradient(180deg,rgba(255,255,255,.10),rgba(4,22,17,.48))!important;
+}
+.ragwan-door.open .ragwan-door-overlay{
+  background:
+    radial-gradient(circle at 50% 30%,var(--ragwan-step-glow),transparent 58%),
+    linear-gradient(180deg,rgba(255,255,255,.08),rgba(4,22,17,.40))!important;
+}
 </style>\n<style id="dxn-nav-no-scroll-v1">html,body,#app{overflow-anchor:none!important}</style><style id="ragwan-step5-mobile-ui-v1">
 /* V89 — Mobile-first refinement for Door 5 only. Visual/layout layer; no data or actions removed. */
 @media (max-width: 650px){
@@ -3579,7 +3610,7 @@ function ragwanDoorJourneyMarkup(){
   const d=ragwanDoorData(),state=ragwanProgressLoad(),current=ragwanProgressNextStep();
   const doors=d.map(x=>{
     const status=ragwanStepStatus(x.n,state),locked=false;
-    return '<button type="button" class="ragwan-door status-'+status+'" id="ragwanDoor'+x.n+'" '+(locked?'disabled':'')+' onclick="ragwanOpenDoor('+x.n+')" aria-label="'+esc(x.title)+'">'+
+    return '<button type="button" class="ragwan-door status-'+status+' ragwan-door-step-'+x.n+'" id="ragwanDoor'+x.n+'" '+(locked?'disabled':'')+' onclick="ragwanOpenDoor('+x.n+')" aria-label="'+esc(x.title)+'">'+
       '<span class="ragwan-door-back ragwan-door-back-'+x.n+'">'+
         '<span class="ragwan-door-back-num">'+x.n+'</span>'+
         '<span class="ragwan-door-back-icon">'+x.icon+'</span>'+
