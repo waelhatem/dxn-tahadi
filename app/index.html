@@ -3375,7 +3375,7 @@ function ragwanStepStatus(n,state){
   return 'available';
 }
 function ragwanStatusLabel(status){
-  return status==='completed'?'مكتملة':status==='started'?'قيد التنفيذ':status==='available'?'متاحة':'مغلقة';
+  return status==='completed'?'مكتملة — متاحة للتطبيق':status==='started'?'قيد التنفيذ':status==='available'?'متاحة':'مغلقة';
 }
 function ragwanStepWord(n){
   return ['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة','السابعة','الثامنة','التاسعة','العاشرة'][n-1]||n;
@@ -3393,7 +3393,7 @@ function ragwanRenderProgress(){
 function ragwanDoorJourneyMarkup(){
   const d=ragwanDoorData(),state=ragwanProgressLoad(),current=ragwanProgressNextStep();
   const doors=d.map(x=>{
-    const status=ragwanStepStatus(x.n,state),locked=status==='locked';
+    const status=ragwanStepStatus(x.n,state),locked=false;
     return '<button type="button" class="ragwan-door '+status+'" id="ragwanDoor'+x.n+'" '+(locked?'disabled':'')+' onclick="ragwanOpenDoor('+x.n+')" aria-label="'+esc(x.title)+'">'+
       '<span class="ragwan-door-back ragwan-door-back-'+x.n+'">'+
         '<span class="ragwan-door-back-num">'+x.n+'</span>'+
@@ -3415,7 +3415,7 @@ function ragwanDoorJourneyMarkup(){
     '</button>';
   }).join('');
   const chips=d.map(x=>{
-    const status=ragwanStepStatus(x.n,state),locked=status==='locked';
+    const status=ragwanStepStatus(x.n,state),locked=false;
     return '<button type="button" class="ragwan-door-chip '+status+'" id="ragwanDoorChip'+x.n+'" '+(locked?'disabled':'')+' onclick="ragwanOpenDoor('+x.n+')">'+x.n+'</button>';
   }).join('');
   return '<section class="ragwan-journey" id="ragwanJourney">'+
@@ -5466,7 +5466,7 @@ function ragwanOpenDoor(n){
   if(pl)pl.textContent=state.completed.length+' من 10 مكتملة';
   const pill=document.getElementById('ragwanStepStatePill');if(pill){pill.textContent=ragwanStatusLabel(status);pill.className='ragwan-step-state-pill '+status;}
   const startBtn=document.getElementById('ragwanStartBtn'),completeBtn=document.getElementById('ragwanCompleteBtn'),nextBtn=document.getElementById('ragwanNextBtn');
-  if(startBtn){startBtn.disabled=status==='completed';startBtn.textContent=status==='started'?'▶️ أتابع الخطوة':status==='completed'?'✓ مكتملة':'▶️ ابدأ الخطوة';}
+  if(startBtn){startBtn.disabled=false;startBtn.textContent=status==='started'?'▶️ أتابع الخطوة':status==='completed'?'🔄 إعادة تطبيق الخطوة':'▶️ ابدأ الخطوة';}
   if(completeBtn){completeBtn.disabled=status==='completed';completeBtn.textContent=status==='completed'?'✓ تم إكمال الخطوة':'✅ أكملت الخطوة';}
   if(nextBtn){nextBtn.disabled=step>=10;nextBtn.textContent=step>=10?'🏆 الخطة كاملة':'الخطوة التالية ←';}
   ragwanRenderProgress();
