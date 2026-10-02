@@ -3493,7 +3493,7 @@ async function ragwanOpenTraineesTable(){
   }catch(e){const body=$('ragwanTraineesTableBody');if(body)body.innerHTML='<div class="muted">⚠️ '+esc(e.message||'تعذر تحميل المتدربين.')+'</div>'}
 }
 function ragwanTraineePanelMarkup(){
-  if(role!=='member')return '';
+  if(role!=='member'||!me)return '';
   if(ragwanSelectedTrainee)return ragwanSelectedTraineeSummary();
   return '<section class="ragwan-trainee-selector" id="ragwanTraineeSelector">'+
     '<div class="ragwan-trainee-selector-head"><div><div class="ragwan-trainee-kicker">👤 المتدرب</div><h3>ابدأ بتحديد العضو الذي ستتابع معه الخطة</h3><p>يمكنك تدريب عدة أعضاء في الوقت نفسه؛ لكل عضو سجل مستقل.</p></div></div>'+
