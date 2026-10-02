@@ -3819,49 +3819,38 @@ function ragwanWelcomeCollectData(){
 }
 function ragwanWelcomeMessage(data){
   const d=data||{}, female=d.gender==='female';
-  const name=String(d.name||'').trim()||'عضونا الجديد';
-  const firstName=name.split(/\s+/)[0]||name;
+  const name=String(d.name||'').trim()||(female?'الأخت الجديدة':'الأخ الجديد');
   const no=String(d.memberNo||'').trim()||'................';
-  const country=String(d.country||'').trim(), countryDescriptor=String(d.countryDescriptor||'').trim()||RAGWAN_COUNTRY_DESCRIPTORS[country]||country, city=String(d.city||'').trim();
-  const place=[countryDescriptor,city].filter(Boolean).join(' – ');
-  const intro=female?'🎉🏆 الأخت '+name+(place?' من '+place:'')+' 🏆🎉':'🎉🏆 الأخ '+name+(place?' من '+place:'')+' 🏆🎉';
-  const intro2=female?'بمناسبة حصولها على':'بمناسبة حصوله على';
-  const join1=female?'وانضمامها':'وانضمامه';
-  const join2=female?'بانضمامكِ':'بانضمامك';
+  const country=String(d.country||'').trim();
+  const descriptor=String(d.countryDescriptor||'').trim()||RAGWAN_COUNTRY_DESCRIPTORS[country]||country||'بلدنا الحبيب';
+  const flagMap={'العراق':'🇮🇶','سوريا':'🇸🇾','فلسطين':'🇵🇸','الأردن':'🇯🇴','السعودية':'🇸🇦','الكويت':'🇰🇼','قطر':'🇶🇦','الإمارات':'🇦🇪','البحرين':'🇧🇭','عُمان':'🇴🇲','اليمن':'🇾🇪','لبنان':'🇱🇧','مصر':'🇪🇬','الجزائر':'🇩🇿','المغرب':'🇲🇦','تونس':'🇹🇳','ليبيا':'🇱🇾','السودان':'🇸🇩'};
+  const flag=flagMap[country]||'🌍';
+  const placeCity=String(d.city||'').trim();
+  const place=placeCity ? descriptor+' – '+placeCity : descriptor;
+  const intro=female
+    ? '🎉👑 نبارك للأخت '+name+'👸🏻 من فريق الأستاذة رنا رمضان 👑🎉'
+    : '🎉👑 نبارك للأخ '+name+' من فريق الأستاذة رنا رمضان 👑🎉';
+  const join=female?'انضمامها':'انضمامه';
+  const her=female?'لها':'له';
+  const welcome=female?'بانضمامها':'بانضمامه';
   const pronoun=female?'لكِ':'لك';
-  const your=female?'طموحكِ':'طموحك';
-  const reminder=female?'وتذكّري دائماً:':'وتذكّر دائماً:';
+  const goals=female?'أهدافك وطموحاتك الكبيرة':'أهدافك وطموحاتك الكبيرة';
+  const part=female?'جزءاً':'جزءًا';
   const between=female?'بكِ':'بك';
-  const siblings=female?'إخوتكِ':'إخوتك';
-  const star=female?'نجمكِ':'نجمك';
-  const achievements=female?'إنجازاتكِ':'إنجازاتك';
-  const final=female?'أهلاً بكِ بيننا '+firstName+' 💜\nوبالتوفيق في بداية رحلتكِ الجديدة. 🚀✨':'أهلاً بك بيننا '+firstName+' 💜\nوبالتوفيق في بداية رحلتك الجديدة. 🚀✨';
+  const journey=female?'رحلة جميلة':'رحلة جميلة';
   return [
-    '♥️ السلام عليكم ورحمة الله وبركاته ♥️','',
-    '👑 بكل فخر وسعادة نرحب بانضمام 👑',
     intro,'',
-    intro2,
-    '🌟 العضوية الدولية في DXN 🌟',
-    '🆔 رقم العضوية: '+no,'',
-    join1+' معنا بفضل الله إلى',
-    '💜 عائلة فريق الأمل الريادي 💜','',
-    'نسعد '+join2+' إلى عائلتنا الجميلة',
-    'ونتمنى '+pronoun+' في هذه الرحلة الجديدة🌹','',
-    '✨ نجاحاً مستمراً، وتطوراً،',
-    ' وإنجازاتٍ تليق بـ'+your+'.✨','',
-    reminder,'',
-    'النجاح لا يبدأ بخطوة كبيرة،',
-    'بل يبدأ بقرار صادق ورغبة حقيقية في التغيير. 🚀','',
-    '💜 أهلاً وسهلاً '+between+' بين '+siblings+' في فريق الأمل الريادي،',
-    'ونحن على ثقة بأن القادم أجمل بإذن الله.','',
-    '🌟 نترقب بزوغ '+star+' وصناعة '+achievements+' معنا. 🌟','',
-    '🏆 معاً نصنع القادة… ومعاً نصل إلى القمة.','',
-    '💜 المهنئون:',
-    '🌟 عائلة فريق الأمل الريادي 🌟','',
-    final
+    join+' رسمياً إلى عائلة DXN العالمية وحصوله'+(female?'ا':'ه')+' على رقم العضوية ('+no+') 💎','',
+    flag+' من '+place+'، نرحّب '+welcome+' إلى فريقنا بكل محبة وتقدير 🌹','',
+    'إنها ليست مجرد عضوية، بل خطوة نحو عالم من الفرص والتطوير والنمو الشخصي والمالي، وبداية رحلة جديدة مليئة بالتعلم والإنجاز وبناء العلاقات الناجحة. 🚀','',
+    'كل التهاني والتبريكات '+pronoun+'، ونسأل الله أن يجعل هذه البداية فاتحة خير وبركة ونجاح، وأن تحققي من خلالها '+goals+'. 🌟','',
+    '🌟 أهلاً وسهلاً '+between+' بين أفراد فريق الأمل الريادي، ويسعدنا أن تكون'+(female?'ي':'')+' جزءاً من هذه العائلة الطموحة التي تؤمن بالنجاح والعمل الجماعي وصناعة المستقبل.','',
+    '🤝 من '+country+' إلى عائلتنا العالمية... أهلاً '+between+' بيننا، وبانتظار رحلة جميلة مليئة بالإنجازات. 🌍✨','',
+    'مع خالص الأمنيات '+pronoun+' بالتوفيق والتميز والإنجاز. 🌹','',
+    'قائد فريق الأمل',
+    'أ.رجوان نجاح'
   ].join('\n');
 }
-
 let ragwanWelcomePhotoOffsetX=0;
 let ragwanWelcomePhotoOffsetY=0;
 let ragwanWelcomeDragState=null;
