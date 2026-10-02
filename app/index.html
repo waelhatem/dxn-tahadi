@@ -3419,7 +3419,7 @@ function ragwanDoorJourneyMarkup(){
     return '<button type="button" class="ragwan-door-chip '+status+'" id="ragwanDoorChip'+x.n+'" '+(locked?'disabled':'')+' onclick="ragwanOpenDoor('+x.n+')">'+x.n+'</button>';
   }).join('');
   return '<section class="ragwan-journey" id="ragwanJourney">'+
-    '<div class="ragwan-journey-head"><div class="ragwan-journey-kicker">🚪 رحلة التطبيق الاحترافي</div><div class="ragwan-journey-title">خطوات خطة رجوان للنجاح</div><div class="ragwan-journey-sub">للقائد: يمكن فتح جميع الخطوات للاطلاع والمتابعة. للعضو: تُفتح الخطوات بالتسلسل بعد إكمال الخطوة السابقة.</div></div>'+
+    '<div class="ragwan-journey-head"><div class="ragwan-journey-kicker">🚪 رحلة التطبيق الاحترافي</div><div class="ragwan-journey-title">خطوات خطة رجوان للنجاح</div><div class="ragwan-journey-sub">جميع الأبواب من الأول إلى العاشر مفتوحة للعضو. يمكنك الدخول إلى أي خطوة ومتابعتها وإنجازها مباشرة دون انتظار اعتماد من القائد.</div></div>'+
     '<div class="ragwan-real-progress">'+
       '<div class="ragwan-progress-top"><div><b>📊 تقدمك الحقيقي</b><span id="ragwanRealProgressState">الخطوة '+current+' هي خطوتك الحالية</span></div><strong id="ragwanRealProgressPercent">0%</strong></div>'+
       '<div class="ragwan-progress-track"><span id="ragwanRealProgress" style="width:0%"></span></div>'+
@@ -5409,8 +5409,7 @@ async function ragwanLoadEvidence(){
 }
 
 function ragwanOpenDoor(n){
-  const data=ragwanDoorData(),state=ragwanProgressLoad(),maxOpen=ragwanProgressNextStep(),step=Math.max(1,Math.min(10,Number(n)||1));
-  if(role!=='leader' && !ragwanIsPreviewMember() && step>maxOpen){toast('🔒 هذه الخطوة مغلقة. أكمل الخطوة السابقة أولًا.');return;}
+  const data=ragwanDoorData(),state=ragwanProgressLoad(),step=Math.max(1,Math.min(10,Number(n)||1));
   const item=data[step-1],status=ragwanStepStatus(step,state);
   ragwanCurrentStep=step;
   data.forEach(x=>{
@@ -5468,8 +5467,8 @@ function ragwanOpenDoor(n){
   const pill=document.getElementById('ragwanStepStatePill');if(pill){pill.textContent=ragwanStatusLabel(status);pill.className='ragwan-step-state-pill '+status;}
   const startBtn=document.getElementById('ragwanStartBtn'),completeBtn=document.getElementById('ragwanCompleteBtn'),nextBtn=document.getElementById('ragwanNextBtn');
   if(startBtn){startBtn.disabled=status==='completed';startBtn.textContent=status==='started'?'▶️ أتابع الخطوة':status==='completed'?'✓ مكتملة':'▶️ ابدأ الخطوة';}
-  if(completeBtn){completeBtn.disabled=status==='completed'||status==='locked';completeBtn.textContent=status==='completed'?'✓ تم إكمال الخطوة':role==='member'?'📤 تحقق من اعتماد الإثبات':'👤 بانتظار اعتماد العضو';}
-  if(nextBtn){nextBtn.disabled=status!=='completed'&&step===maxOpen;nextBtn.textContent=step>=10?'🏆 عرض حالة الخطة':'الخطوة التالية ←';}
+  if(completeBtn){completeBtn.disabled=status==='completed';completeBtn.textContent=status==='completed'?'✓ تم إكمال الخطوة':'✅ أكملت الخطوة';}
+  if(nextBtn){nextBtn.disabled=step>=10;nextBtn.textContent=step>=10?'🏆 الخطة كاملة':'الخطوة التالية ←';}
   ragwanRenderProgress();
   ragwanLoadEvidence();
   const panel=document.getElementById('ragwanStepPanel');if(panel){
@@ -5486,40 +5485,27 @@ function ragwanOpenDoor(n){
 function ragwanStartStep(){
   const state=ragwanProgressLoad(),step=ragwanCurrentStep;
   if(state.completed.includes(step))return;
-  if(!ragwanIsPreviewMember() && step!==ragwanProgressNextStep()){toast('🔒 أكمل الخطوة السابقة أولًا.');return;}
   if(!state.started.includes(step))state.started.push(step);
   ragwanProgressSave(state);ragwanOpenDoor(step);
 }
-async function ragwanCompleteStep(){
+function ragwanCompleteStep(){
   const state=ragwanProgressLoad(),step=ragwanCurrentStep;
   if(state.completed.includes(step))return;
-  if(step!==ragwanProgressNextStep()){toast('🔒 أكمل الخطوة السابقة أولًا.');return;}
-  if(role!=='member'){toast('👤 هذه الخطوة تُنجز من حساب العضو بعد اعتماد الإثبات.');return;}
-  try{
-    if(!ragwanStepTestPassed(step)){toast('📝 اجتز اختبار الفهم أولًا قبل إرسال إثبات التنفيذ.');ragwanRenderStepTest();return;}
-    const out=await ragwanEvidenceApi('evidence_records'),rec=(out.records||[]).find(x=>Number(x.step)===step);
-    if(!rec){toast('🎙️ أرسل إثبات التنفيذ أولًا ثم انتظر مراجعة القائد.');return;}
-    if(rec.status!=='approved'){toast(rec.status==='rejected'?'🔴 أعاد القائد الإثبات للتعديل. أرسل إثباتًا جديدًا.':'🟡 الإثبات قيد مراجعة القائد.');return;}
-    if(!state.started.includes(step))state.started.push(step);
-    state.completed.push(step);state.completed=[...new Set(state.completed)].sort((a,b)=>a-b);
-    ragwanProgressSave(state);ragwanRenderProgress();
-    toast(step===10?'🏆 أحسنت! اعتمد القائد إكمال خطة رجوان كاملة.':'🟢 تم اعتماد الخطوة وفتح الخطوة التالية.');
-    ragwanOpenDoor(step);
-  }catch(e){toast('⚠️ '+String(e.message||'تعذر التحقق من الاعتماد.'));}
+  if(!state.started.includes(step))state.started.push(step);
+  state.completed.push(step);
+  state.completed=[...new Set(state.completed)].sort((a,b)=>a-b);
+  ragwanProgressSave(state);
+  ragwanRenderProgress();
+  toast(step===10?'🏆 أحسنت! أكملت خطة رجوان كاملة.':'🟢 تم تسجيل إنجاز الخطوة.');
+  ragwanOpenDoor(step);
 }
 function ragwanEnterNextStep(){
-  const state=ragwanProgressLoad();
-  if(state.completed.includes(ragwanCurrentStep)){
-    const next=Math.min(10,ragwanCurrentStep+1);
-    ragwanOpenDoor(next);
-    return;
-  }
-  ragwanStartStep();
+  const next=Math.min(10,ragwanCurrentStep+1);
+  ragwanOpenDoor(next);
 }
 function ragwanPrevDoor(){ragwanOpenDoor(Math.max(1,ragwanCurrentStep-1));}
 function ragwanNextDoor(){
-  const state=ragwanProgressLoad(),next=Math.min(10,ragwanCurrentStep+1);
-  if(!ragwanIsPreviewMember() && next>ragwanProgressNextStep()&&!state.completed.includes(ragwanCurrentStep)){toast('🔒 أكمل الخطوة الحالية أولًا.');return;}
+  const next=Math.min(10,ragwanCurrentStep+1);
   ragwanOpenDoor(next);
 }
 async function ragwanPlanApi(action,args={}){
