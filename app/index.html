@@ -5430,12 +5430,25 @@ async function ragwanLoadEvidence(){
 function ragwanOpenDoor(n){
   const data=ragwanDoorData(),state=ragwanProgressLoad();
   const requestedStep=Math.max(1,Math.min(10,Number(n)||1));
-  const nextAllowed=Math.min(10,state.completed.length+1);
   const bypassAllowed=role!=='member'||ragwanPreviewMemberMode();
-  const step=(!bypassAllowed&&requestedStep>nextAllowed)?nextAllowed:requestedStep;
-  if(!bypassAllowed&&requestedStep>nextAllowed){
-    toast('🔒 أكمل الخطوات السابقة بالترتيب أولًا. الخطوة المطلوبة الآن: '+ragwanStepWord(nextAllowed)+'.');
+  if(!bypassAllowed){
+    const missing=[];
+    for(let i=1;i<requestedStep;i++){
+      if(!state.completed.includes(i))missing.push(i);
+    }
+    if(missing.length){
+      const first=missing[0],last=missing[missing.length-1];
+      const contiguous=missing.every((v,i)=>v===first+i);
+      const message=missing.length===1
+        ? '🔒 أكمل الخطوة '+ragwanStepWord(first)+' أولًا.'
+        : contiguous
+          ? '🔒 أكمل الخطوات من 1 إلى '+last+' أولًا.'
+          : '🔒 أكمل الخطوات من '+first+' إلى '+last+' أولًا.';
+      toast(message);
+      return;
+    }
   }
+  const step=requestedStep;
   const item=data[step-1],status=ragwanStepStatus(step,state);
   ragwanCurrentStep=step;
   data.forEach(x=>{
