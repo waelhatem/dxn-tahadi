@@ -3369,6 +3369,13 @@ function ragwanProgressLoad(){
   state.started=Array.isArray(state.started)?state.started.map(Number).filter(n=>n>=1&&n<=10):[];
   state.completed=[...new Set(state.completed)].sort((a,b)=>a-b);
   state.started=[...new Set(state.started)].sort((a,b)=>a-b);
+  // الإكمال يجب أن يكون متسلسلًا؛ أي خطوة مكتملة بعد خطوة غير مكتملة تُعتبر حالة غير صالحة.
+  const contiguous=[];
+  for(let i=1;i<=10;i++){
+    if(state.completed.includes(i))contiguous.push(i);
+    else break;
+  }
+  if(contiguous.length!==state.completed.length)state.completed=contiguous;
   return state;
 }
 function ragwanProgressSave(state){
@@ -5421,7 +5428,14 @@ async function ragwanLoadEvidence(){
 }
 
 function ragwanOpenDoor(n){
-  const data=ragwanDoorData(),state=ragwanProgressLoad(),step=Math.max(1,Math.min(10,Number(n)||1));
+  const data=ragwanDoorData(),state=ragwanProgressLoad();
+  const requestedStep=Math.max(1,Math.min(10,Number(n)||1));
+  const nextAllowed=Math.min(10,state.completed.length+1);
+  const bypassAllowed=role!=='member'||ragwanPreviewMemberMode();
+  const step=(!bypassAllowed&&requestedStep>nextAllowed)?nextAllowed:requestedStep;
+  if(!bypassAllowed&&requestedStep>nextAllowed){
+    toast('🔒 أكمل الخطوات السابقة بالترتيب أولًا. الخطوة المطلوبة الآن: '+ragwanStepWord(nextAllowed)+'.');
+  }
   const item=data[step-1],status=ragwanStepStatus(step,state);
   ragwanCurrentStep=step;
   data.forEach(x=>{
@@ -5478,8 +5492,12 @@ function ragwanOpenDoor(n){
   if(pl)pl.textContent=state.completed.length+' من 10 مكتملة';
   const pill=document.getElementById('ragwanStepStatePill');if(pill){pill.textContent=ragwanStatusLabel(status);pill.className='ragwan-step-state-pill '+status;}
   const startBtn=document.getElementById('ragwanStartBtn'),completeBtn=document.getElementById('ragwanCompleteBtn'),nextBtn=document.getElementById('ragwanNextBtn');
+  const canComplete=ragwanCanCompleteStep(step,state);
   if(startBtn){startBtn.disabled=false;startBtn.textContent=status==='started'?'▶️ أتابع الخطوة':status==='completed'?'🔄 إعادة تطبيق الخطوة':'▶️ ابدأ الخطوة';}
-  if(completeBtn){completeBtn.disabled=status==='completed';completeBtn.textContent=status==='completed'?'✓ تم إكمال الخطوة':'✅ أكملت الخطوة';}
+  if(completeBtn){
+    completeBtn.disabled=status==='completed'||!canComplete;
+    completeBtn.textContent=status==='completed'?'✓ تم إكمال الخطوة':canComplete?'✅ أكملت الخطوة':'🔒 أكمل الخطوات السابقة أولًا';
+  }
   if(nextBtn){nextBtn.disabled=step>=10;nextBtn.textContent=step>=10?'🏆 الخطة كاملة':'الخطوة التالية ←';}
   ragwanRenderProgress();
   ragwanLoadEvidence();
@@ -5499,8 +5517,19 @@ function ragwanStartStep(){
   if(!state.started.includes(step))state.started.push(step);
   ragwanProgressSave(state);ragwanOpenDoor(step);
 }
+function ragwanCanCompleteStep(step,state){
+  if(step<=1)return true;
+  for(let i=1;i<step;i++)if(!state.completed.includes(i))return false;
+  return true;
+}
 function ragwanCompleteStep(){
   const state=ragwanProgressLoad(),step=ragwanCurrentStep;
+  if(!ragwanCanCompleteStep(step,state)){
+    toast('⚠️ لا يمكنك إكمال '+ragwanStepWord(step)+' قبل إكمال جميع الخطوات السابقة بالترتيب.');
+    ragwanRenderProgress();
+    ragwanOpenDoor(step);
+    return;
+  }
   if(state.completed.includes(step)){
     if(step===10)ragwanRenderPlanCompletionInline();
     return;
@@ -5523,7 +5552,7 @@ function ragwanRenderPlanCompletionInline(){
     return;
   }
   const state=ragwanProgressLoad();
-  if(!state.completed.includes(10)){
+  if(!ragwanCanCompleteStep(10,state)||!state.completed.includes(10)){
     host.classList.remove('visible');
     host.innerHTML='';
     return;
