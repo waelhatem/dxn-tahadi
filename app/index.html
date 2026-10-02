@@ -5543,6 +5543,11 @@ async function ragwanLoadEvidence(){
 }
 
 function ragwanOpenDoor(n){
+  if(role==='member'&&!ragwanSelectedTrainee){
+    toast('👤 اختر اسم العضو (المتدرب) أولًا حتى نفتح الخطة على سجله.');
+    ragwanRenderTraineePanel();
+    return;
+  }
   const data=ragwanDoorData(),state=ragwanProgressLoad();
   const requestedStep=Math.max(1,Math.min(10,Number(n)||1));
   const bypassAllowed=role!=='member'||ragwanPreviewMemberMode();
@@ -5640,78 +5645,75 @@ function ragwanOpenDoor(n){
     },80);
   }
 }
-function ragwanStartStep(){
+async function ragwanStartStep(){
+  if(role==='member'&&!ragwanSelectedTrainee){toast('👤 اختر المتدرب أولًا.');return}
   const state=ragwanProgressLoad(),step=ragwanCurrentStep;
   if(!state.started.includes(step))state.started.push(step);
-  ragwanProgressSave(state);ragwanOpenDoor(step);
+  ragwanProgressSave(state);
+  try{
+    const out=await ragwanPlanApi('save_training_step',{trainee_member_id:ragwanSelectedTraineeId,step,status:'started'});
+    ragwanSelectedProgress=ragwanNormalizeDbProgress(out.progress);
+    ragwanRenderProgress();ragwanOpenDoor(step);
+  }catch(e){toast('⚠️ '+(e.message||'تعذر حفظ بداية الخطوة.'))}
 }
 function ragwanCanCompleteStep(step,state){
   if(step<=1)return true;
   for(let i=1;i<step;i++)if(!state.completed.includes(i))return false;
   return true;
 }
-function ragwanCompleteStep(){
+async function ragwanCompleteStep(){
+  if(role==='member'&&!ragwanSelectedTrainee){toast('👤 اختر المتدرب أولًا.');return}
   const state=ragwanProgressLoad(),step=ragwanCurrentStep;
   if(!ragwanCanCompleteStep(step,state)){
     toast('⚠️ لا يمكنك إكمال '+ragwanStepWord(step)+' قبل إكمال جميع الخطوات السابقة بالترتيب.');
-    ragwanRenderProgress();
-    ragwanOpenDoor(step);
-    return;
+    ragwanRenderProgress();ragwanOpenDoor(step);return;
   }
   if(state.completed.includes(step)){
     if(step===10)ragwanRenderPlanCompletionInline();
     return;
   }
   if(!state.started.includes(step))state.started.push(step);
-  state.completed.push(step);
-  state.completed=[...new Set(state.completed)].sort((a,b)=>a-b);
-  ragwanProgressSave(state);
-  ragwanRenderProgress();
-  toast(step===10?'🏆 أحسنت! أكملت خطة رجوان كاملة.':'🟢 تم تسجيل إنجاز الخطوة.');
-  ragwanOpenDoor(step);
-  if(step===10)setTimeout(ragwanRenderPlanCompletionInline,120);
+  try{
+    const out=await ragwanPlanApi('save_training_step',{trainee_member_id:ragwanSelectedTraineeId,step,status:'completed'});
+    ragwanSelectedProgress=ragwanNormalizeDbProgress(out.progress);
+    ragwanRenderProgress();
+    toast(step===10?'🏆 أحسنت! أكملت خطة رجوان كاملة مع '+(ragwanSelectedTrainee.name||'المتدرب')+'.':'🟢 تم تسجيل إنجاز الخطوة للمتدرب.');
+    ragwanOpenDoor(step);
+    if(step===10)setTimeout(ragwanRenderPlanCompletionInline,120);
+  }catch(e){toast('⚠️ '+(e.message||'تعذر حفظ إنجاز الخطوة.'))}
 }
 function ragwanRenderPlanCompletionInline(){
   const host=document.getElementById('ragwanPlanCompletionInline');
   if(!host)return;
-  if(ragwanCurrentStep!==10||role!=='member'){
-    host.classList.remove('visible');
-    host.innerHTML='';
-    return;
+  if(ragwanCurrentStep!==10||role!=='member'||!ragwanSelectedTrainee){
+    host.classList.remove('visible');host.innerHTML='';return;
   }
   const state=ragwanProgressLoad();
   if(!ragwanCanCompleteStep(10,state)||!state.completed.includes(10)){
-    host.classList.remove('visible');
-    host.innerHTML='';
-    return;
+    host.classList.remove('visible');host.innerHTML='';return;
   }
   host.classList.add('visible');
   if(host.dataset.saved==='1')return;
-  host.innerHTML='<label for="ragwanPlanCompletionMemberNameInline">👤 اسم العضو الذي أكملت معه الخطة</label>'+
-    '<input id="ragwanPlanCompletionMemberNameInline" type="text" maxlength="160" autocomplete="off" placeholder="اكتب اسم العضو هنا">'+
-    '<div class="hint">اكتب اسم العضو الذي طبّقت معه الأبواب العشرة.</div>'+
-    '<button type="button" class="save" id="ragwanPlanCompletionSaveInline" onclick="ragwanSavePlanCompletionMemberInline()">💾 حفظ إكمال الخطة</button>'+
+  host.innerHTML='<label>🏆 الخطة مكتملة</label>'+
+    '<div class="hint">أكملت الأبواب العشرة مع المتدرب: <b>'+esc(ragwanSelectedTrainee.name||'')+'</b></div>'+
+    '<div class="muted" style="margin-top:6px">سيُسجَّل الإكمال باسم هذا المتدرب، ويُحفظ في سجله، ويُرسل إشعار إلى القائد.</div>'+
+    '<button type="button" class="save" id="ragwanPlanCompletionSaveInline" onclick="ragwanSavePlanCompletionMemberInline()">💾 تسجيل إكمال الخطة</button>'+
     '<div id="ragwanPlanCompletionInlineStatus" class="status" aria-live="polite"></div>';
-  const input=document.getElementById('ragwanPlanCompletionMemberNameInline');
-  input?.focus();
 }
 async function ragwanSavePlanCompletionMemberInline(){
-  const input=document.getElementById('ragwanPlanCompletionMemberNameInline');
   const btn=document.getElementById('ragwanPlanCompletionSaveInline');
   const status=document.getElementById('ragwanPlanCompletionInlineStatus');
-  const name=String(input?.value||'').trim();
-  if(!name){if(status)status.textContent='⚠️ اكتب اسم العضو أولًا.';input?.focus();return}
-  if(btn)btn.disabled=true;
-  if(status)status.textContent='⏳ جارٍ حفظ إكمال الخطة...';
+  if(!ragwanSelectedTraineeId){if(status)status.textContent='⚠️ اختر المتدرب أولًا.';return}
+  if(btn)btn.disabled=true;if(status)status.textContent='⏳ جارٍ حفظ إكمال الخطة...';
   try{
-    const out=await rpc('record_ragwan_plan_completion',{p_token:token,p_member_name:name});
+    const out=await ragwanPlanApi('record_plan_completion_for_member',{member_id:ragwanSelectedTraineeId});
     const host=document.getElementById('ragwanPlanCompletionInline');
     if(host){
       host.dataset.saved='1';
       host.innerHTML='<label>🏆 تم تسجيل إكمال الخطة</label>'+
-        '<div class="hint" style="color:#176b55;font-weight:900">تم تسجيل إكمال الخطة مع العضو: '+esc(out?.member_name||name)+'</div>';
+        '<div class="hint" style="color:#176b55;font-weight:900">تم تسجيل إكمال الخطة مع المتدرب: '+esc(out?.completion?.member_name||ragwanSelectedTrainee.name||'')+'</div>';
     }
-    toast('✅ تم تسجيل إكمال الخطة مع '+(out?.member_name||name)+' وإبلاغ القائد.');
+    toast('✅ تم تسجيل إكمال الخطة مع '+(out?.completion?.member_name||ragwanSelectedTrainee.name||'')+' وإبلاغ القائد.');
   }catch(e){
     if(status)status.textContent='⚠️ '+String(e?.message||'تعذر حفظ إكمال الخطة.');
     if(btn)btn.disabled=false;
