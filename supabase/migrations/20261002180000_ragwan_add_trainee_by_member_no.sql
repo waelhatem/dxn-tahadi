@@ -71,7 +71,6 @@ begin
 
   return json_build_object(
     'ok', true,
-    'new_enrollment', e.created_at = e.started_at,
     'enrollment_id', e.id,
     'member_id', e.trainee_member_id,
     'name', e.trainee_name,
