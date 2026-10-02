@@ -205,9 +205,7 @@ begin
 
   update public.ragwan_training_enrollments
   set completed_at = coalesce(completed_at, completion_time, now()),
-      last_activity_at = now(),
-      trainee_name = trainee_name,
-      trainee_member_no = trainee_member_no
+      last_activity_at = now()
   where id = e.id;
 
   -- Notify the sponsor who completed the plan.
