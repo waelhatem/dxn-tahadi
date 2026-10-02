@@ -5516,7 +5516,12 @@ function ragwanCompleteStep(){
 }
 function ragwanRenderPlanCompletionInline(){
   const host=document.getElementById('ragwanPlanCompletionInline');
-  if(!host||ragwanCurrentStep!==10)return;
+  if(!host)return;
+  if(ragwanCurrentStep!==10||role!=='member'){
+    host.classList.remove('visible');
+    host.innerHTML='';
+    return;
+  }
   const state=ragwanProgressLoad();
   if(!state.completed.includes(10)){
     host.classList.remove('visible');
