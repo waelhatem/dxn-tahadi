@@ -5806,7 +5806,7 @@ async function ragwanSavePlanCompletionMemberInline(){
             '<option value="male">ذكر</option>'+
             '<option value="female">أنثى</option>'+
           '</select>'+
-          '<button type="button" class="ragwan-certificate-create" onclick="ragwanCreateCompletionCertificate()">🎓 تصميم الشهادة كاملة</button>'+
+          '<button type="button" class="ragwan-certificate-create" id="ragwanCertificateCreateBtn">🎓 تصميم الشهادة كاملة</button>'+
           '<div id="ragwanCertificateBuilderStatus" class="ragwan-certificate-builder-status" aria-live="polite"></div>'+
         '</div>';
     }
@@ -5896,6 +5896,21 @@ async function ragwanCreateCompletionCertificate(){
   ctx.fillStyle='#234b40';ctx.font='24px Arial';ctx.fillText('خطة رجوان للنجاح • إكمال 10 أبواب تدريبية',W/2,975);
   window.__ragwanCertificateCanvas=canvas;
   if(status)status.textContent='✅ تم تصميم الشهادة بالبيانات الصحيحة.';
+}
+window.ragwanCreateCompletionCertificate=ragwanCreateCompletionCertificate;
+if(!window.__ragwanCertificateCreateClickBound){
+  document.addEventListener('click',function(e){
+    const btn=e.target?.closest?.('#ragwanCertificateCreateBtn');
+    if(!btn)return;
+    e.preventDefault();
+    e.stopPropagation();
+    try{ragwanCreateCompletionCertificate();}catch(err){
+      const s=document.getElementById('ragwanCertificateBuilderStatus');
+      if(s)s.textContent='⚠️ '+String(err?.message||'تعذر تشغيل تصميم الشهادة.');
+      console.error('ragwan certificate create',err);
+    }
+  },true);
+  window.__ragwanCertificateCreateClickBound=true;
 }
 function ragwanDownloadCompletionCertificate(){
   const canvas=window.__ragwanCertificateCanvas;if(!canvas)return;
