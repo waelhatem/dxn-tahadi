@@ -180,6 +180,7 @@ begin
     json_build_object(
       'id',r.id,
       'sponsor_member_id',r.sponsor_member_id,
+      'sponsor_member_name',(select trim(coalesce(m.name,'')) from public.members m where m.id=r.sponsor_member_id),
       'completed_member_id',r.completed_member_id,
       'completed_member_name',r.completed_member_name,
       'completed_member_no',r.completed_member_no,
