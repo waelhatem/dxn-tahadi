@@ -3550,7 +3550,7 @@ function ragwanDoorJourneyMarkup(){
     const status=ragwanStepStatus(x.n,state),locked=false;
     return '<button type="button" class="ragwan-door-chip '+status+'" id="ragwanDoorChip'+x.n+'" '+(locked?'disabled':'')+' onclick="ragwanOpenDoor('+x.n+')">'+x.n+'</button>';
   }).join('');
-  return '<section class="ragwan-journey" id="ragwanJourney">'+
+  return '<section class="ragwan-plan-shell" id="ragwanPlanShell">'+\n    '<div id="ragwanTraineePanel">'+ragwanTraineePanelMarkup()+'</div>'+\n    '<div id="ragwanJourneyContent" '+(ragwanSelectedTrainee?'':'style="display:none"')+'>'+\n    '<section class="ragwan-journey" id="ragwanJourney">'+
     '<div class="ragwan-journey-head"><div class="ragwan-journey-kicker">🚪 رحلة التطبيق الاحترافي</div><div class="ragwan-journey-title">خطوات خطة رجوان للنجاح</div><div class="ragwan-journey-sub">جميع الأبواب من الأول إلى العاشر مفتوحة للعضو. يمكنك الدخول إلى أي خطوة ومتابعتها وإنجازها مباشرة دون انتظار اعتماد من القائد.</div></div>'+
     '<div class="ragwan-real-progress">'+
       '<div class="ragwan-progress-top"><div><b>📊 تقدمك الحقيقي</b><span id="ragwanRealProgressState">الخطوة '+current+' هي خطوتك الحالية</span></div><strong id="ragwanRealProgressPercent">0%</strong></div>'+
@@ -3592,8 +3592,7 @@ function ragwanDoorJourneyMarkup(){
       '</div>'+
     '</div>'+
     '<div class="ragwan-door-controls"><button type="button" class="ragwan-door-nav" onclick="ragwanPrevDoor()">‹</button>'+chips+'<button type="button" class="ragwan-door-nav" onclick="ragwanNextDoor()">›</button></div>'+
-    '<div class="ragwan-journey-note">✨ خطوات بسيطة اليوم... تصنع نجاحات كبيرة غدًا</div>'+
-  '</section>';
+    '<div class="ragwan-journey-note">✨ خطوات بسيطة اليوم... تصنع نجاحات كبيرة غدًا</div>'+\n  '</section></div></section>';  '</section>';
 }
 let ragwanCurrentStep=1;
 async function ragwanEvidenceApi(action,args={}){
