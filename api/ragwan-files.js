@@ -102,11 +102,12 @@ async function ragwanPlanFiles(args){
   const boot=await supabaseSecretRpc('bootstrap',{p_token:token}),role=String(boot&&boot.role||'');
   if(!['leader','member'].includes(role))throw new Error('غير مصرح.');
   const bucket='ragwan-plan';
-  if(['search_trainees','list_trainees','select_trainee','get_training_progress','save_training_step','record_plan_completion_for_member'].includes(action)){
+  if(['search_trainees','list_trainees','select_trainee','add_trainee_by_member_no','get_training_progress','save_training_step','record_plan_completion_for_member'].includes(action)){
     const rpcMap={
       search_trainees:'search_ragwan_trainees',
       list_trainees:'list_ragwan_trainees',
       select_trainee:'select_ragwan_trainee',
+      add_trainee_by_member_no:'add_ragwan_trainee_by_member_no',
       get_training_progress:'get_ragwan_training_progress',
       save_training_step:'save_ragwan_training_step',
       record_plan_completion_for_member:'record_ragwan_plan_completion_for_member'
@@ -120,6 +121,9 @@ async function ragwanPlanFiles(args){
     }
     if(action==='select_trainee'){
       return {trainee:await supabaseSecretRpc(fn,{p_token:token,p_trainee_member_id:String(args.trainee_member_id||'').trim()})};
+    }
+    if(action==='add_trainee_by_member_no'){
+      return {trainee:await supabaseSecretRpc(fn,{p_token:token,p_trainee_member_no:String(args.member_no||'').trim()})};
     }
     if(action==='get_training_progress'){
       return {progress:await supabaseSecretRpc(fn,{p_token:token,p_trainee_member_id:String(args.trainee_member_id||'').trim()})};
