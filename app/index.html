@@ -5814,15 +5814,26 @@ async function ragwanSavePlanCompletionMemberInline(){
     if(btn)btn.disabled=false;
   }
 }
-function ragwanCreateCompletionCertificate(){
+async function ragwanCreateCompletionCertificate(){
   const status=document.getElementById('ragwanCertificateBuilderStatus');
   const gender=document.getElementById('ragwanCertificateGender')?.value||'';
   const completion=window.ragwanLastCompletion||{};
-  const trainee=ragwanSelectedTrainee||{};
+  let trainee=ragwanSelectedTrainee||{};
   if(!gender){
     if(status)status.textContent='⚠️ اختر نوع الشهادة: ذكر أو أنثى.';
     return;
   }
+  if(status)status.textContent='⏳ جارٍ جلب بيانات المتدرب...';
+  try{
+    const memberId=String(completion.member_id||trainee.member_id||trainee.id||ragwanSelectedTraineeId||'').trim();
+    if(memberId){
+      const fresh=await ragwanPlanApi('select_trainee',{trainee_member_id:memberId});
+      if(fresh?.trainee){
+        trainee={...trainee,...fresh.trainee};
+        ragwanSelectedTrainee=trainee;
+      }
+    }
+  }catch(_){}
   const memberId=String(completion.member_id||trainee.member_id||trainee.id||ragwanSelectedTraineeId||'').trim();
   const memberFromData=Array.isArray(data?.members)
     ? data.members.find(m=>String(m?.id||'')===memberId)
