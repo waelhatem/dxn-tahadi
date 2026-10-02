@@ -3445,7 +3445,8 @@ async function ragwanSelectTrainee(memberId){
     ragwanRenderTraineePanel();
     ragwanRenderProgress();
     ragwanOpenDoor(ragwanProgressNextStep());
-    toast('✅ تم اختيار المتدرب: '+(ragwanSelectedTrainee.name||''));
+    requestAnimationFrame(()=>document.getElementById('ragwanTraineePanel')?.scrollIntoView({behavior:'smooth',block:'start'}));
+    toast('✅ تم اختيار المتدرب: '+(ragwanSelectedTrainee.name||'')+' — ظهرت صفحة تدريبه الآن.');
   }catch(e){toast('⚠️ '+(e.message||'تعذر اختيار المتدرب.'))}
 }
 function ragwanClearSelectedTrainee(){
@@ -3523,7 +3524,7 @@ async function ragwanOpenTraineesTable(){
       rows.map(m=>{
         const done=Number(m.completed_count||0),current=done<10?done+1:10;
         const activity=m.last_activity_at?new Date(m.last_activity_at).toLocaleString('ar-IQ',{dateStyle:'short',timeStyle:'short'}):'—';
-        const completed=!!m.completed_at; const status=completed?'✅ أكمل التدريب':done===10?'📝 بانتظار تسجيل الإكمال':'⏳ قيد التدريب'; const stage=completed?'🏆 مكتملة':done===10?'✅ الأبواب العشرة مكتملة':'الباب '+current; return '<tr><td><b>'+esc(m.name||'')+'</b><div class="small muted">'+esc(m.member_no||'')+'</div></td><td><b>'+status+'</b>'+(completed&&m.completed_at?'<div class="small muted">'+esc(new Date(m.completed_at).toLocaleString('ar-IQ',{dateStyle:'short',timeStyle:'short'}))+'</div>':'')+'</td><td>'+done+' / 10</td><td>'+stage+'</td><td>'+esc(activity)+'</td><td><button type="button" class="primary" onclick="ragwanSelectTrainee(\''+esc(String(m.member_id||''))+'\');document.getElementById(\'ragwanTraineesTableModal\')?.remove()">▶️ متابعة</button></td></tr>';
+        const completed=!!m.completed_at; const status=completed?'✅ أكمل التدريب':done===10?'📝 بانتظار تسجيل الإكمال':'⏳ قيد التدريب'; const stage=completed?'🏆 مكتملة':done===10?'✅ الأبواب العشرة مكتملة':'الباب '+current; return '<tr><td><b>'+esc(m.name||'')+'</b><div class="small muted">'+esc(m.member_no||'')+'</div></td><td><b>'+status+'</b>'+(completed&&m.completed_at?'<div class="small muted">'+esc(new Date(m.completed_at).toLocaleString('ar-IQ',{dateStyle:'short',timeStyle:'short'}))+'</div>':'')+'</td><td>'+done+' / 10</td><td>'+stage+'</td><td>'+esc(activity)+'</td><td><button type="button" class="primary" onclick="ragwanSelectTrainee(\''+esc(String(m.member_id||''))+'\');document.getElementById(\'ragwanTraineesTableModal\')?.remove()">👤 اختيار وفتح التدريب</button></td></tr>';
       }).join('')+'</tbody></table></div>';
   }catch(e){const body=$('ragwanTraineesTableBody');if(body)body.innerHTML='<div class="muted">⚠️ '+esc(e.message||'تعذر تحميل المتدربين.')+'</div>'}
 }
