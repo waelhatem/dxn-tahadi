@@ -3806,9 +3806,10 @@ function ragwanWelcomeCountryChanged(){
 }
 function ragwanWelcomeCurrentMessage(data){
   const editor=document.getElementById('ragwanWelcomeMessageEditor');
-  return editor?.value?.trim() ? editor.value : ragwanWelcomeMessage(data);
+  return role==='leader' && editor?.value?.trim() ? editor.value : ragwanWelcomeMessage(data);
 }
 function ragwanWelcomeResetMessage(){
+  if(role!=='leader') return;
   const data=ragwanWelcomeCollectData();
   const editor=document.getElementById('ragwanWelcomeMessageEditor');
   if(editor){ editor.value=ragwanWelcomeMessage(data); editor.dataset.userEdited=''; }
@@ -4336,15 +4337,15 @@ function ragwanRenderWelcomeBuilder(){
       '</div>'+
       '<div class="ragwan-welcome-preview-wrap"><div class="ragwan-welcome-preview-title">🖼️ معاينة الفريم</div><img id="ragwanWelcomePreview" alt="معاينة صورة الترحيب"><canvas id="ragwanWelcomeCanvas" class="hidden"></canvas><div class="muted">للأنثى يستخدم النظام الفريم النسائي دون طلب صورة شخصية.</div></div>'+
     '</div>'+
-    '<div class="ragwan-welcome-message-box"><b>📝 رسالة الترحيب — قابلة للتعديل</b><textarea id="ragwanWelcomeMessageEditor" rows="18" style="width:100%;min-height:320px;resize:vertical;line-height:1.8;padding:14px;border-radius:12px;border:1px solid rgba(0,0,0,.12);font-family:inherit;direction:rtl" oninput="this.dataset.userEdited=\'1\';document.getElementById(\'ragwanWelcomeMessagePreview\').textContent=this.value"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button type="button" onclick="ragwanWelcomeResetMessage()">↩️ استعادة الرسالة الأصلية</button><button type="button" onclick="ragwanCopyWelcomeMessage()">📋 نسخ الرسالة المعدلة</button></div><pre id="ragwanWelcomeMessagePreview" style="display:none"></pre></div>';
+    (role==='leader' ? '<div class="ragwan-welcome-message-box"><b>📝 رسالة الترحيب — قابلة للتعديل للقائد</b><textarea id="ragwanWelcomeMessageEditor" rows="18" style="width:100%;min-height:320px;resize:vertical;line-height:1.8;padding:14px;border-radius:12px;border:1px solid rgba(0,0,0,.12);font-family:inherit;direction:rtl" oninput="this.dataset.userEdited=\'1\';document.getElementById(\'ragwanWelcomeMessagePreview\').textContent=this.value"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button type="button" onclick="ragwanWelcomeResetMessage()">↩️ استعادة القالب الأصلي</button><button type="button" onclick="ragwanCopyWelcomeMessage()">📋 نسخ الرسالة المعدلة</button></div><pre id="ragwanWelcomeMessagePreview" style="display:none"></pre></div>' : '<div class="ragwan-welcome-message-box"><b>📝 رسالة الترحيب الأصلية</b><p class="muted" style="line-height:1.8;margin:8px 0 0">يتم اعتماد القالب الأصلي تلقائيًا. تعديل الرسالة متاح لحساب القائد فقط.</p><pre id="ragwanWelcomeMessagePreview" style="white-space:pre-wrap;direction:rtl;line-height:1.8;margin-top:10px"></pre></div>') ;
   ragwanWelcomeGenderChanged();
   ragwanBindWelcomePhotoDrag();
 }
 function ragwanWelcomeUpdate(){
   const data=ragwanWelcomeCollectData();
   const editor=document.getElementById('ragwanWelcomeMessageEditor');
-  if(editor && !editor.dataset.userEdited) editor.value=ragwanWelcomeMessage(data);
-  const p=document.getElementById('ragwanWelcomeMessagePreview');if(p)p.textContent=editor?.value||ragwanWelcomeMessage(data);
+  if(role==='leader' && editor && !editor.dataset.userEdited) editor.value=ragwanWelcomeMessage(data);
+  const p=document.getElementById('ragwanWelcomeMessagePreview');if(p)p.textContent=ragwanWelcomeCurrentMessage(data);
   ragwanWelcomeRenderPreview();
 }
 function ragwanWelcomeGenderChanged(){
