@@ -3552,6 +3552,14 @@ function ragwanStepWord(n){
 }
 function ragwanRenderProgress(){
   const state=ragwanProgressLoad(),completed=state.completed.length,current=completed<10?completed+1:10,percent=Math.round(completed/10*100),remaining=10-completed;
+  /* تحديث حالة الأبواب فور تغيّر التقدم حتى يظهر الباب التالي متاحًا مباشرة. */
+  const doorState=ragwanProgressLoad();
+  ragwanDoorData().forEach(x=>{
+    const s=ragwanStepStatus(x.n,doorState);
+    const door=document.getElementById('ragwanDoor'+x.n),chip=document.getElementById('ragwanDoorChip'+x.n);
+    if(door){door.classList.remove('status-completed','status-started','status-available','status-locked','open','active','completed','started','available','locked');door.classList.add('status-'+s);const label=door.querySelector('.ragwan-door-status');if(label)label.textContent=ragwanStatusLabel(s);}
+    if(chip){chip.classList.remove('active','completed','started','available','locked');chip.classList.add(s);}
+  });
   const bar=document.getElementById('ragwanRealProgress');
   if(bar)bar.style.width=percent+'%';
   const pct=document.getElementById('ragwanRealProgressPercent');if(pct)pct.textContent=percent+'%';
@@ -3565,7 +3573,7 @@ function ragwanDoorJourneyMarkup(){
   const d=ragwanDoorData(),state=ragwanProgressLoad(),current=ragwanProgressNextStep();
   const doors=d.map(x=>{
     const status=ragwanStepStatus(x.n,state),locked=false;
-    return '<button type="button" class="ragwan-door '+status+'" id="ragwanDoor'+x.n+'" '+(locked?'disabled':'')+' onclick="ragwanOpenDoor('+x.n+')" aria-label="'+esc(x.title)+'">'+
+    return '<button type="button" class="ragwan-door status-'+status+'" id="ragwanDoor'+x.n+'" '+(locked?'disabled':'')+' onclick="ragwanOpenDoor('+x.n+')" aria-label="'+esc(x.title)+'">'+
       '<span class="ragwan-door-back ragwan-door-back-'+x.n+'">'+
         '<span class="ragwan-door-back-num">'+x.n+'</span>'+
         '<span class="ragwan-door-back-icon">'+x.icon+'</span>'+
@@ -5614,7 +5622,7 @@ function ragwanOpenDoor(n){
   ragwanCurrentStep=step;
   data.forEach(x=>{
     const door=document.getElementById('ragwanDoor'+x.n),chip=document.getElementById('ragwanDoorChip'+x.n),s=ragwanStepStatus(x.n,state);
-    if(door){door.classList.remove('open','active','completed','started','available','locked','press3d');door.classList.add(s);door.classList.toggle('open',x.n===step);}
+    if(door){door.classList.remove('open','active','completed','started','available','locked','status-completed','status-started','status-available','status-locked','press3d');door.classList.add('status-'+s);door.classList.toggle('open',x.n===step);}
     if(chip){chip.classList.remove('active','completed','started','available','locked');chip.classList.add(s);chip.classList.toggle('active',x.n===step);}
   });
   const pressedDoor=document.getElementById('ragwanDoor'+step);
@@ -5719,7 +5727,7 @@ async function ragwanCompleteStep(){
     ragwanSelectedProgress=ragwanNormalizeDbProgress(out.progress);
     ragwanRenderProgress();
     toast(step===10?'🏆 أحسنت! أكملت خطة رجوان كاملة مع '+(ragwanSelectedTrainee.name||'المتدرب')+'.':'🟢 تم تسجيل إنجاز الخطوة للمتدرب.');
-    ragwanOpenDoor(step);
+    ragwanOpenDoor(step>=10?10:step+1);
     if(step===10)setTimeout(ragwanRenderPlanCompletionInline,120);
   }catch(e){toast('⚠️ '+(e.message||'تعذر حفظ إنجاز الخطوة.'))}
 }
