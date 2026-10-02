@@ -4264,13 +4264,7 @@ async function ragwanWelcomeCopyPostWithImage(){
   canvas.toBlob(async blob=>{
     if(!blob){toast('⚠️ تعذر تجهيز صورة الترحيب.');return;}
 
-    const msg=ragwanWelcomeCurrentMessage({
-      gender:document.getElementById('ragwanWelcomeGender')?.value||'male',
-      name:document.getElementById('ragwanWelcomeName')?.value,
-      memberNo:document.getElementById('ragwanWelcomeMemberNo')?.value,
-      country:document.getElementById('ragwanWelcomeCountry')?.value,
-      city:document.getElementById('ragwanWelcomeCity')?.value
-    });
+    const msg=ragwanWelcomeCurrentMessage(ragwanWelcomeCollectData());
 
     try{
       // هذا الزر مخصص لسطح المكتب:
@@ -4511,33 +4505,16 @@ function ragwanUpdateWelcomeContent(){
 function ragwanRenderStepWelcome(){
   const el=document.getElementById('ragwanStepWelcome');
   if(!el)return;
-  if(ragwanCurrentStep!==3){el.innerHTML='';return;}
-  ragwanWelcomeGender='';
-  el.innerHTML='<section class="ragwan-welcome-card">'+
-    '<div class="ragwan-welcome-head"><span>🎉</span><div><h3>رسالة وصورة الترحيب بالعضو الجديد</h3><p>أدخل اسم العضو ورقم العضوية، ثم اختر الجنس لتوليد الصيغة المناسبة تلقائيًا.</p></div></div>'+
-    '<div class="ragwan-welcome-fields">'+
-      '<label>اسم العضو<input id="ragwanWelcomeName" type="text" placeholder="اكتب اسم العضو الجديد"></label>'+
-      '<label>رقم العضوية<input id="ragwanWelcomeNo" type="text" inputmode="numeric" maxlength="9" placeholder="اكتب رقم العضوية المكون من 9 أرقام"></label>'+
-    '</div>'+
-    '<div class="ragwan-gender-fallback"><label>جنس العضو<select id="ragwanWelcomeGenderSelect"><option value="">اختر الجنس</option><option value="male">👨 ذكر</option><option value="female">👩 أنثى</option></select></label></div>'+
-    '<div class="ragwan-welcome-output">'+
-      '<div class="ragwan-welcome-message-wrap"><b>💬 رسالة الترحيب</b><div class="ragwan-welcome-message" id="ragwanWelcomeMessage"></div></div>'+
-      '<div class="ragwan-welcome-image-wrap"><b>🖼️ صورة الترحيب</b><div class="ragwan-welcome-canvas-box"><canvas id="ragwanWelcomeCanvas" width="1254" height="1254"></canvas></div></div>'+
-    '</div>'+
-    '<div class="ragwan-welcome-actions">'+
-      '<button type="button" class="ragwan-welcome-copy" onclick="ragwanCopyWelcomeMessage()">📋 نسخ الرسالة</button>'+
-      '<button type="button" class="ragwan-welcome-copy" onclick="ragwanCopyWelcomeImage()">🖼️ نسخ الصورة</button>'+
-      '<button type="button" class="ragwan-welcome-copy" onclick="ragwanSaveWelcomeImage()">⬇️ حفظ الصورة</button>'+
-    '</div>'+
-    '<div class="ragwan-welcome-note">💡 لا يتم البحث في قاعدة البيانات. اختر جنس العضو مباشرة، وسيتم توليد الرسالة والصورة وفقًا للاختيار.</div>'+
-  '</section>';
-  const nameInput=document.getElementById('ragwanWelcomeName');
-  const noInput=document.getElementById('ragwanWelcomeNo');
-  const genderInput=document.getElementById('ragwanWelcomeGenderSelect');
-  if(nameInput)nameInput.addEventListener('input',ragwanUpdateWelcomeContent);
-  if(noInput)noInput.addEventListener('input',ragwanUpdateWelcomeContent);
-  if(genderInput)genderInput.addEventListener('change',()=>{ragwanWelcomeGender=genderInput.value;ragwanUpdateWelcomeContent();});
-  ragwanUpdateWelcomeContent();
+
+  // الباب الثالث يستخدم الآن نفس منشئ الترحيب الكامل المعتمد،
+  // بدل الواجهة القديمة التي كانت تعرض الاسم والرقم والجنس فقط.
+  if(ragwanCurrentStep!==3){
+    el.innerHTML='';
+    return;
+  }
+
+  el.innerHTML='<div id="ragwanWelcomeBuilder"></div>';
+  ragwanRenderWelcomeBuilder();
 }
 function ragwanGetWelcomeBlob(){
   return new Promise((resolve,reject)=>{
