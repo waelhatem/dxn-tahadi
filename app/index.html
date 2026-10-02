@@ -8107,6 +8107,37 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 #globalPreviewPanel .gp-device iframe{display:block;width:100%;height:100%;border:0;background:#fff}
 #globalPreviewPanel .gp-note{position:absolute;bottom:8px;left:12px;right:12px;text-align:center;color:#526760;font-size:11px;pointer-events:none}
 @media(max-width:700px){#globalPreviewLauncher{left:10px;bottom:10px}#globalPreviewPanel{padding:8px}#globalPreviewPanel .gp-shell{width:100%;height:100%;border-radius:18px}#globalPreviewPanel .gp-stage{padding:8px}#globalPreviewPanel .gp-device.portrait{width:min(390px,92vw);height:min(844px,calc(100vh - 130px));box-sizing:content-box}#globalPreviewPanel .gp-device.landscape{width:min(844px,96vw);height:min(390px,calc(100vh - 130px));box-sizing:content-box}}
+
+/* Ragwan trainee tracker */
+.ragwan-trainee-selector{margin:0 0 16px;background:linear-gradient(135deg,#f7fcf9,#fff);border:1px solid #cfe4da;border-radius:20px;padding:18px;box-shadow:0 8px 24px rgba(15,81,63,.08)}
+.ragwan-trainee-selector-head h3{margin:4px 0 5px;font-size:20px}
+.ragwan-trainee-selector-head p{margin:0;color:var(--muted);line-height:1.7}
+.ragwan-trainee-kicker{font-size:12px;font-weight:950;color:var(--green)}
+.ragwan-trainee-search-row{display:flex;gap:9px;align-items:center;margin-top:14px}
+.ragwan-search-wrap{display:flex;align-items:center;gap:8px;flex:1;background:#fff;border:1px solid var(--line);border-radius:14px;padding:0 12px}
+.ragwan-search-wrap input{border:0!important;outline:0!important;margin:0!important;background:transparent!important}
+.ragwan-trainee-search-results{display:grid;gap:7px;margin-top:10px}
+.ragwan-trainee-result{display:flex;align-items:center;gap:10px;width:100%;text-align:right;background:#fff;border:1px solid var(--line);padding:10px 12px}
+.ragwan-trainee-result:hover{border-color:#a8cfbf;background:#f8fcfa}
+.ragwan-trainee-avatar{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:#eef8f2;flex:0 0 38px}
+.ragwan-trainee-result-copy{display:grid;gap:2px;min-width:0}
+.ragwan-trainee-result-copy b{font-size:14px}
+.ragwan-trainee-result-copy small{color:var(--muted)}
+.ragwan-selected-trainee{display:flex;align-items:center;gap:12px;margin:0 0 16px;padding:13px 15px;background:#fff;border:1px solid #cfe4da;border-radius:18px;box-shadow:0 7px 20px rgba(15,81,63,.07)}
+.ragwan-selected-trainee-icon{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:#eef8f2;font-size:22px;flex:0 0 46px}
+.ragwan-selected-trainee-copy{min-width:0;flex:1}
+.ragwan-selected-trainee-copy span,.ragwan-selected-trainee-copy small{display:block;color:var(--muted);font-size:11px}
+.ragwan-selected-trainee-copy b{display:block;font-size:17px;margin:2px 0}
+.ragwan-trainees-modal{max-width:920px}
+.ragwan-trainees-table-wrap{overflow:auto}
+.ragwan-trainees-table{min-width:720px}
+@media(max-width:650px){
+  .ragwan-trainee-search-row{flex-direction:column;align-items:stretch}
+  .ragwan-search-wrap{width:100%}
+  .ragwan-selected-trainee{align-items:flex-start;flex-wrap:wrap}
+  .ragwan-selected-trainee-copy{min-width:calc(100% - 60px)}
+  .ragwan-selected-trainee>button{width:100%}
+}
 </style>
 <div id="globalPreviewLauncher" aria-hidden="true"><button type="button" class="gp-launch" id="globalPreviewOpen">👁️ معاينة الموقع</button></div>
 <div id="globalPreviewPanel" aria-hidden="true" role="dialog" aria-modal="true" aria-label="معاينة الموقع"><div class="gp-shell"><div class="gp-head"><div class="gp-title">👁️ معاينة الموقع — وضع الشرح</div><div class="gp-controls"><button type="button" data-preview-mode="desktop">🖥️ كمبيوتر</button><button type="button" data-preview-mode="portrait">📱 موبايل</button><button type="button" data-preview-mode="landscape">📲 أفقي</button><button type="button" data-preview-mode="tablet">📱 جهاز لوحي (آيباد)</button><button type="button" id="globalPreviewZoomOut" title="تصغير المعاينة">➖</button><button type="button" id="globalPreviewZoomReset" title="الحجم الطبيعي">100%</button><button type="button" id="globalPreviewZoomIn" title="تكبير المعاينة">➕</button><button type="button" class="gp-close" id="globalPreviewClose">✕ إغلاق</button></div></div><div class="gp-stage"><div id="globalPreviewDevice" class="gp-device portrait"><iframe id="globalPreviewFrame" title="معاينة نسخة الموبايل" loading="eager"></iframe></div><div class="gp-note">المعاينة تستخدم نافذة داخلية مستقلة؛ تصميم الصفحة الأصلي لا يتغير.</div></div></div></div>
