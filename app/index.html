@@ -5490,7 +5490,6 @@ function ragwanOpenDoor(n){
 }
 function ragwanStartStep(){
   const state=ragwanProgressLoad(),step=ragwanCurrentStep;
-  if(state.completed.includes(step))return;
   if(!state.started.includes(step))state.started.push(step);
   ragwanProgressSave(state);ragwanOpenDoor(step);
 }
