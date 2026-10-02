@@ -53,8 +53,8 @@ module.exports=async function handler(req,res){
     const body=req.body||{};
     const memberId=String(body.member_id||'').trim();
     const path=String(body.path||'').trim();
-    const publicUrl=String(body.public_url||'').trim();
-    if(!memberId||!path||!publicUrl)throw new Error('بيانات الصورة ناقصة');
+    const publicUrl=SUPABASE_URL+'/storage/v1/object/public/'+path.split('/').map(encodeURIComponent).join('/');
+    if(!memberId||!path)throw new Error('بيانات الصورة ناقصة');
     if(session.role==='member'&&memberId!==session.memberId)throw new Error('لا يمكنك حفظ صورة عضو آخر');
     if(!path.startsWith(memberId+'/'))throw new Error('مسار الصورة غير صالح');
     const info=await objectInfo(path);
