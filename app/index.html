@@ -5835,15 +5835,11 @@ async function ragwanCreateCompletionCertificate(){
     }
   }catch(_){}
   const memberId=String(completion.member_id||trainee.member_id||trainee.id||ragwanSelectedTraineeId||'').trim();
-  const memberFromData=Array.isArray(data?.members)
-    ? data.members.find(m=>String(m?.id||'')===memberId)
-    : null;
   const traineeName=String(
     completion.member_name||
     completion.trainee_name||
     completion.name||
     trainee.name||
-    memberFromData?.name||
     ''
   ).trim();
   const traineeNo=String(
@@ -5852,9 +5848,6 @@ async function ragwanCreateCompletionCertificate(){
     trainee.member_no||
     trainee.membership_no||
     trainee.membership_number||
-    memberFromData?.member_no||
-    memberFromData?.membership_no||
-    memberFromData?.membership_number||
     ''
   ).trim();
   if(!traineeName||!traineeNo){
