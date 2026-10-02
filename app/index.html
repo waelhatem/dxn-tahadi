@@ -5591,7 +5591,7 @@ function ragwanOpenDoor(n){
   }
   const data=ragwanDoorData(),state=ragwanProgressLoad();
   const requestedStep=Math.max(1,Math.min(10,Number(n)||1));
-  const bypassAllowed=role!=='member'||ragwanPreviewMemberMode();
+  const bypassAllowed=role!=='member';
   if(!bypassAllowed){
     const missing=[];
     for(let i=1;i<requestedStep;i++){
@@ -6003,7 +6003,7 @@ function trainings(){
     const n=Number(l.lesson_no), p=progress.find(x=>String(x.lesson_id)===String(l.id));
     const done=!!p?.completed;
     const previousDone = n===1 || completedNo.has(n-1);
-    const locked = !done && !previousDone && !ragwanIsPreviewMember();
+    const locked = !done && !previousDone && role==='member';
     return `<div id="${n===1?'trainingLessonsStart':''}" class="card" style="${locked?'opacity:.58;background:#f6f8f7':''}">
       <div class="row">
         <div style="flex:1">
@@ -6046,7 +6046,7 @@ function startTrainingLesson(id){
   const done=new Set(progress.filter(p=>p.completed).map(p=>{const z=lessons.find(x=>String(x.id)===String(p.lesson_id));return z?Number(z.lesson_no):0;}));
   const n=Number(l.lesson_no);
   const previousDone = n===1 || done.has(n-1);
-  if(!previousDone && !ragwanIsPreviewMember())return toast('أكمل التدريب السابق أولاً.');
+  if(!previousDone && role==='member')return toast('أكمل التدريب السابق أولاً.');
   const embed=youtubeEmbed(l.youtube_url);
   if(!embed)return toast('رابط YouTube غير صالح.');
 
