@@ -5713,9 +5713,7 @@ async function ragwanSavePlanCompletionMemberInline(){
   try{
     const out=await ragwanPlanApi('record_plan_completion_for_member',{member_id:ragwanSelectedTraineeId});
     const host=document.getElementById('ragwanPlanCompletionInline');
-    if(host){
-      host.dataset.saved='1';
-      window.ragwanLastCompletion=out?.completion||null;
+    window.ragwanLastCompletion=out?.completion||null;
     if(host){
       host.dataset.saved='1';
       const completedName=out?.completion?.member_name||ragwanSelectedTrainee.name||'';
