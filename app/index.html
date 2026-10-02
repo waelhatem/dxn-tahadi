@@ -3777,8 +3777,7 @@ async function ragwanCopyStep7SalesVideoLink(){
   }
 }
 
-const RAGWAN_WELCOME_FRAME_MALE='/welcome_male_frame.png';
-const RAGWAN_WELCOME_FRAME_FEMALE='/welcome_female_frame.png';
+const RAGWAN_WELCOME_FRAME='/welcome_male_frame.jpg';
 
 function ragwanWelcomeConditionsText(){
   return [
@@ -3874,257 +3873,56 @@ function ragwanWelcomeScaleChanged(){
 }
 
 function ragwanWelcomeRenderPreview(){
-  const canvas=document.getElementById('ragwanWelcomeCanvas'), preview=document.getElementById('ragwanWelcomePreview');
+  const canvas=document.getElementById('ragwanWelcomeCanvas');
+  const preview=document.getElementById('ragwanWelcomePreview');
   if(!canvas||!preview)return;
 
-  const gender=document.getElementById('ragwanWelcomeGender')?.value||'male';
   const name=String(document.getElementById('ragwanWelcomeName')?.value||'').trim()||'عضو جديد';
   const memberNo=String(document.getElementById('ragwanWelcomeMemberNo')?.value||'').trim()||'................';
-  const photo=document.getElementById('ragwanWelcomePhoto')?.files?.[0];
+  const framePath='/welcome_male_frame.jpg';
 
-  const framePaths=gender==='female'
-    ? ['/welcome_female_frame.png','/app/welcome_female_frame.png']
-    : ['/welcome_male_frame.png','/app/welcome_male_frame.png'];
-
-  function loadFrame(index){
-    const framePath=framePaths[index];
-    if(ragwanWelcomeFrameCache.src===framePath && ragwanWelcomeFrameCache.img && ragwanWelcomeFrameCache.img.complete){
-      renderWithFrame(ragwanWelcomeFrameCache.img);
-      return;
-    }
-    const frame=new Image();
-    frame.onload=()=>{
-      ragwanWelcomeFrameCache={src:framePath,img:frame};
-      renderWithFrame(frame);
-    };
-    frame.onerror=()=>{
-      if(index<framePaths.length-1){ loadFrame(index+1); return; }
-      preview.removeAttribute('src');
-      toast('⚠️ تعذر تحميل فريم الترحيب. تأكد من وجود ملف الفريم داخل GitHub.');
-    };
-    frame.src=framePath+'?v=20260925-2';
-  }
-
-  function renderWithFrame(frame){
-    const w=frame.naturalWidth||1200,h=frame.naturalHeight||1600;
-    canvas.width=w;canvas.height=h;
+  const frame=new Image();
+  frame.onload=()=>{
+    const w=frame.naturalWidth||1254;
+    const h=frame.naturalHeight||1254;
+    canvas.width=w;
+    canvas.height=h;
     const ctx=canvas.getContext('2d');
     ctx.clearRect(0,0,w,h);
+    ctx.drawImage(frame,0,0,w,h);
 
-    const finish=()=>{
-      ctx.save();
-      ctx.direction='rtl';
-      ctx.textAlign='center';
-      ctx.textBaseline='middle';
-      ctx.lineJoin='round';
+    ctx.save();
+    ctx.direction='rtl';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.font='900 '+Math.round(w*.037)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
+    ctx.lineWidth=Math.max(3,Math.round(w*.004));
+    ctx.strokeStyle='#050505';
+    ctx.fillStyle='#fff';
+    ctx.strokeText(name,.5*w,.61*h);
+    ctx.fillText(name,.5*w,.61*h);
 
-      ctx.font='900 '+Math.round(w*.029)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
-      ctx.lineWidth=Math.max(3,Math.round(w*.0038));
-      ctx.strokeStyle='#050505';
-      ctx.fillStyle='#fff';
-      ctx.strokeText(name,.568*w,.570*h);
-      ctx.fillText(name,.568*w,.570*h);
+    ctx.font='900 '+Math.round(w*.035)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
+    ctx.strokeText(memberNo,.5*w,.70*h);
+    ctx.fillText(memberNo,.5*w,.70*h);
+    ctx.restore();
 
-      ctx.font='900 '+Math.round(w*.036)+'px system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif';
-      ctx.lineWidth=Math.max(3,Math.round(w*.0042));
-      ctx.strokeStyle='#050505';
-      ctx.fillStyle='#fff';
-      ctx.strokeText(memberNo,.568*w,.653*h);
-      ctx.fillText(memberNo,.568*w,.653*h);
-      ctx.restore();
-
-      preview.src=canvas.toDataURL('image/png');
-      preview.style.display='block';
-      preview.style.width='100%';
-      preview.style.maxWidth='100%';
-      preview.style.height='auto';
-      preview.style.objectFit='contain';
-      preview.style.margin='0 auto';
-      preview.style.cursor=(gender==='male' && photo)?'grab':'default';
-      preview.style.touchAction=(gender==='male' && photo)?'none':'auto';
-      preview.removeAttribute('title');
-
-    };
-
-    if(gender!=='male'||!photo){
-      ctx.drawImage(frame,0,0,w,h);
-      finish();
-      return;
-    }
-
-    const drawMemberImage=(memberImg)=>{
-        const frameLayer=document.createElement('canvas');
-        frameLayer.width=w;frameLayer.height=h;
-        const fctx=frameLayer.getContext('2d');
-        fctx.drawImage(frame,0,0,w,h);
-
-        let pixels;
-        try{
-          pixels=fctx.getImageData(0,0,w,h).data;
-        }catch(err){
-          toast('⚠️ تعذر قراءة فريم الترحيب.');
-          ctx.drawImage(frame,0,0,w,h);
-          finish();
-          return;
-        }
-
-        /*
-         * الفريم المرفوع قد يحتوي على شكل الشطرنج الخاص بمعاينة الشفافية
-         * كألوان فعلية داخل PNG، وليس Alpha حقيقيًا.
-         * لذلك نعتبر:
-         * 1) الـ Alpha الشفاف الحقيقي، أو
-         * 2) مربعات الشطرنج الرمادية المحايدة،
-         * جزءًا من فتحة الصورة.
-         */
-        const isCheckerPixel=(r,g,b,a)=>{
-          if(a<20)return true;
-          const max=Math.max(r,g,b),min=Math.min(r,g,b);
-          const neutral=(max-min)<=7;
-          const light=(r>=145&&r<=255&&g>=145&&g<=255&&b>=145&&b<=255);
-          return neutral&&light;
-        };
-
-        // نحدد فتحة الرجل فقط في المنطقة اليسرى من الفريم.
-        const rx1=Math.floor(w*.01),rx2=Math.floor(w*.48);
-        const ry1=Math.floor(h*.02),ry2=Math.floor(h*.78);
-
-        const holeMask=document.createElement('canvas');
-        holeMask.width=w;holeMask.height=h;
-        const hmctx=holeMask.getContext('2d');
-        const hd=hmctx.createImageData(w,h);
-
-        let left=w,right=0,top=h,bottom=0,found=0;
-
-        // نبني القناع من الشفافية/الشطرنج، مع استبعاد المناطق خارج الفتحة
-        // بواسطة إهليلج تقريبي واسع فقط كحاجز أمان.
-        const cx=w*.205,cy=h*.39;
-        const rx=w*.205,ry=h*.39;
-
-        for(let y=ry1;y<ry2;y++){
-          for(let x=rx1;x<rx2;x++){
-            const i=(y*w+x)*4;
-            const a=pixels[i+3],r=pixels[i],g=pixels[i+1],b=pixels[i+2];
-            const ellipse=((x-cx)*(x-cx))/(rx*rx)+((y-cy)*(y-cy))/(ry*ry)<=1.08;
-            if(ellipse && isCheckerPixel(r,g,b,a)){
-              hd.data[i]=255;hd.data[i+1]=255;hd.data[i+2]=255;hd.data[i+3]=255;
-              found++;
-              if(x<left)left=x;
-              if(x>right)right=x;
-              if(y<top)top=y;
-              if(y>bottom)bottom=y;
-            }
-          }
-        }
-
-        // إذا كان الفريم Alpha حقيقيًا، نعيد بناء القناع من الـ Alpha داخل
-        // المنطقة التي اكتشفناها أو من الإهليلج نفسه.
-        if(found<1000){
-          for(let y=ry1;y<ry2;y++){
-            for(let x=rx1;x<rx2;x++){
-              const i=(y*w+x)*4,a=pixels[i+3];
-              if(a<20){
-                const ellipse=((x-cx)*(x-cx))/(rx*rx)+((y-cy)*(y-cy))/(ry*ry)<=1.12;
-                if(ellipse){
-                  hd.data[i]=255;hd.data[i+1]=255;hd.data[i+2]=255;hd.data[i+3]=255;
-                  found++;
-                  if(x<left)left=x;
-                  if(x>right)right=x;
-                  if(y<top)top=y;
-                  if(y>bottom)bottom=y;
-                }
-              }
-            }
-          }
-        }
-
-        if(found<1000){
-          // احتياط أخير مطابق لمنطقة الفتحة في الفريم الذكري.
-          left=Math.floor(w*.015);right=Math.floor(w*.395);
-          top=Math.floor(h*.055);bottom=Math.floor(h*.735);
-          for(let y=top;y<=bottom;y++){
-            for(let x=left;x<=right;x++){
-              const i=(y*w+x)*4;
-              const xx=(x-left)/(right-left)-.5;
-              const yy=(y-top)/(bottom-top)-.5;
-              if((xx*xx)/.25+(yy*yy)/.25<=1){
-                hd.data[i]=255;hd.data[i+1]=255;hd.data[i+2]=255;hd.data[i+3]=255;
-              }
-            }
-          }
-        }
-
-        hmctx.putImageData(hd,0,0);
-
-        /*
-         * تنظيف أي بكسلات بيضاء/رمادية فاتحة عالقة داخل فتحة صورة العضو.
-         * هذه البكسلات ليست جزءًا من زخرفة الفريم، وقد تظهر كخط أبيض
-         * رفيع فوق حافة صورة العضو. نحذفها من طبقة الفريم فقط داخل الفتحة،
-         * مع إبقاء باقي الفريم والزخارف دون أي تغيير.
-         */
-        try{
-          const fd=fctx.getImageData(0,0,w,h);
-          const md=hd.data;
-          for(let i=0;i<fd.data.length;i+=4){
-            if(md[i+3]===0) continue;
-            const r=fd.data[i],g=fd.data[i+1],b=fd.data[i+2],a=fd.data[i+3];
-            const neutral=(Math.max(r,g,b)-Math.min(r,g,b))<=12;
-            const nearWhite=neutral && r>=238 && g>=238 && b>=238;
-            if(nearWhite && a>0){
-              fd.data[i+3]=0;
-            }
-          }
-          fctx.putImageData(fd,0,0);
-        }catch(_){}
-
-        // نستخدم حدود القناع الفعلية لوضع صورة الرجل في منتصف الفتحة.
-        if(right<=left||bottom<=top){
-          left=Math.floor(w*.015);right=Math.floor(w*.395);
-          top=Math.floor(h*.055);bottom=Math.floor(h*.735);
-        }
-
-        const holeW=right-left+1,holeH=bottom-top+1;
-        const baseScale=Math.max(holeW/memberImg.naturalWidth,holeH/memberImg.naturalHeight);
-        const scalePct=Math.max(10,Math.min(110,Number(document.getElementById('ragwanWelcomePhotoScale')?.value||75)));
-        const scale=baseScale*(scalePct/100);
-        const dw=memberImg.naturalWidth*scale,dh=memberImg.naturalHeight*scale;
-        const dx=left+(holeW-dw)/2+ragwanWelcomePhotoOffsetX;
-        const dy=top+(holeH-dh)/2+ragwanWelcomePhotoOffsetY;
-
-        const photoLayer=document.createElement('canvas');
-        photoLayer.width=w;photoLayer.height=h;
-        const pctx=photoLayer.getContext('2d');
-        pctx.drawImage(memberImg,dx,dy,dw,dh);
-
-        pctx.globalCompositeOperation='destination-in';
-        pctx.drawImage(holeMask,0,0);
-
-        // صورة الرجل أولاً، ثم الفريم فوقها.
-        ctx.drawImage(photoLayer,0,0,w,h);
-        ctx.drawImage(frameLayer,0,0,w,h);
-        finish();
-    };
-
-    const photoKey=photo.name+'|'+photo.size+'|'+photo.lastModified;
-    if(ragwanWelcomeMemberCache.key===photoKey && ragwanWelcomeMemberCache.img && ragwanWelcomeMemberCache.img.complete){
-      drawMemberImage(ragwanWelcomeMemberCache.img);
-      return;
-    }
-
-    const reader=new FileReader();
-    reader.onload=e=>{
-      const memberImg=new Image();
-      memberImg.onload=()=>{
-        ragwanWelcomeMemberCache={key:photoKey,img:memberImg};
-        drawMemberImage(memberImg);
-      };
-      memberImg.onerror=()=>toast('⚠️ تعذر قراءة صورة العضو. اختر الصورة مرة أخرى.');
-      memberImg.src=String(e.target.result||'');
-    };
-    reader.onerror=()=>toast('⚠️ تعذر قراءة صورة العضو.');
-    reader.readAsDataURL(photo);
-  }
-
-  loadFrame(0);
+    preview.src=canvas.toDataURL('image/png');
+    preview.style.display='block';
+    preview.style.width='100%';
+    preview.style.maxWidth='100%';
+    preview.style.height='auto';
+    preview.style.objectFit='contain';
+    preview.style.margin='0 auto';
+    preview.style.cursor='default';
+    preview.style.touchAction='auto';
+    preview.removeAttribute('title');
+  };
+  frame.onerror=()=>{
+    preview.removeAttribute('src');
+    toast('⚠️ تعذر تحميل تصميم الترحيب من GitHub.');
+  };
+  frame.src=framePath+'?v=20260925-3';
 }
 function ragwanBindWelcomePhotoDrag(){
   const preview=document.getElementById('ragwanWelcomePreview');
@@ -4307,7 +4105,7 @@ function ragwanRenderWelcomeBuilder(){
       '<div class="ragwan-welcome-form">'+
         '<div class="ragwan-welcome-note"><b>أولًا: شروط الانضمام</b><p>أرسل هذه الشروط للعضو الجديد قبل إضافته إلى المجموعة، وانتظر موافقته.</p><button type="button" onclick="ragwanCopyWelcomeConditions()">📋 نسخ شروط الانضمام</button></div>'+
         '<label>🚻 جنس العضو</label><select id="ragwanWelcomeGender" onchange="ragwanWelcomeGenderChanged()"><option value="male">👨 ذكر</option><option value="female">👩 أنثى</option></select>'+
-        '<div id="ragwanWelcomePhotoWrap"><label>📸 صورة العضو (للذكر)</label><input id="ragwanWelcomePhoto" type="file" accept="image/*" onchange="ragwanWelcomeResetPhotoPosition()"><small>تُستخدم صورة العضو الحقيقية وتوضع داخل المساحة المخصصة في فريم الذكور.</small><div style="margin-top:10px;padding:10px 12px;border:1px solid rgba(212,168,52,.35);border-radius:12px;background:rgba(255,255,255,.55)"><label for="ragwanWelcomePhotoScale" style="display:flex;justify-content:space-between;align-items:center;gap:10px">⚖️ مقياس صورة العضو <b id="ragwanWelcomePhotoScaleValue">75%</b></label><input id="ragwanWelcomePhotoScale" type="range" min="10" max="110" step="1" value="75" style="width:100%" oninput="ragwanWelcomeScaleChanged()"><small>حرّك الميزان للحجم، ثم <b>اسحب صورة العضو بالماوس أو بإصبعك</b> داخل المعاينة حتى تضبط الرأس والرقبة داخل الفتحة.</small><button type="button" onclick="ragwanWelcomeResetPhotoPosition()" style="margin-top:8px;width:100%">↺ إعادة تمركز الصورة</button></div></div>'+
+        '<div class="ragwan-welcome-note"><b>🖼️ صورة التصميم</b><p>يستخدم الباب الثالث تصميم ترحيب واحدًا ثابتًا للذكر والأنثى. لا حاجة لرفع صورة شخصية للعضو.</p></div>'+
         '<label>👤 اسم العضو</label><input id="ragwanWelcomeName" type="text" placeholder="اسم العضو" oninput="ragwanWelcomeUpdate()">'+
         '<label>🔢 رقم العضوية</label><input id="ragwanWelcomeMemberNo" type="text" inputmode="numeric" placeholder="رقم العضوية" oninput="ragwanWelcomeUpdate()">'+
         '<label>🤝 اسم السبونسر</label><input id="ragwanWelcomeSponsor" type="text" placeholder="مثال: رنا رمضان" oninput="ragwanWelcomeUpdate()">'+
@@ -4317,16 +4115,14 @@ function ragwanRenderWelcomeBuilder(){
         '<label class="ragwan-welcome-check"><input id="ragwanWelcomeConsent" type="checkbox"> ☑️ أكد لي السبونسر أن العضو وافق على شروط الانضمام.</label>'+
         '<div class="ragwan-welcome-actions">'+
           '<button type="button" class="primary" onclick="ragwanWelcomeRenderPreview()">🖼️ تجهيز صورة الترحيب</button>'+
-          ''+
           '<button type="button" onclick="ragwanWelcomeCopyPost()">📤 مشاركة المنشور مع الصورة</button>'+
           '<button type="button" onclick="ragwanWelcomeCopyPostWithImage()">📋 نسخ المنشور مع الصورة</button>'+
         '</div>'+
       '</div>'+
-      '<div class="ragwan-welcome-preview-wrap"><div class="ragwan-welcome-preview-title">🖼️ معاينة الفريم</div><img id="ragwanWelcomePreview" alt="معاينة صورة الترحيب"><canvas id="ragwanWelcomeCanvas" class="hidden"></canvas><div class="muted">للأنثى يستخدم النظام الفريم النسائي دون طلب صورة شخصية.</div></div>'+
+      '<div class="ragwan-welcome-preview-wrap"><div class="ragwan-welcome-preview-title">🖼️ معاينة صورة الترحيب</div><img id="ragwanWelcomePreview" alt="معاينة صورة الترحيب"><canvas id="ragwanWelcomeCanvas" class="hidden"></canvas><div class="muted">يُستخدم تصميم واحد ثابت للذكر والأنثى، مع إضافة اسم العضو ورقم العضوية فقط.</div></div>'+
     '</div>'+
-    (role==='leader' ? '<div class="ragwan-welcome-message-box"><b>📝 رسالة الترحيب — قابلة للتعديل للقائد</b><textarea id="ragwanWelcomeMessageEditor" rows="18" style="width:100%;min-height:320px;resize:vertical;line-height:1.8;padding:14px;border-radius:12px;border:1px solid rgba(0,0,0,.12);font-family:inherit;direction:rtl" oninput="this.dataset.userEdited=\'1\';document.getElementById(\'ragwanWelcomeMessagePreview\').textContent=this.value"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button type="button" onclick="ragwanWelcomeResetMessage()">↩️ استعادة القالب الأصلي</button><button type="button" onclick="ragwanCopyWelcomeMessage()">📋 نسخ الرسالة المعدلة</button></div><pre id="ragwanWelcomeMessagePreview" style="display:none"></pre></div>' : '<div class="ragwan-welcome-message-box"><b>📝 رسالة الترحيب الأصلية</b><p class="muted" style="line-height:1.8;margin:8px 0 0">يتم اعتماد القالب الأصلي تلقائيًا. تعديل الرسالة متاح لحساب القائد فقط.</p><pre id="ragwanWelcomeMessagePreview" style="white-space:pre-wrap;direction:rtl;line-height:1.8;margin-top:10px"></pre></div>') ;
+    (role==='leader' ? '<div class="ragwan-welcome-message-box"><b>📝 رسالة الترحيب — قابلة للتعديل للقائد</b><textarea id="ragwanWelcomeMessageEditor" rows="18" style="width:100%;min-height:320px;resize:vertical;line-height:1.8;padding:14px;border-radius:12px;border:1px solid rgba(0,0,0,.12);font-family:inherit;direction:rtl" oninput="this.dataset.userEdited=\'1\';document.getElementById(\'ragwanWelcomeMessagePreview\').textContent=this.value"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button type="button" onclick="ragwanWelcomeResetMessage()">↩️ استعادة القالب الأصلي</button><button type="button" onclick="ragwanCopyWelcomeMessage()">📋 نسخ الرسالة المعدلة</button></div><pre id="ragwanWelcomeMessagePreview" style="display:none"></pre></div>' : '<div class="ragwan-welcome-message-box"><b>📝 رسالة الترحيب الأصلية</b><p class="muted" style="line-height:1.8;margin:8px 0 0">يتم اعتماد القالب الأصلي تلقائيًا. تعديل الرسالة متاح لحساب القائد فقط.</p><pre id="ragwanWelcomeMessagePreview" style="white-space:pre-wrap;direction:rtl;line-height:1.8;margin-top:10px"></pre></div>');
   ragwanWelcomeGenderChanged();
-  ragwanBindWelcomePhotoDrag();
 }
 function ragwanWelcomeUpdate(){
   const data=ragwanWelcomeCollectData();
@@ -4336,13 +4132,6 @@ function ragwanWelcomeUpdate(){
   ragwanWelcomeRenderPreview();
 }
 function ragwanWelcomeGenderChanged(){
-  const gender=document.getElementById('ragwanWelcomeGender')?.value||'male';
-  if(gender!==ragwanWelcomeLastGender){
-    ragwanWelcomePhotoOffsetX=0;
-    ragwanWelcomePhotoOffsetY=0;
-    ragwanWelcomeLastGender=gender;
-  }
-  const wrap=document.getElementById('ragwanWelcomePhotoWrap');if(wrap)wrap.style.display=gender==='male'?'block':'none';
   ragwanWelcomeUpdate();
 }
 function ragwanBuildDoor8Section(){
