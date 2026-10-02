@@ -3391,7 +3391,8 @@ function ragwanProgressNextStep(){
 function ragwanStepStatus(n,state){
   if(state.completed.includes(n))return 'completed';
   if(state.started.includes(n))return 'started';
-  return 'available';
+  const next=state.completed.length<10?state.completed.length+1:10;
+  return n>next?'locked':'available';
 }
 function ragwanSelectedTraineeSummary(){
   if(!ragwanSelectedTrainee)return '';
@@ -3556,7 +3557,7 @@ function ragwanDoorJourneyMarkup(){
 '<div id="ragwanTraineePanel">'+ragwanTraineePanelMarkup()+'</div>'+
 '<div id="ragwanJourneyContent" '+(ragwanSelectedTrainee?'':'style="display:none"')+'>'+
 '<section class="ragwan-journey" id="ragwanJourney">'+
-    '<div class="ragwan-journey-head"><div class="ragwan-journey-kicker">🚪 رحلة التطبيق الاحترافي</div><div class="ragwan-journey-title">خطوات خطة رجوان للنجاح</div><div class="ragwan-journey-sub">جميع الأبواب من الأول إلى العاشر مفتوحة للعضو. يمكنك الدخول إلى أي خطوة ومتابعتها وإنجازها مباشرة دون انتظار اعتماد من القائد.</div></div>'+
+    '<div class="ragwan-journey-head"><div class="ragwan-journey-kicker">🚪 رحلة التطبيق الاحترافي</div><div class="ragwan-journey-title">خطوات خطة رجوان للنجاح</div><div class="ragwan-journey-sub">تُفتح الأبواب بالتسلسل؛ لا يفتح الباب التالي إلا بعد إكمال الباب السابق. يمكنك متابعة كل متدرب من آخر خطوة محفوظة له.</div></div>'+
     '<div class="ragwan-real-progress">'+
       '<div class="ragwan-progress-top"><div><b>📊 تقدمك الحقيقي</b><span id="ragwanRealProgressState">الخطوة '+current+' هي خطوتك الحالية</span></div><strong id="ragwanRealProgressPercent">0%</strong></div>'+
       '<div class="ragwan-progress-track"><span id="ragwanRealProgress" style="width:0%"></span></div>'+
