@@ -434,6 +434,12 @@ body:has(.login-header-top)::before{
 .ragwan-door{animation:none!important}
 .ragwan-door:nth-child(1),.ragwan-door:nth-child(2),.ragwan-door:nth-child(3),.ragwan-door:nth-child(4),.ragwan-door:nth-child(5),.ragwan-door:nth-child(6),.ragwan-door:nth-child(7),.ragwan-door:nth-child(8),.ragwan-door:nth-child(9),.ragwan-door:nth-child(10){animation:none!important}
 .ragwan-journey:before{animation:none!important;opacity:0!important}
+
+/* V90 — إبقاء الباب في مكانه وإبراز الباب الحالي فقط */
+.ragwan-door.opening3d{animation:none!important;transform:none!important;}
+.ragwan-door.opening3d .ragwan-door-leaf{animation:none!important;transform:none!important;filter:none!important;}
+.ragwan-door.open{transform:translateY(-5px) scale(1.035)!important;z-index:6!important;box-shadow:0 0 0 3px rgba(240,199,88,.95),0 18px 38px rgba(15,81,63,.28)!important;}
+.ragwan-door.status-available{transform:translateY(-3px) scale(1.02)!important;z-index:5!important;box-shadow:0 0 0 3px rgba(240,199,88,.9),0 14px 30px rgba(15,81,63,.22)!important;}
 </style>\n<style id="dxn-nav-no-scroll-v1">html,body,#app{overflow-anchor:none!important}</style><style id="ragwan-step5-mobile-ui-v1">
 /* V89 — Mobile-first refinement for Door 5 only. Visual/layout layer; no data or actions removed. */
 @media (max-width: 650px){
@@ -5627,18 +5633,15 @@ function ragwanOpenDoor(n){
   });
   const pressedDoor=document.getElementById('ragwanDoor'+step);
   if(pressedDoor){
+    /* الباب يبقى في مكانه داخل صف الأبواب؛ نبرز الباب الحالي فقط دون نقله أو تكبيره. */
     data.forEach(x=>{
       const d=document.getElementById('ragwanDoor'+x.n);
-      if(d){d.classList.remove('opening3d');d.style.removeProperty('--door-shift');}
+      if(d){
+        d.classList.remove('opening3d');
+        d.style.removeProperty('--door-shift');
+      }
     });
-    const doorRect=pressedDoor.getBoundingClientRect();
-    const viewportCenter=window.innerWidth/2;
-    const doorCenter=doorRect.left+doorRect.width/2;
-    const shift=viewportCenter-doorCenter;
-    pressedDoor.style.setProperty('--door-shift',Math.round(shift)+'px');
-    pressedDoor.style.transformOrigin='center bottom';
-    void pressedDoor.offsetWidth;
-    pressedDoor.classList.add('opening3d');
+    pressedDoor.classList.add('open');
   }
   const title=document.getElementById('ragwanStepTitle'),intro=document.getElementById('ragwanStepIntro'),text=document.getElementById('ragwanStepText'),goal=document.getElementById('ragwanStepGoal'),num=document.getElementById('ragwanStepNumber'),k=document.getElementById('ragwanStepKicker'),p=document.getElementById('ragwanStepProgress'),pl=document.getElementById('ragwanStepProgressLabel'),openNum=document.getElementById('ragwanOpenDoorNumber'),openIcon=document.getElementById('ragwanOpenDoorIcon'),openLabel=document.getElementById('ragwanOpenDoorLabel'),openStatus=document.getElementById('ragwanOpenDoorStatus');
   if(intro)intro.textContent=item.intro||'';
