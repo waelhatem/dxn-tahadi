@@ -3452,7 +3452,7 @@ function ragwanClearSelectedTrainee(){
   ragwanRenderTraineePanel();
   ragwanRenderProgress();
 }
-async function ragwanSearchTrainees(){
+async async function ragwanSearchTrainees(){
   const input=document.getElementById('ragwanTraineeSearchInput'),list=document.getElementById('ragwanTraineeSearchResults');
   if(!input||!list)return;
   const q=String(input.value||'').trim();
