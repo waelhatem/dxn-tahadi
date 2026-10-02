@@ -3475,6 +3475,40 @@ function ragwanScheduleTraineeSearch(){
   clearTimeout(ragwanTraineeSearchTimer);
   ragwanTraineeSearchTimer=setTimeout(ragwanSearchTrainees,250);
 }
+async function ragwanAddTraineeByMemberNo(){
+  const input=document.getElementById('ragwanTraineeMemberNoInput');
+  const status=document.getElementById('ragwanTraineeAddStatus');
+  const memberNo=String(input?.value||'').trim();
+  if(!memberNo){
+    if(status)status.textContent='⚠️ أدخل رقم عضوية المتدرب أولًا.';
+    input?.focus();
+    return;
+  }
+  if(status)status.textContent='⏳ جارٍ التحقق من رقم العضوية...';
+  try{
+    const out=await ragwanPlanApi('add_trainee_by_member_no',{member_no:memberNo});
+    const trainee=out?.trainee||{};
+    ragwanSelectedTraineeId=String(trainee.member_id||'');
+    ragwanSelectedTrainee={
+      member_id:ragwanSelectedTraineeId,
+      name:String(trainee.name||'').trim(),
+      member_no:String(trainee.member_no||memberNo).trim(),
+      completed_at:trainee.completed_at||null,
+      last_activity_at:trainee.last_activity_at||null
+    };
+    await ragwanLoadSelectedTraineeProgress();
+    localStorage.setItem(ragwanSelectedKey(),ragwanSelectedTraineeId);
+    if(status)status.textContent='✅ تمت إضافة المتدرب: '+(ragwanSelectedTrainee.name||'')+' — رقم العضوية: '+(ragwanSelectedTrainee.member_no||'');
+    if(input)input.value='';
+    ragwanRenderTraineePanel();
+    ragwanRenderProgress();
+    ragwanOpenDoor(ragwanProgressNextStep());
+    toast('✅ تمت إضافة المتدرب '+(ragwanSelectedTrainee.name||'')+' وبدء سجل خطة مستقل له.');
+  }catch(e){
+    if(status)status.textContent='⚠️ '+String(e?.message||'تعذر إضافة المتدرب.');
+    input?.focus();
+  }
+}
 async function ragwanOpenTraineesTable(){
   const old=$('ragwanTraineesTableModal');if(old)old.remove();
   const modal=document.createElement('div');modal.id='ragwanTraineesTableModal';
@@ -3496,9 +3530,9 @@ function ragwanTraineePanelMarkup(){
   if(role!=='member'||!me)return '';
   if(ragwanSelectedTrainee)return ragwanSelectedTraineeSummary();
   return '<section class="ragwan-trainee-selector" id="ragwanTraineeSelector">'+
-    '<div class="ragwan-trainee-selector-head"><div><div class="ragwan-trainee-kicker">👤 المتدرب</div><h3>ابدأ بتحديد العضو الذي ستتابع معه الخطة</h3><p>يمكنك تدريب عدة أعضاء في الوقت نفسه؛ لكل عضو سجل مستقل.</p></div></div>'+
-    '<div class="ragwan-trainee-search-row"><div class="ragwan-search-wrap"><span>🔍</span><input id="ragwanTraineeSearchInput" type="search" autocomplete="off" placeholder="ادخل اسم العضو (المتدرب)" oninput="ragwanScheduleTraineeSearch()"></div><button type="button" class="primary" onclick="ragwanOpenTraineesTable()">👥 المتدربون في الخطة</button></div>'+
-    '<div id="ragwanTraineeSearchResults" class="ragwan-trainee-search-results"></div>'+
+    '<div class="ragwan-trainee-selector-head"><div><div class="ragwan-trainee-kicker">👤 المتدرب</div><h3>إضافة متدرب جديد إلى خطة رجوان</h3><p>أدخل رقم عضوية المتدرب فقط؛ سيجلب النظام الاسم ورقم العضوية تلقائيًا ويضيفه إلى سجل الخطة.</p></div></div>'+
+    '<div class="ragwan-trainee-search-row"><div class="ragwan-search-wrap"><span>🪪</span><input id="ragwanTraineeMemberNoInput" type="text" inputmode="numeric" autocomplete="off" placeholder="ادخل رقم عضوية المتدرب" onkeydown="if(event.key===\'Enter\')ragwanAddTraineeByMemberNo()"></div><button type="button" class="primary" onclick="ragwanAddTraineeByMemberNo()">➕ إضافة المتدرب</button><button type="button" class="primary" onclick="ragwanOpenTraineesTable()">👥 المتدربون في الخطة</button></div>'+
+    '<div id="ragwanTraineeAddStatus" class="ragwan-trainee-add-status" aria-live="polite"></div>'+
   '</section>';
 }
 function ragwanRenderTraineePanel(){
