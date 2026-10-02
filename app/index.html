@@ -4177,8 +4177,7 @@ function ragwanBindWelcomePhotoDrag(){
 }
 
 async function ragwanCopyWelcomeMessage(){
-  const gender=document.getElementById('ragwanWelcomeGender')?.value||'male';
-  const data={gender,name:document.getElementById('ragwanWelcomeName')?.value,memberNo:document.getElementById('ragwanWelcomeMemberNo')?.value,country:document.getElementById('ragwanWelcomeCountry')?.value,city:document.getElementById('ragwanWelcomeCity')?.value};
+  const data=ragwanWelcomeCollectData();
   try{await navigator.clipboard.writeText(ragwanWelcomeCurrentMessage(data));toast('✅ تم نسخ رسالة الترحيب الجاهزة للمشاركة.');}
   catch(e){toast('⚠️ تعذر نسخ الرسالة.');}
 }
@@ -4195,13 +4194,7 @@ async function ragwanWelcomeCopyPost(){
   if(!canvas||!canvas.width){toast('⚠️ جهّز صورة الترحيب أولًا.');return;}
   canvas.toBlob(async blob=>{
     if(!blob){toast('⚠️ تعذر تجهيز صورة الترحيب.');return;}
-    const msg=ragwanWelcomeCurrentMessage({
-      gender:document.getElementById('ragwanWelcomeGender')?.value||'male',
-      name:document.getElementById('ragwanWelcomeName')?.value,
-      memberNo:document.getElementById('ragwanWelcomeMemberNo')?.value,
-      country:document.getElementById('ragwanWelcomeCountry')?.value,
-      city:document.getElementById('ragwanWelcomeCity')?.value
-    });
+    const msg=ragwanWelcomeCurrentMessage(ragwanWelcomeCollectData());
 
     try{
       // على الهاتف: مشاركة الصورة والنص معًا عبر Web Share API.
