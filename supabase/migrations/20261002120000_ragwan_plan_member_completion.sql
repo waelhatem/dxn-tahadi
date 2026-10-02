@@ -108,7 +108,7 @@ begin
     '🏆',
     'إكمال خطة رجوان',
     format(
-      'أكمل العضو %s خطة رجوان كاملة مع السبونسر %s.',
+      'أكمل السبونسر %s خطة رجوان كاملة مع العضو %s.',
       v_member_name,
       coalesce((select trim(coalesce(m2.name,'')) from public.members m2 where m2.id=v_sponsor_member_id),'السبونسر')
     ),
