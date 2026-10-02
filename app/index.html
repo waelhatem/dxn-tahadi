@@ -176,7 +176,7 @@ button[disabled]:focus-visible{outline-color:#667085!important}
 .ragwan-step4-answer-close{width:100%;margin-top:14px;min-height:46px;border:0;border-radius:13px;background:#0f513f;color:#fff;font-weight:950}
 @media(max-width:620px){.ragwan-step4-actions{grid-template-columns:1fr}.ragwan-step4-assessment-box{padding:14px}.ragwan-step4-answer-modal{padding:10px}.ragwan-step4-answer-card{max-height:92vh;padding:15px}}
 .ragwan-step4-video-copy{width:100%;min-height:48px;margin-top:10px;border:0;border-radius:13px;background:linear-gradient(135deg,#0f513f,#176b55);color:#fff;font-weight:950;cursor:pointer;box-shadow:0 8px 20px rgba(15,81,63,.14)}
-.ragwan-step4-video-status{margin-top:7px;text-align:center;color:#176b55;font-size:12px;font-weight:900;min-height:18px}.ragwan-step-complete{width:100%;margin-top:8px;background:#176b55;color:#fff}.ragwan-step-next{width:100%;margin-top:8px;background:#eef6f2;color:#0f513f}.ragwan-step-action{width:100%}.ragwan-step-side button:disabled{opacity:.45;cursor:not-allowed}
+.ragwan-step4-video-status{margin-top:7px;text-align:center;color:#176b55;font-size:12px;font-weight:900;min-height:18px}.ragwan-step-complete{width:100%;margin-top:8px;background:#176b55;color:#fff}.ragwan-step-next{width:100%;margin-top:8px;background:#eef6f2;color:#0f513f}.ragwan-plan-completion-inline{display:none;margin-top:10px;padding:12px;border:1px solid #d9e8e1;border-radius:14px;background:#fff;box-shadow:0 5px 16px rgba(15,81,63,.06)}.ragwan-plan-completion-inline.visible{display:block}.ragwan-plan-completion-inline label{display:block;margin:0 0 6px;color:#123b30;font-size:12px;font-weight:950}.ragwan-plan-completion-inline input{margin:0}.ragwan-plan-completion-inline .hint{margin-top:6px;color:#71817a;font-size:11px;line-height:1.6}.ragwan-plan-completion-inline .save{width:100%;margin-top:8px;background:#0f513f;color:#fff}.ragwan-plan-completion-inline .status{margin-top:7px;font-size:11px;font-weight:900;text-align:center;min-height:16px}.ragwan-step-action{width:100%}.ragwan-step-side button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:700px){.ragwan-progress-stats{grid-template-columns:repeat(2,1fr)}.ragwan-training-grid{grid-template-columns:1fr}.ragwan-progress-top{align-items:flex-start}}
 </style><style id="ragwanVoiceEvidenceStyles">
 .ragwan-evidence-box{margin-top:13px;padding:14px;border:1px solid #d9e8e1;border-radius:18px;background:#f8fcfa}
@@ -1941,6 +1941,9 @@ function notificationItems(){
    return items;
  }
  if(role==='leader'){
+   serverNotifications.forEach(n=>{
+     push(n.id,n.icon||'🔔',n.title||'إشعار',n.desc||'',notificationAction(n.action_tab),n.action_label||'فتح',n.created_at);
+   });
    const subs=data?.my_submissions||[], answers=data?.my_answers||[], regs=data?.pending_registrations||[];
    const pc=subs.filter(x=>x.status==='pending'&&x.challenge_id).length, pa=answers.filter(x=>x.status==='pending'&&x.question_id).length, pr=regs.length;
    if(pc)push(`leader:ch:${pc}`,'⏳',`لديك ${pc} إنجازات بانتظار الاعتماد`,'توجد إنجازات من الأعضاء تحتاج إلى قرارك.',()=>switchTab('leader'),'مراجعة الإنجازات');
@@ -2164,6 +2167,7 @@ function openMemberProfile(id){
  const target=Math.max(0,100-snap._pts);
  const badgeCount=(()=>{const old=me;me=m;const n=getBadges().filter(b=>b.earned).length;me=old;return n;})();
  const modal=document.createElement('div');modal.id='memberProfileModal';modal.innerHTML=`<div class="evidence-backdrop" onclick="closeMemberProfile()"></div><div class="evidence-modal card" style="max-width:760px;max-height:90vh;overflow:auto"><div class="row"><div class="member-photo-row">${memberAvatarHtml(m,'sm')}<div><h2 style="margin:0">👤 ${esc(m.name||'عضو')}</h2><div class="muted">🪪 ${esc(m.member_no||'')} · ${esc(m.team_name||'بدون فريق')}</div></div></div><button onclick="closeMemberProfile()">✖️</button></div><div class="command-grid"><div class="command-card"><div class="muted">⭐ النجوم</div><div class="command-big stars">${Number(m.stars||0)}</div><div class="muted">${esc(getLevel(m.stars).current.name)}</div></div><div class="command-card"><div class="muted">🎯 نقاط DXN</div><div class="command-big">${snap._pts}/100</div><div class="bar"><span style="width:${Math.min(100,snap._pts)}%"></span></div><div class="muted">${target?`باقي ${target} نقطة`:'🎉 التارجت محقق'}</div></div><div class="command-card"><div class="muted">📚 التدريب</div><div class="command-big">${done}/${total}</div><div class="bar"><span style="width:${pct}%"></span></div></div><div class="command-card"><div class="muted">🏅 الشارات</div><div class="command-big">${badgeCount}</div><div class="muted">شارات مكتسبة</div></div></div>${memberRatingCard(id,role)}<div id="memberRagwanCompletions_${id}" class="card" style="margin-top:10px"><b>🏆 خطة رجوان للنجاح</b><div class="muted">جارٍ تحميل سجل إكمال الخطة...</div></div><div class="card" style="margin-top:10px"><b>📊 الحالة التشغيلية</b><div class="row"><span>آخر نشاط</span><b>${snap._days===null?'لم يبدأ بعد':snap._days===0?'اليوم':`منذ ${snap._days} أيام`}</b></div><div class="row"><span>⏳ إنجازات معلقة</span><b>${snap._pending}</b></div><div class="row"><span>✅ إنجازات معتمدة</span><b>${approved}</b></div><div class="row"><span>📅 مدة العضوية</span><b>${snap._joinedDays===null?'غير مسجلة':`${snap._joinedDays} يوم`}</b></div></div><div class="command-actions"><button class="primary" onclick="closeMemberProfile();switchTab('teams')">👥 إدارة العضو</button><button onclick="closeMemberProfile();switchTab('leader')">👑 العودة لمركز القيادة</button></div></div>`;document.body.appendChild(modal);
+ loadMemberRagwanCompletions(id);
 }
 async function loadMemberRagwanCompletions(memberId){
   const box=$('memberRagwanCompletions_'+memberId);if(!box)return;
@@ -3395,6 +3399,7 @@ function ragwanRenderProgress(){
   const cur=document.getElementById('ragwanRealProgressCurrent');if(cur)cur.textContent=completed<10?current:'—';
   const rem=document.getElementById('ragwanRealProgressRemaining');if(rem)rem.textContent=remaining;
   const stateLabel=document.getElementById('ragwanRealProgressState');if(stateLabel)stateLabel.textContent=completed===10?'🏆 الخطة مكتملة — أحسنت!':'الخطوة '+current+' هي خطوتك الحالية';
+  if(typeof ragwanRenderPlanCompletionInline==='function')setTimeout(ragwanRenderPlanCompletionInline,0);
 }
 function ragwanDoorJourneyMarkup(){
   const d=ragwanDoorData(),state=ragwanProgressLoad(),current=ragwanProgressNextStep();
@@ -3461,6 +3466,7 @@ function ragwanDoorJourneyMarkup(){
           '<button type="button" class="ragwan-step-action" id="ragwanStartBtn" onclick="ragwanStartStep()">▶️ ابدأ الخطوة</button>'+
           '<button type="button" class="ragwan-step-complete" id="ragwanCompleteBtn" onclick="ragwanCompleteStep()">✅ أكملت الخطوة</button>'+
           '<button type="button" class="ragwan-step-next" id="ragwanNextBtn" onclick="ragwanEnterNextStep()">الخطوة التالية ←</button>'+
+          '<div id="ragwanPlanCompletionInline" class="ragwan-plan-completion-inline"></div>'+
         '</div>'+
       '</div>'+
     '</div>'+
@@ -5495,7 +5501,10 @@ function ragwanStartStep(){
 }
 function ragwanCompleteStep(){
   const state=ragwanProgressLoad(),step=ragwanCurrentStep;
-  if(state.completed.includes(step))return;
+  if(state.completed.includes(step)){
+    if(step===10)ragwanRenderPlanCompletionInline();
+    return;
+  }
   if(!state.started.includes(step))state.started.push(step);
   state.completed.push(step);
   state.completed=[...new Set(state.completed)].sort((a,b)=>a-b);
@@ -5503,7 +5512,53 @@ function ragwanCompleteStep(){
   ragwanRenderProgress();
   toast(step===10?'🏆 أحسنت! أكملت خطة رجوان كاملة.':'🟢 تم تسجيل إنجاز الخطوة.');
   ragwanOpenDoor(step);
-  if(step===10 && role==='member') setTimeout(ragwanOpenCompletionMemberModal,120);
+  if(step===10)setTimeout(ragwanRenderPlanCompletionInline,120);
+}
+function ragwanRenderPlanCompletionInline(){
+  const host=document.getElementById('ragwanPlanCompletionInline');
+  if(!host)return;
+  if(ragwanCurrentStep!==10||role!=='member'){
+    host.classList.remove('visible');
+    host.innerHTML='';
+    return;
+  }
+  const state=ragwanProgressLoad();
+  if(!state.completed.includes(10)){
+    host.classList.remove('visible');
+    host.innerHTML='';
+    return;
+  }
+  host.classList.add('visible');
+  if(host.dataset.saved==='1')return;
+  host.innerHTML='<label for="ragwanPlanCompletionMemberNameInline">👤 اسم العضو الذي أكملت معه الخطة</label>'+
+    '<input id="ragwanPlanCompletionMemberNameInline" type="text" maxlength="160" autocomplete="off" placeholder="اكتب اسم العضو هنا">'+
+    '<div class="hint">اكتب اسم العضو الذي طبّقت معه الأبواب العشرة.</div>'+
+    '<button type="button" class="save" id="ragwanPlanCompletionSaveInline" onclick="ragwanSavePlanCompletionMemberInline()">💾 حفظ إكمال الخطة</button>'+
+    '<div id="ragwanPlanCompletionInlineStatus" class="status" aria-live="polite"></div>';
+  const input=document.getElementById('ragwanPlanCompletionMemberNameInline');
+  input?.focus();
+}
+async function ragwanSavePlanCompletionMemberInline(){
+  const input=document.getElementById('ragwanPlanCompletionMemberNameInline');
+  const btn=document.getElementById('ragwanPlanCompletionSaveInline');
+  const status=document.getElementById('ragwanPlanCompletionInlineStatus');
+  const name=String(input?.value||'').trim();
+  if(!name){if(status)status.textContent='⚠️ اكتب اسم العضو أولًا.';input?.focus();return}
+  if(btn)btn.disabled=true;
+  if(status)status.textContent='⏳ جارٍ حفظ إكمال الخطة...';
+  try{
+    const out=await rpc('record_ragwan_plan_completion',{p_token:token,p_member_name:name});
+    const host=document.getElementById('ragwanPlanCompletionInline');
+    if(host){
+      host.dataset.saved='1';
+      host.innerHTML='<label>🏆 تم تسجيل إكمال الخطة</label>'+
+        '<div class="hint" style="color:#176b55;font-weight:900">تم تسجيل إكمال الخطة مع العضو: '+esc(out?.member_name||name)+'</div>';
+    }
+    toast('✅ تم تسجيل إكمال الخطة مع '+(out?.member_name||name)+' وإبلاغ القائد.');
+  }catch(e){
+    if(status)status.textContent='⚠️ '+String(e?.message||'تعذر حفظ إكمال الخطة.');
+    if(btn)btn.disabled=false;
+  }
 }
 function ragwanCompletionMemberOptions(){
   const members=Array.isArray(data?.members)?data.members.filter(m=>m&&m.id&&m.name):[];
@@ -5529,6 +5584,15 @@ async function ragwanSavePlanCompletionMember(){
   catch(e){if(err){err.style.display='block';err.textContent='⚠️ '+String(e?.message||'تعذر حفظ إكمال الخطة.');}if(btn)btn.disabled=false;}
 }
 function ragwanEnterNextStep(){
+  if(ragwanCurrentStep===10){
+    const state=ragwanProgressLoad();
+    if(!state.completed.includes(10)){
+      ragwanCompleteStep();
+    }else{
+      ragwanRenderPlanCompletionInline();
+    }
+    return;
+  }
   const next=Math.min(10,ragwanCurrentStep+1);
   ragwanOpenDoor(next);
 }
