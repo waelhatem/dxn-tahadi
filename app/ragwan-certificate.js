@@ -140,12 +140,6 @@
     cover(ctx,575,520,410,48,baseFill);
     drawCentered(ctx,data.traineeNo,780,544,360,30,16,'#1c2522',850);
 
-    /* The approved artwork does not contain a dedicated dynamic sponsor field.
-       Add a small centered sponsor line in the open area immediately above the signature row. */
-    if(data.sponsorName){
-      drawCentered(ctx,'اسم السبونسر: '+data.sponsorName,780,810,500,25,16,male?'#123b30':'#7d2045',900);
-    }
-
     /* Replace the sample completion date while preserving the printed date label. */
     cover(ctx,930,880,190,72,baseFill);
     drawCentered(ctx,formatArabicDate(data.completedAt),1025,917,175,23,14,'#1c2522',850);
