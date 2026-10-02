@@ -3815,7 +3815,7 @@ function ragwanWelcomeResetMessage(){
   ragwanWelcomeUpdate();
 }
 function ragwanWelcomeCollectData(){
-  return {gender:document.getElementById('ragwanWelcomeGender')?.value||'male',name:document.getElementById('ragwanWelcomeName')?.value,memberNo:document.getElementById('ragwanWelcomeMemberNo')?.value,country:document.getElementById('ragwanWelcomeCountry')?.value,countryDescriptor:document.getElementById('ragwanWelcomeCountryDescriptor')?.value,city:document.getElementById('ragwanWelcomeCity')?.value};
+  return {gender:document.getElementById('ragwanWelcomeGender')?.value||'male',name:document.getElementById('ragwanWelcomeName')?.value,memberNo:document.getElementById('ragwanWelcomeMemberNo')?.value,country:document.getElementById('ragwanWelcomeCountry')?.value,countryDescriptor:document.getElementById('ragwanWelcomeCountryDescriptor')?.value,city:document.getElementById('ragwanWelcomeCity')?.value,sponsor:document.getElementById('ragwanWelcomeSponsor')?.value};
 }
 function ragwanWelcomeMessage(data){
   const d=data||{}, female=d.gender==='female';
@@ -3827,9 +3827,10 @@ function ragwanWelcomeMessage(data){
   const flag=flagMap[country]||'🌍';
   const placeCity=String(d.city||'').trim();
   const place=placeCity ? descriptor+' – '+placeCity : descriptor;
+  const sponsor=String(d.sponsor||'').trim()||'السبونسر';
   const intro=female
-    ? '🎉👑 نبارك للأخت '+name+'👸🏻 من فريق الأستاذة رنا رمضان 👑🎉'
-    : '🎉👑 نبارك للأخ '+name+' من فريق الأستاذة رنا رمضان 👑🎉';
+    ? '🎉👑 نبارك للأخت '+name+'👸🏻 من فريق الأستاذة '+sponsor+' 👑🎉'
+    : '🎉👑 نبارك للأخ '+name+' من فريق الأستاذة '+sponsor+' 👑🎉';
   const join=female?'انضمامها':'انضمامه';
   const her=female?'لها':'له';
   const welcome=female?'بانضمامها':'بانضمامه';
@@ -3840,7 +3841,7 @@ function ragwanWelcomeMessage(data){
   const journey=female?'رحلة جميلة':'رحلة جميلة';
   return [
     intro,'',
-    join+' رسمياً إلى عائلة DXN العالمية وحصوله'+(female?'ا':'ه')+' على رقم العضوية ('+no+') 💎','',
+    join+' رسمياً إلى عائلة DXN العالمية وحصول'+(female?'ها':'ه')+' على رقم العضوية ('+no+') 💎','',
     flag+' من '+place+'، نرحّب '+welcome+' إلى فريقنا بكل محبة وتقدير 🌹','',
     'إنها ليست مجرد عضوية، بل خطوة نحو عالم من الفرص والتطوير والنمو الشخصي والمالي، وبداية رحلة جديدة مليئة بالتعلم والإنجاز وبناء العلاقات الناجحة. 🚀','',
     'كل التهاني والتبريكات '+pronoun+'، ونسأل الله أن يجعل هذه البداية فاتحة خير وبركة ونجاح، وأن تحققي من خلالها '+goals+'. 🌟','',
@@ -4319,8 +4320,9 @@ function ragwanRenderWelcomeBuilder(){
         '<div class="ragwan-welcome-note"><b>أولًا: شروط الانضمام</b><p>أرسل هذه الشروط للعضو الجديد قبل إضافته إلى المجموعة، وانتظر موافقته.</p><button type="button" onclick="ragwanCopyWelcomeConditions()">📋 نسخ شروط الانضمام</button></div>'+
         '<label>🚻 جنس العضو</label><select id="ragwanWelcomeGender" onchange="ragwanWelcomeGenderChanged()"><option value="male">👨 ذكر</option><option value="female">👩 أنثى</option></select>'+
         '<div id="ragwanWelcomePhotoWrap"><label>📸 صورة العضو (للذكر)</label><input id="ragwanWelcomePhoto" type="file" accept="image/*" onchange="ragwanWelcomeResetPhotoPosition()"><small>تُستخدم صورة العضو الحقيقية وتوضع داخل المساحة المخصصة في فريم الذكور.</small><div style="margin-top:10px;padding:10px 12px;border:1px solid rgba(212,168,52,.35);border-radius:12px;background:rgba(255,255,255,.55)"><label for="ragwanWelcomePhotoScale" style="display:flex;justify-content:space-between;align-items:center;gap:10px">⚖️ مقياس صورة العضو <b id="ragwanWelcomePhotoScaleValue">75%</b></label><input id="ragwanWelcomePhotoScale" type="range" min="10" max="110" step="1" value="75" style="width:100%" oninput="ragwanWelcomeScaleChanged()"><small>حرّك الميزان للحجم، ثم <b>اسحب صورة العضو بالماوس أو بإصبعك</b> داخل المعاينة حتى تضبط الرأس والرقبة داخل الفتحة.</small><button type="button" onclick="ragwanWelcomeResetPhotoPosition()" style="margin-top:8px;width:100%">↺ إعادة تمركز الصورة</button></div></div>'+
-        '<label>👤 اسم العضو</label><input id="ragwanWelcomeName" type="text" placeholder="مثال: مصطفى" oninput="ragwanWelcomeUpdate()">'+
+        '<label>👤 اسم العضو</label><input id="ragwanWelcomeName" type="text" placeholder="اسم العضو" oninput="ragwanWelcomeUpdate()">'+
         '<label>🔢 رقم العضوية</label><input id="ragwanWelcomeMemberNo" type="text" inputmode="numeric" placeholder="رقم العضوية" oninput="ragwanWelcomeUpdate()">'+
+        '<label>🤝 اسم السبونسر</label><input id="ragwanWelcomeSponsor" type="text" placeholder="مثال: رنا رمضان" oninput="ragwanWelcomeUpdate()">'+
         '<label>🌍 البلد</label><select id="ragwanWelcomeCountry" onchange="ragwanWelcomeCountryChanged()"><option value="">اختر البلد</option><option value="العراق">العراق</option><option value="سوريا">سوريا</option><option value="فلسطين">فلسطين</option><option value="الأردن">الأردن</option><option value="السعودية">السعودية</option><option value="الكويت">الكويت</option><option value="قطر">قطر</option><option value="الإمارات">الإمارات</option><option value="البحرين">البحرين</option><option value="عُمان">عُمان</option><option value="اليمن">اليمن</option><option value="لبنان">لبنان</option><option value="مصر">مصر</option><option value="الجزائر">الجزائر</option><option value="المغرب">المغرب</option><option value="تونس">تونس</option><option value="ليبيا">ليبيا</option><option value="السودان">السودان</option><option value="بلد آخر">بلد آخر</option></select>'+
         '<label>✨ وصف البلد</label><input id="ragwanWelcomeCountryDescriptor" type="text" placeholder="مثال: العراق العملاق" oninput="ragwanWelcomeUpdate()"><small>يمكن تعديل الوصف، مثل: العراق العملاق، سوريا الحبيبة، فلسطين الأبية.</small>'+
         '<label>📍 المدينة / المحافظة</label><input id="ragwanWelcomeCity" type="text" placeholder="مثال: الرمادي" oninput="ragwanWelcomeUpdate()">'+
