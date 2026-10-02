@@ -5715,8 +5715,22 @@ async function ragwanSavePlanCompletionMemberInline(){
     const host=document.getElementById('ragwanPlanCompletionInline');
     if(host){
       host.dataset.saved='1';
+      window.ragwanLastCompletion=out?.completion||null;
+    if(host){
+      host.dataset.saved='1';
+      const completedName=out?.completion?.member_name||ragwanSelectedTrainee.name||'';
       host.innerHTML='<label>🏆 تم تسجيل إكمال الخطة</label>'+
-        '<div class="hint" style="color:#176b55;font-weight:900">تم تسجيل إكمال الخطة مع المتدرب: '+esc(out?.completion?.member_name||ragwanSelectedTrainee.name||'')+'</div>';
+        '<div class="hint" style="color:#176b55;font-weight:900">تم تسجيل إكمال الخطة مع المتدرب: '+esc(completedName)+'</div>'+
+        '<div class="ragwan-certificate-builder">'+
+          '<label for="ragwanCertificateGender">🎓 نوع الشهادة</label>'+
+          '<select id="ragwanCertificateGender">'+
+            '<option value="">اختر: ذكر أو أنثى</option>'+
+            '<option value="male">ذكر</option>'+
+            '<option value="female">أنثى</option>'+
+          '</select>'+
+          '<button type="button" class="ragwan-certificate-create" onclick="ragwanCreateCompletionCertificate()">🎓 تصميم الشهادة كاملة</button>'+
+          '<div id="ragwanCertificateBuilderStatus" class="ragwan-certificate-builder-status" aria-live="polite"></div>'+
+        '</div>';
     }
     toast('✅ تم تسجيل إكمال الخطة مع '+(out?.completion?.member_name||ragwanSelectedTrainee.name||'')+' وإبلاغ القائد.');
   }catch(e){
