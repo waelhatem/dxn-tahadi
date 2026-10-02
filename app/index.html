@@ -5897,7 +5897,7 @@ async function ragwanDeleteFile(path){
   if(!confirm('هل تريد حذف هذا الملف؟'))return;
   try{await ragwanPlanApi('delete',{path});toast('تم حذف الملف.');await ragwanLoadFiles();}catch(e){toast(e.message||'تعذر حذف الملف.');}
 }
-async async function initRagwanFiles(){
+async function initRagwanFiles(){
   await ragwanRestoreSelectedTrainee();
   if(ragwanSelectedTrainee)ragwanOpenDoor(ragwanProgressNextStep());
   else ragwanRenderTraineePanel();
