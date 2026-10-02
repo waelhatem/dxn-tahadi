@@ -3503,6 +3503,8 @@ function ragwanTraineePanelMarkup(){
 function ragwanRenderTraineePanel(){
   const host=document.getElementById('ragwanTraineePanel');if(!host)return;
   host.innerHTML=ragwanTraineePanelMarkup();
+  const journey=document.getElementById('ragwanJourneyContent');
+  if(journey)journey.style.display=ragwanSelectedTrainee?'block':'none';
   if(!ragwanSelectedTrainee)ragwanSearchTrainees();
 }
 function ragwanStatusLabel(status){
