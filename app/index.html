@@ -3461,8 +3461,9 @@ async function ragwanRestoreSelectedTrainee(){
   if(!saved)return;
   try{
     const out=await ragwanPlanApi('select_trainee',{trainee_member_id:saved});
-    ragwanSelectedTraineeId=String(out.trainee?.member_id||saved);
-    ragwanSelectedTrainee=out.trainee||{member_id:ragwanSelectedTraineeId,name:''};
+    const traineeData=out?.trainee||out||{};
+    ragwanSelectedTraineeId=String(traineeData.member_id||saved);
+    ragwanSelectedTrainee=traineeData.member_id?traineeData:{member_id:ragwanSelectedTraineeId,name:'',member_no:''};
     await ragwanLoadSelectedTraineeProgress();
     ragwanRenderTraineePanel();
   }catch(_){
@@ -3475,8 +3476,9 @@ async function ragwanSelectTrainee(memberId){
   const id=String(memberId||'').trim();if(!id)return;
   try{
     const out=await ragwanPlanApi('select_trainee',{trainee_member_id:id});
-    ragwanSelectedTraineeId=String(out.trainee?.member_id||id);
-    ragwanSelectedTrainee=out.trainee||{member_id:ragwanSelectedTraineeId};
+    const traineeData=out?.trainee||out||{};
+    ragwanSelectedTraineeId=String(traineeData.member_id||id);
+    ragwanSelectedTrainee=traineeData.member_id?traineeData:{member_id:ragwanSelectedTraineeId,name:'',member_no:''};
     await ragwanLoadSelectedTraineeProgress();
     localStorage.setItem(ragwanSelectedKey(),ragwanSelectedTraineeId);
     ragwanRenderTraineePanel();
@@ -5828,8 +5830,9 @@ async function ragwanCreateCompletionCertificate(){
     const memberId=String(completion.member_id||trainee.member_id||trainee.id||ragwanSelectedTraineeId||'').trim();
     if(memberId){
       const fresh=await ragwanPlanApi('select_trainee',{trainee_member_id:memberId});
-      if(fresh?.trainee){
-        trainee={...trainee,...fresh.trainee};
+      const freshTrainee=fresh?.trainee||fresh||{};
+      if(freshTrainee?.member_id){
+        trainee={...trainee,...freshTrainee};
         ragwanSelectedTrainee=trainee;
       }
     }
