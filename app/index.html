@@ -3797,13 +3797,33 @@ function ragwanWelcomeConditionsText(){
   ].join('\n');
 }
 
+const RAGWAN_COUNTRY_DESCRIPTORS={'العراق':'العراق العملاق','سوريا':'سوريا الحبيبة','فلسطين':'فلسطين الأبية'};
+function ragwanWelcomeCountryChanged(){
+  const country=document.getElementById('ragwanWelcomeCountry')?.value||'';
+  const input=document.getElementById('ragwanWelcomeCountryDescriptor');
+  if(input) input.value=RAGWAN_COUNTRY_DESCRIPTORS[country]||'';
+  ragwanWelcomeUpdate();
+}
+function ragwanWelcomeCurrentMessage(data){
+  const editor=document.getElementById('ragwanWelcomeMessageEditor');
+  return editor?.value?.trim() ? editor.value : ragwanWelcomeMessage(data);
+}
+function ragwanWelcomeResetMessage(){
+  const data=ragwanWelcomeCollectData();
+  const editor=document.getElementById('ragwanWelcomeMessageEditor');
+  if(editor){ editor.value=ragwanWelcomeMessage(data); editor.dataset.userEdited=''; }
+  ragwanWelcomeUpdate();
+}
+function ragwanWelcomeCollectData(){
+  return {gender:document.getElementById('ragwanWelcomeGender')?.value||'male',name:document.getElementById('ragwanWelcomeName')?.value,memberNo:document.getElementById('ragwanWelcomeMemberNo')?.value,country:document.getElementById('ragwanWelcomeCountry')?.value,countryDescriptor:document.getElementById('ragwanWelcomeCountryDescriptor')?.value,city:document.getElementById('ragwanWelcomeCity')?.value};
+}
 function ragwanWelcomeMessage(data){
   const d=data||{}, female=d.gender==='female';
   const name=String(d.name||'').trim()||'عضونا الجديد';
   const firstName=name.split(/\s+/)[0]||name;
   const no=String(d.memberNo||'').trim()||'................';
-  const country=String(d.country||'').trim(), city=String(d.city||'').trim();
-  const place=[country,city].filter(Boolean).join(' – ');
+  const country=String(d.country||'').trim(), countryDescriptor=String(d.countryDescriptor||'').trim()||RAGWAN_COUNTRY_DESCRIPTORS[country]||country, city=String(d.city||'').trim();
+  const place=[countryDescriptor,city].filter(Boolean).join(' – ');
   const intro=female?'🎉🏆 الأخت '+name+(place?' من '+place:'')+' 🏆🎉':'🎉🏆 الأخ '+name+(place?' من '+place:'')+' 🏆🎉';
   const intro2=female?'بمناسبة حصولها على':'بمناسبة حصوله على';
   const join1=female?'وانضمامها':'وانضمامه';
@@ -4168,7 +4188,7 @@ function ragwanBindWelcomePhotoDrag(){
 async function ragwanCopyWelcomeMessage(){
   const gender=document.getElementById('ragwanWelcomeGender')?.value||'male';
   const data={gender,name:document.getElementById('ragwanWelcomeName')?.value,memberNo:document.getElementById('ragwanWelcomeMemberNo')?.value,country:document.getElementById('ragwanWelcomeCountry')?.value,city:document.getElementById('ragwanWelcomeCity')?.value};
-  try{await navigator.clipboard.writeText(ragwanWelcomeMessage(data));toast('✅ تم نسخ رسالة الترحيب الجاهزة للمشاركة.');}
+  try{await navigator.clipboard.writeText(ragwanWelcomeCurrentMessage(data));toast('✅ تم نسخ رسالة الترحيب الجاهزة للمشاركة.');}
   catch(e){toast('⚠️ تعذر نسخ الرسالة.');}
 }
 function ragwanCopyWelcomeConditions(){
@@ -4184,7 +4204,7 @@ async function ragwanWelcomeCopyPost(){
   if(!canvas||!canvas.width){toast('⚠️ جهّز صورة الترحيب أولًا.');return;}
   canvas.toBlob(async blob=>{
     if(!blob){toast('⚠️ تعذر تجهيز صورة الترحيب.');return;}
-    const msg=ragwanWelcomeMessage({
+    const msg=ragwanWelcomeCurrentMessage({
       gender:document.getElementById('ragwanWelcomeGender')?.value||'male',
       name:document.getElementById('ragwanWelcomeName')?.value,
       memberNo:document.getElementById('ragwanWelcomeMemberNo')?.value,
@@ -4260,7 +4280,7 @@ async function ragwanWelcomeCopyPostWithImage(){
   canvas.toBlob(async blob=>{
     if(!blob){toast('⚠️ تعذر تجهيز صورة الترحيب.');return;}
 
-    const msg=ragwanWelcomeMessage({
+    const msg=ragwanWelcomeCurrentMessage({
       gender:document.getElementById('ragwanWelcomeGender')?.value||'male',
       name:document.getElementById('ragwanWelcomeName')?.value,
       memberNo:document.getElementById('ragwanWelcomeMemberNo')?.value,
@@ -4312,7 +4332,8 @@ function ragwanRenderWelcomeBuilder(){
         '<div id="ragwanWelcomePhotoWrap"><label>📸 صورة العضو (للذكر)</label><input id="ragwanWelcomePhoto" type="file" accept="image/*" onchange="ragwanWelcomeResetPhotoPosition()"><small>تُستخدم صورة العضو الحقيقية وتوضع داخل المساحة المخصصة في فريم الذكور.</small><div style="margin-top:10px;padding:10px 12px;border:1px solid rgba(212,168,52,.35);border-radius:12px;background:rgba(255,255,255,.55)"><label for="ragwanWelcomePhotoScale" style="display:flex;justify-content:space-between;align-items:center;gap:10px">⚖️ مقياس صورة العضو <b id="ragwanWelcomePhotoScaleValue">75%</b></label><input id="ragwanWelcomePhotoScale" type="range" min="10" max="110" step="1" value="75" style="width:100%" oninput="ragwanWelcomeScaleChanged()"><small>حرّك الميزان للحجم، ثم <b>اسحب صورة العضو بالماوس أو بإصبعك</b> داخل المعاينة حتى تضبط الرأس والرقبة داخل الفتحة.</small><button type="button" onclick="ragwanWelcomeResetPhotoPosition()" style="margin-top:8px;width:100%">↺ إعادة تمركز الصورة</button></div></div>'+
         '<label>👤 اسم العضو</label><input id="ragwanWelcomeName" type="text" placeholder="مثال: مصطفى" oninput="ragwanWelcomeUpdate()">'+
         '<label>🔢 رقم العضوية</label><input id="ragwanWelcomeMemberNo" type="text" inputmode="numeric" placeholder="رقم العضوية" oninput="ragwanWelcomeUpdate()">'+
-        '<label>🌍 البلد</label><input id="ragwanWelcomeCountry" type="text" placeholder="مثال: العراق" oninput="ragwanWelcomeUpdate()">'+
+        '<label>🌍 البلد</label><select id="ragwanWelcomeCountry" onchange="ragwanWelcomeCountryChanged()"><option value="">اختر البلد</option><option value="العراق">العراق</option><option value="سوريا">سوريا</option><option value="فلسطين">فلسطين</option><option value="الأردن">الأردن</option><option value="السعودية">السعودية</option><option value="الكويت">الكويت</option><option value="قطر">قطر</option><option value="الإمارات">الإمارات</option><option value="البحرين">البحرين</option><option value="عُمان">عُمان</option><option value="اليمن">اليمن</option><option value="لبنان">لبنان</option><option value="مصر">مصر</option><option value="الجزائر">الجزائر</option><option value="المغرب">المغرب</option><option value="تونس">تونس</option><option value="ليبيا">ليبيا</option><option value="السودان">السودان</option><option value="بلد آخر">بلد آخر</option></select>'+
+        '<label>✨ وصف البلد</label><input id="ragwanWelcomeCountryDescriptor" type="text" placeholder="مثال: العراق العملاق" oninput="ragwanWelcomeUpdate()"><small>يمكن تعديل الوصف، مثل: العراق العملاق، سوريا الحبيبة، فلسطين الأبية.</small>'+
         '<label>📍 المدينة / المحافظة</label><input id="ragwanWelcomeCity" type="text" placeholder="مثال: الرمادي" oninput="ragwanWelcomeUpdate()">'+
         '<label class="ragwan-welcome-check"><input id="ragwanWelcomeConsent" type="checkbox"> ☑️ أكد لي السبونسر أن العضو وافق على شروط الانضمام.</label>'+
         '<div class="ragwan-welcome-actions">'+
@@ -4324,13 +4345,15 @@ function ragwanRenderWelcomeBuilder(){
       '</div>'+
       '<div class="ragwan-welcome-preview-wrap"><div class="ragwan-welcome-preview-title">🖼️ معاينة الفريم</div><img id="ragwanWelcomePreview" alt="معاينة صورة الترحيب"><canvas id="ragwanWelcomeCanvas" class="hidden"></canvas><div class="muted">للأنثى يستخدم النظام الفريم النسائي دون طلب صورة شخصية.</div></div>'+
     '</div>'+
-    '<div class="ragwan-welcome-message-box"><b>📝 الرسالة الناتجة</b><pre id="ragwanWelcomeMessagePreview"></pre></div>';
+    '<div class="ragwan-welcome-message-box"><b>📝 رسالة الترحيب — قابلة للتعديل</b><textarea id="ragwanWelcomeMessageEditor" rows="18" style="width:100%;min-height:320px;resize:vertical;line-height:1.8;padding:14px;border-radius:12px;border:1px solid rgba(0,0,0,.12);font-family:inherit;direction:rtl" oninput="this.dataset.userEdited=\'1\';document.getElementById(\'ragwanWelcomeMessagePreview\').textContent=this.value"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button type="button" onclick="ragwanWelcomeResetMessage()">↩️ استعادة الرسالة الأصلية</button><button type="button" onclick="ragwanCopyWelcomeMessage()">📋 نسخ الرسالة المعدلة</button></div><pre id="ragwanWelcomeMessagePreview" style="display:none"></pre></div>';
   ragwanWelcomeGenderChanged();
   ragwanBindWelcomePhotoDrag();
 }
 function ragwanWelcomeUpdate(){
-  const data={gender:document.getElementById('ragwanWelcomeGender')?.value||'male',name:document.getElementById('ragwanWelcomeName')?.value,memberNo:document.getElementById('ragwanWelcomeMemberNo')?.value,country:document.getElementById('ragwanWelcomeCountry')?.value,city:document.getElementById('ragwanWelcomeCity')?.value};
-  const p=document.getElementById('ragwanWelcomeMessagePreview');if(p)p.textContent=ragwanWelcomeMessage(data);
+  const data=ragwanWelcomeCollectData();
+  const editor=document.getElementById('ragwanWelcomeMessageEditor');
+  if(editor && !editor.dataset.userEdited) editor.value=ragwanWelcomeMessage(data);
+  const p=document.getElementById('ragwanWelcomeMessagePreview');if(p)p.textContent=editor?.value||ragwanWelcomeMessage(data);
   ragwanWelcomeRenderPreview();
 }
 function ragwanWelcomeGenderChanged(){
