@@ -106,11 +106,25 @@ test('phase one makes no network or storage call from the academy script',()=>{
 });
 
 test('empty academy keeps navigation disabled except the video list',()=>{
-  const {html}=renderAcademy('member');
+  const {html}=renderAcademy('member',[]);
   assert.match(html,/academy-control-prev"[^>]*disabled/);
   assert.match(html,/academy-control-next"[^>]*disabled/);
   assert.doesNotMatch(html,/academy-control-list"[^>]*disabled/);
   assert.match(html,/الفيديوهات قادمة قريبًا/);
+});
+
+
+
+test('the three approved Academy introduction videos are embedded from YouTube',()=>{
+  const {html}=renderAcademy('member');
+  assert.match(html,/ما هو مجتمع الصحة والثراء؟/);
+  assert.match(html,/الواجهة الرئيسية للمجتمع/);
+  assert.match(html,/شرح واجهة «زائر جديد»/);
+  assert.match(html,/youtube\.com\/embed\/qcwkRlsYsIg/);
+  assert.match(html,/youtube\.com\/embed\/ttaazEGtqPk/);
+  assert.match(html,/youtube\.com\/embed\/WgCzWXYCrYg/);
+  assert.equal((html.match(/academy-youtube-frame/g)||[]).length,1,'only the selected video is embedded in the main player');
+  assert.equal((html.match(/data-academy-index="/g)||[]).length,3);
 });
 
 test('videos render with number, title, section, duration, status and previous/next/list controls',()=>{
