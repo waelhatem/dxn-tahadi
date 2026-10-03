@@ -26,6 +26,23 @@ function supabaseRpcRequest(fn,args,key,timeoutMs){
     request.on('error',reject);request.write(body);request.end();
   });
 }
+async function supabaseTableGet(path){
+  return new Promise((resolve,reject)=>{
+    const base=new URL(SUPABASE_URL);
+    const request=https.request({
+      protocol:base.protocol,hostname:base.hostname,port:base.port||443,method:'GET',path,
+      headers:{Accept:'application/json',apikey:SUPABASE_SECRET_KEY,Authorization:'Bearer '+SUPABASE_SECRET_KEY},
+      timeout:12000
+    },response=>{
+      let text='';response.setEncoding('utf8');response.on('data',chunk=>{text+=chunk});
+      response.on('end',()=>{let data=null;try{data=text?JSON.parse(text):null}catch(_){data=null}
+        resolve({ok:response.statusCode>=200&&response.statusCode<300,status:response.statusCode||0,data,text});
+      });
+    });
+    request.on('timeout',()=>request.destroy(new Error('انتهت مهلة الاتصال ببيانات العضو')));
+    request.on('error',reject);request.end();
+  });
+}
 async function supabaseSecretRpc(fn,args){
   if(!SUPABASE_SECRET_KEY)throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
   const r=await supabaseRpcRequest(fn,args,SUPABASE_SECRET_KEY,12000);
@@ -102,7 +119,7 @@ async function ragwanPlanFiles(args){
   const boot=await supabaseSecretRpc('bootstrap',{p_token:token}),role=String(boot&&boot.role||'');
   if(!['leader','member'].includes(role))throw new Error('غير مصرح.');
   const bucket='ragwan-plan';
-  if(['search_trainees','list_trainees','select_trainee','add_trainee_by_member_no','get_training_progress','save_training_step','record_plan_completion_for_member'].includes(action)){
+  if(['search_trainees','list_trainees','select_trainee','add_trainee_by_member_no','get_training_progress','save_training_step','record_plan_completion_for_member','certificate_trainee_data'].includes(action)){
     const rpcMap={
       search_trainees:'search_ragwan_trainees',
       list_trainees:'list_ragwan_trainees',
@@ -135,6 +152,21 @@ async function ragwanPlanFiles(args){
         p_step:Number(args.step||0),
         p_status:String(args.status||'').trim()
       })};
+    }
+    if(action==='certificate_trainee_data'){
+      const memberId=String(args.member_id||'').trim();
+      if(!memberId)throw new Error('معرّف المتدرب غير متوفر.');
+      const enrollment=await supabaseSecretRpc('select_ragwan_trainee',{p_token:token,p_trainee_member_id:memberId});
+      const rows=await supabaseTableGet('/rest/v1/members?id=eq.'+encodeURIComponent(memberId)+'&select=id,name,member_no,active&limit=1');
+      if(!rows.ok)throw new Error(rows.text||'تعذر جلب بيانات العضو.');
+      const member=Array.isArray(rows.data)?rows.data[0]:null;
+      if(!member||member.active===false)throw new Error('العضو غير متاح.');
+      return {trainee:{
+        member_id:String(member.id||memberId),
+        name:String(member.name||enrollment?.name||'').trim(),
+        member_no:String(member.member_no||enrollment?.member_no||'').trim(),
+        completed_at:enrollment?.completed_at||null
+      }};
     }
     return {completion:await supabaseSecretRpc(fn,{p_token:token,p_member_id:String(args.member_id||'').trim()})};
   }
