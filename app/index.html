@@ -6716,7 +6716,15 @@ function leaderDailyPlan(){
   return `<div class="card smart-plan" style="border:2px solid rgba(11,107,87,.16);background:linear-gradient(180deg,#fff,#f7fbf9)">
     <div class="title">🗓️ خطة العمل اليومية للقائد</div>
     <p class="muted">قائمة عملية مرتبة حسب الأولوية، لتعرف من يستحق اهتمامك اليوم وما الإجراء الأنسب معه.</p>
-    ${top.length?`<div style="display:grid;gap:10px">${top.map((m,i)=>`<div style="padding:14px;border:1px solid #e5e7eb;border-radius:14px;background:#fff;display:flex;gap:12px;align-items:center"><div style="font-size:22px;font-weight:900;min-width:30px">${i+1}</div><div style="flex:1"><b>${esc(m.name||'عضو')}</b><div class="muted" style="margin-top:4px">${esc(m._reason)}</div></div><span class="badge" style="white-space:nowrap">${m._priority>=85?'🔴 عاجلة':m._priority>=60?'🟠 مهمة':'🟢 متابعة'}</span></div>`).join('')}</div>`:'<div class="empty">لا توجد مهام متابعة حاليًا.</div>'}
+    ${top.length?`<div style="display:grid;gap:10px">${top.map((m,i)=>{
+      const isPending=String(m._reason||'').includes('إنجاز بانتظار اعتماد القائد');
+      return \`<div style="padding:14px;border:1px solid #e5e7eb;border-radius:14px;background:#fff;display:flex;gap:12px;align-items:center">
+        <div style="font-size:22px;font-weight:900;min-width:30px">\${i+1}</div>
+        <div style="flex:1"><b>\${esc(m.name||'عضو')}</b><div class="muted" style="margin-top:4px">\${esc(m._reason)}</div></div>
+        <span class="badge" style="white-space:nowrap">\${m._priority>=85?'🔴 عاجلة':m._priority>=60?'🟠 مهمة':'🟢 متابعة'}</span>
+        \${isPending?'<button class="primary" type="button" onclick="openLeaderApprovalWork()">✅ مراجعة واعتماد</button>':''}
+      </div>\`;
+    }).join('')}</div>`:'<div class="empty">لا توجد مهام متابعة حاليًا.</div>'}
     <div class="muted" style="margin-top:12px">💡 ابدأ بالأولوية الأولى، ثم انتقل بالتسلسل. الهدف هو بناء عادة متابعة يومية بسيطة ومنتظمة.</div>
   </div>`;
 }
