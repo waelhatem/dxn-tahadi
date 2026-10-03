@@ -5,8 +5,8 @@
   'use strict';
 
   const TEMPLATE_URLS={
-    male:['/app/assets/certificates/ragwan-professional-plan-certificate-male.png','/assets/certificates/ragwan-professional-plan-certificate-male.png','./assets/certificates/ragwan-professional-plan-certificate-male.png','./app/assets/certificates/ragwan-professional-plan-certificate-male.png'],
-    female:['/app/assets/certificates/ragwan-professional-plan-certificate-female.png','/assets/certificates/ragwan-professional-plan-certificate-female.png','./assets/certificates/ragwan-professional-plan-certificate-female.png','./app/assets/certificates/ragwan-professional-plan-certificate-female.png']
+    male:['/assets/certificates/ragwan-professional-plan-certificate-male.png','/app/assets/certificates/ragwan-professional-plan-certificate-male.png'],
+    female:['/assets/certificates/ragwan-professional-plan-certificate-female.png','/app/assets/certificates/ragwan-professional-plan-certificate-female.png']
   };
   const GENDER_KEY='ragwan_certificate_gender_';
 
@@ -59,10 +59,10 @@
     const completion=window.ragwanLastCompletion||{};
     const sponsor=currentIdentity();
     return {
-      traineeName:String(completion.member_name||completion.trainee_name||completion.name||trainee.name||'').trim(),
-      traineeNo:String(completion.member_no||completion.trainee_member_no||completion.membership_number||completion.membership_no||trainee.member_no||trainee.membership_no||trainee.membership_number||'').trim(),
-      sponsorName:'أ. رجوان نجاح',
-      sponsorRole:'قائد فريق الامل الريادي',
+      traineeName:String(completion.member_name||trainee.name||'').trim(),
+      traineeNo:String(completion.member_no||trainee.member_no||'').trim(),
+      sponsorName:String(completion.sponsor_member_name||sponsor.name||'').trim(),
+      sponsorNo:String(completion.sponsor_member_no||sponsor.member_no||'').trim(),
       completedAt:String(completion.completed_at||trainee.completed_at||new Date().toISOString())
     };
   }
@@ -133,15 +133,13 @@
     const baseFill=male?'#fff9e9':'#fff4f8';
     const valueColor=male?'#07563f':'#a4144e';
 
-    /* Keep the approved artwork intact; only replace its sample personalization values. */
-    cover(ctx,475,420,610,70,baseFill);
+    /*
+     * The GitHub templates are now genuinely blank in the three variable fields.
+     * Do NOT paint over the artwork. Draw only the dynamic values directly onto
+     * the existing blank areas.
+     */
     drawCentered(ctx,data.traineeName,780,458,570,58,26,valueColor,950);
-
-    cover(ctx,575,520,410,48,baseFill);
     drawCentered(ctx,data.traineeNo,780,544,360,30,16,'#1c2522',850);
-
-    /* Replace the completion date with the actual plan-completion date. */
-    cover(ctx,930,880,190,72,baseFill);
     drawCentered(ctx,formatArabicDate(data.completedAt),1025,917,175,23,14,'#1c2522',850);
 
     return canvas;
