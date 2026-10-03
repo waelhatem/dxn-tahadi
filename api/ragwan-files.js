@@ -156,16 +156,30 @@ async function ragwanPlanFiles(args){
     if(action==='certificate_trainee_data'){
       const memberId=String(args.member_id||'').trim();
       if(!memberId)throw new Error('معرّف المتدرب غير متوفر.');
-      const enrollment=await supabaseSecretRpc('select_ragwan_trainee',{p_token:token,p_trainee_member_id:memberId});
-      const rows=await supabaseTableGet('/rest/v1/members?id=eq.'+encodeURIComponent(memberId)+'&select=id,name,member_no,active&limit=1');
-      if(!rows.ok)throw new Error(rows.text||'تعذر جلب بيانات العضو.');
-      const member=Array.isArray(rows.data)?rows.data[0]:null;
-      if(!member||member.active===false)throw new Error('العضو غير متاح.');
+
+      /* Authoritative certificate source: the sponsor's Ragwan trainee enrollment row. */
+      const enrollment=await supabaseSecretRpc('select_ragwan_trainee',{
+        p_token:token,
+        p_trainee_member_id:memberId
+      });
+
+      const rows=await supabaseTableGet(
+        '/rest/v1/ragwan_training_enrollments'
+        +'?trainee_member_id=eq.'+encodeURIComponent(memberId)
+        +'&select=id,trainee_member_id,trainee_name,trainee_member_no,completed_at,last_activity_at'
+        +'&order=last_activity_at.desc'
+        +'&limit=1'
+      );
+      if(!rows.ok)throw new Error(rows.text||'تعذر جلب بيانات المتدرب من جدول المتدربين.');
+
+      const traineeRow=Array.isArray(rows.data)?rows.data[0]:null;
+      if(!traineeRow)throw new Error('لم يتم العثور على سجل المتدرب في جدول خطة رجوان.');
+
       return {trainee:{
-        member_id:String(member.id||memberId),
-        name:String(member.name||enrollment?.name||'').trim(),
-        member_no:String(member.member_no||enrollment?.member_no||'').trim(),
-        completed_at:enrollment?.completed_at||null
+        member_id:String(traineeRow.trainee_member_id||memberId),
+        name:String(traineeRow.trainee_name||enrollment?.name||'').trim(),
+        member_no:String(traineeRow.trainee_member_no||enrollment?.member_no||'').trim(),
+        completed_at:traineeRow.completed_at||enrollment?.completed_at||null
       }};
     }
     return {completion:await supabaseSecretRpc(fn,{p_token:token,p_member_id:String(args.member_id||'').trim()})};
