@@ -26,6 +26,23 @@ function supabaseRpcRequest(fn,args,key,timeoutMs){
     request.on('error',reject);request.write(body);request.end();
   });
 }
+async function supabaseTableGet(path){
+  return new Promise((resolve,reject)=>{
+    const base=new URL(SUPABASE_URL);
+    const request=https.request({
+      protocol:base.protocol,hostname:base.hostname,port:base.port||443,method:'GET',path,
+      headers:{Accept:'application/json',apikey:SUPABASE_SECRET_KEY,Authorization:'Bearer '+SUPABASE_SECRET_KEY},
+      timeout:12000
+    },response=>{
+      let text='';response.setEncoding('utf8');response.on('data',chunk=>{text+=chunk});
+      response.on('end',()=>{let data=null;try{data=text?JSON.parse(text):null}catch(_){data=null}
+        resolve({ok:response.statusCode>=200&&response.statusCode<300,status:response.statusCode||0,data,text});
+      });
+    });
+    request.on('timeout',()=>request.destroy(new Error('انتهت مهلة الاتصال ببيانات العضو')));
+    request.on('error',reject);request.end();
+  });
+}
 async function supabaseSecretRpc(fn,args){
   if(!SUPABASE_SECRET_KEY)throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
   const r=await supabaseRpcRequest(fn,args,SUPABASE_SECRET_KEY,12000);
@@ -102,6 +119,60 @@ async function ragwanPlanFiles(args){
   const boot=await supabaseSecretRpc('bootstrap',{p_token:token}),role=String(boot&&boot.role||'');
   if(!['leader','member'].includes(role))throw new Error('غير مصرح.');
   const bucket='ragwan-plan';
+  if(['search_trainees','list_trainees','select_trainee','add_trainee_by_member_no','get_training_progress','save_training_step','record_plan_completion_for_member','certificate_trainee_data'].includes(action)){
+    const rpcMap={
+      search_trainees:'search_ragwan_trainees',
+      list_trainees:'list_ragwan_trainees',
+      select_trainee:'select_ragwan_trainee',
+      add_trainee_by_member_no:'add_ragwan_trainee_by_member_no',
+      get_training_progress:'get_ragwan_training_progress',
+      save_training_step:'save_ragwan_training_step',
+      record_plan_completion_for_member:'record_ragwan_plan_completion_for_member'
+    };
+    const fn=rpcMap[action];
+    if(action==='search_trainees'){
+      return {trainees:await supabaseSecretRpc(fn,{p_token:token,p_query:String(args.query||'').trim().slice(0,120)})};
+    }
+    if(action==='list_trainees'){
+      return {trainees:await supabaseSecretRpc(fn,{p_token:token})};
+    }
+    if(action==='select_trainee'){
+      return {trainee:await supabaseSecretRpc(fn,{p_token:token,p_trainee_member_id:String(args.trainee_member_id||'').trim()})};
+    }
+    if(action==='add_trainee_by_member_no'){
+      return {trainee:await supabaseSecretRpc(fn,{p_token:token,p_trainee_member_no:String(args.member_no||'').trim()})};
+    }
+    if(action==='get_training_progress'){
+      return {progress:await supabaseSecretRpc(fn,{p_token:token,p_trainee_member_id:String(args.trainee_member_id||'').trim()})};
+    }
+    if(action==='save_training_step'){
+      return {progress:await supabaseSecretRpc(fn,{
+        p_token:token,
+        p_trainee_member_id:String(args.trainee_member_id||'').trim(),
+        p_step:Number(args.step||0),
+        p_status:String(args.status||'').trim()
+      })};
+    }
+    if(action==='certificate_trainee_data'){
+      const memberId=String(args.member_id||'').trim();
+      if(!memberId)throw new Error('معرّف المتدرب غير متوفر.');
+      const trainee=await supabaseSecretRpc('select_ragwan_trainee',{
+        p_token:token,
+        p_trainee_member_id:memberId
+      });
+      if(!trainee||!trainee.member_id)throw new Error('لم يتم العثور على سجل المتدرب في جدول المتدربين.');
+      return {trainee:{
+        member_id:String(trainee.member_id||memberId),
+        name:String(trainee.name||'').trim(),
+        member_no:String(trainee.member_no||'').trim(),
+        completed_at:trainee.completed_at||null,
+        started_at:trainee.started_at||null,
+        last_activity_at:trainee.last_activity_at||null
+      }};
+    }
+    return {completion:await supabaseSecretRpc(fn,{p_token:token,p_member_id:String(args.member_id||'').trim()})};
+  }
+
   if(action==='sign_upload'){
     if(role!=='leader')throw new Error('رفع الملفات متاح للقائد فقط.');
     await ensureRagwanBucket();
