@@ -1,5 +1,7 @@
 /* V86.46.43 — تثبيت بنية بطاقة التدريب + إخفاء تعديل الاختبارات من العضو */
-(function(){
+(function()
+  function isRagwanOnlyMode(){try{return typeof trainingSubtab!=='undefined'&&trainingSubtab==='ragwan_success_plan'}catch(e){return false;}}
+{
   if(window.__DXN_TRAINING_LAYOUT_FIX_V864643__)return;
   window.__DXN_TRAINING_LAYOUT_FIX_V864643__=true;
 
@@ -24,7 +26,7 @@
     return r==='member'||!!document.querySelector('[data-role="member"]')||!!document.getElementById('dxn-training-assessment');
   }
 
-  function normalize(){
+  function normalize(){if(isRagwanOnlyMode()){document.querySelectorAll('.dxn-training-fixed-head,.dxn-training-manage-btn').forEach(function(x){x.remove();});return;}
     if(!memberPage())return;
     addStyles();
     var buttons=Array.prototype.slice.call(document.querySelectorAll('[data-training-assessment-button]'));
