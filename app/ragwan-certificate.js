@@ -59,8 +59,8 @@
     const completion=window.ragwanLastCompletion||{};
     const sponsor=currentIdentity();
     return {
-      traineeName:String(completion.member_name||trainee.name||'').trim(),
-      traineeNo:String(completion.member_no||trainee.member_no||'').trim(),
+      traineeName:String(completion.member_name||completion.trainee_name||completion.name||trainee.name||'').trim(),
+      traineeNo:String(completion.member_no||completion.trainee_member_no||completion.membership_number||completion.membership_no||trainee.member_no||trainee.membership_no||trainee.membership_number||'').trim(),
       sponsorName:String(completion.sponsor_member_name||sponsor.name||'').trim(),
       sponsorNo:String(completion.sponsor_member_no||sponsor.member_no||'').trim(),
       completedAt:String(completion.completed_at||trainee.completed_at||new Date().toISOString())
