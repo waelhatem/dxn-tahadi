@@ -13,13 +13,47 @@
   const ACADEMY_WATCHED_RATIO=0.9;
   const ACADEMY_FADE_MS=160;
   const ACADEMY_URL_PATTERN=/^(https:\/\/|\/)[^\s"'()<>\\]*$/;
+  const ACADEMY_DEFAULT_EPISODES=[
+    {
+      id:'academy-intro-community',
+      title:'ما هو مجتمع الصحة والثراء؟',
+      section:'التعريف بالمجتمع',
+      description:'فيديو تعريفي يوضح فكرة مجتمع الصحة والثراء، وما الذي يقدمه لأعضائه وزواره.',
+      url:'https://youtu.be/qcwkRlsYsIg',
+      youtubeId:'qcwkRlsYsIg',
+      poster:'https://i.ytimg.com/vi/qcwkRlsYsIg/hqdefault.jpg'
+    },
+    {
+      id:'academy-main-interface',
+      title:'الواجهة الرئيسية للمجتمع',
+      section:'الواجهة الرئيسية',
+      description:'شرح الواجهة الرئيسية للمجتمع وأهم العناصر والتبويبات وطريقة التنقل بينها.',
+      url:'https://youtu.be/ttaazEGtqPk',
+      youtubeId:'ttaazEGtqPk',
+      poster:'https://i.ytimg.com/vi/ttaazEGtqPk/hqdefault.jpg'
+    },
+    {
+      id:'academy-new-visitor',
+      title:'شرح واجهة «زائر جديد»',
+      section:'زائر جديد',
+      description:'شرح واجهة الزائر الجديد والخطوات الأساسية للبدء والتعرف على المجتمع.',
+      url:'https://youtu.be/WgCzWXYCrYg',
+      youtubeId:'WgCzWXYCrYg',
+      poster:'https://i.ytimg.com/vi/WgCzWXYCrYg/hqdefault.jpg'
+    }
+  ];
 
   // Videos are supplied through academySetEpisodes(); the database source is added
   // in a later phase, so the page shows its empty state until then.
-  const academyState={episodes:[],selectedIndex:0,watched:academyLoadWatched(),fadeTimer:0};
+  const academyState={episodes:ACADEMY_DEFAULT_EPISODES.map(item=>({...item})),selectedIndex:0,watched:academyLoadWatched(),fadeTimer:0};
 
   function academyEscape(value){
     return String(value==null?'':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function academyYouTubeEmbedUrl(id){
+    const safe=String(id||'').trim();
+    return /^[A-Za-z0-9_-]{11}$/.test(safe)?`https://www.youtube.com/embed/${safe}?rel=0&modestbranding=1`: '';
   }
 
   function academySafeUrl(value){
@@ -129,6 +163,12 @@
   function academyScreen(episode,index){
     const url=academySafeUrl(episode.url);
     const poster=academySafeUrl(episode.poster);
+    const youtube=academyYouTubeEmbedUrl(episode.youtubeId);
+    if(youtube){
+      return `<div class="academy-screen academy-screen-youtube" id="academyScreen">
+        <iframe class="academy-video academy-youtube-frame" src="${academyEscape(youtube)}" title="${academyEscape(episode.title)}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+      </div>`;
+    }
     const events=['loadstart','waiting','loadeddata','canplay','playing','play','error']
       .map(type=>` on${type}="academyVideoEvent(this,'${type}')"`).join('');
     return `<div class="academy-screen academy-screen-loading" id="academyScreen">
@@ -371,6 +411,7 @@
       title:item.title,
       url:item.url,
       poster:item.poster||'',
+      youtubeId:typeof item.youtubeId==='string'?item.youtubeId:'',
       section:typeof item.section==='string'?item.section:'',
       duration:item.duration||'',
       description:item.description||''
