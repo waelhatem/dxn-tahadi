@@ -1967,19 +1967,28 @@ function maybeShowCommunityChatNotificationPopup(){
   });
 }
 function scrollToNotificationTarget(id){
+  let tries=0;
   const run=()=>{
     const el=document.getElementById(id);
-    if(!el)return false;
-    const top=window.scrollY+el.getBoundingClientRect().top-120;
-    window.scrollTo({top:Math.max(0,top),behavior:'smooth'});
-    el.classList.add('notification-action-target');
-    setTimeout(()=>el.classList.remove('notification-action-target'),3000);
-    return true;
+    if(!el){
+      if(tries++<12)setTimeout(run,150);
+      return;
+    }
+    const correct=()=>{
+      const current=document.getElementById(id);
+      if(!current)return;
+      const rect=current.getBoundingClientRect();
+      const desired=window.scrollY+rect.top-110;
+      if(Math.abs(rect.top-110)>18){
+        window.scrollTo({top:Math.max(0,desired),behavior:'auto'});
+      }
+      current.classList.add('notification-action-target');
+      setTimeout(()=>current.classList.remove('notification-action-target'),3500);
+    };
+    correct();
+    [250,600,1000,1600].forEach(ms=>setTimeout(correct,ms));
   };
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    if(run())return;
-    setTimeout(()=>{ if(!run()) setTimeout(run,300); },250);
-  }));
+  requestAnimationFrame(()=>requestAnimationFrame(run));
 }
 function openNotificationDestination(n){
   const type=String(n?.event_type||'').trim();
@@ -1989,7 +1998,7 @@ function openNotificationDestination(n){
   if(type==='challenge_submission_pending' && role==='leader'){
     leaderSection='dashboard';
     switchTab('leader');
-    setTimeout(()=>scrollToNotificationTarget('leader-pending-approval-work'),120);
+    setTimeout(()=>scrollToNotificationTarget('leader-pending-approval-work'),250);
     return Promise.resolve();
   }
   if(type==='question_answer_pending' && role==='leader'){
