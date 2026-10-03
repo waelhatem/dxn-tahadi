@@ -62,7 +62,7 @@
       traineeName:String(completion.member_name||completion.trainee_name||completion.name||trainee.name||'').trim(),
       traineeNo:String(completion.member_no||completion.trainee_member_no||completion.membership_number||completion.membership_no||trainee.member_no||trainee.membership_no||trainee.membership_number||'').trim(),
       sponsorName:'أ. رجوان نجاح',
-      sponsorRole:'قائد فريق الأمل الريادي',
+      sponsorRole:'قائد فريق الامل الريادي',
       completedAt:String(completion.completed_at||trainee.completed_at||new Date().toISOString())
     };
   }
@@ -139,10 +139,6 @@
 
     cover(ctx,575,520,410,48,baseFill);
     drawCentered(ctx,data.traineeNo,780,544,360,30,16,'#1c2522',850);
-
-    /* Fixed trainer identity on every certificate. No membership number is printed here. */
-    drawCentered(ctx,data.sponsorRole,780,875,300,22,14,'#1c2522',850);
-    drawCentered(ctx,data.sponsorName,780,905,300,24,16,'#1c2522',950);
 
     /* Replace the completion date with the actual plan-completion date. */
     cover(ctx,930,880,190,72,baseFill);
