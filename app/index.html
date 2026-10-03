@@ -1171,9 +1171,6 @@ function restoreDxnUiState(){
   if(pendingTarget){
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
       scrollToNotificationTarget(pendingTarget);
-      setTimeout(()=>{
-        if(String(window.__DXN_PENDING_NOTIFICATION_TARGET__||'')===pendingTarget)window.__DXN_PENDING_NOTIFICATION_TARGET__='';
-      },2200);
     }));
     return;
   }
@@ -1977,28 +1974,25 @@ function maybeShowCommunityChatNotificationPopup(){
   });
 }
 function scrollToNotificationTarget(id){
-  let tries=0;
   const run=()=>{
     const el=document.getElementById(id);
-    if(!el){
-      if(tries++<12)setTimeout(run,150);
+    if(!el)return false;
+    const rect=el.getBoundingClientRect();
+    const desired=window.scrollY+rect.top-110;
+    window.scrollTo({top:Math.max(0,desired),left:0,behavior:'auto'});
+    el.classList.add('notification-action-target');
+    setTimeout(()=>el.classList.remove('notification-action-target'),3500);
+    return true;
+  };
+  let attempts=0;
+  const retry=()=>{
+    if(run()){
+      window.__DXN_NOTIFICATION_TARGET_FOUND__=id;
       return;
     }
-    const correct=()=>{
-      const current=document.getElementById(id);
-      if(!current)return;
-      const rect=current.getBoundingClientRect();
-      const desired=window.scrollY+rect.top-110;
-      if(Math.abs(rect.top-110)>18){
-        window.scrollTo({top:Math.max(0,desired),behavior:'auto'});
-      }
-      current.classList.add('notification-action-target');
-      setTimeout(()=>current.classList.remove('notification-action-target'),3500);
-    };
-    correct();
-    [250,600,1000,1600].forEach(ms=>setTimeout(correct,ms));
+    if(attempts++<100)setTimeout(retry,150);
   };
-  requestAnimationFrame(()=>requestAnimationFrame(run));
+  requestAnimationFrame(()=>requestAnimationFrame(retry));
 }
 function openNotificationDestination(n){
   const type=String(n?.event_type||'').trim();
@@ -2009,7 +2003,7 @@ function openNotificationDestination(n){
     leaderSection='dashboard';
     window.__DXN_PENDING_NOTIFICATION_TARGET__='leader-pending-approval-work';
     switchTab('leader');
-    setTimeout(()=>scrollToNotificationTarget('leader-pending-approval-work'),250);
+    setTimeout(()=>scrollToNotificationTarget('leader-pending-approval-work'),350);
     return Promise.resolve();
   }
   if(type==='question_answer_pending' && role==='leader'){
