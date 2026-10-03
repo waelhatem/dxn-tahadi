@@ -2037,6 +2037,7 @@ function notificationItems(){
      push(n.id,n.icon||'🔔',n.title||'إشعار',n.desc||'',()=>openNotificationDestination({...n}),n.action_label||'فتح',n.created_at,{event_type:n.event_type,source_id:n.source_id,action_tab:n.action_tab});
    });
    const subs=data?.my_submissions||[], answers=data?.my_answers||[], regs=data?.pending_registrations||[];
+   const monthlyRows=data?.monthly||[], target100=monthlyRows.filter(x=>Number(x.points||0)>=100).length;
    const pendingSubs=subs.filter(x=>x.status==='pending'&&x.challenge_id);
    const pendingAnswers=answers.filter(x=>x.status==='pending'&&x.question_id);
    pendingSubs.forEach((x,i)=>{
