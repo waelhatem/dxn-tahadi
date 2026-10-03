@@ -2027,7 +2027,7 @@ function notificationItems(){
  }
  if(role==='leader'){
    serverNotifications.forEach(n=>{
-     push(n.id,n.icon||'🔔',n.title||'إشعار',n.desc||'',notificationAction(n.action_tab),n.action_label||'فتح',n.created_at);
+     push(n.id,n.icon||'🔔',n.title||'إشعار',n.desc||'',()=>openNotificationDestination(n),n.action_label||'فتح',n.created_at);
    });
    const subs=data?.my_submissions||[], answers=data?.my_answers||[], regs=data?.pending_registrations||[];
    const pc=subs.filter(x=>x.status==='pending'&&x.challenge_id).length, pa=answers.filter(x=>x.status==='pending'&&x.question_id).length, pr=regs.length;
