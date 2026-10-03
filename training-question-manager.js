@@ -1,7 +1,5 @@
 /* V86.46.21 — leader-only per-training question manager */
-(function()
-  function isRagwanOnlyMode(){try{return typeof trainingSubtab!=='undefined'&&trainingSubtab==='ragwan_success_plan'}catch(e){return false;}}
-{
+(function(){
   if(window.__DXN_TRAINING_QUESTION_MANAGER_V864621__)return;
   window.__DXN_TRAINING_QUESTION_MANAGER_V864621__=true;
 
@@ -81,7 +79,7 @@
     });
     return out;
   }
-  function attachButtons(){if(isRagwanOnlyMode()){document.querySelectorAll('.dxn-training-manage-btn').forEach(function(x){x.remove();});return;}
+  function attachButtons(){
     if(!isLeader())return;
     style();
     findTrainingCards().forEach(function(x){
