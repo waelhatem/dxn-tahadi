@@ -158,10 +158,10 @@
     drawCentered(ctx,data.traineeNo,690,532,145,30,16,'#1c2522',850);
 
     /* Sponsor/coach name: below "المشرف على التدريب". */
-    drawCentered(ctx,data.sponsorName,805,925,190,24,16,'#1c2522',900);
+    drawCentered(ctx,data.sponsorName,805,915,190,24,16,'#1c2522',900);
 
     /* Completion date: below the fixed "تاريخ الإتمام" heading. */
-    drawCentered(ctx,formatArabicDate(data.completedAt),1015,925,190,23,14,'#1c2522',850);
+    drawCentered(ctx,formatArabicDate(data.completedAt),1015,915,190,23,14,'#1c2522',850);
 
     return canvas;
   }
