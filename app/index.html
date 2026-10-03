@@ -2018,16 +2018,16 @@ function notificationAction(tab){
 }
 function notificationItems(){
  const items=[];
- const push=(id,icon,title,desc,action,actionLabel='فتح',createdAt=null)=>items.push({id:String(id),icon,title,desc,action,actionLabel,created_at:createdAt});
+ const push=(id,icon,title,desc,action,actionLabel='فتح',createdAt=null,meta=null)=>items.push({id:String(id),icon,title,desc,action,actionLabel,created_at:createdAt,event_type:meta?.event_type||'',source_id:meta?.source_id||'',action_tab:meta?.action_tab||''});
  if(role==='member'&&me){
    serverNotifications.forEach(n=>{
-     push(n.id,n.icon||'🔔',n.title||'إشعار',n.desc||'',()=>openNotificationDestination(n),n.action_label||'فتح الإجراء',n.created_at);
+     push(n.id,n.icon||'🔔',n.title||'إشعار',n.desc||'',()=>openNotificationDestination({...n}),n.action_label||'فتح الإجراء',n.created_at,{event_type:n.event_type,source_id:n.source_id,action_tab:n.action_tab});
    });
    return items;
  }
  if(role==='leader'){
    serverNotifications.forEach(n=>{
-     push(n.id,n.icon||'🔔',n.title||'إشعار',n.desc||'',()=>openNotificationDestination(n),n.action_label||'فتح',n.created_at);
+     push(n.id,n.icon||'🔔',n.title||'إشعار',n.desc||'',()=>openNotificationDestination({...n}),n.action_label||'فتح',n.created_at,{event_type:n.event_type,source_id:n.source_id,action_tab:n.action_tab});
    });
    const subs=data?.my_submissions||[], answers=data?.my_answers||[], regs=data?.pending_registrations||[];
    const pc=subs.filter(x=>x.status==='pending'&&x.challenge_id).length, pa=answers.filter(x=>x.status==='pending'&&x.question_id).length, pr=regs.length;
