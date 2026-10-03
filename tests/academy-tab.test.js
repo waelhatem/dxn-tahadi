@@ -1,4 +1,4 @@
-// Regression tests for the «🎓 أكاديمية المنصة» tab, a plain video library that shows
+// Regression tests for the «🎓 أكاديمية المجتمع» tab, a plain video library that shows
 // members how to use the platform: the tab is wired in after «🚀 المركز الذكي» without
 // breaking the other tabs, its CSS/JS stay isolated under academy- names, it keeps the
 // site's identity, stays free of cinematic effects, and only leaders see the upload form.
@@ -30,7 +30,7 @@ const SAMPLE_EPISODES=[
 ];
 
 test('academy tab button comes right after the smart center tab',()=>{
-  assert.match(INDEX,/onclick="switchTab\('advanced'\)">🚀 المركز الذكي<\/button><button class="tab academy-tab \$\{tab==='academy'\?'active':''\}" onclick="switchTab\('academy'\)">🎓 أكاديمية المنصة<\/button><button class="tab community-tab/);
+  assert.match(INDEX,/onclick="switchTab\('advanced'\)">🚀 المركز الذكي<\/button><button class="tab academy-tab \$\{tab==='academy'\?'active':''\}" onclick="switchTab\('academy'\)">🎓 أكاديمية المجتمع<\/button><button class="tab community-tab/);
 });
 
 test('render dispatch keeps every existing tab and routes academy before the leader fallback',()=>{
