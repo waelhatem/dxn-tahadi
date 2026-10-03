@@ -62,6 +62,15 @@
       return;
     }
     if(state.role!=='member')return;
+    /* The generic training assessment belongs only to the regular
+       "الشروحات والتدريبات" section. Never mount it as a fallback inside
+       the Ragwan Professional Plan (or any other training subsection). */
+    var regularPage=document.getElementById('regular-training-page');
+    if(!regularPage){
+      var staleNoRegular=document.getElementById('dxn-training-assessment');
+      if(staleNoRegular)staleNoRegular.remove();
+      return;
+    }
     var root=document.getElementById('dxn-training-assessment');
     if(root&&!force)return;
     if(!root){
@@ -69,12 +78,8 @@
       root.id='dxn-training-assessment';
       root.className='card';
       root.style.cssText='margin:16px 0;border:2px solid #cfe4da;background:linear-gradient(135deg,#f8fcfa,#fff);direction:rtl;text-align:right';
-      var anchor=anchorForMember();
+      var anchor=regularPage.querySelector('.card')||regularPage;
       if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(root,anchor.nextSibling);
-      else {
-        var host=document.querySelector('#app .app')||document.getElementById('app')||document.body;
-        host.appendChild(root);
-      }
       root.style.setProperty('width','100%','important');
       root.style.setProperty('max-width','none','important');
       root.style.setProperty('box-sizing','border-box','important');
