@@ -8473,6 +8473,109 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
  openBtn&&openBtn.addEventListener('click',show);closeBtn&&closeBtn.addEventListener('click',hide);zoomIn&&zoomIn.addEventListener('click',()=>changeZoom(.1));zoomOut&&zoomOut.addEventListener('click',()=>changeZoom(-.1));zoomReset&&zoomReset.addEventListener('click',()=>{previewZoom=1;const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});document.querySelectorAll('#globalPreviewPanel [data-preview-mode]').forEach(b=>b.addEventListener('click',()=>mode(b.dataset.previewMode)));frame&&frame.addEventListener('load',function(){hideEmbeddedScrollbars();try{frame.contentWindow.postMessage({type:'dxn-preview-auth',token:typeof token!=='undefined'?token:'',issued:localStorage.getItem('dxn_session_issued')||Date.now()},location.origin)}catch(e){}sync();const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});window.addEventListener('resize',function(){const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&panel.classList.contains('show'))hide()});mount();const t=setInterval(()=>{if(eligible()){mount();clearInterval(t)}},500);
 })();
 </script>
+<style id="dxn-global-announcements-v1">
+.dxn-global-announcement-card{margin:0 0 14px;background:linear-gradient(135deg,#fffdf4,#fff);border:1px solid #ead9a7;border-radius:20px;padding:18px;box-shadow:0 8px 24px rgba(15,81,63,.08)}
+.dxn-global-announcement-card .ga-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.dxn-global-announcement-card .ga-kicker{font-size:12px;font-weight:950;color:#8a5a00}
+.dxn-global-announcement-card h3{margin:4px 0;font-size:20px}
+.dxn-global-announcement-card textarea{min-height:130px}
+.dxn-global-announcement-card .ga-actions{display:flex;gap:8px;flex-wrap:wrap}
+.dxn-global-announcement-preview,.dxn-global-announcement-modal{position:fixed;inset:0;z-index:2147483001;background:rgba(3,20,16,.68);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:18px;direction:rtl}
+.dxn-global-announcement-panel{width:min(620px,94vw);max-height:90vh;overflow:auto;background:#fff;border:1px solid #dfe9e4;border-radius:24px;padding:22px;box-shadow:0 30px 90px rgba(0,0,0,.32)}
+.dxn-global-announcement-panel .ga-type{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:950;margin-bottom:9px}
+.dxn-global-announcement-panel.ga-important .ga-type{background:#fee4e2;color:#9f2118}
+.dxn-global-announcement-panel.ga-warning .ga-type{background:#fff4d5;color:#7a5300}
+.dxn-global-announcement-panel.ga-announcement .ga-type{background:#eef8f2;color:#0f513f}
+.dxn-global-announcement-panel h2{margin:0 0 10px;font-size:25px}
+.dxn-global-announcement-panel .ga-body{white-space:pre-wrap;line-height:1.9;color:#34443e}
+.dxn-global-announcement-panel .ga-footer{display:flex;justify-content:flex-start;gap:8px;flex-wrap:wrap;margin-top:18px}
+@media(max-width:650px){.dxn-global-announcement-panel{padding:18px;border-radius:20px;width:96vw}.dxn-global-announcement-card .ga-actions button{flex:1;min-width:150px}}
+</style>
+<script id="dxn-global-announcements-v1-script">
+(function(){
+  'use strict';
+  if(window.__DXN_GLOBAL_ANNOUNCEMENTS_V1__)return;
+  window.__DXN_GLOBAL_ANNOUNCEMENTS_V1__=true;
+  var loadingMemberAnnouncements=false,memberAnnouncementShown=false,previewNode=null;
+
+  function tokenValue(){try{return String(localStorage.getItem('dxn_session')||'').trim()}catch(e){return ''}}
+  function safeEsc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function typeLabel(type){return type==='important'?'🔴 مهم':type==='warning'?'🟠 تنبيه':'🔵 إعلان'}
+  function typeClass(type){return type==='important'?'ga-important':type==='warning'?'ga-warning':'ga-announcement'}
+  async function gaRpc(fn,args){
+    var r=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn:fn,args:args||{}}),cache:'no-store'});
+    var t=await r.text(),d=null;try{d=t?JSON.parse(t):null}catch(e){}
+    if(!r.ok)throw new Error((d&&(d.message||d.error||d.hint))||t||('HTTP '+r.status));
+    return d;
+  }
+  function removeNode(node){if(node&&node.parentNode)node.parentNode.removeChild(node)}
+  function closePreview(){removeNode(previewNode);previewNode=null}
+  function previewAnnouncement(){
+    var title=document.getElementById('gaTitle'),body=document.getElementById('gaBody'),type=document.getElementById('gaType');
+    if(!title||!body||!type)return;
+    var t=String(title.value||'').trim(),b=String(body.value||'').trim(),k=String(type.value||'announcement');
+    if(!t)return toast('اكتب عنوان الإعلان أولًا.');
+    if(!b)return toast('اكتب نص الإعلان أولًا.');
+    closePreview();
+    previewNode=document.createElement('div');previewNode.className='dxn-global-announcement-preview';
+    previewNode.innerHTML='<div class="dxn-global-announcement-panel '+typeClass(k)+'" role="dialog" aria-modal="true">'+
+      '<div class="ga-type">'+typeLabel(k)+'</div><h2>'+safeEsc(t)+'</h2><div class="ga-body">'+safeEsc(b)+'</div>'+
+      '<div class="ga-footer"><button type="button" onclick="window.__DXN_GA_CLOSE_PREVIEW__()">↩️ تعديل</button><button type="button" class="primary" onclick="window.__DXN_GA_CONFIRM_SEND__()">📢 تأكيد الإرسال للجميع</button></div></div>';
+    document.body.appendChild(previewNode);
+    window.__DXN_GA_CONFIRM_SEND__=sendAnnouncement;window.__DXN_GA_CLOSE_PREVIEW__=closePreview;
+  }
+  async function sendAnnouncement(){
+    var title=document.getElementById('gaTitle'),body=document.getElementById('gaBody'),type=document.getElementById('gaType');
+    var t=String(title&&title.value||'').trim(),b=String(body&&body.value||'').trim(),k=String(type&&type.value||'announcement');
+    if(!t||!b){closePreview();return toast('أكمل عنوان الإعلان ونصه أولًا.')}
+    try{
+      await gaRpc('create_global_announcement',{p_token:tokenValue(),p_title:t,p_body:b,p_announcement_type:k});
+      closePreview();if(title)title.value='';if(body)body.value='';
+      if(typeof toast==='function')toast('تم إرسال الإعلان للجميع بنجاح.');else alert('تم إرسال الإعلان للجميع بنجاح.');
+      if(typeof render==='function')setTimeout(render,50);
+    }catch(e){toast(e.message||'تعذر إرسال الإعلان.')}
+  }
+  function injectLeaderCard(){
+    if(typeof role==='undefined'||role!=='leader'||typeof tab==='undefined'||tab!=='leader')return;
+    if(document.getElementById('dxnGlobalAnnouncementCard'))return;
+    var app=document.getElementById('app');if(!app)return;
+    var anchor=app.querySelector('.leaderbox');if(!anchor)return;
+    var card=document.createElement('div');card.id='dxnGlobalAnnouncementCard';card.className='dxn-global-announcement-card';
+    card.innerHTML='<div class="ga-head"><div><div class="ga-kicker">📢 رسائل عامة للأعضاء</div><h3>إرسال إعلان عام للأعضاء</h3><div class="muted">هذا القسم منفصل تمامًا عن نظام الإشعارات والإجراءات.</div></div></div>'+
+      '<label>عنوان الإعلان</label><input id="gaTitle" maxlength="200" placeholder="مثال: تحديث مهم في خطة التدريب">'+
+      '<label>نص الرسالة</label><textarea id="gaBody" maxlength="4000" placeholder="اكتب الرسالة التي تريد أن تظهر في وسط شاشة العضو..."></textarea>'+
+      '<label>نوع الإعلان</label><select id="gaType"><option value="important">🔴 مهم</option><option value="warning">🟠 تنبيه</option><option value="announcement" selected>🔵 إعلان</option></select>'+
+      '<div class="ga-actions"><button type="button" class="primary" onclick="window.__DXN_GA_PREVIEW__()">👁️ معاينة قبل الإرسال</button><button type="button" onclick="window.__DXN_GA_PREVIEW__()">📢 إرسال للجميع</button></div>';
+    anchor.parentNode.insertBefore(card,anchor);window.__DXN_GA_PREVIEW__=previewAnnouncement;
+  }
+  function closeMemberModal(){var n=document.getElementById('dxnGlobalAnnouncementModal');removeNode(n);memberAnnouncementShown=false}
+  async function acknowledgeAnnouncement(id){
+    try{await gaRpc('acknowledge_global_announcement',{p_token:tokenValue(),p_announcement_id:id});closeMemberModal();loadMemberAnnouncements()}
+    catch(e){toast(e.message||'تعذر حفظ التأكيد.')}
+  }
+  async function showMemberAnnouncement(item){
+    if(!item||memberAnnouncementShown)return;
+    memberAnnouncementShown=true;
+    var node=document.createElement('div');node.id='dxnGlobalAnnouncementModal';node.className='dxn-global-announcement-modal';
+    node.innerHTML='<div class="dxn-global-announcement-panel '+typeClass(item.announcement_type)+'" role="dialog" aria-modal="true" aria-label="إعلان عام">'+
+      '<div class="ga-type">'+typeLabel(item.announcement_type)+'</div><h2>'+safeEsc(item.title)+'</h2><div class="ga-body">'+safeEsc(item.body)+'</div>'+
+      '<div class="ga-footer"><button type="button" class="primary" onclick="window.__DXN_GA_ACK__()">✓ فهمت</button><button type="button" onclick="window.__DXN_GA_CLOSE__()">إغلاق</button></div></div>';
+    document.body.appendChild(node);
+    window.__DXN_GA_ACK__=function(){acknowledgeAnnouncement(item.id)};window.__DXN_GA_CLOSE__=closeMemberModal;
+  }
+  async function loadMemberAnnouncements(){
+    if(loadingMemberAnnouncements||memberAnnouncementShown)return;
+    if(typeof role==='undefined'||role!=='member'||!tokenValue())return;
+    loadingMemberAnnouncements=true;
+    try{var rows=await gaRpc('list_global_announcements_for_member',{p_token:tokenValue()});if(Array.isArray(rows)&&rows.length)await showMemberAnnouncement(rows[0])}
+    catch(e){console.debug('global announcement load failed',e)}
+    finally{loadingMemberAnnouncements=false}
+  }
+  function observe(){injectLeaderCard();if(typeof role!=='undefined'&&role==='member')setTimeout(loadMemberAnnouncements,250)}
+  var observer=new MutationObserver(function(){setTimeout(observe,20)});observer.observe(document.body,{childList:true,subtree:true});
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observe);else observe();
+})();
+</script>
 </body>
 
 </html>
