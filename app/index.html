@@ -3640,11 +3640,11 @@ function ragwanDoorJourneyMarkup(){
   }).join('');
   return '<section class="ragwan-plan-shell" id="ragwanPlanShell">'+
 '<div id="ragwanTraineePanel">'+ragwanTraineePanelMarkup()+'</div>'+
-'<div id="ragwanJourneyContent" '+(ragwanSelectedTrainee?'':'style="display:none"')+'>'+
+'<div id="ragwanJourneyContent" '+((ragwanSelectedTrainee||role==='leader')?'':'style="display:none"')+'>'+
 '<section class="ragwan-journey" id="ragwanJourney">'+
     '<div class="ragwan-journey-head"><div class="ragwan-journey-kicker">🚪 رحلة التطبيق الاحترافي</div><div class="ragwan-journey-title">خطوات خطة رجوان للنجاح</div><div class="ragwan-journey-sub">تُفتح الأبواب بالتسلسل؛ لا يفتح الباب التالي إلا بعد إكمال الباب السابق. يمكنك متابعة كل متدرب من آخر خطوة محفوظة له.</div></div>'+
     '<div class="ragwan-real-progress">'+
-      '<div class="ragwan-progress-top"><div><b>📊 تقدم المتدرب الحقيقي</b><span id="ragwanRealProgressState">الخطوة '+current+' هي الخطوة الحالية للمتدرب</span></div><strong id="ragwanRealProgressPercent">0%</strong></div>'+
+      '<div class="ragwan-progress-top"><div><b>📊 تقدم المتدرب الحقيقي</b><span id="ragwanRealProgressState">'+(ragwanSelectedTrainee?('الخطوة '+current+' هي الخطوة الحالية للمتدرب'):'👑 وضع القائد: اختر متدربًا لعرض تقدمه')+'</span></div><strong id="ragwanRealProgressPercent">0%</strong></div>'+
       '<div class="ragwan-progress-track"><span id="ragwanRealProgress" style="width:0%"></span></div>'+
       '<div class="ragwan-progress-stats"><div><b id="ragwanRealProgressDone">0</b><span>مكتملة</span></div><div><b id="ragwanRealProgressCurrent">'+current+'</b><span>الحالية</span></div><div><b id="ragwanRealProgressRemaining">10</b><span>متبقية</span></div><div><b>10</b><span>إجمالي الخطوات</span></div></div>'+
     '</div>'+
