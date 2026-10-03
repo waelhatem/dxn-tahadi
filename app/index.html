@@ -5816,95 +5816,24 @@ async function ragwanSavePlanCompletionMemberInline(){
     if(btn)btn.disabled=false;
   }
 }
-async function ragwanCreateCompletionCertificate(){
-  const status=document.getElementById('ragwanCertificateBuilderStatus');
-  const gender=document.getElementById('ragwanCertificateGender')?.value||'';
-  const completion=window.ragwanLastCompletion||{};
-  let trainee=ragwanSelectedTrainee||{};
-  if(!gender){
-    if(status)status.textContent='⚠️ اختر نوع الشهادة: ذكر أو أنثى.';
-    return;
-  }
-  if(status)status.textContent='⏳ جارٍ جلب بيانات المتدرب...';
-  try{
-    const memberId=String(completion.member_id||trainee.member_id||trainee.id||ragwanSelectedTraineeId||'').trim();
-    if(memberId){
-      const fresh=await ragwanPlanApi('select_trainee',{trainee_member_id:memberId});
-      const freshTrainee=fresh?.trainee||fresh||{};
-      if(freshTrainee?.member_id){
-        trainee={...trainee,...freshTrainee};
-        ragwanSelectedTrainee=trainee;
-      }
-    }
-  }catch(_){}
-  const memberId=String(completion.member_id||trainee.member_id||trainee.id||ragwanSelectedTraineeId||'').trim();
-  const traineeName=String(
-    completion.member_name||
-    completion.trainee_name||
-    completion.name||
-    trainee.name||
-    ''
-  ).trim();
-  const traineeNo=String(
-    completion.member_no||
-    completion.trainee_member_no||
-    trainee.member_no||
-    trainee.membership_no||
-    trainee.membership_number||
-    ''
-  ).trim();
-  if(!traineeName||!traineeNo){
-    if(status)status.textContent='⚠️ لا تتوفر بيانات اسم المتدرب ورقم العضوية.';
-    return;
-  }
-  const sponsorName=String(
-    completion.sponsor_name||
-    completion.sponsor_user_name||
-    currentAccountName()||
-    ''
-  ).trim()||'السبونسر';
-  const leaderName='قائد فريق الأمل الريادي';
-  const completedAt=completion.completed_at?new Date(completion.completed_at):new Date();
-  const dateText=completedAt.toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'});
-  const traineeLabel=gender==='female'?'المتدربة':'المتدرب';
-  const old=document.getElementById('ragwanCertificateModal');if(old)old.remove();
-  const modal=document.createElement('div');
-  modal.id='ragwanCertificateModal';
-  modal.style.cssText='position:fixed;inset:0;background:rgba(5,20,15,.72);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto';
-  modal.innerHTML='<div style="width:min(1100px,96vw);background:#fff;border-radius:22px;padding:14px;box-shadow:0 25px 70px #0008">'+
-    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px"><b style="font-size:18px">🎓 شهادة إكمال خطة رجوان للنجاح</b><button type="button" onclick="document.getElementById(\'ragwanCertificateModal\')?.remove()">✖️ إغلاق</button></div>'+
-    '<div style="overflow:auto;border-radius:16px;border:1px solid #d8e5df"><canvas id="ragwanCertificateCanvas" width="1600" height="1100" style="display:block;width:100%;height:auto;background:#fff"></canvas></div>'+
-    '<div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:12px"><button type="button" class="primary" onclick="ragwanDownloadCompletionCertificate()">⬇️ حفظ الشهادة كصورة</button><button type="button" onclick="window.print()">🖨️ طباعة</button></div>'+
-    '</div>';
-  document.body.appendChild(modal);
-  const canvas=document.getElementById('ragwanCertificateCanvas'),ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height;
-  ctx.fillStyle='#fbfaf4';ctx.fillRect(0,0,W,H);
-  const g=ctx.createLinearGradient(0,0,W,H);g.addColorStop(0,'#f5ead0');g.addColorStop(.5,'#fffdf7');g.addColorStop(1,'#e7f1eb');ctx.fillStyle=g;ctx.fillRect(45,45,W-90,H-90);
-  ctx.strokeStyle='#b58a2b';ctx.lineWidth=8;ctx.strokeRect(75,75,W-150,H-150);
-  ctx.strokeStyle='#d9bc68';ctx.lineWidth=2;ctx.strokeRect(92,92,W-184,H-184);
-  ctx.textAlign='center';ctx.direction='rtl';
-  ctx.fillStyle='#173f33';ctx.font='bold 58px Arial';ctx.fillText('شهادة إكمال خطة رجوان للنجاح',W/2,190);
-  ctx.fillStyle='#a57b20';ctx.font='bold 30px Arial';ctx.fillText('شهادة تقدير وإنجاز',W/2,245);
-  ctx.fillStyle='#234b40';ctx.font='30px Arial';ctx.fillText('تشهد هذه الشهادة بأن',W/2,335);
-  ctx.fillStyle='#0d5a45';ctx.font='bold 64px Arial';ctx.fillText(traineeName,W/2,430);
-  ctx.fillStyle='#234b40';ctx.font='30px Arial';ctx.fillText(traineeLabel+' أكمل الأبواب العشرة لخطة رجوان للنجاح',W/2,500);
-  ctx.font='bold 31px Arial';ctx.fillStyle='#7a5a16';ctx.fillText('رقم العضوية: '+traineeNo,W/2,565);
-  ctx.font='29px Arial';ctx.fillStyle='#234b40';ctx.fillText('تاريخ إكمال التدريب: '+dateText,W/2,625);
-  ctx.font='29px Arial';ctx.fillText('السبونسر / المدرب: '+sponsorName,W/2,685);
-  ctx.fillStyle='#173f33';ctx.font='bold 32px Arial';ctx.fillText(leaderName,W/2,865);
-  ctx.fillStyle='#7a5a16';ctx.font='24px Arial';ctx.fillText('فريق الأمل الريادي',W/2,905);
-  ctx.fillStyle='#234b40';ctx.font='24px Arial';ctx.fillText('خطة رجوان للنجاح • إكمال 10 أبواب تدريبية',W/2,975);
-  window.__ragwanCertificateCanvas=canvas;
-  if(status)status.textContent='✅ تم تصميم الشهادة بالبيانات الصحيحة.';
-}
-window.ragwanCreateCompletionCertificate=ragwanCreateCompletionCertificate;
 if(!window.__ragwanCertificateCreateClickBound){
   document.addEventListener('click',function(e){
     const btn=e.target?.closest?.('#ragwanCertificateCreateBtn');
     if(!btn)return;
     e.preventDefault();
     e.stopPropagation();
-    try{ragwanCreateCompletionCertificate();}catch(err){
+    try{
+      if(typeof window.ragwanBuildCompletionCertificate!=='function'){
+        const s=document.getElementById('ragwanCertificateBuilderStatus');
+        if(s)s.textContent='⚠️ لم يتم تحميل مولّد الشهادة بعد. أعد تحميل الصفحة ثم حاول مرة أخرى.';
+        return;
+      }
+      Promise.resolve(window.ragwanBuildCompletionCertificate()).catch(function(err){
+        const s=document.getElementById('ragwanCertificateBuilderStatus');
+        if(s)s.textContent='⚠️ '+String(err?.message||'تعذر تشغيل تصميم الشهادة.');
+        console.error('ragwan certificate create',err);
+      });
+    }catch(err){
       const s=document.getElementById('ragwanCertificateBuilderStatus');
       if(s)s.textContent='⚠️ '+String(err?.message||'تعذر تشغيل تصميم الشهادة.');
       console.error('ragwan certificate create',err);

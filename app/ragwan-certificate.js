@@ -54,16 +54,29 @@
     };
   }
 
-  function completionData(){
+  async function completionData(){
     const trainee=window.ragwanSelectedTrainee||{};
     const completion=window.ragwanLastCompletion||{};
+    let resolved={};
+    const memberId=String(completion.member_id||trainee.member_id||trainee.id||window.ragwanSelectedTraineeId||'').trim();
+    if(memberId&&typeof window.ragwanPlanApi==='function'){
+      try{
+        const out=await window.ragwanPlanApi('certificate_trainee_data',{member_id:memberId});
+        resolved=out?.trainee||{};
+        if(resolved.member_id){
+          window.ragwanSelectedTrainee={...trainee,...resolved};
+        }
+      }catch(_){}
+    }
+    const merged={...trainee,...resolved};
     const sponsor=currentIdentity();
     return {
-      traineeName:String(completion.member_name||trainee.name||'').trim(),
-      traineeNo:String(completion.member_no||trainee.member_no||'').trim(),
-      sponsorName:String(completion.sponsor_member_name||sponsor.name||'').trim(),
-      sponsorNo:String(completion.sponsor_member_no||sponsor.member_no||'').trim(),
-      completedAt:String(completion.completed_at||trainee.completed_at||new Date().toISOString())
+      /* Enrollment/table values are authoritative for the trainee certificate. */
+      traineeName:String(resolved.name||merged.name||completion.member_name||completion.trainee_name||'').trim(),
+      traineeNo:String(resolved.member_no||merged.member_no||merged.membership_no||merged.membership_number||completion.member_no||completion.trainee_member_no||'').trim(),
+      sponsorName:String(completion.sponsor_member_name||completion.sponsor_name||sponsor.name||'').trim(),
+      sponsorNo:String(completion.sponsor_member_no||completion.sponsor_no||sponsor.member_no||'').trim(),
+      completedAt:String(resolved.completed_at||merged.completed_at||completion.completed_at||new Date().toISOString())
     };
   }
 
@@ -130,17 +143,25 @@
     ctx.drawImage(img,0,0,canvas.width,canvas.height);
 
     const male=gender==='male';
-    const baseFill=male?'#fff9e9':'#fff4f8';
     const valueColor=male?'#07563f':'#a4144e';
 
     /*
-     * The GitHub templates are now genuinely blank in the three variable fields.
-     * Do NOT paint over the artwork. Draw only the dynamic values directly onto
-     * the existing blank areas.
+     * Blank-template rule:
+     * The artwork already contains all fixed labels/signatures.
+     * Only variable text is rendered here, with no background rectangles.
      */
     drawCentered(ctx,data.traineeName,780,458,570,58,26,valueColor,950);
-    drawCentered(ctx,data.traineeNo,780,544,360,30,16,'#1c2522',850);
-    drawCentered(ctx,formatArabicDate(data.completedAt),1025,917,175,23,14,'#1c2522',850);
+
+    /*
+     * Final visual placement on the blank certificate artwork.
+     */
+    drawCentered(ctx,data.traineeNo,690,532,145,30,16,'#1c2522',850);
+
+    /* Sponsor/coach name: below "المشرف على التدريب". */
+    drawCentered(ctx,data.sponsorName,805,915,190,24,16,'#1c2522',900);
+
+    /* Completion date: below the fixed "تاريخ الإتمام" heading. */
+    drawCentered(ctx,formatArabicDate(data.completedAt),1015,915,190,23,14,'#1c2522',850);
 
     return canvas;
   }
@@ -191,7 +212,7 @@
       select?.focus();
       return;
     }
-    const data=completionData();
+    const data=await completionData();
     if(!data.traineeName||!data.traineeNo){
       if(status)status.textContent='⚠️ لا يمكن إنشاء الشهادة قبل توفر اسم المتدرب ورقم عضويته.';
       return;
@@ -209,7 +230,7 @@
     }
   }
 
-  window.ragwanCreateCompletionCertificate=create;
+  window.ragwanBuildCompletionCertificate=create;
   window.ragwanInitCertificateGender=function(){
     ensureStyles();
     const select=document.getElementById('ragwanCertificateGender');
