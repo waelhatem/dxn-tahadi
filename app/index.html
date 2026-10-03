@@ -2030,11 +2030,19 @@ function notificationItems(){
      push(n.id,n.icon||'🔔',n.title||'إشعار',n.desc||'',()=>openNotificationDestination({...n}),n.action_label||'فتح',n.created_at,{event_type:n.event_type,source_id:n.source_id,action_tab:n.action_tab});
    });
    const subs=data?.my_submissions||[], answers=data?.my_answers||[], regs=data?.pending_registrations||[];
-   const pc=subs.filter(x=>x.status==='pending'&&x.challenge_id).length, pa=answers.filter(x=>x.status==='pending'&&x.question_id).length, pr=regs.length;
-   if(pc)push(`leader:ch:${pc}`,'⏳',`لديك ${pc} إنجازات بانتظار الاعتماد`,'توجد إنجازات من الأعضاء تحتاج إلى قرارك.',()=>switchTab('leader'),'مراجعة الإنجازات');
-   if(pa)push(`leader:q:${pa}`,'❓',`لديك ${pa} إجابات بانتظار المراجعة`,'راجع إجابات الأعضاء واعتمد المناسب منها.',()=>switchTab('leader'),'مراجعة الإجابات');
-   if(pr)push(`leader:reg:${pr}`,'🟠',`لديك ${pr} طلبات عضوية جديدة`,'توجد حسابات أعضاء بانتظار موافقتك.',()=>switchTab('leader'),'مراجعة الطلبات');
-   const monthly=data?.monthly||[], target100=monthly.filter(x=>Number(x.dxn_points||x.points||0)>=100).length;
+   const pendingSubs=subs.filter(x=>x.status==='pending'&&x.challenge_id);
+   const pendingAnswers=answers.filter(x=>x.status==='pending'&&x.question_id);
+   pendingSubs.forEach((x,i)=>{
+     const sid=String(x.id||x.submission_id||'').trim();
+     const member=x.member_name||x.name||'عضو';
+     push(`leader:ch:${sid||i}`,'⏳','إنجاز جديد بانتظار اعتمادك',`${member} أرسل إنجازًا يحتاج إلى قرارك.`,()=>openNotificationDestination({event_type:'challenge_submission_pending',source_id:sid,action_tab:'leader'}),'فتح الإنجاز',null,{event_type:'challenge_submission_pending',source_id:sid,action_tab:'leader'});
+   });
+   pendingAnswers.forEach((x,i)=>{
+     const aid=String(x.id||x.answer_id||'').trim();
+     const member=x.member_name||x.name||'عضو';
+     push(`leader:q:${aid||i}`,'❓','إجابة جديدة بانتظار المراجعة',`${member} أرسل إجابة تحتاج إلى قرارك.`,()=>openNotificationDestination({event_type:'question_answer_pending',source_id:aid,action_tab:'leader'}),'فتح الإجابة',null,{event_type:'question_answer_pending',source_id:aid,action_tab:'leader'});
+   });
+   if(regs.length)push(`leader:reg:${regs.length}`,'🟠',`لديك ${regs.length} طلبات عضوية جديدة`,'توجد حسابات أعضاء بانتظار موافقتك.',()=>switchTab('leader'),'مراجعة الطلبات');
    if(target100)push(`leader:target:${currentMonthKey()}:${target100}`,'🎯',`${target100} أعضاء حققوا 100 نقطة DXN`,'يمكنك متابعة التارجت الشهري ومراجعة المكافآت المستحقة.',()=>switchTab('leader'),'متابعة التارجت');
  }
  return items;
