@@ -221,7 +221,7 @@
     }
   }
 
-  window.ragwanCreateCompletionCertificate=create;
+  window.ragwanBuildCompletionCertificate=create;
   window.ragwanInitCertificateGender=function(){
     ensureStyles();
     const select=document.getElementById('ragwanCertificateGender');
