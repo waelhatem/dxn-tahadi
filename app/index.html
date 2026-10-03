@@ -7022,11 +7022,12 @@ function openDxnSync(){
 function dxnSyncPanel(){
   return '<div class="card leaderbox">'+
     '<div class="title">📥 مزامنة سجل DXN</div>'+
-    '<p class="muted" style="line-height:1.9">الصق تقرير DXN الذي نسخته من Excel في الحقل أدناه. يجب أن يحتوي الصف الأول على عناوين الأعمدة، والنظام يتعرف تلقائيًا على أسماء الأعمدة العربية أو الإنجليزية المعروفة.</p>'+
+    '<p class="muted" style="line-height:1.9">يمكنك تحديث سجل DXN دفعة واحدة عبر لصق تقرير Excel، أو إضافة عضو واحد مباشرة من زر «➕ إضافة عضو جديد» دون إعادة نسخ الجدول كاملًا.</p>'+
     '<div class="card" style="margin-top:10px;background:#f7fbf9;border-color:#d8e9e2">'+
       '<b>طريقة العمل</b>'+
       '<div class="muted" style="line-height:2;margin-top:6px">1) افتح تقرير DXN في Excel<br>2) انسخ الجدول كاملًا مع صف العناوين<br>3) الصق هنا<br>4) اضغط «معاينة البيانات» ثم «مزامنة الآن»</div>'+
     '</div>'+
+    '<div class="admin-toolbar" style="margin-top:14px"><button class="primary" onclick="openManualDxnMemberModal()">➕ إضافة عضو جديد</button></div>'+
     '<label style="display:block;font-weight:900;margin-top:14px">📋 بيانات Excel</label>'+
     '<textarea id="dxnSyncInput" style="min-height:260px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;direction:ltr;text-align:left;white-space:pre;overflow:auto" placeholder="ألصق هنا الجدول المنسوخ من Excel..."></textarea>'+
     '<div class="admin-toolbar">'+
@@ -7039,6 +7040,106 @@ function dxnSyncPanel(){
   '<div id="dxnSyncStats" class="admin-grid" style="margin-top:12px"></div>'+
   '<div id="dxnSyncPreview" class="card"><div class="empty">ستظهر المعاينة هنا بعد تحليل الجدول.</div></div>'+
   '<div id="dxnSyncErrors" style="margin-top:10px"></div>';
+}
+
+function closeManualDxnMemberModal(){
+  const el=document.getElementById('manualDxnMemberModal');
+  if(el)el.remove();
+}
+function openManualDxnMemberModal(){
+  if(role!=='leader')return toast('هذه العملية للقائد فقط.');
+  closeManualDxnMemberModal();
+  const overlay=document.createElement('div');
+  overlay.id='manualDxnMemberModal';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(7,30,23,.62);z-index:2147483001;display:flex;align-items:center;justify-content:center;padding:16px;direction:rtl';
+  overlay.innerHTML=`
+    <div style="width:min(620px,96vw);max-height:92vh;overflow:auto;background:#fff;border-radius:24px;padding:22px;box-shadow:0 25px 80px rgba(0,0,0,.3);border:1px solid #dfe9e4">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid #e5ece8;padding-bottom:12px">
+        <div>
+          <div style="font-size:21px;font-weight:950;color:#123b30">➕ إضافة عضو جديد</div>
+          <div class="muted" style="margin-top:4px">إضافة مباشرة إلى سجل DXN دون إعادة لصق ملف Excel.</div>
+        </div>
+        <button type="button" onclick="closeManualDxnMemberModal()" style="background:#fff1ef;color:#a32318">✕</button>
+      </div>
+      <div style="margin-top:16px">
+        <label style="font-weight:900">رقم العضوية *</label>
+        <input id="manualDxnMemberNo" inputmode="numeric" maxlength="9" placeholder="9 أرقام">
+        <label style="font-weight:900">الاسم الكامل *</label>
+        <input id="manualDxnMemberName" placeholder="اسم العضو الكامل">
+        <label style="font-weight:900">تاريخ الانضمام *</label>
+        <input id="manualDxnJoinDate" type="date">
+        <label style="font-weight:900">رقم الراعي / الدليل *</label>
+        <input id="manualDxnSponsorNo" inputmode="numeric" maxlength="9" placeholder="9 أرقام" oninput="lookupManualDxnSponsor()">
+        <div id="manualDxnSponsorPreview" class="muted" style="padding:10px 12px;border-radius:12px;background:#f5f8f7;margin:0 0 10px">أدخل رقم الراعي للتحقق وجلب اسمه.</div>
+        <div class="muted" style="line-height:1.8;background:#f7fbf9;border:1px solid #d8e9e2;border-radius:14px;padding:11px 12px">
+          النظام يملأ تلقائيًا: اسم الراعي، الجيل، والرتبة الأساسية MEM، ويبدأ نقاط العضو من الصفر. لا تحتاج إلى إدخال أعمدة Excel الأخرى.
+        </div>
+      </div>
+      <div id="manualDxnMemberStatus" class="muted" style="margin-top:12px;padding:10px 12px;border-radius:12px;background:#f5f8f7"></div>
+      <div class="admin-toolbar" style="margin-top:14px;justify-content:flex-start">
+        <button type="button" onclick="closeManualDxnMemberModal()">إلغاء</button>
+        <button type="button" class="primary" id="manualDxnMemberSave" onclick="saveManualDxnMember()">➕ إضافة العضو</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const d=document.getElementById('manualDxnJoinDate');
+  if(d)d.value=new Date().toISOString().slice(0,10);
+  setTimeout(()=>document.getElementById('manualDxnMemberNo')?.focus(),0);
+}
+let manualDxnSponsorTimer=null;
+async function lookupManualDxnSponsor(){
+  clearTimeout(manualDxnSponsorTimer);
+  const input=document.getElementById('manualDxnSponsorNo');
+  const box=document.getElementById('manualDxnSponsorPreview');
+  if(!input||!box)return;
+  const no=input.value.trim();
+  if(!/^[0-9]{9}$/.test(no)){
+    box.textContent='أدخل رقم الراعي المكوّن من 9 أرقام للتحقق.';
+    box.style.background='#f5f8f7';box.style.color='';
+    return;
+  }
+  box.textContent='⏳ جارٍ التحقق من الراعي...';
+  box.style.background='#fffaf0';box.style.color='#795900';
+  manualDxnSponsorTimer=setTimeout(async()=>{
+    try{
+      const r=await rpc('lookup_dxn_team_sponsor',{p_token:token,p_member_no:no});
+      if(!r?.found)throw new Error(r?.message||'الراعي غير موجود في سجل DXN.');
+      box.textContent='✅ الراعي: '+(r.sponsor_name||'—')+' · الجيل التالي للعضو: '+(r.next_generation??'—');
+      box.style.background='#edf8f1';box.style.color='#17663f';
+    }catch(e){
+      box.textContent='❌ '+(e.message||'تعذر التحقق من الراعي.');
+      box.style.background='#fff1ef';box.style.color='#a32318';
+    }
+  },300);
+}
+async function saveManualDxnMember(){
+  if(role!=='leader')return;
+  const no=document.getElementById('manualDxnMemberNo')?.value.trim()||'';
+  const name=document.getElementById('manualDxnMemberName')?.value.trim()||'';
+  const joinDate=document.getElementById('manualDxnJoinDate')?.value||'';
+  const sponsorNo=document.getElementById('manualDxnSponsorNo')?.value.trim()||'';
+  const status=document.getElementById('manualDxnMemberStatus');
+  const button=document.getElementById('manualDxnMemberSave');
+  if(!/^[0-9]{9}$/.test(no))return toast('رقم العضوية يجب أن يكون 9 أرقام.');
+  if(!name)return toast('اسم العضو مطلوب.');
+  if(!joinDate)return toast('تاريخ الانضمام مطلوب.');
+  if(!/^[0-9]{9}$/.test(sponsorNo))return toast('رقم الراعي يجب أن يكون 9 أرقام.');
+  if(no===sponsorNo)return toast('لا يمكن أن يكون العضو راعيًا لنفسه.');
+  if(button)button.disabled=true;
+  if(status){status.textContent='⏳ جارٍ إضافة العضو إلى سجل DXN...';status.style.background='#fffaf0';status.style.color='#795900';}
+  try{
+    const r=await rpc('leader_add_dxn_team_member_manual',{
+      p_token:token,p_member_no:no,p_member_name:name,p_join_date:joinDate,p_sponsor_member_no:sponsorNo
+    });
+    if(!r?.ok)throw new Error('تعذر إكمال الإضافة.');
+    closeManualDxnMemberModal();
+    toast('✅ تمت إضافة '+name+' إلى سجل DXN بنجاح.');
+    await new Promise(resolve=>setTimeout(resolve,100));
+    openDxnSync();
+  }catch(e){
+    if(status){status.textContent='❌ '+(e.message||'تعذر إضافة العضو.');status.style.background='#fff1ef';status.style.color='#a32318';}
+    if(button)button.disabled=false;
+  }
 }
 
 async function addTeamRegistryMember(){
