@@ -1,4 +1,4 @@
-/* V86.72 — «🎓 أكاديمية المنصة»: a clear library of videos that explain how to use the
+/* V86.72 — «🎓 أكاديمية المجتمع»: a clear library of videos that explain how to use the
    platform, styled as a native section of the site (no cinematic effects).
    UI only: no Storage upload and no network call in this phase. Every global name
    starts with academy so nothing collides with the other tabs. Switching videos
@@ -136,7 +136,7 @@
 
   function academyHeader(){
     return `<header class="academy-header">
-      <div class="academy-header-kicker">🎓 أكاديمية المنصة</div>
+      <div class="academy-header-kicker">🎓 أكاديمية المجتمع</div>
       <h1 class="academy-header-title">🎥 تعرّف على منصتك</h1>
       <p class="academy-header-text">اكتشف أهم أقسام الموقع وكيفية الاستفادة منها، من خلال فيديوهات قصيرة تشرح كل ميزة خطوة بخطوة.</p>
       <div class="academy-header-actions" id="academyHeaderActions">${academyHeaderActions()}</div>
