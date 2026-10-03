@@ -5904,7 +5904,7 @@ if(!window.__ragwanCertificateCreateClickBound){
     if(!btn)return;
     e.preventDefault();
     e.stopPropagation();
-    try{window.ragwanCreateCompletionCertificate();}catch(err){
+    try{window.ragwanBuildCompletionCertificate();}catch(err){
       const s=document.getElementById('ragwanCertificateBuilderStatus');
       if(s)s.textContent='⚠️ '+String(err?.message||'تعذر تشغيل تصميم الشهادة.');
       console.error('ragwan certificate create',err);
