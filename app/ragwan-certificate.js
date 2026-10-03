@@ -71,11 +71,12 @@
     const merged={...trainee,...resolved};
     const sponsor=currentIdentity();
     return {
-      traineeName:String(completion.member_name||completion.trainee_name||merged.name||'').trim(),
-      traineeNo:String(completion.member_no||completion.trainee_member_no||merged.member_no||merged.membership_no||merged.membership_number||'').trim(),
+      /* Enrollment/table values are authoritative for the trainee certificate. */
+      traineeName:String(resolved.name||merged.name||completion.member_name||completion.trainee_name||'').trim(),
+      traineeNo:String(resolved.member_no||merged.member_no||merged.membership_no||merged.membership_number||completion.member_no||completion.trainee_member_no||'').trim(),
       sponsorName:String(completion.sponsor_member_name||completion.sponsor_name||sponsor.name||'').trim(),
       sponsorNo:String(completion.sponsor_member_no||completion.sponsor_no||sponsor.member_no||'').trim(),
-      completedAt:String(completion.completed_at||merged.completed_at||new Date().toISOString())
+      completedAt:String(resolved.completed_at||merged.completed_at||completion.completed_at||new Date().toISOString())
     };
   }
 
