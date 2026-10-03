@@ -2886,6 +2886,7 @@ function switchTrainingSubtab(next){
   try{
     render();
     cleanupTrainingSubtabDom(next);
+    enforceRagwanOnlyDom();
     const scrollToTrainingTarget=()=>{
       const target=next==='ragwan_success_plan'
         ? document.getElementById('ragwanIntroVideo')
@@ -2904,6 +2905,24 @@ function switchTrainingSubtab(next){
     }));
   }catch(e){console.error(e);toast('تعذر فتح القسم: '+(e.message||e))}
 }
+
+function enforceRagwanOnlyDom(){
+  try{
+    if(typeof trainingSubtab==='undefined'||trainingSubtab!=='ragwan_success_plan')return;
+    ['dxn-training-assessment','dxn-member-external-assessment-history','dxn-external-assessment-summary','dxn-external-assessment-history'].forEach(function(id){
+      const el=document.getElementById(id);if(el)el.remove();
+    });
+    document.querySelectorAll('[data-training-assessment-button],details[data-dxn-assessment-lesson]').forEach(function(el){el.remove();});
+    document.querySelectorAll('#regular-training-page [data-training-lesson-card]').forEach(function(el){el.remove();});
+  }catch(e){}
+}
+if(!window.__DXN_RAGWAN_ONLY_DOM_WATCH__){
+  window.__DXN_RAGWAN_ONLY_DOM_WATCH__=true;
+  const obs=new MutationObserver(()=>enforceRagwanOnlyDom());
+  obs.observe(document.body,{childList:true,subtree:true});
+  setInterval(enforceRagwanOnlyDom,700);
+}
+
 function ragwanSuccessIntro(){
   const line1='الخطوات العشرة لبناء فريق قوي';
   const line2='10 خطوات ستنقلك نقلة نوعية في العمل الاحترافي مع شركة DXN';
