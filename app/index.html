@@ -1967,13 +1967,18 @@ function maybeShowCommunityChatNotificationPopup(){
   });
 }
 function scrollToNotificationTarget(id){
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+  const run=()=>{
     const el=document.getElementById(id);
-    if(!el)return;
-    const top=window.scrollY+el.getBoundingClientRect().top-90;
+    if(!el)return false;
+    const top=window.scrollY+el.getBoundingClientRect().top-120;
     window.scrollTo({top:Math.max(0,top),behavior:'smooth'});
     el.classList.add('notification-action-target');
-    setTimeout(()=>el.classList.remove('notification-action-target'),2200);
+    setTimeout(()=>el.classList.remove('notification-action-target'),3000);
+    return true;
+  };
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    if(run())return;
+    setTimeout(()=>{ if(!run()) setTimeout(run,300); },250);
   }));
 }
 function openNotificationDestination(n){
@@ -1982,8 +1987,10 @@ function openNotificationDestination(n){
   const fallbackTab=String(n?.action_tab||'notifications').trim()||'notifications';
   if(type==='community_chat_message')return Promise.resolve().then(()=>communityChatOpen());
   if(type==='challenge_submission_pending' && role==='leader'){
-    leaderSection='dashboard'; switchTab('leader');
-    requestAnimationFrame(()=>scrollToNotificationTarget('leader-approval-challenge-'+sourceId)); return Promise.resolve();
+    leaderSection='dashboard';
+    switchTab('leader');
+    setTimeout(()=>scrollToNotificationTarget('leader-approval-challenge-'+sourceId),50);
+    return Promise.resolve();
   }
   if(type==='question_answer_pending' && role==='leader'){
     leaderSection='dashboard'; switchTab('leader');
