@@ -153,16 +153,15 @@
     drawCentered(ctx,data.traineeName,780,458,570,58,26,valueColor,950);
 
     /*
-     * Final visual placement based on the actual blank certificate artwork.
-     * The trainee number sits left of the fixed "رقم العضوية:" label and on
-     * the same vertical axis. The sponsor name sits below the supervisor
-     * heading. The trainer name is already fixed in the artwork, so it is
-     * intentionally NOT rendered again.
+     * Final visual placement on the blank certificate artwork.
      */
     drawCentered(ctx,data.traineeNo,690,532,145,30,16,'#1c2522',850);
 
-    /* Sponsor/coach name: below "المشرف على التدريب", centered in its signature block. */
+    /* Sponsor/coach name: below "المشرف على التدريب". */
     drawCentered(ctx,data.sponsorName,805,925,190,24,16,'#1c2522',900);
+
+    /* Fixed trainer name: below "قائد فريق الأمل الريادي", aligned to the sponsor name baseline. */
+    drawCentered(ctx,'أ. رجوان نجاح',585,925,190,24,16,'#1c2522',900);
 
     /* Completion date: below the fixed "تاريخ الإتمام" heading. */
     drawCentered(ctx,formatArabicDate(data.completedAt),1015,925,190,23,14,'#1c2522',850);
