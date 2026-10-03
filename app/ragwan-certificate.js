@@ -5,8 +5,8 @@
   'use strict';
 
   const TEMPLATE_URLS={
-    male:['/assets/certificates/ragwan-professional-plan-certificate-male.png','/app/assets/certificates/ragwan-professional-plan-certificate-male.png'],
-    female:['/assets/certificates/ragwan-professional-plan-certificate-female.png','/app/assets/certificates/ragwan-professional-plan-certificate-female.png']
+    male:['/app/assets/certificates/ragwan-professional-plan-certificate-male.png','/assets/certificates/ragwan-professional-plan-certificate-male.png','./assets/certificates/ragwan-professional-plan-certificate-male.png','./app/assets/certificates/ragwan-professional-plan-certificate-male.png'],
+    female:['/app/assets/certificates/ragwan-professional-plan-certificate-female.png','/assets/certificates/ragwan-professional-plan-certificate-female.png','./assets/certificates/ragwan-professional-plan-certificate-female.png','./app/assets/certificates/ragwan-professional-plan-certificate-female.png']
   };
   const GENDER_KEY='ragwan_certificate_gender_';
 
