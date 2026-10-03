@@ -5816,6 +5816,31 @@ async function ragwanSavePlanCompletionMemberInline(){
     if(btn)btn.disabled=false;
   }
 }
+if(!window.__ragwanCertificateCreateClickBound){
+  document.addEventListener('click',function(e){
+    const btn=e.target?.closest?.('#ragwanCertificateCreateBtn');
+    if(!btn)return;
+    e.preventDefault();
+    e.stopPropagation();
+    try{
+      if(typeof window.ragwanBuildCompletionCertificate!=='function'){
+        const s=document.getElementById('ragwanCertificateBuilderStatus');
+        if(s)s.textContent='⚠️ لم يتم تحميل مولّد الشهادة بعد. أعد تحميل الصفحة ثم حاول مرة أخرى.';
+        return;
+      }
+      Promise.resolve(window.ragwanBuildCompletionCertificate()).catch(function(err){
+        const s=document.getElementById('ragwanCertificateBuilderStatus');
+        if(s)s.textContent='⚠️ '+String(err?.message||'تعذر تشغيل تصميم الشهادة.');
+        console.error('ragwan certificate create',err);
+      });
+    }catch(err){
+      const s=document.getElementById('ragwanCertificateBuilderStatus');
+      if(s)s.textContent='⚠️ '+String(err?.message||'تعذر تشغيل تصميم الشهادة.');
+      console.error('ragwan certificate create',err);
+    }
+  },true);
+  window.__ragwanCertificateCreateClickBound=true;
+}
 function ragwanDownloadCompletionCertificate(){
   const canvas=window.__ragwanCertificateCanvas;if(!canvas)return;
   const completion=window.ragwanLastCompletion||{},name=String(completion.member_name||ragwanSelectedTrainee?.name||'متدرب').replace(/[^\\p{L}\\p{N}_-]+/gu,'_');
