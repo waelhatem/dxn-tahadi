@@ -50,7 +50,7 @@
   }
   function renderMember(force){
     /* خطة رجوان قسم مستقل: لا تُحقن اختبارات/إجابات/نتائج التدريبات العامة داخلها. */
-    if(typeof window.trainingSubtab!=='undefined' && window.trainingSubtab==='ragwan_success_plan'){
+    if(typeof trainingSubtab!=='undefined' && trainingSubtab==='ragwan_success_plan'){
       var ragwanStale=document.getElementById('dxn-training-assessment');
       if(ragwanStale)ragwanStale.remove();
       return;
@@ -179,7 +179,7 @@
     if(initialRole==='leader')return;
     var tries=0,t=setInterval(function(){if(token()){load(true);clearInterval(t)}else if(++tries>300)clearInterval(t)},100);
     var mo=new MutationObserver(function(){
-      if(typeof window.trainingSubtab!=='undefined' && window.trainingSubtab==='ragwan_success_plan'){
+      if(typeof trainingSubtab!=='undefined' && trainingSubtab==='ragwan_success_plan'){
         var ragwanStale=document.getElementById('dxn-training-assessment');
         if(ragwanStale)ragwanStale.remove();
         return;
