@@ -61,8 +61,8 @@
     return {
       traineeName:String(completion.member_name||completion.trainee_name||completion.name||trainee.name||'').trim(),
       traineeNo:String(completion.member_no||completion.trainee_member_no||completion.membership_number||completion.membership_no||trainee.member_no||trainee.membership_no||trainee.membership_number||'').trim(),
-      sponsorName:String(completion.sponsor_member_name||sponsor.name||'').trim(),
-      sponsorNo:String(completion.sponsor_member_no||sponsor.member_no||'').trim(),
+      sponsorName:'أ. رجوان نجاح',
+      sponsorRole:'قائد فريق الأمل الريادي',
       completedAt:String(completion.completed_at||trainee.completed_at||new Date().toISOString())
     };
   }
@@ -140,19 +140,11 @@
     cover(ctx,575,520,410,48,baseFill);
     drawCentered(ctx,data.traineeNo,780,544,360,30,16,'#1c2522',850);
 
-    /*
-     * The approved artwork contains sample sponsor data (including a fixed name
-     * and a fixed membership number). Those values must never appear as real
-     * member data. Keep the printed role/signature artwork, but replace only
-     * the sample sponsor name and number with the actual sponsor identity.
-     */
-    cover(ctx,585,865,390,55,baseFill);
-    drawCentered(ctx,data.sponsorName,780,892,360,28,16,'#1c2522',850);
+    /* Fixed trainer identity on every certificate. No membership number is printed here. */
+    drawCentered(ctx,data.sponsorRole,780,875,300,22,14,'#1c2522',850);
+    drawCentered(ctx,data.sponsorName,780,905,300,24,16,'#1c2522',950);
 
-    cover(ctx,690,915,250,42,baseFill);
-    drawCentered(ctx,data.sponsorNo,815,936,220,22,14,'#1c2522',800);
-
-    /* Replace the sample completion date while preserving the printed date label. */
+    /* Replace the completion date with the actual plan-completion date. */
     cover(ctx,930,880,190,72,baseFill);
     drawCentered(ctx,formatArabicDate(data.completedAt),1025,917,175,23,14,'#1c2522',850);
 
