@@ -160,9 +160,6 @@
     /* Sponsor/coach name: below "المشرف على التدريب". */
     drawCentered(ctx,data.sponsorName,805,925,190,24,16,'#1c2522',900);
 
-    /* Fixed trainer name: below "قائد فريق الأمل الريادي", aligned to the sponsor name baseline. */
-    drawCentered(ctx,'أ. رجوان نجاح',585,925,190,24,16,'#1c2522',900);
-
     /* Completion date: below the fixed "تاريخ الإتمام" heading. */
     drawCentered(ctx,formatArabicDate(data.completedAt),1015,925,190,23,14,'#1c2522',850);
 
