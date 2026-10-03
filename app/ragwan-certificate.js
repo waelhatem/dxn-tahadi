@@ -152,14 +152,14 @@
      */
     drawCentered(ctx,data.traineeName,780,458,570,58,26,valueColor,950);
 
-    /* Membership number: move it clearly left so it sits beside the fixed RTL label "رقم العضوية:". */
-    drawCentered(ctx,data.traineeNo,650,544,240,30,16,'#1c2522',850);
+    /* Exact coordinates supplied from the certificate scale. */
+    drawCentered(ctx,data.traineeNo,845,540,150,30,16,'#1c2522',850);
 
-    /* Sponsor/coach name: centered directly under the fixed "المشرف على التدريب" heading. */
-    drawCentered(ctx,data.sponsorName,815,900,280,24,16,'#1c2522',900);
+    /* Sponsor/coach name — inside the supplied X=910..1045 / Y=900 field. */
+    drawCentered(ctx,data.sponsorName,977.5,900,135,24,16,'#1c2522',900);
 
-    /* Fixed trainer identity: centered directly under the fixed "قائد فريق الأمل الريادي" heading. */
-    drawCentered(ctx,'أ. رجوان نجاح',585,900,280,24,16,'#1c2522',900);
+    /* Fixed trainer identity — inside the supplied X=690..830 / Y=900 field. */
+    drawCentered(ctx,'أ. رجوان نجاح',760,900,140,24,16,'#1c2522',900);
 
     /* Completion date is dynamic and replaces only the blank date field. */
     drawCentered(ctx,formatArabicDate(data.completedAt),1025,917,175,23,14,'#1c2522',850);
