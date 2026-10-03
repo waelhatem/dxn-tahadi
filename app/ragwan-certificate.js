@@ -133,15 +133,13 @@
     const baseFill=male?'#fff9e9':'#fff4f8';
     const valueColor=male?'#07563f':'#a4144e';
 
-    /* Keep the approved artwork intact; only replace its sample personalization values. */
-    cover(ctx,475,420,610,70,baseFill);
+    /*
+     * The GitHub templates are now genuinely blank in the three variable fields.
+     * Do NOT paint over the artwork. Draw only the dynamic values directly onto
+     * the existing blank areas.
+     */
     drawCentered(ctx,data.traineeName,780,458,570,58,26,valueColor,950);
-
-    cover(ctx,575,520,410,48,baseFill);
     drawCentered(ctx,data.traineeNo,780,544,360,30,16,'#1c2522',850);
-
-    /* Replace the sample completion date while preserving the printed date label. */
-    cover(ctx,930,880,190,72,baseFill);
     drawCentered(ctx,formatArabicDate(data.completedAt),1025,917,175,23,14,'#1c2522',850);
 
     return canvas;
