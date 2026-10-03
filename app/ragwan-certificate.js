@@ -155,11 +155,11 @@
     /* Exact coordinates supplied from the certificate scale. */
     drawCentered(ctx,data.traineeNo,845,540,150,30,16,'#1c2522',850);
 
-    /* Sponsor/coach name — inside the supplied X=910..1045 / Y=900 field. */
-    drawCentered(ctx,data.sponsorName,977.5,900,135,24,16,'#1c2522',900);
+    /* Sponsor/coach name — center X=977, Y=900. */
+    drawCentered(ctx,data.sponsorName,977,900,180,24,16,'#1c2522',900);
 
-    /* Fixed trainer identity — inside the supplied X=690..830 / Y=900 field. */
-    drawCentered(ctx,'أ. رجوان نجاح',760,900,140,24,16,'#1c2522',900);
+    /* Fixed trainer identity — center X=780, Y=900. */
+    drawCentered(ctx,'أ. رجوان نجاح',780,900,180,24,16,'#1c2522',900);
 
     /* Completion date is dynamic and replaces only the blank date field. */
     drawCentered(ctx,formatArabicDate(data.completedAt),1025,917,175,23,14,'#1c2522',850);
