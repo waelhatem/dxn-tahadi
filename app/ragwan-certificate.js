@@ -140,6 +140,18 @@
     cover(ctx,575,520,410,48,baseFill);
     drawCentered(ctx,data.traineeNo,780,544,360,30,16,'#1c2522',850);
 
+    /*
+     * The approved artwork contains sample sponsor data (including a fixed name
+     * and a fixed membership number). Those values must never appear as real
+     * member data. Keep the printed role/signature artwork, but replace only
+     * the sample sponsor name and number with the actual sponsor identity.
+     */
+    cover(ctx,585,865,390,55,baseFill);
+    drawCentered(ctx,data.sponsorName,780,892,360,28,16,'#1c2522',850);
+
+    cover(ctx,690,915,250,42,baseFill);
+    drawCentered(ctx,data.sponsorNo,815,936,220,22,14,'#1c2522',800);
+
     /* Replace the sample completion date while preserving the printed date label. */
     cover(ctx,930,880,190,72,baseFill);
     drawCentered(ctx,formatArabicDate(data.completedAt),1025,917,175,23,14,'#1c2522',850);
