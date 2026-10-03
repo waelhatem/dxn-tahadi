@@ -143,16 +143,25 @@
     ctx.drawImage(img,0,0,canvas.width,canvas.height);
 
     const male=gender==='male';
-    const baseFill=male?'#fff9e9':'#fff4f8';
     const valueColor=male?'#07563f':'#a4144e';
 
     /*
-     * The GitHub templates are now genuinely blank in the three variable fields.
-     * Do NOT paint over the artwork. Draw only the dynamic values directly onto
-     * the existing blank areas.
+     * Blank-template rule:
+     * The artwork already contains all fixed labels/signatures.
+     * Only variable text is rendered here, with no background rectangles.
      */
     drawCentered(ctx,data.traineeName,780,458,570,58,26,valueColor,950);
-    drawCentered(ctx,data.traineeNo,780,544,360,30,16,'#1c2522',850);
+
+    /* Membership number: place it slightly left of the fixed RTL label "رقم العضوية:". */
+    drawCentered(ctx,data.traineeNo,735,544,260,30,16,'#1c2522',850);
+
+    /* Dynamic sponsor/coach name under the fixed "المشرف على التدريب" label. */
+    drawCentered(ctx,data.sponsorName,815,905,250,24,16,'#1c2522',900);
+
+    /* Fixed trainer identity under the fixed "قائد فريق الأمل الريادي" label. */
+    drawCentered(ctx,'أ. رجوان نجاح',585,905,250,24,16,'#1c2522',900);
+
+    /* Completion date is dynamic and replaces only the blank date field. */
     drawCentered(ctx,formatArabicDate(data.completedAt),1025,917,175,23,14,'#1c2522',850);
 
     return canvas;
