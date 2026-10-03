@@ -54,16 +54,28 @@
     };
   }
 
-  function completionData(){
+  async function completionData(){
     const trainee=window.ragwanSelectedTrainee||{};
     const completion=window.ragwanLastCompletion||{};
+    let resolved={};
+    const memberId=String(completion.member_id||trainee.member_id||trainee.id||window.ragwanSelectedTraineeId||'').trim();
+    if(memberId&&typeof window.ragwanPlanApi==='function'){
+      try{
+        const out=await window.ragwanPlanApi('certificate_trainee_data',{member_id:memberId});
+        resolved=out?.trainee||{};
+        if(resolved.member_id){
+          window.ragwanSelectedTrainee={...trainee,...resolved};
+        }
+      }catch(_){}
+    }
+    const merged={...trainee,...resolved};
     const sponsor=currentIdentity();
     return {
-      traineeName:String(completion.member_name||trainee.name||'').trim(),
-      traineeNo:String(completion.member_no||trainee.member_no||'').trim(),
-      sponsorName:String(completion.sponsor_member_name||sponsor.name||'').trim(),
-      sponsorNo:String(completion.sponsor_member_no||sponsor.member_no||'').trim(),
-      completedAt:String(completion.completed_at||trainee.completed_at||new Date().toISOString())
+      traineeName:String(completion.member_name||completion.trainee_name||merged.name||'').trim(),
+      traineeNo:String(completion.member_no||completion.trainee_member_no||merged.member_no||merged.membership_no||merged.membership_number||'').trim(),
+      sponsorName:String(completion.sponsor_member_name||completion.sponsor_name||sponsor.name||'').trim(),
+      sponsorNo:String(completion.sponsor_member_no||completion.sponsor_no||sponsor.member_no||'').trim(),
+      completedAt:String(completion.completed_at||merged.completed_at||new Date().toISOString())
     };
   }
 
@@ -191,7 +203,7 @@
       select?.focus();
       return;
     }
-    const data=completionData();
+    const data=await completionData();
     if(!data.traineeName||!data.traineeNo){
       if(status)status.textContent='⚠️ لا يمكن إنشاء الشهادة قبل توفر اسم المتدرب ورقم عضويته.';
       return;
