@@ -2865,12 +2865,28 @@ function ideaTrustVideos(){
   </div>`;
   renderViewSwitch();
 }
+function cleanupTrainingSubtabDom(mode){
+  const appRoot=document.getElementById('app');
+  if(!appRoot)return;
+  if(mode==='ragwan_success_plan'){
+    appRoot.querySelector('#regular-training-page')?.remove();
+    appRoot.querySelectorAll('[data-training-lesson-card]').forEach(el=>el.remove());
+    appRoot.querySelector('#dxn-training-assessment')?.remove();
+    appRoot.querySelector('#dxn-member-external-assessment-history')?.remove();
+    appRoot.querySelectorAll('[data-training-assessment-button],details[data-dxn-assessment-lesson]').forEach(el=>el.remove());
+  }else if(mode==='lessons'){
+    appRoot.querySelector('#ragwan-only-page')?.remove();
+    appRoot.querySelector('#ragwanPlanShell')?.remove();
+  }
+}
 function switchTrainingSubtab(next){
   if(next!=='home'&&next!=='lessons'&&next!=='ragwan_success_plan')return;
   trainingSubtab=next;
   saveDxnUiState({tab,trainingSubtab:next});
   try{
     render();
+    cleanupTrainingSubtabDom(next);
+    enforceRagwanOnlyDom();
     const scrollToTrainingTarget=()=>{
       const target=next==='ragwan_success_plan'
         ? document.getElementById('ragwanIntroVideo')
@@ -2889,6 +2905,24 @@ function switchTrainingSubtab(next){
     }));
   }catch(e){console.error(e);toast('تعذر فتح القسم: '+(e.message||e))}
 }
+
+function enforceRagwanOnlyDom(){
+  try{
+    if(typeof trainingSubtab==='undefined'||trainingSubtab!=='ragwan_success_plan')return;
+    ['dxn-training-assessment','dxn-member-external-assessment-history','dxn-external-assessment-summary','dxn-external-assessment-history'].forEach(function(id){
+      const el=document.getElementById(id);if(el)el.remove();
+    });
+    document.querySelectorAll('[data-training-assessment-button],details[data-dxn-assessment-lesson]').forEach(function(el){el.remove();});
+    document.querySelectorAll('#regular-training-page [data-training-lesson-card]').forEach(function(el){el.remove();});
+  }catch(e){}
+}
+if(!window.__DXN_RAGWAN_ONLY_DOM_WATCH__){
+  window.__DXN_RAGWAN_ONLY_DOM_WATCH__=true;
+  const obs=new MutationObserver(()=>enforceRagwanOnlyDom());
+  obs.observe(document.body,{childList:true,subtree:true});
+  setInterval(enforceRagwanOnlyDom,700);
+}
+
 function ragwanSuccessIntro(){
   const line1='الخطوات العشرة لبناء فريق قوي';
   const line2='10 خطوات ستنقلك نقلة نوعية في العمل الاحترافي مع شركة DXN';
@@ -6061,9 +6095,11 @@ function trainings(){
   }
 
   if(trainingSubtab==='ragwan_success_plan'){
-    return `<div class="card">
-      <div class="title">📘 الخطة الاحترافية لرجوان نجاح</div>
-      ${ragwanSuccessIntro()}
+    return `<div id="ragwan-only-page" data-training-mode="ragwan" class="ragwan-only-page">
+      <div class="card">
+        <div class="title">📘 الخطة الاحترافية لرجوان نجاح</div>
+        ${ragwanSuccessIntro()}
+      </div>
     </div>`;
   }
 
@@ -6080,7 +6116,7 @@ function trainings(){
     const done=!!p?.completed;
     const previousDone = n===1 || completedNo.has(n-1);
     const locked = !done && !previousDone && role==='member';
-    return `<div id="${n===1?'trainingLessonsStart':''}" class="card" style="${locked?'opacity:.58;background:#f6f8f7':''}">
+    return `<div data-training-lesson-card="1" id="${n===1?'trainingLessonsStart':''}" class="card" style="${locked?'opacity:.58;background:#f6f8f7':''}">
       <div class="row">
         <div style="flex:1">
           <div style="font-size:28px">📚</div>
@@ -6099,13 +6135,14 @@ function trainings(){
     </div>`;
   }).join('');
 
-  return backChoice+`<div class="card">
+  return backChoice+`<div id="regular-training-page" data-training-mode="lessons">
+    <div class="card">
     <div class="title">📚 الشروحات والتدريبات</div>
     <p class="muted">شاهد التدريبات بالترتيب. لا يفتح التدريب التالي إلا بعد إكمال التدريب السابق، ويمكنك إعادة مشاهدة أي تدريب أكملته في أي وقت.</p>
     <div style="background:#eef3f1;border-radius:999px;height:14px;overflow:hidden;margin:15px 0"><div style="width:${pct}%;height:100%;background:#0f513f"></div></div>
     <div style="text-align:center;font-weight:900">نسبة إكمالك: ${pct}% — ${completedNo.size} من ${lessons.length}</div>
     <div class="muted" style="text-align:center;margin-top:8px">⭐ أكمل التدريب كاملًا لتحصل على مكافأة النجوم مرة واحدة.</div>
-  </div>${cards}`;
+  </div>${cards}</div>`;
 }
 
 function youtubeEmbed(url){
