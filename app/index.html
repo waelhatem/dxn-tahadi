@@ -1966,6 +1966,79 @@ function maybeShowCommunityChatNotificationPopup(){
     await communityChatOpen();
   });
 }
+function scrollToNotificationTarget(id){
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    const top=window.scrollY+el.getBoundingClientRect().top-90;
+    window.scrollTo({top:Math.max(0,top),behavior:'smooth'});
+  }));
+}
+function openNotificationDestination(n){
+  const type=String(n?.event_type||'').trim();
+  const fallbackTab=String(n?.action_tab||'notifications').trim()||'notifications';
+
+  if(type==='community_chat_message'){
+    return Promise.resolve().then(()=>markNotificationsRead([n.id])).then(()=>communityChatOpen());
+  }
+
+  if(type==='challenge_submission_pending' && role==='leader'){
+    leaderSection='dashboard';
+    switchTab('leader');
+    scrollToNotificationTarget('leader-pending-actions');
+    return Promise.resolve();
+  }
+
+  if(type==='question_answer_pending' && role==='leader'){
+    leaderSection='dashboard';
+    switchTab('leader');
+    scrollToNotificationTarget('leader-pending-actions');
+    return Promise.resolve();
+  }
+
+  if((type==='dxn_membership_request_pending'||type==='membership_request_pending') && role==='leader'){
+    leaderSection='dxn_requests';
+    switchTab('leader');
+    return Promise.resolve();
+  }
+
+  if(type==='ragwan_plan_completed'){
+    if(role==='leader'){
+      switchTab('teams');
+      return Promise.resolve();
+    }
+    trainingSubtab='ragwan_success_plan';
+    switchTab('training');
+    return Promise.resolve();
+  }
+
+  if(type==='monthly_points_pending' && role==='leader'){
+    leaderSection='dashboard';
+    switchTab('leader');
+    scrollToNotificationTarget('leader-monthly-points');
+    return Promise.resolve();
+  }
+
+  if(type==='prospect_request_pending' && role==='leader'){
+    leaderSection='prospects';
+    switchTab('leader');
+    return Promise.resolve();
+  }
+
+  if(fallbackTab==='leader' && role==='leader'){
+    leaderSection='dashboard';
+    switchTab('leader');
+    scrollToNotificationTarget('leader-pending-actions');
+    return Promise.resolve();
+  }
+
+  if(fallbackTab==='community'){
+    return Promise.resolve().then(()=>communityChatOpen());
+  }
+
+  switchTab(fallbackTab);
+  return Promise.resolve();
+}
 function notificationAction(tab){
   return ()=>switchTab(tab||'notifications');
 }
@@ -1974,7 +2047,7 @@ function notificationItems(){
  const push=(id,icon,title,desc,action,actionLabel='فتح',createdAt=null)=>items.push({id:String(id),icon,title,desc,action,actionLabel,created_at:createdAt});
  if(role==='member'&&me){
    serverNotifications.forEach(n=>{
-     push(n.id,n.icon||'🔔',n.title||'إشعار',n.desc||'',notificationAction(n.action_tab),n.action_label||'فتح',n.created_at);
+     push(n.id,n.icon||'🔔',n.title||'إشعار',n.desc||'',()=>openNotificationDestination(n),n.action_label||'فتح الإجراء',n.created_at);
    });
    return items;
  }
@@ -2010,8 +2083,13 @@ function notificationsCard(summary=notificationSummary()){
 async function notificationOpen(id){
  const n=notificationItems().find(x=>String(x.id)===String(id));
  if(!n)return;
- await markNotificationsRead([n.id]);
- if(typeof n.action==='function')n.action();else render();
+ if(typeof n.action==='function'){
+   await markNotificationsRead([n.id]);
+   await n.action();
+ }else{
+   await markNotificationsRead([n.id]);
+   render();
+ }
 }
 async function markAllNotificationsRead(){
  const ids=notificationItems().map(n=>n.id);
@@ -7267,9 +7345,9 @@ function leader(){
  </div></div>
  <div class="card"><div class="title">🔥 المتصدرون بالنجوم</div>${topMembers.map((m,i)=>`<div class="row"><div><b>#${i+1} ${esc(m.name)}</b><div class="muted">${esc(m.team_name||'بدون فريق')} · 🪪 ${esc(m.member_no)}</div><div class="bar"><span style="width:${Math.round(Number(m.stars||0)/maxStars*100)}%"></span></div></div><span class="stars">⭐ ${Number(m.stars||0)}</span></div>`).join('')||'<div class="empty">لا توجد بيانات أعضاء.</div>'}</div>
  <div class="card"><div class="title">🏆 تحليل الفرق</div>${[...teamsWithStars].sort((a,b)=>Number(b.stars||0)-Number(a.stars||0)).map((t,i)=>`<div class="row"><div><b>#${i+1} ${esc(t.name)}</b><div class="muted">👥 ${t.members||0} أعضاء · 🎯 ${t.approved_challenges||0} إنجازات</div></div><span class="stars">⭐ ${Number(t.stars||0)}</span></div>`).join('')||'<div class="empty">لا توجد فرق.</div>'}</div>
- <div class="card"><div class="title">🟠 طلبات العضوية الجديدة (${pendingRegs.length})</div>${pendingRegs.map(m=>`<div class="row"><div><b>${esc(m.name)}</b><div class="muted">🪪 ${esc(m.member_no)} · ${esc(m.team_name||'بدون فريق')} · ${fmt(m.created_at)}</div></div><div class="actions"><button class="primary" onclick="approveRegistration('${m.id}')">✅ قبول</button><button class="danger" onclick="rejectRegistration('${m.id}')">❌ رفض</button></div></div>`).join('')||'<div class="empty">لا توجد طلبات عضوية معلقة.</div>'}</div><div class="card"><div class="title">📋 طلبات التسجيل في DXN (${membershipRequests.length})</div><p class="muted">طلبات الزوار الذين لا يملكون عضوية DXN بعد. راجع البيانات ثم وافق أو ارفض الطلب. ويمكن حذف أي طلب نهائيًا من هنا.</p>${membershipRequests.map(r=>`<div class="row pending"><div><b>${esc(r.full_name)}</b><div class="muted">🏠 ${esc(r.residence_country||'')} · 🌍 ${esc(r.birth_country||'')} · 🎂 ${esc(r.birth_date||'')} · 📱 ${esc(r.mobile||'')} · ✉️ ${esc(r.email||'')}<br>📍 ${esc(r.address||'')}<br>🪪 الهوية/جواز السفر: ${esc(r.id_or_passport||'')}<br>👤 دلّه على المشروع: <b>${esc(r.sponsor_name||r.referred_by_member||'')}</b><br>🎂 حالة العمر: ${r.age_18_confirmed?'✅ 18 سنة أو أكثر':'❌ غير مؤكد'} · 📝 الحالة: <b>${esc(r.status||'pending')}</b> · ${fmt(r.created_at)}</div></div><div class="actions">${r.status==='pending'?`<button class="primary" onclick="approveDXNMembershipRequest('${r.id}')">✅ قبول</button><button class="danger" onclick="rejectDXNMembershipRequest('${r.id}')">❌ رفض</button>`:''}<button class="danger" onclick="deleteDXNMembershipRequest('${r.id}')">🗑️ حذف نهائي</button></div></div>`).join('')||'<div class="empty">لا توجد طلبات تسجيل في DXN.</div>'}</div>
- <div class="card"><div class="title">🎯 طلبات تحديث نقاط DXN (${monthlyPointRequests.filter(x=>x.status==='pending').length})</div><p class="muted">كل تحديث لنقاط DXN يرسله العضو مع صورة إثبات، ولا يتغير رصيده إلا بعد اعتماد القائد.</p>${monthlyPointRequests.filter(x=>x.status==='pending').map(x=>monthlyPointRequestCard(x)).join('')||'<div class="empty">لا توجد طلبات نقاط معلقة.</div>'}</div>
- <div class="card"><div class="title">⏳ الأعمال التي تحتاج قرار القائد</div><h3>🎯 إنجازات التحديات (${pendingChallenges.length})</h3>${pendingChallenges.map(x=>approvalCard(x,false)).join('')||'<div class="empty">لا توجد طلبات تحديات.</div>'}<h3>❓ إجابات الأسئلة (${pendingAnswers.length})</h3>${pendingAnswers.map(x=>approvalCard(x,true)).join('')||'<div class="empty">لا توجد إجابات معلقة.</div>'}</div>
+ <div class="card" id="leader-pending-members"><div class="title">🟠 طلبات العضوية الجديدة (${pendingRegs.length})</div>${pendingRegs.map(m=>`<div class="row"><div><b>${esc(m.name)}</b><div class="muted">🪪 ${esc(m.member_no)} · ${esc(m.team_name||'بدون فريق')} · ${fmt(m.created_at)}</div></div><div class="actions"><button class="primary" onclick="approveRegistration('${m.id}')">✅ قبول</button><button class="danger" onclick="rejectRegistration('${m.id}')">❌ رفض</button></div></div>`).join('')||'<div class="empty">لا توجد طلبات عضوية معلقة.</div>'}</div><div class="card" id="leader-dxn-requests"><div class="title">📋 طلبات التسجيل في DXN (${membershipRequests.length})</div><p class="muted">طلبات الزوار الذين لا يملكون عضوية DXN بعد. راجع البيانات ثم وافق أو ارفض الطلب. ويمكن حذف أي طلب نهائيًا من هنا.</p>${membershipRequests.map(r=>`<div class="row pending"><div><b>${esc(r.full_name)}</b><div class="muted">🏠 ${esc(r.residence_country||'')} · 🌍 ${esc(r.birth_country||'')} · 🎂 ${esc(r.birth_date||'')} · 📱 ${esc(r.mobile||'')} · ✉️ ${esc(r.email||'')}<br>📍 ${esc(r.address||'')}<br>🪪 الهوية/جواز السفر: ${esc(r.id_or_passport||'')}<br>👤 دلّه على المشروع: <b>${esc(r.sponsor_name||r.referred_by_member||'')}</b><br>🎂 حالة العمر: ${r.age_18_confirmed?'✅ 18 سنة أو أكثر':'❌ غير مؤكد'} · 📝 الحالة: <b>${esc(r.status||'pending')}</b> · ${fmt(r.created_at)}</div></div><div class="actions">${r.status==='pending'?`<button class="primary" onclick="approveDXNMembershipRequest('${r.id}')">✅ قبول</button><button class="danger" onclick="rejectDXNMembershipRequest('${r.id}')">❌ رفض</button>`:''}<button class="danger" onclick="deleteDXNMembershipRequest('${r.id}')">🗑️ حذف نهائي</button></div></div>`).join('')||'<div class="empty">لا توجد طلبات تسجيل في DXN.</div>'}</div>
+ <div class="card" id="leader-monthly-points"><div class="title">🎯 طلبات تحديث نقاط DXN (${monthlyPointRequests.filter(x=>x.status==='pending').length})</div><p class="muted">كل تحديث لنقاط DXN يرسله العضو مع صورة إثبات، ولا يتغير رصيده إلا بعد اعتماد القائد.</p>${monthlyPointRequests.filter(x=>x.status==='pending').map(x=>monthlyPointRequestCard(x)).join('')||'<div class="empty">لا توجد طلبات نقاط معلقة.</div>'}</div>
+ <div class="card" id="leader-pending-actions"><div class="title">⏳ الأعمال التي تحتاج قرار القائد</div><h3>🎯 إنجازات التحديات (${pendingChallenges.length})</h3>${pendingChallenges.map(x=>approvalCard(x,false)).join('')||'<div class="empty">لا توجد طلبات تحديات.</div>'}<h3>❓ إجابات الأسئلة (${pendingAnswers.length})</h3>${pendingAnswers.map(x=>approvalCard(x,true)).join('')||'<div class="empty">لا توجد إجابات معلقة.</div>'}</div>
  <div class="card"><div class="title">🎯 حالة التحديات</div><div class="muted">نشطة: ${activeChallenges.length} · الكلية المحملة: ${challenges.length} · مجمدة/غير نشطة: ${Math.max(0,challenges.length-activeChallenges.length)}</div><div class="admin-toolbar"><button class="primary" onclick="switchTab('ch')">⚙️ إدارة كل التحديات</button></div></div>
  <div class="card"><div class="title">👥 إدارة الموقع</div><div class="admin-toolbar"><button class="primary" onclick="switchTab('teams')">👥 الأعضاء والفرق</button><button onclick="createMemberForm()">➕ إضافة عضو</button><button onclick="createTeamForm()">🏆 إضافة فريق</button><button onclick="switchTab('ch')">🎯 إدارة التحديات</button></div></div>
  <div class="card"><div class="title">❓ أسئلة الشهر</div><p class="muted">خمسة أسئلة ثابتة لهذا الشهر، ويمكن للقائد تعديلها وحفظها.</p>${[1,2,3,4,5].map(n=>{const q=(data.questions||[]).find(x=>Number(x.question_no)===n);return `<input id="qtxt${n}" value="${esc(q?.text||'')}" placeholder="السؤال ${n}"><input id="qcat${n}" value="${esc(q?.category||'الوعي والتفاعل')}" placeholder="التصنيف ${n}">`}).join('')}<button class="primary" onclick="saveQuestions()">💾 حفظ الأسئلة الخمسة</button></div>
