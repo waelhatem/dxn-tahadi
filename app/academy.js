@@ -1,4 +1,4 @@
-/* V86.72 — «🎓 أكاديمية المنصة»: a clear library of videos that explain how to use the
+/* V86.72 — «🎓 أكاديمية المجتمع»: a clear library of videos that explain how to use the
    platform, styled as a native section of the site (no cinematic effects).
    UI only: no Storage upload and no network call in this phase. Every global name
    starts with academy so nothing collides with the other tabs. Switching videos
@@ -136,9 +136,9 @@
 
   function academyHeader(){
     return `<header class="academy-header">
-      <div class="academy-header-kicker">🎓 أكاديمية المنصة</div>
-      <h1 class="academy-header-title">🎥 تعرّف على منصتك</h1>
-      <p class="academy-header-text">اكتشف أهم أقسام الموقع وكيفية الاستفادة منها، من خلال فيديوهات قصيرة تشرح كل ميزة خطوة بخطوة.</p>
+      <div class="academy-header-kicker">🎓 أكاديمية المجتمع</div>
+      <h1 class="academy-header-title">🎥 تعرّف على مجتمعك</h1>
+      <p class="academy-header-text">اكتشف أهم أقسام المجتمع وكيفية الاستفادة منه، من خلال فيديوهات قصيرة تشرح كل ميزة خطوة بخطوة.</p>
       <div class="academy-header-actions" id="academyHeaderActions">${academyHeaderActions()}</div>
     </header>`;
   }
@@ -146,8 +146,8 @@
   function academyUpNextCard(){
     const total=academyState.episodes.length;
     const next=academyNextIndex();
-    if(!total)return `<div class="academy-next academy-next-muted"><div class="academy-next-text"><div class="academy-next-kicker">ابدأ من هنا</div><div class="academy-next-title">ستظهر هنا فيديوهات شرح المنصة فور إضافتها.</div></div></div>`;
-    if(next<0)return `<div class="academy-next"><div class="academy-next-text"><div class="academy-next-kicker">أحسنت</div><div class="academy-next-title">شاهدت كل فيديوهات شرح المنصة.</div></div><button type="button" class="academy-next-button" onclick="academyShowList()">استكشف المزيد</button></div>`;
+    if(!total)return `<div class="academy-next academy-next-muted"><div class="academy-next-text"><div class="academy-next-kicker">ابدأ من هنا</div><div class="academy-next-title">ستظهر هنا فيديوهات شرح المجتمع فور إضافتها.</div></div></div>`;
+    if(next<0)return `<div class="academy-next"><div class="academy-next-text"><div class="academy-next-kicker">أحسنت</div><div class="academy-next-title">شاهدت كل فيديوهات شرح المجتمع.</div></div><button type="button" class="academy-next-button" onclick="academyShowList()">استكشف المزيد</button></div>`;
     return `<div class="academy-next"><span class="academy-next-number">${academyPad(next+1)}</span><div class="academy-next-text"><div class="academy-next-kicker">الفيديو التالي</div><div class="academy-next-title">${academyEscape(academyState.episodes[next].title)}</div></div><button type="button" class="academy-next-button" onclick="academySelectEpisode(${next})">شاهد الآن</button></div>`;
   }
 
@@ -155,7 +155,7 @@
     const total=academyState.episodes.length;
     const watched=academyWatchedCount();
     const ratio=total?watched/total:0;
-    return `<div class="academy-tour-head"><span class="academy-tour-label">ما استكشفته من المنصة</span><span class="academy-tour-value">${watched} من ${total}</span></div>
+    return `<div class="academy-tour-head"><span class="academy-tour-label">ما استكشفته من المجتمع</span><span class="academy-tour-value">${watched} من ${total}</span></div>
       <div class="academy-progress" role="progressbar" aria-label="نسبة الفيديوهات التي شاهدتها" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(ratio*100)}"><span class="academy-progress-fill" style="width:${(ratio*100).toFixed(1)}%"></span></div>
       ${academyUpNextCard()}`;
   }
@@ -232,7 +232,7 @@
   }
 
   function academyLibraryList(){
-    if(!academyState.episodes.length)return '<div class="academy-episodes-empty">لم تُضف فيديوهات شرح المنصة بعد.</div>';
+    if(!academyState.episodes.length)return '<div class="academy-episodes-empty">لم تُضف فيديوهات شرح المجتمع بعد.</div>';
     return `<div class="academy-episodes" id="academyEpisodes">${academyState.episodes.map(academyCard).join('')}</div>`;
   }
 
@@ -265,12 +265,12 @@
     const total=academyState.episodes.length;
     return `<div class="academy-root">
       ${academyHeader()}
-      <section class="academy-tour" id="academyTour" aria-label="ما استكشفته من المنصة">${academyTourInner()}</section>
+      <section class="academy-tour" id="academyTour" aria-label="ما استكشفته من المجتمع">${academyTourInner()}</section>
       ${academyUploadZone()}
       <section class="academy-stage" id="academyStage" aria-label="الفيديو المعروض">${academyStageInner()}</section>
-      <section class="academy-library" id="academyLibrary" aria-label="كل فيديوهات شرح المنصة">
+      <section class="academy-library" id="academyLibrary" aria-label="كل فيديوهات شرح المجتمع">
         <div class="academy-library-head">
-          <div><h3 class="academy-library-title">استكشف المزيد</h3><div class="academy-library-sub">كل فيديوهات شرح المنصة</div></div>
+          <div><h3 class="academy-library-title">استكشف المزيد</h3><div class="academy-library-sub">كل فيديوهات شرح المجتمع</div></div>
           <span class="academy-library-count">${total?academyCountLabel(total):''}</span>
         </div>
         ${academyLibraryList()}
