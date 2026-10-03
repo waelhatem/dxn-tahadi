@@ -451,6 +451,41 @@ async function generateIdealTrainingAnswer(args){
   return saved&&saved.question ? saved.question : {...question,model_answer:ideal};
 }
 
+async function globalAnnouncementProxy(fn,args){
+  if(!SUPABASE_SECRET_KEY) throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
+  const token=String(args&&args.p_token||'').trim();
+  if(!token) throw new Error('جلسة الدخول غير موجودة');
+
+  const current=await supabaseRpcRequest('app_current_user_id',{p_token:token},SUPABASE_SECRET_KEY,10000);
+  if(!current.ok || !current.data) throw new Error((current.data&&(current.data.message||current.data.error))||current.text||'تعذر التحقق من الجلسة');
+  const uid=String(current.data).trim();
+
+  const role=await supabaseRpcRequest('current_role',{p_token:token},SUPABASE_SECRET_KEY,10000);
+  if(!role.ok || String(role.data||'').trim()!=='leader') throw new Error('إرسال الإعلانات العامة متاح للقائد فقط');
+
+  if(fn==='create_global_announcement'){
+    const title=String(args.p_title||'').trim();
+    const body=String(args.p_body||'').trim();
+    const type=String(args.p_announcement_type||'announcement').trim().toLowerCase();
+    if(!title) throw new Error('عنوان الإعلان مطلوب');
+    if(!body) throw new Error('نص الإعلان مطلوب');
+    if(title.length>200) throw new Error('عنوان الإعلان طويل جدًا');
+    if(body.length>4000) throw new Error('نص الإعلان طويل جدًا');
+    if(!['important','warning','announcement'].includes(type)) throw new Error('نوع الإعلان غير صالح');
+    const ins=await supabaseTableRequest(
+      'POST',
+      '/rest/v1/global_announcements',
+      SUPABASE_SECRET_KEY,
+      {title,body,announcement_type:type,active:true,created_by_user_id:uid}
+    );
+    if(!ins.ok) throw new Error((ins.data&&(ins.data.message||ins.data.error||ins.data.hint))||ins.text||('Supabase HTTP '+ins.status));
+    const row=Array.isArray(ins.data)?ins.data[0]:ins.data;
+    return {ok:true,id:row&&row.id,title,body,announcement_type:type};
+  }
+
+  throw new Error('Global announcement RPC غير صالح');
+}
+
 async function supabaseTableRequest(method,path,key,body){
   return new Promise((resolve,reject)=>{
     const base=new URL(SUPABASE_URL);
@@ -983,6 +1018,16 @@ module.exports = async function handler(req, res) {
         return res.status(200).json(data||{});
       }catch(error){
         console.error('ai training material RPC error:',error);
+        return res.status(400).json({error:String(error&&error.message||error)});
+      }
+    }
+
+    if(fn==='create_global_announcement'){
+      try{
+        const data=await globalAnnouncementProxy(fn,args);
+        return res.status(200).json(data||{});
+      }catch(error){
+        console.error('global announcement RPC error:',error);
         return res.status(400).json({error:String(error&&error.message||error)});
       }
     }
