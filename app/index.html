@@ -1989,7 +1989,7 @@ function openNotificationDestination(n){
   if(type==='challenge_submission_pending' && role==='leader'){
     leaderSection='dashboard';
     switchTab('leader');
-    setTimeout(()=>scrollToNotificationTarget('leader-approval-challenge-'+sourceId),50);
+    setTimeout(()=>scrollToNotificationTarget('leader-pending-challenges-task'),80);
     return Promise.resolve();
   }
   if(type==='question_answer_pending' && role==='leader'){
@@ -7273,7 +7273,7 @@ function leader(){
       const health=Math.max(0,Math.min(100,100-totalPenalty));
       const level=health>=90?'ممتازة':health>=75?'جيدة':health>=50?'تحتاج متابعة':'تحتاج تدخلًا سريعًا';
       const tasks=[];
-      if(pendingChallenges.length) tasks.push({icon:'⏳',text:`لديك ${pendingChallenges.length} إنجاز${pendingChallenges.length===1?'':'ات'} تحديات بانتظار المراجعة والاعتماد.`,action:'مراجعة الإنجازات المعلقة',fn:"switchTab('ch')"});
+      if(pendingChallenges.length) tasks.push({kind:'pending_challenges',icon:'⏳',text:`لديك ${pendingChallenges.length} إنجاز${pendingChallenges.length===1?'':'ات'} تحديات بانتظار المراجعة والاعتماد.`,action:'مراجعة الإنجازات المعلقة',fn:"switchTab('ch')"});
       if(pendingAnswers.length) tasks.push({icon:'❓',text:`لديك ${pendingAnswers.length} إجابة بانتظار المراجعة.`,action:'مراجعة الإجابات المعلقة',fn:"switchTab('ch')"});
       if(pendingDXNRequests.length) tasks.push({icon:'📋',text:`لديك ${pendingDXNRequests.length} طلب تسجيل DXN يحتاج قرارًا من القائد.`,action:'مراجعة طلبات العضوية',fn:'openDXNMembershipRequests()'});
       if(missingRegistry) tasks.push({icon:'🔐',text:`هناك ${missingRegistry} من الأعضاء الحاليين غير موجودين في سجل العضويات الموثق.`,action:'فتح سجل أعضاء الفريق',fn:'openTeamRegistry()'});
@@ -7292,7 +7292,7 @@ function leader(){
         <div><b>📌 ما الذي خفّض النسبة؟</b><div class="muted" style="margin-top:7px;line-height:1.9">${totalPenalty?`تم خصم <b>${totalPenalty}%</b> بسبب عناصر تحتاج مراجعة أو متابعة.`:'لم يتم تسجيل خصومات تشغيلية حاليًا.'}</div></div>
         <div><b>🎯 ماذا يفعل القائد الآن؟</b><div class="muted" style="margin-top:7px;line-height:1.9">${tasks.length===1&&tasks[0].icon==='✅'?'استمر في المراجعة الدورية والمحافظة على النشاط.':'ابدأ من أعلى مهمة في القائمة أدناه؛ كل معالجة تقلل أسباب الانخفاض وترفع الحالة.'}</div></div>
       </div>
-      <div style="margin-top:16px"><h3 style="margin:0 0 10px">🛠️ المهام التي ترفع صحة النظام</h3>${tasks.map((t,i)=>`<div class="row" style="margin-bottom:8px"><div style="flex:1"><b>${t.icon} ${esc(t.text)}</b><div class="muted small" style="margin-top:4px">الخطوة المقترحة: ${esc(t.action)}</div></div><button onclick="${t.fn}">فتح</button></div>`).join('')}</div>
+      <div style="margin-top:16px"><h3 style="margin:0 0 10px">🛠️ المهام التي ترفع صحة النظام</h3>${tasks.map((t,i)=>`<div class="row" id="${t.kind==='pending_challenges'?'leader-pending-challenges-task':t.kind==='pending_answers'?'leader-pending-answers-task':''}" style="margin-bottom:8px"><div style="flex:1"><b>${t.icon} ${esc(t.text)}</b><div class="muted small" style="margin-top:4px">الخطوة المقترحة: ${esc(t.action)}</div></div><button onclick="${t.fn}">فتح</button></div>`).join('')}</div>
       <div class="muted small" style="margin-top:10px">ℹ️ النسبة تُحسب تلقائيًا من قوائم المراجعة والمتابعة الحالية، وتتغير عند تحديث البيانات.</div>`;
    })()}
  </div>`+siteVisitStatsPanel()+aiUsageStatsPanel()+leaderDailyPlan()+`<div class="card leaderbox">
