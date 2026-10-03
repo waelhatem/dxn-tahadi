@@ -2871,6 +2871,9 @@ function cleanupTrainingSubtabDom(mode){
   if(mode==='ragwan_success_plan'){
     appRoot.querySelector('#regular-training-page')?.remove();
     appRoot.querySelectorAll('[data-training-lesson-card]').forEach(el=>el.remove());
+    appRoot.querySelector('#dxn-training-assessment')?.remove();
+    appRoot.querySelector('#dxn-member-external-assessment-history')?.remove();
+    appRoot.querySelectorAll('[data-training-assessment-button],details[data-dxn-assessment-lesson]').forEach(el=>el.remove());
   }else if(mode==='lessons'){
     appRoot.querySelector('#ragwan-only-page')?.remove();
     appRoot.querySelector('#ragwanPlanShell')?.remove();
