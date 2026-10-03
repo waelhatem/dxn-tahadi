@@ -147,3 +147,66 @@ grant execute on function public.leader_add_dxn_team_member_manual(uuid,text,tex
   to service_role;
 
 notify pgrst, 'reload schema';
+
+
+create or replace function public.lookup_dxn_team_sponsor(
+  p_token uuid,
+  p_member_no text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid;
+  role_name text;
+  no_clean text := trim(coalesce(p_member_no,''));
+  sponsor_row public.dxn_team_members%rowtype;
+begin
+  uid := public.current_user_id(p_token);
+
+  if uid is null then
+    raise exception using errcode='P0001', message='انتهت الجلسة';
+  end if;
+
+  select lower(trim(au.role))
+    into role_name
+  from public.app_users au
+  where au.id = uid and au.active = true
+  limit 1;
+
+  if role_name <> 'leader' then
+    raise exception using errcode='P0001', message='هذه العملية متاحة للقائد فقط';
+  end if;
+
+  if no_clean !~ '^[0-9]{9}$' then
+    return jsonb_build_object('found',false,'message','رقم الراعي يجب أن يكون 9 أرقام');
+  end if;
+
+  select *
+    into sponsor_row
+  from public.dxn_team_members
+  where member_no = no_clean
+  limit 1;
+
+  if sponsor_row.member_no is null then
+    return jsonb_build_object('found',false,'message','الراعي غير موجود في سجل DXN');
+  end if;
+
+  return jsonb_build_object(
+    'found',true,
+    'sponsor_member_no',sponsor_row.member_no,
+    'sponsor_name',sponsor_row.member_name,
+    'next_generation',case when sponsor_row.generation is null then null else sponsor_row.generation + 1 end
+  );
+end;
+$$;
+
+revoke all on function public.lookup_dxn_team_sponsor(uuid,text)
+  from public, anon, authenticated;
+
+grant execute on function public.lookup_dxn_team_sponsor(uuid,text)
+  to service_role;
+
+notify pgrst, 'reload schema';
