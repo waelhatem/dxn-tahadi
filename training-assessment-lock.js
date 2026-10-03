@@ -36,6 +36,9 @@
     var watched=Number(p.watched_seconds||0),dur=Number(p.duration_seconds||0);return dur>0&&watched>0&&watched/dur>=.999;
   }
   function currentRole(){return String((typeof role!=='undefined'?role:'')||window.role||localStorage.getItem('dxn_role')||'').toLowerCase()}
+  function currentTrainingSubtabIsRagwan(){
+    try{return typeof trainingSubtab!=='undefined' && trainingSubtab==='ragwan_success_plan'}catch(e){return false}
+  }
   function detailNo(d){
     var attr=d.getAttribute('data-dxn-assessment-lesson');
     if(attr)return Number(attr)||0;
@@ -70,6 +73,7 @@
     var controls=d.querySelectorAll('textarea,button,input,select');for(var i=0;i<controls.length;i++)setManagedDisabled(controls[i],locked);
   }
   function refresh(){
+    if(currentTrainingSubtabIsRagwan())return;
     addStyles();
     if(currentRole()==='leader'){
       clearInterval(window.__dxnAssessmentLockPoll);
