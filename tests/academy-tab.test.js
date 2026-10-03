@@ -81,7 +81,7 @@ test('member sees the platform videos without the upload form',()=>{
   assert.match(html,/academy-stage/);
   assert.match(html,/academy-tour/);
   assert.match(html,/academy-library/);
-  assert.match(html,/🎥 تعرّف على منصتك/);
+  assert.match(html,/🎥 تعرّف على مجتمعك/);
   assert.doesNotMatch(html,/رفع فيديو جديد/);
 });
 
