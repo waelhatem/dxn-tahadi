@@ -152,17 +152,20 @@
      */
     drawCentered(ctx,data.traineeName,780,458,570,58,26,valueColor,950);
 
-    /* Exact coordinates supplied from the certificate scale. */
-    drawCentered(ctx,data.traineeNo,845,540,150,30,16,'#1c2522',850);
+    /*
+     * Final visual placement based on the actual blank certificate artwork.
+     * The trainee number sits left of the fixed "رقم العضوية:" label and on
+     * the same vertical axis. The sponsor name sits below the supervisor
+     * heading. The trainer name is already fixed in the artwork, so it is
+     * intentionally NOT rendered again.
+     */
+    drawCentered(ctx,data.traineeNo,690,532,145,30,16,'#1c2522',850);
 
-    /* Sponsor/coach name — center X=977, Y=900. */
-    drawCentered(ctx,data.sponsorName,977,900,180,24,16,'#1c2522',900);
+    /* Sponsor/coach name: below "المشرف على التدريب", centered in its signature block. */
+    drawCentered(ctx,data.sponsorName,805,925,190,24,16,'#1c2522',900);
 
-    /* Fixed trainer identity — center X=780, Y=900. */
-    drawCentered(ctx,'أ. رجوان نجاح',780,900,180,24,16,'#1c2522',900);
-
-    /* Completion date is dynamic and replaces only the blank date field. */
-    drawCentered(ctx,formatArabicDate(data.completedAt),1025,917,175,23,14,'#1c2522',850);
+    /* Completion date: below the fixed "تاريخ الإتمام" heading. */
+    drawCentered(ctx,formatArabicDate(data.completedAt),1015,925,190,23,14,'#1c2522',850);
 
     return canvas;
   }
