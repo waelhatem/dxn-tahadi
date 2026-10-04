@@ -8716,11 +8716,71 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     }
 
     if(status){
-      status.textContent='✅ تم العثور على '+rows.length+' عضو داخل فريق العضو المحدد.';
+      status.textContent='✅ تم العثور على '+rows.length+' سجل داخل فريق العضو المحدد. يعرض الجدول جميع بيانات سجل DXN.';
       status.className='team-search-status team-search-success';
     }
 
-    result.innerHTML=renderMembers({members:rows});
+    const sorted=rows.slice().sort((a,b)=>{
+      const ad=Number(a.depth_from_target??a.generation??999);
+      const bd=Number(b.depth_from_target??b.generation??999);
+      if(ad!==bd)return ad-bd;
+      return String(a.member_name||'').localeCompare(String(b.member_name||''));
+    });
+
+    const rowsHtml=sorted.map((m,index)=>{
+      return '<tr>'+
+        '<td class="team-table-index">'+(index+1)+'</td>'+
+        '<td><b>'+escapeHtml(teamCellValue(m.member_no))+'</b></td>'+
+        '<td><b>'+escapeHtml(teamCellValue(m.member_name))+'</b></td>'+
+        '<td>'+escapeHtml(teamCellValue(m.sponsor_member_no))+'</td>'+
+        '<td>'+escapeHtml(teamCellValue(m.sponsor_name))+'</td>'+
+        '<td>'+escapeHtml(teamCellValue(m.generation??m.depth_from_target))+'</td>'+
+        '<td>'+escapeHtml(teamCellValue(m.rank||'MEM'))+'</td>'+
+        '<td>'+escapeHtml(teamCellValue(m.dxn_status))+'</td>'+
+        '<td>'+escapeHtml(teamCellValue(m.downline_status))+'</td>'+
+        '<td>'+escapeHtml(teamCellValue(m.join_date))+'</td>'+
+        '<td>'+escapeHtml(teamCellPv(m.personal_pv,false))+'</td>'+
+        '<td>'+escapeHtml(teamCellPv(m.personal_group_pv,false))+'</td>'+
+        '<td>'+escapeHtml(teamCellPv(m.total_group_pv,false))+'</td>'+
+        '<td>'+escapeHtml(teamCellPv(m.accumulated_group_pv,m.accumulated_group_pv_masked))+'</td>'+
+        '<td>'+escapeHtml(teamCellPv(m.accumulated_promotion_pv,m.accumulated_promotion_pv_masked))+'</td>'+
+        '<td>'+escapeHtml(teamCellPv(m.diamond_group_pv,m.diamond_group_pv_masked))+'</td>'+
+        '<td>'+escapeHtml(teamCellValue(m.source))+'</td>'+
+        '<td>'+escapeHtml(teamCellValue(m.source_updated_at))+'</td>'+
+        '<td>'+escapeHtml(teamCellValue(m.created_at))+'</td>'+
+        '<td>'+escapeHtml(teamCellValue(m.updated_at))+'</td>'+
+      '</tr>';
+    }).join('');
+
+    result.innerHTML=
+      '<div class="team-table-wrap team-search-full-table">'+
+        '<table class="team-table">'+
+          '<thead><tr>'+
+            '<th>#</th>'+
+            '<th>رقم العضوية</th>'+
+            '<th>اسم العضو</th>'+
+            '<th>رقم الراعي</th>'+
+            '<th>اسم الراعي</th>'+
+            '<th>الجيل</th>'+
+            '<th>الرتبة</th>'+
+            '<th>حالة DXN</th>'+
+            '<th>حالة Downline</th>'+
+            '<th>تاريخ الانضمام</th>'+
+            '<th>Personal PV</th>'+
+            '<th>Personal Group PV</th>'+
+            '<th>Total Group PV</th>'+
+            '<th>Accumulated Group PV</th>'+
+            '<th>Accumulated Promotion PV</th>'+
+            '<th>Diamond Group PV</th>'+
+            '<th>المصدر</th>'+
+            '<th>آخر تحديث للمصدر</th>'+
+            '<th>تاريخ الإنشاء</th>'+
+            '<th>آخر تحديث</th>'+
+          '</tr></thead>'+
+          '<tbody>'+rowsHtml+'</tbody>'+
+        '</table>'+
+      '</div>'+
+      '<div class="team-table-count">عرض <b>'+sorted.length+'</b> سجلًا. الجدول يعرض جميع حقول سجل DXN الـ19، والقيم المقنّعة تظهر بالشكل <b>***</b>.</div>';
   }
 
   function searchTeamRecord(panel){
