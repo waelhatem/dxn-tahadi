@@ -8454,65 +8454,65 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     '</div>';
   }
 
+  function teamCellValue(value){
+    if(value===null||value===undefined||String(value)==='')return '—';
+    return String(value);
+  }
+
   function renderMembers(payload){
     const list=Array.isArray(payload&&payload.members)?payload.members:[];
-    if(!list.length) return '<div class="team-member-empty">🌱 لا يوجد أعضاء تابعون لهذا العضو حاليًا.</div>';
+    if(!list.length){
+      return '<div class="team-member-empty">🌱 لا يوجد أعضاء تابعون لهذا العضو حاليًا.</div>';
+    }
 
-    const groups={};
-    list.forEach(m=>{
-      const depth=Number(m.depth_from_target||1);
-      const key=Number.isFinite(depth)&&depth>0?String(depth):'غير محدد';
-      if(!groups[key]) groups[key]=[];
-      groups[key].push(m);
+    const sorted=list.slice().sort((a,b)=>{
+      const ad=Number(a.generation??a.depth_from_target??999);
+      const bd=Number(b.generation??b.depth_from_target??999);
+      if(ad!==bd)return ad-bd;
+      return String(a.member_name||'').localeCompare(String(b.member_name||''));
     });
 
-    const keys=Object.keys(groups).sort((a,b)=>{
-      if(a==='غير محدد') return 1;
-      if(b==='غير محدد') return -1;
-      return Number(a)-Number(b);
-    });
+    const rows=sorted.map((m,index)=>{
+      return '<tr>'+
+        '<td class="team-table-index">'+(index+1)+'</td>'+
+        '<td><b>'+escapeHtml(teamCellValue(m.member_no))+'</b></td>'+
+        '<td><b>'+escapeHtml(teamCellValue(m.member_name))+'</b></td>'+
+        '<td>'+escapeHtml(teamCellValue(m.sponsor_member_no))+'</td>'+
+        '<td>'+escapeHtml(teamCellValue(m.sponsor_name))+'</td>'+
+        '<td>'+escapeHtml(teamCellValue(m.generation??m.depth_from_target))+'</td>'+
+        '<td>'+escapeHtml(teamCellValue(m.rank||'MEM'))+'</td>'+
+        '<td>'+escapeHtml(teamCellValue(m.dxn_status))+'</td>'+
+        '<td>'+escapeHtml(teamCellValue(m.downline_status))+'</td>'+
+        '<td>'+escapeHtml(teamCellValue(m.join_date))+'</td>'+
+        '<td>'+escapeHtml(teamCellValue(m.personal_pv))+'</td>'+
+        '<td>'+escapeHtml(teamCellValue(m.personal_group_pv))+'</td>'+
+        '<td>'+escapeHtml(teamCellValue(m.total_group_pv))+'</td>'+
+      '</tr>';
+    }).join('');
 
-    return '<div class="team-generations-board">'+keys.map(key=>{
-      const members=groups[key].slice().sort((a,b)=>{
-        const ap=Number(a.cumulative_points ?? a.total_group_pv ?? a.personal_group_pv ?? a.cumulative_pv ?? a.cumulative ?? a.accumulated_points ?? 0);
-        const bp=Number(b.cumulative_points ?? b.total_group_pv ?? b.personal_group_pv ?? b.cumulative_pv ?? b.cumulative ?? b.accumulated_points ?? 0);
-        if(bp!==ap) return bp-ap;
-        const at=Number(a.personal_pv ?? a.pv ?? a.pv_points ?? a.personal_points ?? 0);
-        const bt=Number(b.personal_pv ?? b.pv ?? b.pv_points ?? b.personal_points ?? 0);
-        if(bt!==at) return bt-at;
-        return String(a.member_name||'').localeCompare(String(b.member_name||''));
-      });
-      const title=key==='غير محدد'?'غير محدد':'الجيل '+escapeHtml(key);
-      return '<section class="team-generation-column">'+
-        '<div class="team-generation-head">'+
-          '<div class="team-generation-title">🌱 '+title+'</div>'+
-          '<div class="team-generation-count">'+members.length+' عضو</div>'+
-        '</div>'+
-        '<div class="team-generation-list">'+members.map((m,index)=>{
-          const name=String(m.member_name||'عضو');
-          const no=String(m.member_no||'');
-          const rank=String(m.rank||'MEM');
-          const pvValue=m.personal_pv ?? m.pv ?? m.pv_points ?? m.personal_points;
-          const cumulativeValue=m.cumulative_points ?? m.total_group_pv ?? m.personal_group_pv ?? m.cumulative_pv ?? m.cumulative ?? m.accumulated_points;
-          const pv=pvValue==null?'—':String(pvValue);
-          const cumulative=cumulativeValue==null?'—':String(cumulativeValue);
-          const status=String(m.dxn_status||m.downline_status||'');
-          return '<div class="team-member-row">'+
-            '<div class="team-member-index">'+(index+1)+'</div>'+
-            '<div class="team-member-main">'+
-              '<div class="team-member-name"><b>'+escapeHtml(name)+'</b><span>🪪 '+escapeHtml(no)+'</span></div>'+
-              '<div class="team-member-meta">'+
-                '<span>⭐ '+escapeHtml(rank)+'</span>'+
-                '<span class="team-member-stat team-member-pv">PV: <b>'+escapeHtml(pv)+'</b></span>'+
-                '<span class="team-member-stat team-member-cumulative">تراكمي: <b>'+escapeHtml(cumulative)+'</b></span>'+
-                (status?'<span>'+escapeHtml(status)+'</span>':'')+
-              '</div>'+
-            '</div>'+
-          '</div>';
-        }).join('')+'</div>'+
-      '</section>';
-    }).join('')+'</div>';
+    return '<div class="team-table-wrap">'+
+      '<table class="team-table">'+
+        '<thead><tr>'+
+          '<th>#</th>'+
+          '<th>رقم العضوية</th>'+
+          '<th>اسم العضو</th>'+
+          '<th>رقم الراعي</th>'+
+          '<th>اسم الراعي</th>'+
+          '<th>الجيل</th>'+
+          '<th>الرتبة</th>'+
+          '<th>حالة DXN</th>'+
+          '<th>حالة Downline</th>'+
+          '<th>تاريخ الانضمام</th>'+
+          '<th>Personal PV</th>'+
+          '<th>Personal Group PV</th>'+
+          '<th>Total Group PV</th>'+
+        '</tr></thead>'+
+        '<tbody>'+rows+'</tbody>'+
+      '</table>'+
+    '</div>'+
+    '<div class="team-table-count">عرض <b>'+sorted.length+'</b> عضوًا في الفريق.</div>';
   }
+
 
   async function loadTeam(panel){
     const input=panel.querySelector('#teamMemberNumber');
@@ -8622,8 +8622,17 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       '.team-member-lookup label{display:block;font-weight:900;margin-bottom:7px}.team-member-input-row{display:flex;gap:8px}.team-member-input-row input{margin:0;flex:1}.team-member-search{background:#0f513f;color:#fff;white-space:nowrap}.team-member-hint{margin-top:7px;color:#71817a;font-size:12px}'+
       '.team-member-status{margin:14px 0;padding:12px 14px;border-radius:14px;background:#f5f8f7;color:#31544a}.team-member-status.ok{background:#edf8f1;color:#17663f}.team-member-status.error{background:#fff1ef;color:#a32318}.team-member-status.hidden{display:none}'+
       '.team-member-root{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0 16px}.team-member-root>div{background:#f6faf8;border:1px solid #dfece6;border-radius:16px;padding:13px}.team-member-root span{display:block;color:#71817a;font-size:12px;margin-bottom:5px}.team-member-root b{font-size:18px}'+
-      '.team-member-list{display:block;overflow-x:auto;overflow-y:hidden;padding-bottom:12px}.team-generations-board{display:flex;flex-direction:row-reverse;align-items:flex-start;gap:10px;min-width:max-content}.team-generation-column{width:250px;flex:0 0 250px;border:1px solid #dfece6;border-radius:18px;background:#fbfdfc;overflow:hidden}.team-generation-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 12px;background:#eef7f2;border-bottom:1px solid #dfece6}.team-generation-title{font-weight:900;color:#0b5d49;font-size:16px}.team-generation-count{font-size:11px;color:#5f716a;background:#fff;border:1px solid #d9e7e1;border-radius:999px;padding:5px 8px}.team-generation-list{display:grid;gap:8px;padding:9px}.team-member-row{display:flex;gap:7px;align-items:flex-start;border:1px solid #e4ece8;border-radius:14px;padding:10px;background:#fff;min-height:82px}.team-member-index{width:25px;height:25px;border-radius:50%;background:#0b6b57;color:#fff;display:grid;place-items:center;font-weight:900;font-size:11px;flex:none}.team-member-main{flex:1;min-width:0}.team-member-name{display:block}.team-member-name b{display:block;font-size:13px;line-height:1.25}.team-member-name span{display:block;color:#5f716a;font-size:11px;margin-top:3px;direction:ltr;text-align:right}.team-member-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;color:#64766f;font-size:10px}.team-member-meta span{background:#f5f8f7;border-radius:999px;padding:3px 6px}.team-member-meta .team-member-stat{font-weight:900}.team-member-meta .team-member-stat b{font-size:11px}.team-member-meta .team-member-pv{background:#edf8f3;border:1px solid #cce6d9;color:#0b5d49}.team-member-meta .team-member-pv b{color:#0b5d49}.team-member-meta .team-member-cumulative{background:#fff8e5;border:1px solid #f0d58d;color:#795900}.team-member-meta .team-member-cumulative b{color:#795900}.team-member-sponsor{display:none}.team-member-empty{text-align:center;padding:35px 15px;color:#6b7d76;background:#f7faf8;border-radius:16px}'+
-      '@media(max-width:650px){.team-member-card{padding:14px}.team-generations-board{gap:8px}.team-generation-column{width:220px;flex-basis:220px}.team-generation-head{padding:11px 9px}.team-member-row{min-height:76px}.team-member-name b{font-size:12px}}'+
+      '.team-member-list{display:block;overflow-x:auto;overflow-y:hidden;padding-bottom:12px}'+
+      '.team-table-wrap{width:100%;overflow:auto;border:1px solid #dfece6;border-radius:16px;background:#fff}'+
+      '.team-table{width:100%;min-width:1500px;border-collapse:collapse;white-space:nowrap}'+
+      '.team-table th,.team-table td{padding:10px 11px;border-bottom:1px solid #e6eeeb;text-align:right;font-size:12px;vertical-align:middle}'+
+      '.team-table th{position:sticky;top:0;z-index:2;background:#eef7f2;color:#173b32;font-weight:950;box-shadow:0 1px 0 #dfece6}'+
+      '.team-table tbody tr:nth-child(even){background:#fbfdfc}'+
+      '.team-table tbody tr:hover{background:#f3faf6}'+
+      '.team-table-index{width:38px;color:#6b7d76;font-weight:900;text-align:center!important}'+
+      '.team-table-count{margin-top:8px;color:#71817a;font-size:12px}'+
+      '.team-member-empty{text-align:center;padding:35px 15px;color:#6b7d76;background:#f7faf8;border-radius:16px}'+
+            '@media(max-width:650px){.team-member-card{padding:14px}.team-generations-board{gap:8px}.team-generation-column{width:220px;flex-basis:220px}.team-generation-head{padding:11px 9px}.team-member-row{min-height:76px}.team-member-name b{font-size:12px}}'+
       '.team-member-head-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.team-member-head-actions button{min-width:40px;height:40px;padding:7px 10px;border:1px solid #d7e4df;background:#f4f8f6;color:#17473a;border-radius:11px;font-weight:900}.team-member-zoom-label{min-width:48px;text-align:center;font-size:11px;color:#5e7169;font-weight:900}.team-member-fullscreen{font-size:18px}.team-member-panel.fullscreen{padding:0;background:#031c16}.team-member-panel.fullscreen .team-member-card{width:100vw;max-width:none;height:100vh;max-height:none;border-radius:0;padding:20px}.team-member-panel.fullscreen .team-member-list{height:calc(100vh - 215px);max-height:none}.team-member-panel.fullscreen .team-generation-column{height:100%;max-height:none}.team-member-panel.fullscreen .team-generation-list{max-height:none}.team-member-card{transform:scale(var(--team-zoom,1));transform-origin:top center}.team-member-panel.fullscreen .team-member-card{transform:scale(1)}'+
       '@media(max-width:650px){.team-member-card{padding:16px;border-radius:20px}.team-member-root{grid-template-columns:repeat(2,1fr)}.team-member-input-row{flex-direction:column}.team-member-search{width:100%}.team-member-row{margin-right:0!important}.team-member-head h2{font-size:22px}.team-member-head-actions{gap:4px}.team-member-head-actions button{min-width:36px;padding:6px 8px}.team-member-zoom-label{min-width:42px}}';
     document.head.appendChild(style);
