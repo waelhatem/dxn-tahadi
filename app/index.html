@@ -8908,6 +8908,10 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     }
   }
 
+  // أزرار البحث تستخدم onclick من واجهة HTML المولّدة ديناميكياً،
+  // لذلك يجب كشف دوالها على window حتى تعمل عند الضغط عليها.
+  window.setTeamSearchMode=setTeamSearchMode;
+
   function teamSearchMatches(row,mode,query){
     const q=String(query||'').trim();
     if(!q)return false;
@@ -9004,6 +9008,9 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
   }
 
   window.sortTeamTable=sortTeamTable;
+
+  // نفس الأمر لزر «بحث في فريقي» و Enter داخل حقل البحث.
+  window.searchTeamRecord=searchTeamRecord;
 
   async function searchTeamRecord(panel){
     const input=panel.querySelector('#teamSearchInput');
