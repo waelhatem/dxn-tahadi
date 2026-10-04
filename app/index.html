@@ -8944,9 +8944,17 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
   function renderTeamSearchResults(panel,rows){
     const result=panel.querySelector('#teamSearchResult');
     const status=panel.querySelector('#teamSearchStatus');
+    const listBox=panel.querySelector('#teamMemberList');
+    const summaryBox=panel.querySelector('#teamMemberSummary');
     if(!result)return;
 
     panel.__teamSearchRows=Array.isArray(rows)?rows.slice():[];
+
+    // عند تنفيذ البحث، اعرض نتيجة البحث فقط.
+    // لا نعرض جدول الفريق المحمّل بالتزامن حتى لا يختلط على المستخدم
+    // بين "سجل العضو الذي بحث عنه" و"فريق العضو".
+    if(listBox) listBox.style.display='none';
+    if(summaryBox) summaryBox.style.display='none';
 
     if(!rows.length){
       if(status){
@@ -8958,7 +8966,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     }
 
     if(status){
-      status.textContent='✅ تم العثور على '+rows.length+' سجل داخل فريق العضو المحدد. يعرض الجدول جميع بيانات سجل DXN.';
+      status.textContent='✅ تم العثور على سجل العضو المطلوب فقط. لا يتم عرض فريقه في نتيجة البحث.';
       status.className='team-search-status team-search-success';
     }
 
@@ -9168,6 +9176,8 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       panel.__teamSort={key:'generation',mode:'asc'};
       panel.__teamSearchSort={key:'',mode:''};
       panel.__teamSearchRows=[];
+      summaryBox.style.display='';
+      listBox.style.display='';
       summaryBox.innerHTML=renderSummary(summary,rootNo);
       listBox.innerHTML=renderMembers({members:allMembers},panel);
       const searchStatus=panel.querySelector('#teamSearchStatus');
