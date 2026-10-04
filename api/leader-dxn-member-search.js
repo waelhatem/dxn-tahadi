@@ -144,13 +144,18 @@ module.exports = async function handler(req, res) {
       );
     }
 
-    return res.status(200).json({
-      ok: true,
-      mode,
-      query,
-      count: result.data.length,
-      rows: result.data
-    });
+    const payload = rpcResult.data;
+    if (Array.isArray(payload)) {
+      return res.status(200).json({
+        ok: true,
+        mode,
+        query,
+        count: payload.length,
+        rows: payload
+      });
+    }
+
+    return res.status(200).json(payload);
   } catch (error) {
     console.error('leader-dxn-member-search:', error);
     return res.status(400).json({
