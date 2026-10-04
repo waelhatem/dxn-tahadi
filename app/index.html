@@ -8416,7 +8416,10 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 
         '<div id="teamMemberList" class="team-member-list"></div>'+
       '</div>';
-    document.body.appendChild(panel);
+    const appHost=document.getElementById('app');
+    panel.classList.add('team-member-inline');
+    if(appHost) appHost.appendChild(panel);
+    else document.body.appendChild(panel);
 
     const close=()=>panel.classList.remove('show');
     panel.addEventListener('click',e=>{if(e.target===panel)close()});
@@ -8893,9 +8896,23 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 
   function open(){
     const panel=ensurePanel();
+
+    // «فريقي» يعمل داخل الصفحة نفسها، وليس في نافذة/صفحة منفصلة.
+    if(panel.parentElement!==document.getElementById('app')){
+      const appHost=document.getElementById('app');
+      if(appHost) appHost.appendChild(panel);
+    }
     panel.classList.add('show');
+
     const input=panel.querySelector('#teamMemberNumber');
-    input.focus();
+    if(input){
+      input.focus();
+      setTimeout(()=>{
+        try{
+          panel.scrollIntoView({behavior:'smooth',block:'start'});
+        }catch(_){}
+      },60);
+    }
   }
 
   window.__DXN_OPEN_TEAM_MEMBER_V4__=open;
@@ -8918,6 +8935,10 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     style.textContent=
       '.team-member-panel{position:fixed;inset:0;z-index:99999;background:rgba(3,28,22,.58);display:none;align-items:center;justify-content:center;padding:18px;direction:rtl}'+
       '.team-member-panel.show{display:flex}'+
+      '.team-member-panel.team-member-inline{position:static;inset:auto;z-index:auto;background:transparent;display:block;width:100%;padding:0;margin:14px 0 80px;direction:rtl}'+
+      '.team-member-panel.team-member-inline.show{display:block}'+
+      '.team-member-panel.team-member-inline .team-member-card{width:100%;max-width:none;max-height:none;overflow:visible;border-radius:20px;box-shadow:0 10px 30px rgba(15,81,63,.10);padding:18px}'+
+      '.team-member-panel.team-member-inline .team-member-card:fullscreen{width:100vw;max-width:none;max-height:none;overflow:auto;border-radius:0}'+
       '.team-member-card{width:min(920px,96vw);max-height:88vh;overflow:auto;background:#fff;border-radius:24px;box-shadow:0 24px 80px rgba(0,0,0,.25);padding:22px;color:#123b30}'+
       '.team-member-head{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #e6eee9;padding-bottom:14px}'+
       '.team-member-head h2{margin:0;font-size:26px}.team-member-subtitle{margin-top:5px;color:#71817a;font-size:13px}'+
