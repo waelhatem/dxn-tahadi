@@ -7093,31 +7093,59 @@ async function syncDxnTeamMembers(){
     if(button) button.disabled=false;
   }
 }
-let dxnMemberSearchMode='number';
+let dxnMemberSearchMode='member_number';
 
 function setDxnMemberSearchMode(mode){
-  dxnMemberSearchMode=mode==='name'?'name':'number';
+  const allowed=['member_number','member_name','sponsor_number','sponsor_name'];
+  dxnMemberSearchMode=allowed.includes(mode)?mode:'member_number';
 
-  const numberBtn=document.getElementById('dxnMemberSearchModeNumber');
-  const nameBtn=document.getElementById('dxnMemberSearchModeName');
+  const buttons={
+    member_number:document.getElementById('dxnMemberSearchModeMemberNumber'),
+    member_name:document.getElementById('dxnMemberSearchModeMemberName'),
+    sponsor_number:document.getElementById('dxnMemberSearchModeSponsorNumber'),
+    sponsor_name:document.getElementById('dxnMemberSearchModeSponsorName')
+  };
+
+  Object.entries(buttons).forEach(([key,button])=>{
+    if(!button)return;
+    const active=key===dxnMemberSearchMode;
+    button.style.background=active?'#0f513f':'#eef3f2';
+    button.style.color=active?'#fff':'#182234';
+  });
+
   const input=document.getElementById('dxnMemberSearchInput');
 
-  if(numberBtn){
-    numberBtn.style.background=dxnMemberSearchMode==='number'?'#0f513f':'#eef3f2';
-    numberBtn.style.color=dxnMemberSearchMode==='number'?'#fff':'#182234';
-  }
-
-  if(nameBtn){
-    nameBtn.style.background=dxnMemberSearchMode==='name'?'#0f513f':'#eef3f2';
-    nameBtn.style.color=dxnMemberSearchMode==='name'?'#fff':'#182234';
-  }
+  const cfg={
+    member_number:{
+      placeholder:'اكتب رقم العضوية المكوّن من 9 أرقام...',
+      inputMode:'numeric',
+      maxLength:9,
+      help:'بحث برقم عضوية العضو.'
+    },
+    member_name:{
+      placeholder:'اكتب اسم العضو أو جزءًا منه...',
+      inputMode:'text',
+      maxLength:120,
+      help:'بحث باسم العضو مع دعم العربية والإنجليزية والمطابقة الصوتية.'
+    },
+    sponsor_number:{
+      placeholder:'اكتب رقم عضوية الراعي المكوّن من 9 أرقام...',
+      inputMode:'numeric',
+      maxLength:9,
+      help:'بحث برقم عضوية الراعي لعرض الأعضاء الذين يتبعون لهذا الراعي.'
+    },
+    sponsor_name:{
+      placeholder:'اكتب اسم الراعي أو جزءًا منه...',
+      inputMode:'text',
+      maxLength:120,
+      help:'بحث باسم الراعي بالعربية أو الإنجليزية والمطابقة الصوتية.'
+    }
+  }[dxnMemberSearchMode];
 
   if(input){
-    input.placeholder=dxnMemberSearchMode==='number'
-      ? 'اكتب رقم العضوية المكوّن من 9 أرقام...'
-      : 'اكتب اسم العضو أو جزءًا منه...';
-    input.inputMode=dxnMemberSearchMode==='number'?'numeric':'text';
-    input.maxLength=dxnMemberSearchMode==='number'?9:120;
+    input.placeholder=cfg.placeholder;
+    input.inputMode=cfg.inputMode;
+    input.maxLength=cfg.maxLength;
     input.value='';
   }
 
@@ -7125,9 +7153,7 @@ function setDxnMemberSearchMode(mode){
   const result=document.getElementById('dxnMemberSearchResult');
 
   if(status){
-    status.textContent=dxnMemberSearchMode==='number'
-      ? 'وضع البحث برقم العضوية: اكتب 9 أرقام ثم اضغط «بحث في السجل».'
-      : 'وضع البحث بالاسم: اكتب الاسم كاملاً أو جزءًا منه ثم اضغط «بحث في السجل».';
+    status.textContent=cfg.help+' اضغط «بحث في السجل».';
     status.style.background='#f5f8f7';
     status.style.color='';
   }
@@ -7179,9 +7205,11 @@ async function searchDxnMemberRecord(){
     return;
   }
 
-  if(dxnMemberSearchMode==='number'&&!/^\d{9}$/.test(query)){
+  if((dxnMemberSearchMode==='member_number'||dxnMemberSearchMode==='sponsor_number')&&!/^\d{9}$/.test(query)){
     if(status){
-      status.textContent='رقم العضوية يجب أن يتكوّن من 9 أرقام.';
+      status.textContent=dxnMemberSearchMode==='sponsor_number'
+        ? 'رقم عضوية الراعي يجب أن يتكوّن من 9 أرقام.'
+        : 'رقم العضوية يجب أن يتكوّن من 9 أرقام.';
       status.style.background='#fff1ef';
       status.style.color='#a32318';
     }
@@ -7310,8 +7338,10 @@ function dxnSyncPanel(){
       '<div class="muted" style="line-height:1.8;margin-top:5px">البحث متاح بطريقتين: <b>رقم العضوية</b> للعثور على سجل محدد، أو <b>الاسم</b> للبحث باسم العضو أو جزء منه. عند العثور عليه سيظهر السجل في صف كامل بجميع بياناته.</div>'+
 
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">'+
-        '<button type="button" id="dxnMemberSearchModeNumber" onclick="setDxnMemberSearchMode(\'number\')" style="background:#0f513f;color:#fff;min-width:155px">🔢 بحث برقم العضوية</button>'+
-        '<button type="button" id="dxnMemberSearchModeName" onclick="setDxnMemberSearchMode(\'name\')" style="background:#eef3f2;color:#182234;min-width:155px">🔤 بحث بالاسم</button>'+
+        '<button type="button" id="dxnMemberSearchModeMemberNumber" onclick="setDxnMemberSearchMode(\'member_number\')" style="background:#0f513f;color:#fff;min-width:155px">🔢 رقم العضوية</button>'+
+        '<button type="button" id="dxnMemberSearchModeMemberName" onclick="setDxnMemberSearchMode(\'member_name\')" style="background:#eef3f2;color:#182234;min-width:155px">🔤 اسم العضو</button>'+
+        '<button type="button" id="dxnMemberSearchModeSponsorNumber" onclick="setDxnMemberSearchMode(\'sponsor_number\')" style="background:#eef3f2;color:#182234;min-width:170px">🪪 رقم عضوية الراعي</button>'+
+        '<button type="button" id="dxnMemberSearchModeSponsorName" onclick="setDxnMemberSearchMode(\'sponsor_name\')" style="background:#eef3f2;color:#182234;min-width:150px">👤 اسم الراعي</button>'+
       '</div>'+
 
       '<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:10px;align-items:stretch">'+
@@ -7319,7 +7349,7 @@ function dxnSyncPanel(){
         '<button type="button" id="dxnMemberSearchButton" class="primary" onclick="searchDxnMemberRecord()">🔎 بحث في السجل</button>'+
       '</div>'+
 
-      '<div id="dxnMemberSearchStatus" class="muted" style="margin-top:9px;padding:9px 11px;border-radius:12px;background:#f5f8f7">وضع البحث برقم العضوية: اكتب 9 أرقام ثم اضغط «بحث في السجل».</div>'+
+      '<div id="dxnMemberSearchStatus" class="muted" style="margin-top:9px;padding:9px 11px;border-radius:12px;background:#f5f8f7">بحث برقم عضوية العضو: اكتب 9 أرقام ثم اضغط «بحث في السجل».</div>'+
       '<div id="dxnMemberSearchResult" style="margin-top:10px"><div class="empty">ستظهر نتيجة البحث هنا.</div></div>'+
     '</div>'+
 
