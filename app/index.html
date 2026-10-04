@@ -7179,7 +7179,7 @@ async function searchDxnMemberRecord(){
     return;
   }
 
-  if(dxnMemberSearchMode==='number'&&!/^\\d{9}$/.test(query)){
+  if(dxnMemberSearchMode==='number'&&!/^\d{9}$/.test(query)){
     if(status){
       status.textContent='رقم العضوية يجب أن يتكوّن من 9 أرقام.';
       status.style.background='#fff1ef';
