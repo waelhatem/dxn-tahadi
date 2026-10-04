@@ -8459,6 +8459,16 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     return String(value);
   }
 
+  function teamCellValue(value){
+    if(value===null||value===undefined||String(value)==='')return '—';
+    return String(value);
+  }
+
+  function teamCellPv(value,masked){
+    if(masked===true)return '***';
+    return teamCellValue(value);
+  }
+
   function renderMembers(payload){
     const list=Array.isArray(payload&&payload.members)?payload.members:[];
     if(!list.length){
@@ -8466,8 +8476,8 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     }
 
     const sorted=list.slice().sort((a,b)=>{
-      const ad=Number(a.generation??a.depth_from_target??999);
-      const bd=Number(b.generation??b.depth_from_target??999);
+      const ad=Number(a.depth_from_target??a.generation??999);
+      const bd=Number(b.depth_from_target??b.generation??999);
       if(ad!==bd)return ad-bd;
       return String(a.member_name||'').localeCompare(String(b.member_name||''));
     });
@@ -8484,9 +8494,16 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
         '<td>'+escapeHtml(teamCellValue(m.dxn_status))+'</td>'+
         '<td>'+escapeHtml(teamCellValue(m.downline_status))+'</td>'+
         '<td>'+escapeHtml(teamCellValue(m.join_date))+'</td>'+
-        '<td>'+escapeHtml(teamCellValue(m.personal_pv))+'</td>'+
-        '<td>'+escapeHtml(teamCellValue(m.personal_group_pv))+'</td>'+
-        '<td>'+escapeHtml(teamCellValue(m.total_group_pv))+'</td>'+
+        '<td>'+escapeHtml(teamCellPv(m.personal_pv,false))+'</td>'+
+        '<td>'+escapeHtml(teamCellPv(m.personal_group_pv,false))+'</td>'+
+        '<td>'+escapeHtml(teamCellPv(m.total_group_pv,false))+'</td>'+
+        '<td>'+escapeHtml(teamCellPv(m.accumulated_group_pv,m.accumulated_group_pv_masked))+'</td>'+
+        '<td>'+escapeHtml(teamCellPv(m.accumulated_promotion_pv,m.accumulated_promotion_pv_masked))+'</td>'+
+        '<td>'+escapeHtml(teamCellPv(m.diamond_group_pv,m.diamond_group_pv_masked))+'</td>'+
+        '<td>'+escapeHtml(teamCellValue(m.source))+'</td>'+
+        '<td>'+escapeHtml(teamCellValue(m.source_updated_at))+'</td>'+
+        '<td>'+escapeHtml(teamCellValue(m.created_at))+'</td>'+
+        '<td>'+escapeHtml(teamCellValue(m.updated_at))+'</td>'+
       '</tr>';
     }).join('');
 
@@ -8506,11 +8523,18 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
           '<th>Personal PV</th>'+
           '<th>Personal Group PV</th>'+
           '<th>Total Group PV</th>'+
+          '<th>Accumulated Group PV</th>'+
+          '<th>Accumulated Promotion PV</th>'+
+          '<th>Diamond Group PV</th>'+
+          '<th>المصدر</th>'+
+          '<th>آخر تحديث للمصدر</th>'+
+          '<th>تاريخ الإنشاء</th>'+
+          '<th>آخر تحديث</th>'+
         '</tr></thead>'+
         '<tbody>'+rows+'</tbody>'+
       '</table>'+
     '</div>'+
-    '<div class="team-table-count">عرض <b>'+sorted.length+'</b> عضوًا في الفريق.</div>';
+    '<div class="team-table-count">عرض <b>'+sorted.length+'</b> عضوًا في الفريق. القيم المقنّعة تظهر بالشكل <b>***</b>.</div>';
   }
 
 
@@ -8624,7 +8648,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       '.team-member-root{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0 16px}.team-member-root>div{background:#f6faf8;border:1px solid #dfece6;border-radius:16px;padding:13px}.team-member-root span{display:block;color:#71817a;font-size:12px;margin-bottom:5px}.team-member-root b{font-size:18px}'+
       '.team-member-list{display:block;overflow-x:auto;overflow-y:hidden;padding-bottom:12px}'+
       '.team-table-wrap{width:100%;overflow:auto;border:1px solid #dfece6;border-radius:16px;background:#fff}'+
-      '.team-table{width:100%;min-width:1500px;border-collapse:collapse;white-space:nowrap}'+
+      '.team-table{width:100%;min-width:1900px;border-collapse:collapse;white-space:nowrap}'+
       '.team-table th,.team-table td{padding:10px 11px;border-bottom:1px solid #e6eeeb;text-align:right;font-size:12px;vertical-align:middle}'+
       '.team-table th{position:sticky;top:0;z-index:2;background:#eef7f2;color:#173b32;font-weight:950;box-shadow:0 1px 0 #dfece6}'+
       '.team-table tbody tr:nth-child(even){background:#fbfdfc}'+
