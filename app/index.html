@@ -8393,6 +8393,27 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
         '</div>'+
         '<div id="teamMemberStatus" class="team-member-status hidden"></div>'+
         '<div id="teamMemberSummary" class="team-member-summary"></div>'+
+
+        '<div class="team-search-panel">'+
+          '<div class="team-search-title">🔎 البحث داخل سجل فريقي</div>'+
+          '<div class="team-search-subtitle">بعد تحميل الفريق يمكنك البحث داخله بنفس أربع طرق البحث الموجودة في سجل DXN.</div>'+
+
+          '<div class="team-search-buttons">'+
+            '<button type="button" id="teamSearchModeMemberNumber" onclick="setTeamSearchMode(\'member_number\',this.closest(\'.team-member-panel\'))">🔢 رقم العضوية</button>'+
+            '<button type="button" id="teamSearchModeMemberName" onclick="setTeamSearchMode(\'member_name\',this.closest(\'.team-member-panel\'))">🔤 اسم العضو</button>'+
+            '<button type="button" id="teamSearchModeSponsorNumber" onclick="setTeamSearchMode(\'sponsor_number\',this.closest(\'.team-member-panel\'))">🪪 رقم عضوية الراعي</button>'+
+            '<button type="button" id="teamSearchModeSponsorName" onclick="setTeamSearchMode(\'sponsor_name\',this.closest(\'.team-member-panel\'))">👤 اسم الراعي</button>'+
+          '</div>'+
+
+          '<div class="team-search-input-row">'+
+            '<input id="teamSearchInput" type="text" inputmode="numeric" maxlength="9" autocomplete="off" placeholder="اكتب رقم العضوية المكوّن من 9 أرقام..." onkeydown="if(event.key===\'Enter\'){event.preventDefault();searchTeamRecord(this.closest(\'.team-member-panel\'))}">'+
+            '<button type="button" class="team-search-button" onclick="searchTeamRecord(this.closest(\'.team-member-panel\'))">🔎 بحث في فريقي</button>'+
+          '</div>'+
+
+          '<div id="teamSearchStatus" class="team-search-status">بحث داخل الفريق برقم العضوية. حمّل الفريق أولاً ثم استخدم البحث.</div>'+
+          '<div id="teamSearchResult"><div class="empty">ستظهر نتيجة البحث هنا.</div></div>'+
+        '</div>'+
+
         '<div id="teamMemberList" class="team-member-list"></div>'+
       '</div>';
     document.body.appendChild(panel);
@@ -8538,6 +8559,204 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
   }
 
 
+  let teamSearchMode='member_number';
+
+  function teamNameSearchKey(value){
+    let s=String(value||'').toLowerCase().trim();
+
+    s=s.replace(/[أإآٱ]/g,'ا')
+      .replace(/ى/g,'ي')
+      .replace(/ة/g,'ه')
+      .replace(/ؤ/g,'و')
+      .replace(/ئ/g,'ي')
+      .replace(/ء/g,'')
+      .replace(/[ًٌٍَُِّْـ]/g,'')
+      .replace(/[^a-z0-9ء-ي\s]+/g,' ')
+      .replace(/\s+/g,' ')
+      .trim();
+
+    const digraphs=[
+      ['ش','sh'],
+      ['خ','kh'],
+      ['غ','gh'],
+      ['ث','th'],
+      ['ذ','dh'],
+      ['چ','ch']
+    ];
+
+    digraphs.forEach(([ar,en])=>{s=s.split(ar).join(en)});
+
+    const map={
+      'ا':'a','ب':'b','ت':'t','ج':'j','ح':'h','د':'d','ر':'r','ز':'z',
+      'س':'s','ص':'s','ض':'d','ط':'t','ظ':'z','ع':'a','ف':'f','ق':'q',
+      'ك':'k','ل':'l','م':'m','ن':'n','ه':'h','و':'w','ي':'y',
+      'پ':'p','گ':'g','ڤ':'v'
+    };
+
+    s=s.split('').map(ch=>map[ch]||ch).join('');
+    s=s.replace(/[^a-z0-9\s]+/g,'');
+    s=s.replace(/[aeiouy]+/g,'');
+    return s.replace(/\s+/g,'').trim();
+  }
+
+  function teamSearchConfig(mode){
+    return ({
+      member_number:{
+        placeholder:'اكتب رقم العضوية المكوّن من 9 أرقام...',
+        inputMode:'numeric',
+        maxLength:9,
+        help:'بحث داخل فريق العضو المحدد برقم العضوية.'
+      },
+      member_name:{
+        placeholder:'اكتب اسم العضو أو جزءًا منه...',
+        inputMode:'text',
+        maxLength:120,
+        help:'بحث داخل الفريق باسم العضو بالعربية أو الإنجليزية.'
+      },
+      sponsor_number:{
+        placeholder:'اكتب رقم عضوية الراعي المكوّن من 9 أرقام...',
+        inputMode:'numeric',
+        maxLength:9,
+        help:'عرض الأعضاء داخل الفريق الذين يطابق رقم راعيهم الرقم المدخل.'
+      },
+      sponsor_name:{
+        placeholder:'اكتب اسم الراعي أو جزءًا منه...',
+        inputMode:'text',
+        maxLength:120,
+        help:'بحث داخل الفريق باسم الراعي بالعربية أو الإنجليزية.'
+      }
+    }[mode]||null);
+  }
+
+  function setTeamSearchMode(mode,panel){
+    const allowed=['member_number','member_name','sponsor_number','sponsor_name'];
+    teamSearchMode=allowed.includes(mode)?mode:'member_number';
+
+    const buttons={
+      member_number:panel.querySelector('#teamSearchModeMemberNumber'),
+      member_name:panel.querySelector('#teamSearchModeMemberName'),
+      sponsor_number:panel.querySelector('#teamSearchModeSponsorNumber'),
+      sponsor_name:panel.querySelector('#teamSearchModeSponsorName')
+    };
+
+    Object.entries(buttons).forEach(([key,button])=>{
+      if(!button)return;
+      const active=key===teamSearchMode;
+      button.style.background=active?'#0f513f':'#eef3f2';
+      button.style.color=active?'#fff':'#182234';
+    });
+
+    const cfg=teamSearchConfig(teamSearchMode);
+    const input=panel.querySelector('#teamSearchInput');
+    const status=panel.querySelector('#teamSearchStatus');
+    const result=panel.querySelector('#teamSearchResult');
+
+    if(input&&cfg){
+      input.placeholder=cfg.placeholder;
+      input.inputMode=cfg.inputMode;
+      input.maxLength=cfg.maxLength;
+      input.value='';
+    }
+
+    if(status&&cfg){
+      status.textContent=cfg.help+' ثم اضغط «بحث في فريقي».';
+      status.className='team-search-status';
+    }
+
+    if(result){
+      result.innerHTML='<div class="empty">ستظهر نتيجة البحث هنا.</div>';
+    }
+  }
+
+  function teamSearchMatches(row,mode,query){
+    const q=String(query||'').trim();
+    if(!q)return false;
+
+    if(mode==='member_number'){
+      return String(row&&row.member_no||'').trim()===q;
+    }
+
+    if(mode==='sponsor_number'){
+      return String(row&&row.sponsor_member_no||'').trim()===q;
+    }
+
+    if(mode==='member_name'){
+      const direct=String(row&&row.member_name||'').toLowerCase().includes(q.toLowerCase());
+      if(direct)return true;
+
+      const queryKey=teamNameSearchKey(q);
+      const nameKey=teamNameSearchKey(row&&row.member_name||'');
+      return !!queryKey&&nameKey.includes(queryKey);
+    }
+
+    if(mode==='sponsor_name'){
+      const direct=String(row&&row.sponsor_name||'').toLowerCase().includes(q.toLowerCase());
+      if(direct)return true;
+
+      const queryKey=teamNameSearchKey(q);
+      const nameKey=teamNameSearchKey(row&&row.sponsor_name||'');
+      return !!queryKey&&nameKey.includes(queryKey);
+    }
+
+    return false;
+  }
+
+  function renderTeamSearchResults(panel,rows){
+    const result=panel.querySelector('#teamSearchResult');
+    const status=panel.querySelector('#teamSearchStatus');
+    if(!result)return;
+
+    if(!rows.length){
+      if(status){
+        status.textContent='لم يتم العثور على نتيجة مطابقة داخل فريق العضو المحدد.';
+        status.className='team-search-status team-search-warning';
+      }
+      result.innerHTML='<div class="empty">لا توجد نتائج مطابقة داخل هذا الفريق.</div>';
+      return;
+    }
+
+    if(status){
+      status.textContent='✅ تم العثور على '+rows.length+' عضو داخل فريق العضو المحدد.';
+      status.className='team-search-status team-search-success';
+    }
+
+    result.innerHTML=renderMembers({members:rows});
+  }
+
+  function searchTeamRecord(panel){
+    const input=panel.querySelector('#teamSearchInput');
+    const status=panel.querySelector('#teamSearchStatus');
+    if(!input||!status)return;
+
+    const query=String(input.value||'').trim();
+
+    if(!Array.isArray(panel.__teamMembers)){
+      status.textContent='حمّل الفريق أولاً ثم نفّذ البحث داخله.';
+      status.className='team-search-status team-search-warning';
+      return;
+    }
+
+    if(!query){
+      status.textContent='أدخل قيمة البحث أولاً.';
+      status.className='team-search-status team-search-warning';
+      return;
+    }
+
+    if(
+      (teamSearchMode==='member_number'||teamSearchMode==='sponsor_number') &&
+      !/^\d{9}$/.test(query)
+    ){
+      status.textContent=teamSearchMode==='sponsor_number'
+        ? 'رقم عضوية الراعي يجب أن يتكوّن من 9 أرقام.'
+        : 'رقم العضوية يجب أن يتكوّن من 9 أرقام.';
+      status.className='team-search-status team-search-warning';
+      return;
+    }
+
+    const rows=panel.__teamMembers.filter(row=>teamSearchMatches(row,teamSearchMode,query));
+    renderTeamSearchResults(panel,rows);
+  }
+
   async function loadTeam(panel){
     const input=panel.querySelector('#teamMemberNumber');
     const status=panel.querySelector('#teamMemberStatus');
@@ -8575,6 +8794,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
         p_limit:5000
       });
       let allMembers=Array.isArray(downline&&downline.members)?downline.members:[];
+      panel.__teamMembers=allMembers.slice();
       
       // Backward-compatible fallback for an older RPC that still returns only
       // a limited downline payload.
@@ -8646,6 +8866,18 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       '.team-member-lookup label{display:block;font-weight:900;margin-bottom:7px}.team-member-input-row{display:flex;gap:8px}.team-member-input-row input{margin:0;flex:1}.team-member-search{background:#0f513f;color:#fff;white-space:nowrap}.team-member-hint{margin-top:7px;color:#71817a;font-size:12px}'+
       '.team-member-status{margin:14px 0;padding:12px 14px;border-radius:14px;background:#f5f8f7;color:#31544a}.team-member-status.ok{background:#edf8f1;color:#17663f}.team-member-status.error{background:#fff1ef;color:#a32318}.team-member-status.hidden{display:none}'+
       '.team-member-root{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0 16px}.team-member-root>div{background:#f6faf8;border:1px solid #dfece6;border-radius:16px;padding:13px}.team-member-root span{display:block;color:#71817a;font-size:12px;margin-bottom:5px}.team-member-root b{font-size:18px}'+
+      '.team-search-panel{margin:0 0 16px;padding:15px;border:1px solid #dfece6;border-radius:18px;background:#f7faf8}'+
+      '.team-search-title{font-weight:950;color:#123f33;font-size:15px}'+
+      '.team-search-subtitle{margin-top:5px;color:#71817a;font-size:12px;line-height:1.7}'+
+      '.team-search-buttons{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}'+
+      '.team-search-buttons button{min-height:40px;padding:8px 12px;border:1px solid #d7e4df;background:#eef3f2;color:#182234;border-radius:11px;font-weight:900;cursor:pointer}'+
+      '.team-search-buttons button:first-child{background:#0f513f;color:#fff}'+
+      '.team-search-input-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:10px}'+
+      '.team-search-input-row input{margin:0;min-width:0}'+
+      '.team-search-button{background:#0f513f;color:#fff;white-space:nowrap}'+
+      '.team-search-status{margin-top:9px;padding:9px 11px;border-radius:12px;background:#f5f8f7;color:#31544a;font-size:12px}'+
+      '.team-search-success{background:#edf8f1;color:#17663f}.team-search-warning{background:#fff8e8;color:#795900}'+
+      '@media(max-width:650px){.team-search-input-row{grid-template-columns:1fr}.team-search-button{width:100%}.team-search-buttons button{flex:1 1 calc(50% - 8px);min-width:145px}}'+
       '.team-member-list{display:block;overflow-x:auto;overflow-y:hidden;padding-bottom:12px}'+
       '.team-table-wrap{width:100%;overflow:auto;border:1px solid #dfece6;border-radius:16px;background:#fff}'+
       '.team-table{width:100%;min-width:1900px;border-collapse:collapse;white-space:nowrap}'+
