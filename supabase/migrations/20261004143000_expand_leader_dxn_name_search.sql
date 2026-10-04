@@ -18,7 +18,7 @@ begin
   s := translate(
     s,
     'أإآٱىةؤئءپچگڤ',
-    'اااايتوائءپچگڤ'
+    'اااايتوااپچگڤ'
   );
 
   -- Remove Arabic diacritics and tatweel.
@@ -41,7 +41,7 @@ begin
   s := translate(
     s,
     'ابتجحدرزسصضطظعفقكلمنهويپگڤ',
-    'abtjh drzssdtzafqklmnhwypgv'::text
+    'abtjhdrzssdtzafqklmnhwypgv'::text
   );
 
   -- Normalize accidental spacing introduced by translation.
