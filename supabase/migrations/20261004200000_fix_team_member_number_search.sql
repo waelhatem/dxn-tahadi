@@ -95,25 +95,13 @@ begin
     );
   end if;
 
-  -- Verify recursive sponsorship membership, up to 20 generations.
-  with recursive team as (
-    select m.member_no, 0 as depth
-    from public.dxn_team_members m
-    where m.member_no=root_no
-
-    union all
-
-    select d.member_no, t.depth+1
-    from public.dxn_team_members d
-    join team t
-      on d.sponsor_member_no=t.member_no
-    where t.depth<20
-  )
-  select t.depth
+  -- "بحث في فريقي" means the members directly sponsored by the
+  -- selected root only. Do NOT search the recursive downline.
+  select 1
   into found_depth
-  from team t
-  where t.member_no=target_no
-  order by t.depth
+  from public.dxn_team_members d
+  where d.member_no=target_no
+    and d.sponsor_member_no=root_no
   limit 1;
 
   if found_depth is null then
@@ -130,7 +118,7 @@ begin
     'ok',true,
     'found',true,
     'in_team',true,
-    'member',target_row || jsonb_build_object('depth_from_target',found_depth),
+    'member',target_row || jsonb_build_object('depth_from_target',1),
     'depth_from_target',found_depth
   );
 end;
