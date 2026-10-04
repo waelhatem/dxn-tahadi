@@ -120,56 +120,26 @@ module.exports = async function handler(req, res) {
       throw new Error('رقم العضوية يجب أن يتكوّن من 9 أرقام.');
     }
 
-    const fields = [
-      'member_no',
-      'member_name',
-      'sponsor_member_no',
-      'sponsor_name',
-      'generation',
-      'rank',
-      'dxn_status',
-      'downline_status',
-      'join_date',
-      'personal_pv',
-      'personal_group_pv',
-      'total_group_pv',
-      'accumulated_group_pv',
-      'accumulated_promotion_pv',
-      'diamond_group_pv',
-      'accumulated_group_pv_masked',
-      'accumulated_promotion_pv_masked',
-      'diamond_group_pv_masked',
-      'source',
-      'source_updated_at',
-      'created_at',
-      'updated_at'
-    ].join(',');
-
-    let path =
-      '/rest/v1/dxn_team_members?select=' +
-      encodeURIComponent(fields) +
-      '&limit=20&order=member_no.asc';
-
-    if (mode === 'number') {
-      path += '&member_no=eq.' + encodeURIComponent(query);
-    } else {
-      path += '&member_name=ilike.*' + encodeURIComponent(query) + '*';
-    }
-
-    const result = await request(
-      'GET',
-      path,
-      null,
+    const rpcResult = await request(
+      'POST',
+      '/rest/v1/rpc/leader_dxn_member_search',
       {
+        p_token: token,
+        p_mode: mode,
+        p_query: query,
+        p_limit: 20
+      },
+      {
+        'Content-Type': 'application/json',
         apikey: SUPABASE_SECRET_KEY,
         Authorization: 'Bearer ' + SUPABASE_SECRET_KEY
       }
     );
 
-    if (!result.ok || !Array.isArray(result.data)) {
+    if (!rpcResult.ok || !rpcResult.data) {
       throw new Error(
-        (result.data && (result.data.message || result.data.error || result.data.hint)) ||
-        result.text ||
+        (rpcResult.data && (rpcResult.data.message || rpcResult.data.error || rpcResult.data.hint)) ||
+        rpcResult.text ||
         'تعذر البحث في سجل DXN.'
       );
     }
