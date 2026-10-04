@@ -195,11 +195,31 @@ async function teamMemberSearchInRoot(args){
   if(!boot.ok) throw new Error((boot.data&&(boot.data.message||boot.data.error||boot.data.hint))||boot.text||'جلسة الدخول غير صالحة');
 
   const role=String(boot.data?.role||'').trim().toLowerCase();
-  const ownNo=String(boot.data?.members?.[0]?.member_no||'').trim();
+  let ownNo=String(boot.data?.members?.[0]?.member_no||'').trim();
+
+  // لا نعتمد على ترتيب members في bootstrap لتحديد جذر فريق القائد.
+  // إذا لم يوفر bootstrap رقم العضوية، نستخرجه من الحساب المرتبط بالجلسة.
+  if(!ownNo){
+    const current=await supabaseRpcRequest('app_current_user_id',{p_token:token},SUPABASE_SECRET_KEY,10000);
+    if(current.ok && current.data){
+      const uid=encodeURIComponent(String(current.data));
+      const user=await supabaseRestRequest(
+        '/rest/v1/app_users?select=member_id&active=eq.true&id=eq.'+uid+'&limit=1',
+        SUPABASE_SECRET_KEY,10000
+      );
+      const memberId=String(user.data?.[0]?.member_id||'').trim();
+      if(memberId){
+        const member=await supabaseRestRequest(
+          '/rest/v1/members?select=member_no&id=eq.'+encodeURIComponent(memberId)+'&limit=1',
+          SUPABASE_SECRET_KEY,10000
+        );
+        ownNo=String(member.data?.[0]?.member_no||'').trim();
+      }
+    }
+  }
 
   // عند البحث من حقل «بحث في فريقي» لا يطلب النظام من المستخدم
-  // إدخال رقم جذر أو تحميل الفريق أولاً. إذا لم يرسل الواجهة جذراً،
-  // نستخدم رقم العضوية المرتبط بالحساب الحالي تلقائياً.
+  // إدخال رقم جذر أو تحميل الفريق أولاً.
   const requestedRoot=requestedRootInput||ownNo;
 
   if(!/^\d{9}$/.test(requestedRoot)){
@@ -277,9 +297,8 @@ async function teamMemberSearchInRoot(args){
         foundDepth=depth;
         break;
       }
-      if(depth<20){
-        queue.push({row:child,depth});
-      }
+      // لا نضع حداً اصطناعياً للأجيال؛ seen يمنع الدوران في البيانات. 
+      queue.push({row:child,depth});
     }
     if(foundDepth!==null) break;
   }
