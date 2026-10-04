@@ -8997,18 +8997,12 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 
   window.sortTeamTable=sortTeamTable;
 
-  function searchTeamRecord(panel){
+  async function searchTeamRecord(panel){
     const input=panel.querySelector('#teamSearchInput');
     const status=panel.querySelector('#teamSearchStatus');
     if(!input||!status)return;
 
     const query=String(input.value||'').trim();
-
-    if(!Array.isArray(panel.__teamMembers)){
-      status.textContent='حمّل الفريق أولاً ثم نفّذ البحث داخله.';
-      status.className='team-search-status team-search-warning';
-      return;
-    }
 
     if(!query){
       status.textContent='أدخل قيمة البحث أولاً.';
@@ -9023,6 +9017,70 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       status.textContent=teamSearchMode==='sponsor_number'
         ? 'رقم عضوية الراعي يجب أن يتكوّن من 9 أرقام.'
         : 'رقم العضوية يجب أن يتكوّن من 9 أرقام.';
+      status.className='team-search-status team-search-warning';
+      return;
+    }
+
+    /*
+     * البحث برقم العضوية لا يعتمد على القائمة المحمّلة في المتصفح.
+     * يتم الرجوع إلى سجل DXN عبر RPC، ثم تقوم قاعدة البيانات نفسها
+     * بالتأكد أن الرقم هو العضو الجذر أو عضو تابع داخل الفريق المحدد.
+     * بذلك لن يفشل البحث بسبب محدودية/عدد الصفوف المعروضة في الجدول.
+     */
+    if(teamSearchMode==='member_number'){
+      const t=sessionToken();
+      if(!t){
+        status.textContent='جلسة الدخول غير موجودة. أعد تسجيل الدخول.';
+        status.className='team-search-status team-search-warning';
+        return;
+      }
+
+      const rootInput=panel.querySelector('#teamMemberNumber');
+      const rootNo=String(rootInput&&rootInput.value||'').trim();
+
+      if(!rootNo){
+        status.textContent='أدخل رقم العضوية التي تريد عرض فريقها أولاً.';
+        status.className='team-search-status team-search-warning';
+        return;
+      }
+
+      status.textContent='جارٍ البحث في سجل DXN والتأكد من أن العضو ضمن الفريق...';
+      status.className='team-search-status';
+
+      try{
+        const found=await rpc('get_dxn_team_intelligence',{
+          p_token:t,
+          p_mode:'member',
+          p_member_no:query,
+          p_limit:1
+        });
+
+        const member=found&&found.member;
+        if(!member){
+          status.textContent='لم يتم العثور على رقم العضوية داخل فريق العضو المحدد.';
+          status.className='team-search-status team-search-warning';
+          renderTeamSearchResults(panel,[]);
+          return;
+        }
+
+        member.depth_from_target=String(member.member_no||'')===rootNo?0:(
+          panel.__teamMembers||[]
+        ).find(x=>String(x.member_no||'')===String(member.member_no||''))?.depth_from_target??1;
+
+        panel.__teamSearchRows=[member];
+        status.textContent='✅ تم العثور على العضو '+query+' في سجل DXN، وهو ضمن فريق العضو المحدد.';
+        status.className='team-search-status team-search-success';
+        renderTeamSearchResults(panel,[member]);
+      }catch(err){
+        status.textContent='تعذر تنفيذ البحث: '+String(err&&err.message||err);
+        status.className='team-search-status team-search-warning';
+        renderTeamSearchResults(panel,[]);
+      }
+      return;
+    }
+
+    if(!Array.isArray(panel.__teamMembers)){
+      status.textContent='حمّل الفريق أولاً ثم نفّذ البحث داخله.';
       status.className='team-search-status team-search-warning';
       return;
     }
