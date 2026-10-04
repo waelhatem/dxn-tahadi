@@ -183,12 +183,11 @@ async function directPrivateUserSearchFallback(args){
 async function teamMemberSearchInRoot(args){
   if(!SUPABASE_SECRET_KEY) throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
   const token=String(args&&args.p_token||'').trim();
-  const requestedRoot=String(args&&args.p_root_member_no||'').trim();
+  const requestedRootInput=String(args&&args.p_root_member_no||'').trim();
   const targetNo=String(args&&args.p_member_no||'').trim();
   if(!token) throw new Error('جلسة الدخول غير موجودة');
-  if(!requestedRoot) throw new Error('رقم العضو الأساسي غير موجود');
   if(!targetNo) throw new Error('رقم العضوية المطلوب البحث عنه غير موجود');
-  if(!/^\d{9}$/.test(requestedRoot) || !/^\d{9}$/.test(targetNo)){
+  if(!/^\d{9}$/.test(targetNo)){
     throw new Error('رقم العضوية يجب أن يتكوّن من 9 أرقام');
   }
 
@@ -197,6 +196,15 @@ async function teamMemberSearchInRoot(args){
 
   const role=String(boot.data?.role||'').trim().toLowerCase();
   const ownNo=String(boot.data?.members?.[0]?.member_no||'').trim();
+
+  // عند البحث من حقل «بحث في فريقي» لا يطلب النظام من المستخدم
+  // إدخال رقم جذر أو تحميل الفريق أولاً. إذا لم يرسل الواجهة جذراً،
+  // نستخدم رقم العضوية المرتبط بالحساب الحالي تلقائياً.
+  const requestedRoot=requestedRootInput||ownNo;
+
+  if(!/^\d{9}$/.test(requestedRoot)){
+    throw new Error('تعذر تحديد رقم العضوية المرتبط بالحساب الحالي');
+  }
 
   if(role==='member' && requestedRoot!==ownNo){
     throw new Error('لا يمكن للعضو اختيار عضو آخر كجذر للفريق');
