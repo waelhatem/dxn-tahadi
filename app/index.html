@@ -7195,9 +7195,13 @@ async function searchDxnMemberRecord(){
 
   if(!query){
     if(status){
-      status.textContent=dxnMemberSearchMode==='number'
-        ? 'اكتب رقم العضوية للبحث.'
-        : 'اكتب اسم العضو أو جزءًا من الاسم للبحث.';
+      const emptyMessage={
+        member_number:'اكتب رقم العضوية للبحث.',
+        member_name:'اكتب اسم العضو أو جزءًا من الاسم للبحث.',
+        sponsor_number:'اكتب رقم عضوية الراعي للبحث.',
+        sponsor_name:'اكتب اسم الراعي أو جزءًا منه للبحث.'
+      }[dxnMemberSearchMode]||'اكتب قيمة البحث.';
+      status.textContent=emptyMessage;
       status.style.background='#fff8e8';
       status.style.color='#795900';
     }
