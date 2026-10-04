@@ -102,22 +102,35 @@ module.exports = async function handler(req, res) {
       ? JSON.parse(req.body || '{}')
       : (req.body || {});
 
-    const mode = String(body.mode || 'number').trim().toLowerCase() === 'name'
-      ? 'name'
-      : 'number';
+    const requestedMode = String(body.mode || 'member_number').trim().toLowerCase();
+    const allowedModes = ['member_number','member_name','sponsor_number','sponsor_name'];
+    const mode = allowedModes.includes(requestedMode)
+      ? requestedMode
+      : 'member_number';
 
     const query = String(body.query || '').trim();
 
     if (!query) {
       throw new Error(
-        mode === 'number'
+        mode === 'member_number'
           ? 'أدخل رقم العضوية.'
-          : 'أدخل اسم العضو أو جزءًا منه.'
+          : mode === 'member_name'
+            ? 'أدخل اسم العضو أو جزءًا منه.'
+            : mode === 'sponsor_number'
+              ? 'أدخل رقم عضوية الراعي.'
+              : 'أدخل اسم الراعي أو جزءًا منه.'
       );
     }
 
-    if (mode === 'number' && !/^\d{9}$/.test(query)) {
-      throw new Error('رقم العضوية يجب أن يتكوّن من 9 أرقام.');
+    if (
+      (mode === 'member_number' || mode === 'sponsor_number') &&
+      !/^\d{9}$/.test(query)
+    ) {
+      throw new Error(
+        mode === 'sponsor_number'
+          ? 'رقم عضوية الراعي يجب أن يتكوّن من 9 أرقام.'
+          : 'رقم العضوية يجب أن يتكوّن من 9 أرقام.'
+      );
     }
 
     const rpcResult = await request(
