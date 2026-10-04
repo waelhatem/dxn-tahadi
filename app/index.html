@@ -2101,7 +2101,7 @@ async function markAllNotificationsRead(){
  render();
 }
 function notifications(){return notificationsCard();}
-function render(){updateSiteMeta();if(role==='leader'&&!me)me=null;const notifSummary=notificationSummary();const badge=role==='member'&&me?topBadge():null;let identity=role==='member'&&me?`<div class="member-identity"><div class="member-identity-main">${memberAvatarHtml(me,'sm')}<div class="member-identity-text"><span class="role-label">👤 العضو</span><b>${esc(me.name||'')} ${badge?`<span class="badge-strip"><span class="name-badge" title="${esc(badge.name)}">${badge.icon}</span></span>`:''}</b><span>🪪 ${esc(me.member_no||'')}</span></div></div><button class="logout-top" onclick="logout()">🚪 تسجيل الخروج</button></div>`:`<div class="member-identity"><span class="role-label">👑 القائد</span><b>${esc(localStorage.getItem('dxn_login_no')||'LEADER')}</b><button class="logout-top" onclick="logout()">🚪 تسجيل الخروج</button></div>`;let mobileIdentity=identity.replace("member-identity","mobile-member-identity");let html=`<div class="view-switch" id="viewSwitch"></div><div class="top login-header-top">${identity}</div>${mobileIdentity}`;html+=`<div class="tabs"><button class="tab ${tab==='home'?'active':''}" onclick="switchTab('home')">الرئيسية 📊</button><button class="tab notif-tab ${tab==='notifications'?'active':''}" onclick="switchTab('notifications')">🔔 الإشعارات ${notifSummary.unread.length?`<span class="notif-count">${notifSummary.unread.length}</span>`:''}</button><button class="tab ${tab==='ch'?'active':''}" onclick="switchTab('ch')">التحديات 🎯</button><button class="tab ${tab==='teams'?'active':''}" onclick="switchTab('teams')">الأعضاء والفرق 👥</button><button class="tab team-member-tab" type="button" onclick="window.__DXN_OPEN_TEAM_MEMBER_V4__&&window.__DXN_OPEN_TEAM_MEMBER_V4__()">🌳 فريقي</button>${role==='member'&&me?`<button class="tab ${tab==='progress'?'active':''}" onclick="switchTab('progress')">📊 تقدّمي</button>`:''}${canAccessTraining()?`<button class="tab ${tab==='training'?'active':''}" onclick="switchTab('training')">📚 الشروحات والتدريبات</button>`:''}${role==='leader'?`<button class="tab ${tab==='leader'?'active':''}" onclick="switchTab('leader')">إدارة القائد 👑</button>`:''}<button class="tab ${tab==='advanced'?'active':''}" onclick="switchTab('advanced')">🚀 المركز الذكي</button><button class="tab academy-tab ${tab==='academy'?'active':''}" onclick="switchTab('academy')">🎓 أكاديمية المجتمع</button><button class="tab community-tab ${tab==='community'?'active':''}" onclick="switchTab('community')">🌐 المجتمع</button></div>`;html+=tab==='home'?home():tab==='notifications'?notificationsCard(notifSummary):tab==='ch'?challenges():tab==='teams'?teams():tab==='path'&&role==='member'&&me?memberPathMap():tab==='progress'&&role==='member'&&me?progressPage():tab==='training'&&canAccessTraining()?'<div id="section-training">'+trainings()+'</div>':tab==='community'?community():tab==='advanced'?advancedCenter():tab==='academy'?(typeof academyPage==='function'?academyPage():''):leader();html+=nav();$('app').innerHTML=html;renderOnlinePresence();document.querySelectorAll('.login-header-top .logo,.login-header-top h1,.login-header-top p,.login-header-top img').forEach(el=>el.remove());renderViewSwitch();maybeShowLevelUp()}
+function render(){updateSiteMeta();if(role==='leader'&&!me)me=null;const notifSummary=notificationSummary();const badge=role==='member'&&me?topBadge():null;let identity=role==='member'&&me?`<div class="member-identity"><div class="member-identity-main">${memberAvatarHtml(me,'sm')}<div class="member-identity-text"><span class="role-label">👤 العضو</span><b>${esc(me.name||'')} ${badge?`<span class="badge-strip"><span class="name-badge" title="${esc(badge.name)}">${badge.icon}</span></span>`:''}</b><span>🪪 ${esc(me.member_no||'')}</span></div></div><button class="logout-top" onclick="logout()">🚪 تسجيل الخروج</button></div>`:`<div class="member-identity"><span class="role-label">👑 القائد</span><b>${esc(localStorage.getItem('dxn_login_no')||'LEADER')}</b><button class="logout-top" onclick="logout()">🚪 تسجيل الخروج</button></div>`;let mobileIdentity=identity.replace("member-identity","mobile-member-identity");let html=`<div class="view-switch" id="viewSwitch"></div><div class="top login-header-top">${identity}</div>${mobileIdentity}`;html+=`<div class="tabs"><button class="tab ${tab==='home'?'active':''}" onclick="switchTab('home')">الرئيسية 📊</button><button class="tab notif-tab ${tab==='notifications'?'active':''}" onclick="switchTab('notifications')">🔔 الإشعارات ${notifSummary.unread.length?`<span class="notif-count">${notifSummary.unread.length}</span>`:''}</button><button class="tab ${tab==='ch'?'active':''}" onclick="switchTab('ch')">التحديات 🎯</button><button class="tab ${tab==='teams'?'active':''}" onclick="switchTab('teams')">الأعضاء والفرق 👥</button><button class="tab team-member-tab ${tab==='team'?'active':''}" type="button" onclick="window.__DXN_OPEN_TEAM_MEMBER_V4__&&window.__DXN_OPEN_TEAM_MEMBER_V4__()">🌳 فريقي</button>${role==='member'&&me?`<button class="tab ${tab==='progress'?'active':''}" onclick="switchTab('progress')">📊 تقدّمي</button>`:''}${canAccessTraining()?`<button class="tab ${tab==='training'?'active':''}" onclick="switchTab('training')">📚 الشروحات والتدريبات</button>`:''}${role==='leader'?`<button class="tab ${tab==='leader'?'active':''}" onclick="switchTab('leader')">إدارة القائد 👑</button>`:''}<button class="tab ${tab==='advanced'?'active':''}" onclick="switchTab('advanced')">🚀 المركز الذكي</button><button class="tab academy-tab ${tab==='academy'?'active':''}" onclick="switchTab('academy')">🎓 أكاديمية المجتمع</button><button class="tab community-tab ${tab==='community'?'active':''}" onclick="switchTab('community')">🌐 المجتمع</button></div>`;html+=tab==='home'?home():tab==='notifications'?notificationsCard(notifSummary):tab==='ch'?challenges():tab==='teams'?teams():tab==='path'&&role==='member'&&me?memberPathMap():tab==='progress'&&role==='member'&&me?progressPage():tab==='training'&&canAccessTraining()?'<div id="section-training">'+trainings()+'</div>':tab==='community'?community():tab==='advanced'?advancedCenter():tab==='team'?'<div id="teamMemberPageHost" class="team-member-page-host"></div>':tab==='academy'?(typeof academyPage==='function'?academyPage():''):leader();html+=nav();$('app').innerHTML=html;renderOnlinePresence();document.querySelectorAll('.login-header-top .logo,.login-header-top h1,.login-header-top p,.login-header-top img').forEach(el=>el.remove());renderViewSwitch();maybeShowLevelUp()}
 const DXN_LEVELS=[
  {stars:0,icon:'🌱',name:'البداية'},
  {stars:100,icon:'🔥',name:'عضو نشيط'},
@@ -8416,12 +8416,17 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 
         '<div id="teamMemberList" class="team-member-list"></div>'+
       '</div>';
+    const teamHost=document.getElementById('teamMemberPageHost');
     const appHost=document.getElementById('app');
     panel.classList.add('team-member-inline');
-    if(appHost) appHost.appendChild(panel);
+    if(teamHost) teamHost.appendChild(panel);
+    else if(appHost) appHost.appendChild(panel);
     else document.body.appendChild(panel);
 
-    const close=()=>panel.classList.remove('show');
+    const close=()=>{
+      panel.classList.remove('show');
+      try{ switchTab('teams'); }catch(_){}
+    };
     panel.addEventListener('click',e=>{if(e.target===panel)close()});
     panel.querySelector('#teamMemberClose').onclick=close;
     panel.querySelector('#teamMemberSearch').onclick=()=>loadTeam(panel);
@@ -9104,13 +9109,18 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
   }
 
   function open(){
-    const panel=ensurePanel();
+    // «فريقي» هو تبويب مستقل داخل نفس بنية الصفحة، مثل بقية التبويبات.
+    try{
+      if(typeof tab!=='undefined' && tab!=='team'){
+        tab='team';
+        saveDxnUiState({tab:'team',trainingSubtab});
+        render();
+      }
+    }catch(_){}
 
-    // «فريقي» يعمل داخل الصفحة نفسها، وليس في نافذة/صفحة منفصلة.
-    if(panel.parentElement!==document.getElementById('app')){
-      const appHost=document.getElementById('app');
-      if(appHost) appHost.appendChild(panel);
-    }
+    const panel=ensurePanel();
+    const host=document.getElementById('teamMemberPageHost');
+    if(host && panel.parentElement!==host) host.appendChild(panel);
     panel.classList.add('show');
 
     const input=panel.querySelector('#teamMemberNumber');
@@ -9146,6 +9156,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       '.team-member-panel.show{display:flex}'+
       '.team-member-panel.team-member-inline{position:static;inset:auto;z-index:auto;background:transparent;display:block;width:100%;padding:0;margin:14px 0 80px;direction:rtl}'+
       '.team-member-panel.team-member-inline.show{display:block}'+
+      '.team-member-page-host{width:100%;margin:0}'+
       '.team-member-panel.team-member-inline .team-member-card{width:100%;max-width:none;max-height:none;overflow:visible;border-radius:20px;box-shadow:0 10px 30px rgba(15,81,63,.10);padding:18px}'+
       '.team-member-panel.team-member-inline .team-member-card:fullscreen{width:100vw;max-width:none;max-height:none;overflow:auto;border-radius:0}'+
       '.team-member-card{width:min(920px,96vw);max-height:88vh;overflow:auto;background:#fff;border-radius:24px;box-shadow:0 24px 80px rgba(0,0,0,.25);padding:22px;color:#123b30}'+
