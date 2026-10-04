@@ -8410,7 +8410,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
             '<button type="button" class="team-search-button" onclick="searchTeamRecord(this.closest(\'.team-member-panel\'))">🔎 بحث في فريقي</button>'+
           '</div>'+
 
-          '<div id="teamSearchStatus" class="team-search-status">بحث داخل الفريق برقم العضوية. حمّل الفريق أولاً ثم استخدم البحث.</div>'+
+          '<div id="teamSearchStatus" class="team-search-status">الفريق جاهز. اختر طريقة البحث، اكتب القيمة ثم اضغط «بحث في فريقي».</div>'+
           '<div id="teamSearchResult"><div class="empty">ستظهر نتيجة البحث هنا.</div></div>'+
         '</div>'+
 
@@ -9100,6 +9100,12 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       panel.__teamSearchRows=[];
       summaryBox.innerHTML=renderSummary(summary,rootNo);
       listBox.innerHTML=renderMembers({members:allMembers},panel);
+      const searchStatus=panel.querySelector('#teamSearchStatus');
+      const searchCfg=teamSearchConfig(teamSearchMode);
+      if(searchStatus&&searchCfg){
+        searchStatus.textContent='✅ الفريق محمّل. '+searchCfg.help+' ثم اضغط «بحث في فريقي».';
+        searchStatus.className='team-search-status team-search-success';
+      }
       status.className='team-member-status ok';
       status.textContent='تم تحميل فريق العضو '+rootNo+' بنجاح.';
     }catch(err){
