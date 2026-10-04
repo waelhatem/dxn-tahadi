@@ -140,7 +140,7 @@ module.exports = async function handler(req, res) {
         p_token: token,
         p_mode: mode,
         p_query: query,
-        p_limit: 20
+        p_limit: (mode === 'sponsor_number' || mode === 'sponsor_name') ? 500 : 20
       },
       {
         'Content-Type': 'application/json',
