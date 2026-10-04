@@ -8493,20 +8493,248 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     return teamCellValue(value);
   }
 
-  function renderMembers(payload){
-    const list=Array.isArray(payload&&payload.members)?payload.members:[];
-    if(!list.length){
-      return '<div class="team-member-empty">🌱 لا يوجد أعضاء تابعون لهذا العضو حاليًا.</div>';
+  function teamSortConfig(key){
+    const configs={
+      member_no:{
+        label:'رقم العضوية',
+        options:[
+          ['asc','الأصغر → الأكبر'],
+          ['desc','الأكبر → الأصغر']
+        ]
+      },
+      member_name:{
+        label:'اسم العضو',
+        options:[
+          ['az','A → Z'],
+          ['za','Z → A'],
+          ['ar_az','أ → ي'],
+          ['ar_za','ي → أ']
+        ]
+      },
+      sponsor_member_no:{
+        label:'رقم الراعي',
+        options:[
+          ['asc','الأصغر → الأكبر'],
+          ['desc','الأكبر → الأصغر']
+        ]
+      },
+      sponsor_name:{
+        label:'اسم الراعي',
+        options:[
+          ['az','A → Z'],
+          ['za','Z → A'],
+          ['ar_az','أ → ي'],
+          ['ar_za','ي → أ']
+        ]
+      },
+      generation:{
+        label:'الجيل',
+        options:[
+          ['asc','1 → الأعلى'],
+          ['desc','الأعلى → 1']
+        ]
+      },
+      rank:{
+        label:'الرتبة',
+        options:[
+          ['az','A → Z'],
+          ['za','Z → A'],
+          ['ar_az','أ → ي'],
+          ['ar_za','ي → أ']
+        ]
+      },
+      dxn_status:{
+        label:'حالة DXN',
+        options:[
+          ['az','A → Z'],
+          ['za','Z → A']
+        ]
+      },
+      downline_status:{
+        label:'حالة Downline',
+        options:[
+          ['az','A → Z'],
+          ['za','Z → A']
+        ]
+      },
+      join_date:{
+        label:'تاريخ الانضمام',
+        options:[
+          ['old_new','الأقدم → الأحدث'],
+          ['new_old','الأحدث → الأقدم']
+        ]
+      },
+      personal_pv:{
+        label:'Personal PV',
+        options:[
+          ['desc','الأعلى → الأقل'],
+          ['asc','الأقل → الأعلى']
+        ]
+      },
+      personal_group_pv:{
+        label:'Personal Group PV',
+        options:[
+          ['desc','الأعلى → الأقل'],
+          ['asc','الأقل → الأعلى']
+        ]
+      },
+      total_group_pv:{
+        label:'Total Group PV',
+        options:[
+          ['desc','الأعلى → الأقل'],
+          ['asc','الأقل → الأعلى']
+        ]
+      },
+      accumulated_group_pv:{
+        label:'Accumulated Group PV',
+        options:[
+          ['desc','الأعلى → الأقل'],
+          ['asc','الأقل → الأعلى']
+        ]
+      },
+      accumulated_promotion_pv:{
+        label:'Accumulated Promotion PV',
+        options:[
+          ['desc','الأعلى → الأقل'],
+          ['asc','الأقل → الأعلى']
+        ]
+      },
+      diamond_group_pv:{
+        label:'Diamond Group PV',
+        options:[
+          ['desc','الأعلى → الأقل'],
+          ['asc','الأقل → الأعلى']
+        ]
+      },
+      source:{
+        label:'المصدر',
+        options:[
+          ['az','A → Z'],
+          ['za','Z → A'],
+          ['ar_az','أ → ي'],
+          ['ar_za','ي → أ']
+        ]
+      },
+      source_updated_at:{
+        label:'آخر تحديث للمصدر',
+        options:[
+          ['old_new','الأقدم → الأحدث'],
+          ['new_old','الأحدث → الأقدم']
+        ]
+      },
+      created_at:{
+        label:'تاريخ الإنشاء',
+        options:[
+          ['old_new','الأقدم → الأحدث'],
+          ['new_old','الأحدث → الأقدم']
+        ]
+      },
+      updated_at:{
+        label:'آخر تحديث',
+        options:[
+          ['old_new','الأقدم → الأحدث'],
+          ['new_old','الأحدث → الأقدم']
+        ]
+      }
+    };
+    return configs[key]||null;
+  }
+
+  function teamSortHeader(label,key,selected,target){
+    const cfg=teamSortConfig(key);
+    if(!cfg)return '<th>'+label+'</th>';
+
+    const value=selected&&selected.key===key?selected.mode:'';
+    const options='<option value="">ترتيب ↕</option>'+cfg.options.map(([v,t])=>
+      '<option value="'+v+'"'+(v===value?' selected':'')+'>'+t+'</option>'
+    ).join('');
+
+    return '<th>'+
+      '<div class="team-th-sort">'+
+        '<span class="team-th-label">'+label+'</span>'+
+        '<select class="team-sort-select" data-sort-key="'+key+'" data-sort-target="'+(target||'main')+'" aria-label="ترتيب '+label+'" onchange="sortTeamTable(this.closest(\'.team-member-panel\'),this.dataset.sortKey,this.value,this.dataset.sortTarget)">'+
+          options+
+        '</select>'+
+      '</div>'+
+    '</th>';
+  }
+
+  function teamSortValue(row,key){
+    if(!row)return null;
+
+    if(key==='member_no')return String(row.member_no||'').trim();
+    if(key==='member_name')return String(row.member_name||'').trim();
+    if(key==='sponsor_member_no')return String(row.sponsor_member_no||'').trim();
+    if(key==='sponsor_name')return String(row.sponsor_name||'').trim();
+    if(key==='generation')return Number(row.generation??row.depth_from_target??999999);
+    if(key==='join_date')return row.join_date?new Date(row.join_date).getTime():Number.MAX_SAFE_INTEGER;
+    if(key==='personal_pv')return Number(row.personal_pv||0);
+    if(key==='personal_group_pv')return Number(row.personal_group_pv||0);
+    if(key==='total_group_pv')return Number(row.total_group_pv||0);
+    if(key==='accumulated_group_pv')return Number(row.accumulated_group_pv||0);
+    if(key==='accumulated_promotion_pv')return Number(row.accumulated_promotion_pv||0);
+    if(key==='diamond_group_pv')return Number(row.diamond_group_pv||0);
+    if(key==='rank')return String(row.rank||'').trim();
+    if(key==='dxn_status')return String(row.dxn_status||'').trim();
+    if(key==='downline_status')return String(row.downline_status||'').trim();
+    if(key==='source')return String(row.source||'').trim();
+    if(key==='source_updated_at')return row.source_updated_at?new Date(row.source_updated_at).getTime():Number.MAX_SAFE_INTEGER;
+    if(key==='created_at')return row.created_at?new Date(row.created_at).getTime():Number.MAX_SAFE_INTEGER;
+    if(key==='updated_at')return row.updated_at?new Date(row.updated_at).getTime():Number.MAX_SAFE_INTEGER;
+
+    return '';
+  }
+
+  function compareTeamValues(a,b,key,mode){
+    const av=teamSortValue(a,key);
+    const bv=teamSortValue(b,key);
+
+    if(['member_no','sponsor_member_no'].includes(key)){
+      const an=Number(av),bn=Number(bv);
+      if(Number.isFinite(an)&&Number.isFinite(bn)){
+        return mode==='desc'?bn-an:an-bn;
+      }
     }
 
-    const sorted=list.slice().sort((a,b)=>{
-      const ad=Number(a.depth_from_target??a.generation??999);
-      const bd=Number(b.depth_from_target??b.generation??999);
-      if(ad!==bd)return ad-bd;
-      return String(a.member_name||'').localeCompare(String(b.member_name||''));
-    });
+    if(['generation','personal_pv','personal_group_pv','total_group_pv','accumulated_group_pv','accumulated_promotion_pv','diamond_group_pv'].includes(key)){
+      const an=Number(av),bn=Number(bv);
+      if(an!==bn)return mode==='desc'?bn-an:an-bn;
+    }
 
-    const rows=sorted.map((m,index)=>{
+    if(['join_date','source_updated_at','created_at','updated_at'].includes(key)){
+      const an=Number(av),bn=Number(bv);
+      if(an!==bn){
+        if(Number.isFinite(an)&&Number.isFinite(bn)){
+          return (mode==='new_old'||mode==='desc')?bn-an:an-bn;
+        }
+      }
+    }
+
+    if(['member_name','sponsor_name','rank','dxn_status','downline_status','source'].includes(key)){
+      const locale=(mode==='ar_az'||mode==='ar_za')?'ar':'en';
+      const collator=new Intl.Collator(locale,{numeric:true,sensitivity:'base'});
+      let cmp=collator.compare(String(av||''),String(bv||''));
+      if(cmp!==0)return (mode==='za'||mode==='ar_za')?-cmp:cmp;
+    }
+
+    const as=String(av??''),bs=String(bv??'');
+    if(as!==bs)return mode==='desc'||mode==='new_old'?bs.localeCompare(as):as.localeCompare(bs);
+    return String(a.member_name||'').localeCompare(String(b.member_name||''),undefined,{numeric:true,sensitivity:'base'});
+  }
+
+  function sortTeamRows(rows,state){
+    const list=Array.isArray(rows)?rows.slice():[];
+    if(!state||!state.key||!state.mode)return list;
+
+    return list.sort((a,b)=>compareTeamValues(a,b,state.key,state.mode));
+  }
+
+  function teamTableHtml(rows,sortState,target){
+    const list=sortTeamRows(rows,sortState);
+    if(!list.length)return '<div class="team-member-empty">🌱 لا يوجد أعضاء تابعون لهذا العضو حاليًا.</div>';
+
+    const selected=sortState||{key:'',mode:''};
+    const rowsHtml=list.map((m,index)=>{
       return '<tr>'+
         '<td class="team-table-index">'+(index+1)+'</td>'+
         '<td><b>'+escapeHtml(teamCellValue(m.member_no))+'</b></td>'+
@@ -8535,32 +8763,36 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       '<table class="team-table">'+
         '<thead><tr>'+
           '<th>#</th>'+
-          '<th>رقم العضوية</th>'+
-          '<th>اسم العضو</th>'+
-          '<th>رقم الراعي</th>'+
-          '<th>اسم الراعي</th>'+
-          '<th>الجيل</th>'+
-          '<th>الرتبة</th>'+
-          '<th>حالة DXN</th>'+
-          '<th>حالة Downline</th>'+
-          '<th>تاريخ الانضمام</th>'+
-          '<th>Personal PV</th>'+
-          '<th>Personal Group PV</th>'+
-          '<th>Total Group PV</th>'+
-          '<th>Accumulated Group PV</th>'+
-          '<th>Accumulated Promotion PV</th>'+
-          '<th>Diamond Group PV</th>'+
-          '<th>المصدر</th>'+
-          '<th>آخر تحديث للمصدر</th>'+
-          '<th>تاريخ الإنشاء</th>'+
-          '<th>آخر تحديث</th>'+
+          teamSortHeader('رقم العضوية','member_no',selected,target)+
+          teamSortHeader('اسم العضو','member_name',selected,target)+
+          teamSortHeader('رقم الراعي','sponsor_member_no',selected,target)+
+          teamSortHeader('اسم الراعي','sponsor_name',selected,target)+
+          teamSortHeader('الجيل','generation',selected,target)+
+          teamSortHeader('الرتبة','rank',selected,target)+
+          teamSortHeader('حالة DXN','dxn_status',selected,target)+
+          teamSortHeader('حالة Downline','downline_status',selected,target)+
+          teamSortHeader('تاريخ الانضمام','join_date',selected,target)+
+          teamSortHeader('Personal PV','personal_pv',selected,target)+
+          teamSortHeader('Personal Group PV','personal_group_pv',selected,target)+
+          teamSortHeader('Total Group PV','total_group_pv',selected,target)+
+          teamSortHeader('Accumulated Group PV','accumulated_group_pv',selected,target)+
+          teamSortHeader('Accumulated Promotion PV','accumulated_promotion_pv',selected,target)+
+          teamSortHeader('Diamond Group PV','diamond_group_pv',selected,target)+
+          teamSortHeader('المصدر','source',selected,target)+
+          teamSortHeader('آخر تحديث للمصدر','source_updated_at',selected,target)+
+          teamSortHeader('تاريخ الإنشاء','created_at',selected,target)+
+          teamSortHeader('آخر تحديث','updated_at',selected,target)+
         '</tr></thead>'+
-        '<tbody>'+rows+'</tbody>'+
+        '<tbody>'+rowsHtml+'</tbody>'+
       '</table>'+
     '</div>'+
-    '<div class="team-table-count">عرض <b>'+sorted.length+'</b> عضوًا في الفريق. القيم المقنّعة تظهر بالشكل <b>***</b>.</div>';
+    '<div class="team-table-count">عرض <b>'+list.length+'</b> عضوًا. استخدم القائمة المنسدلة داخل عنوان الحقل لاختيار طريقة الترتيب.</div>';
   }
 
+  function renderMembers(payload,panel){
+    const list=Array.isArray(payload&&payload.members)?payload.members:[];
+    return teamTableHtml(list,panel&&panel.__teamSort||{key:'generation',mode:'asc'},'main');
+  }
 
   let teamSearchMode='member_number';
 
@@ -8709,6 +8941,8 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     const status=panel.querySelector('#teamSearchStatus');
     if(!result)return;
 
+    panel.__teamSearchRows=Array.isArray(rows)?rows.slice():[];
+
     if(!rows.length){
       if(status){
         status.textContent='لم يتم العثور على نتيجة مطابقة داخل فريق العضو المحدد.';
@@ -8723,68 +8957,40 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       status.className='team-search-status team-search-success';
     }
 
-    const sorted=rows.slice().sort((a,b)=>{
-      const ad=Number(a.depth_from_target??a.generation??999);
-      const bd=Number(b.depth_from_target??b.generation??999);
-      if(ad!==bd)return ad-bd;
-      return String(a.member_name||'').localeCompare(String(b.member_name||''));
-    });
-
-    const rowsHtml=sorted.map((m,index)=>{
-      return '<tr>'+
-        '<td class="team-table-index">'+(index+1)+'</td>'+
-        '<td><b>'+escapeHtml(teamCellValue(m.member_no))+'</b></td>'+
-        '<td><b>'+escapeHtml(teamCellValue(m.member_name))+'</b></td>'+
-        '<td>'+escapeHtml(teamCellValue(m.sponsor_member_no))+'</td>'+
-        '<td>'+escapeHtml(teamCellValue(m.sponsor_name))+'</td>'+
-        '<td>'+escapeHtml(teamCellValue(m.generation??m.depth_from_target))+'</td>'+
-        '<td>'+escapeHtml(teamCellValue(m.rank||'MEM'))+'</td>'+
-        '<td>'+escapeHtml(teamCellValue(m.dxn_status))+'</td>'+
-        '<td>'+escapeHtml(teamCellValue(m.downline_status))+'</td>'+
-        '<td>'+escapeHtml(teamCellValue(m.join_date))+'</td>'+
-        '<td>'+escapeHtml(teamCellPv(m.personal_pv,false))+'</td>'+
-        '<td>'+escapeHtml(teamCellPv(m.personal_group_pv,false))+'</td>'+
-        '<td>'+escapeHtml(teamCellPv(m.total_group_pv,false))+'</td>'+
-        '<td>'+escapeHtml(teamCellPv(m.accumulated_group_pv,m.accumulated_group_pv_masked))+'</td>'+
-        '<td>'+escapeHtml(teamCellPv(m.accumulated_promotion_pv,m.accumulated_promotion_pv_masked))+'</td>'+
-        '<td>'+escapeHtml(teamCellPv(m.diamond_group_pv,m.diamond_group_pv_masked))+'</td>'+
-        '<td>'+escapeHtml(teamCellValue(m.source))+'</td>'+
-        '<td>'+escapeHtml(teamCellValue(m.source_updated_at))+'</td>'+
-        '<td>'+escapeHtml(teamCellValue(m.created_at))+'</td>'+
-        '<td>'+escapeHtml(teamCellValue(m.updated_at))+'</td>'+
-      '</tr>';
-    }).join('');
-
-    result.innerHTML=
-      '<div class="team-table-wrap team-search-full-table">'+
-        '<table class="team-table">'+
-          '<thead><tr>'+
-            '<th>#</th>'+
-            '<th>رقم العضوية</th>'+
-            '<th>اسم العضو</th>'+
-            '<th>رقم الراعي</th>'+
-            '<th>اسم الراعي</th>'+
-            '<th>الجيل</th>'+
-            '<th>الرتبة</th>'+
-            '<th>حالة DXN</th>'+
-            '<th>حالة Downline</th>'+
-            '<th>تاريخ الانضمام</th>'+
-            '<th>Personal PV</th>'+
-            '<th>Personal Group PV</th>'+
-            '<th>Total Group PV</th>'+
-            '<th>Accumulated Group PV</th>'+
-            '<th>Accumulated Promotion PV</th>'+
-            '<th>Diamond Group PV</th>'+
-            '<th>المصدر</th>'+
-            '<th>آخر تحديث للمصدر</th>'+
-            '<th>تاريخ الإنشاء</th>'+
-            '<th>آخر تحديث</th>'+
-          '</tr></thead>'+
-          '<tbody>'+rowsHtml+'</tbody>'+
-        '</table>'+
-      '</div>'+
-      '<div class="team-table-count">عرض <b>'+sorted.length+'</b> سجلًا. الجدول يعرض جميع حقول سجل DXN الـ19، والقيم المقنّعة تظهر بالشكل <b>***</b>.</div>';
+    result.innerHTML=teamTableHtml(
+      rows,
+      panel.__teamSearchSort||{key:'',mode:''},
+      'search'
+    );
   }
+
+  function sortTeamTable(panel,key,mode,target){
+    if(!panel||!key||!mode)return;
+
+    const where=target==='search'?'search':'main';
+    const state={key:key,mode:mode};
+
+    if(where==='search'){
+      panel.__teamSearchSort=state;
+      const result=panel.querySelector('#teamSearchResult');
+      if(result){
+        const rows=Array.isArray(panel.__teamSearchRows)?panel.__teamSearchRows:[];
+        result.innerHTML=rows.length
+          ? teamTableHtml(rows,state,'search')
+          : '<div class="empty">لا توجد نتائج مطابقة داخل هذا الفريق.</div>';
+      }
+      return;
+    }
+
+    panel.__teamSort=state;
+    const listBox=panel.querySelector('#teamMemberList');
+    if(listBox){
+      const rows=Array.isArray(panel.__teamMembers)?panel.__teamMembers:[];
+      listBox.innerHTML=teamTableHtml(rows,state,'main');
+    }
+  }
+
+  window.sortTeamTable=sortTeamTable;
 
   function searchTeamRecord(panel){
     const input=panel.querySelector('#teamSearchInput');
@@ -8884,8 +9090,11 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
         });
       }
 
+      panel.__teamSort={key:'generation',mode:'asc'};
+      panel.__teamSearchSort={key:'',mode:''};
+      panel.__teamSearchRows=[];
       summaryBox.innerHTML=renderSummary(summary,rootNo);
-      listBox.innerHTML=renderMembers({members:allMembers});
+      listBox.innerHTML=renderMembers({members:allMembers},panel);
       status.className='team-member-status ok';
       status.textContent='تم تحميل فريق العضو '+rootNo+' بنجاح.';
     }catch(err){
@@ -8962,8 +9171,13 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       '.team-member-list{display:block;overflow-x:auto;overflow-y:hidden;padding-bottom:12px}'+
       '.team-table-wrap{width:100%;overflow:auto;border:1px solid #dfece6;border-radius:16px;background:#fff}'+
       '.team-table{width:100%;min-width:1900px;border-collapse:collapse;white-space:nowrap}'+
-      '.team-table th,.team-table td{padding:10px 11px;border-bottom:1px solid #e6eeeb;text-align:right;font-size:12px;vertical-align:middle}'+
+      '.team-table th,.team-table td{padding:8px 10px;border-bottom:1px solid #e6eeeb;text-align:right;font-size:12px;vertical-align:middle}'+
       '.team-table th{position:sticky;top:0;z-index:2;background:#eef7f2;color:#173b32;font-weight:950;box-shadow:0 1px 0 #dfece6}'+
+      '.team-th-sort{display:flex;align-items:center;justify-content:space-between;gap:7px;min-width:145px}'+
+      '.team-th-label{display:inline-block;line-height:1.35}'+
+      '.team-sort-select{height:30px;min-width:96px;max-width:125px;padding:3px 7px;border:1px solid #c9ddd5;border-radius:9px;background:#fff;color:#17473a;font-size:10px;font-weight:800;cursor:pointer;outline:none}'+
+      '.team-sort-select:focus{border-color:#0f513f;box-shadow:0 0 0 2px rgba(15,81,63,.10)}'+
+      '@media(max-width:650px){.team-th-sort{min-width:132px;display:flex;flex-direction:column;align-items:stretch;gap:4px}.team-sort-select{width:100%;max-width:none;height:32px;font-size:10px}}'+
       '.team-table tbody tr:nth-child(even){background:#fbfdfc}'+
       '.team-table tbody tr:hover{background:#f3faf6}'+
       '.team-table-index{width:38px;color:#6b7d76;font-weight:900;text-align:center!important}'+
