@@ -9044,33 +9044,37 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
         return;
       }
 
-      status.textContent='جارٍ البحث في سجل DXN والتأكد من أن العضو ضمن الفريق...';
+      status.textContent='جارٍ البحث في سجل DXN والتأكد من وجود العضو داخل الفريق المحدد...';
       status.className='team-search-status';
 
       try{
-        const found=await rpc('get_dxn_team_intelligence',{
+        const found=await rpc('team_member_search',{
           p_token:t,
-          p_mode:'member',
-          p_member_no:query,
-          p_limit:1
+          p_root_member_no:rootNo,
+          p_member_no:query
         });
 
-        const member=found&&found.member;
-        if(!member){
-          status.textContent='لم يتم العثور على رقم العضوية داخل فريق العضو المحدد.';
+        if(found&&found.found===true&&found.in_team===true&&found.member){
+          const member=found.member;
+          member.depth_from_target=Number(found.depth_from_target||0);
+
+          panel.__teamSearchRows=[member];
+          status.textContent='✅ تم العثور على العضو '+query+' في سجل DXN، وتأكد النظام أنه ضمن فريق العضو المحدد.';
+          status.className='team-search-status team-search-success';
+          renderTeamSearchResults(panel,[member]);
+          return;
+        }
+
+        if(found&&found.found===true&&found.in_team===false){
+          status.textContent='تم العثور على الرقم في سجل DXN، لكنه ليس ضمن فريق العضو المحدد.';
           status.className='team-search-status team-search-warning';
           renderTeamSearchResults(panel,[]);
           return;
         }
 
-        member.depth_from_target=String(member.member_no||'')===rootNo?0:(
-          panel.__teamMembers||[]
-        ).find(x=>String(x.member_no||'')===String(member.member_no||''))?.depth_from_target??1;
-
-        panel.__teamSearchRows=[member];
-        status.textContent='✅ تم العثور على العضو '+query+' في سجل DXN، وهو ضمن فريق العضو المحدد.';
-        status.className='team-search-status team-search-success';
-        renderTeamSearchResults(panel,[member]);
+        status.textContent='لم يتم العثور على رقم العضوية في سجل DXN.';
+        status.className='team-search-status team-search-warning';
+        renderTeamSearchResults(panel,[]);
       }catch(err){
         status.textContent='تعذر تنفيذ البحث: '+String(err&&err.message||err);
         status.className='team-search-status team-search-warning';
