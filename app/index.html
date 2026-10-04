@@ -8396,7 +8396,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 
         '<div class="team-search-panel">'+
           '<div class="team-search-title">🔎 البحث داخل سجل فريقي</div>'+
-          '<div class="team-search-subtitle">بعد تحميل الفريق يمكنك البحث داخله بنفس أربع طرق البحث الموجودة في سجل DXN.</div>'+
+          '<div class="team-search-subtitle">البحث برقم العضوية يرجع مباشرة إلى سجل DXN ويتحقق من أن العضو ضمن الفريق المحدد، ولا يعتمد على الصفوف الظاهرة في الجدول.</div>'+
 
           '<div class="team-search-buttons">'+
             '<button type="button" id="teamSearchModeMemberNumber" onclick="setTeamSearchMode(\'member_number\',this.closest(\'.team-member-panel\'))">🔢 رقم العضوية</button>'+
@@ -9036,10 +9036,13 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       }
 
       const rootInput=panel.querySelector('#teamMemberNumber');
-      const rootNo=String(rootInput&&rootInput.value||'').trim();
+      const rootNo=String(
+        panel.__teamRootNo ||
+        (rootInput&&rootInput.value||'')
+      ).trim();
 
       if(!rootNo){
-        status.textContent='أدخل رقم العضوية التي تريد عرض فريقها أولاً.';
+        status.textContent='لم يتم تحديد الفريق الذي سيتم البحث داخله. حمّل الفريق المحدد أولاً.';
         status.className='team-search-status team-search-warning';
         return;
       }
@@ -9101,6 +9104,10 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     const t=sessionToken();
     const rootNo=String(input.value||'').trim();
 
+    if(rootNo){
+      panel.__teamRootNo=rootNo;
+    }
+
     if(!t){
       status.className='team-member-status error';
       status.textContent='جلسة الدخول غير موجودة. أعد تسجيل الدخول.';
@@ -9131,6 +9138,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       });
       let allMembers=Array.isArray(downline&&downline.members)?downline.members:[];
       panel.__teamMembers=allMembers.slice();
+      panel.__teamRootNo=rootNo;
       
       // Backward-compatible fallback for an older RPC that still returns only
       // a limited downline payload.
