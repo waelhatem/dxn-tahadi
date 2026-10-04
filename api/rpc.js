@@ -179,6 +179,122 @@ async function directPrivateUserSearchFallback(args){
     .slice(0,limit);
 }
 
+
+async function teamMemberSearchInRoot(args){
+  if(!SUPABASE_SECRET_KEY) throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
+  const token=String(args&&args.p_token||'').trim();
+  const requestedRoot=String(args&&args.p_root_member_no||'').trim();
+  const targetNo=String(args&&args.p_member_no||'').trim();
+  if(!token) throw new Error('جلسة الدخول غير موجودة');
+  if(!requestedRoot) throw new Error('رقم العضو الأساسي غير موجود');
+  if(!targetNo) throw new Error('رقم العضوية المطلوب البحث عنه غير موجود');
+  if(!/^\d{9}$/.test(requestedRoot) || !/^\d{9}$/.test(targetNo)){
+    throw new Error('رقم العضوية يجب أن يتكوّن من 9 أرقام');
+  }
+
+  const boot=await supabaseRpcRequest('bootstrap',{p_token:token},SUPABASE_SECRET_KEY,10000);
+  if(!boot.ok) throw new Error((boot.data&&(boot.data.message||boot.data.error||boot.data.hint))||boot.text||'جلسة الدخول غير صالحة');
+
+  const role=String(boot.data?.role||'').trim().toLowerCase();
+  const ownNo=String(boot.data?.members?.[0]?.member_no||'').trim();
+
+  if(role==='member' && requestedRoot!==ownNo){
+    throw new Error('لا يمكن للعضو اختيار عضو آخر كجذر للفريق');
+  }
+  if(role!=='leader' && role!=='member'){
+    throw new Error('الدور غير مصرح له بهذه العملية');
+  }
+
+  const fields=[
+    'member_no','member_name','sponsor_member_no','sponsor_name','generation',
+    'rank','dxn_status','downline_status','join_date',
+    'personal_pv','personal_group_pv','total_group_pv',
+    'accumulated_group_pv','accumulated_promotion_pv','diamond_group_pv',
+    'accumulated_group_pv_masked','accumulated_promotion_pv_masked','diamond_group_pv_masked',
+    'source','source_updated_at','created_at','updated_at'
+  ].join(',');
+
+  const rows=await supabaseRestRequest(
+    '/rest/v1/dxn_team_members?select='+encodeURIComponent(fields)+'&limit=10000',
+    SUPABASE_SECRET_KEY,15000
+  );
+  if(!rows.ok || !Array.isArray(rows.data)){
+    throw new Error((rows.data&&(rows.data.message||rows.data.error||rows.data.hint))||rows.text||'تعذر البحث في سجل DXN');
+  }
+
+  const all=rows.data;
+  const byNo=new Map(
+    all
+      .map(row=>[String(row&&row.member_no||'').trim(),row])
+      .filter(([no])=>no)
+  );
+
+  const root=byNo.get(requestedRoot);
+  const target=byNo.get(targetNo);
+  if(!root) throw new Error('العضو الأساسي غير موجود في سجل DXN');
+  if(!target) throw new Error('لم يتم العثور على رقم العضوية في سجل DXN');
+
+  if(targetNo===requestedRoot){
+    return {
+      ok:true,
+      found:true,
+      in_team:true,
+      member:{...target,depth_from_target:0},
+      depth_from_target:0
+    };
+  }
+
+  const children=new Map();
+  for(const row of all){
+    const sponsor=String(row&&row.sponsor_member_no||'').trim();
+    const no=String(row&&row.member_no||'').trim();
+    if(!sponsor||!no) continue;
+    if(!children.has(sponsor)) children.set(sponsor,[]);
+    children.get(sponsor).push(row);
+  }
+
+  const queue=[{row:root,depth:0}];
+  const seen=new Set([requestedRoot]);
+  let foundDepth=null;
+
+  while(queue.length){
+    const current=queue.shift();
+    for(const child of (children.get(String(current.row.member_no||'').trim())||[])){
+      const no=String(child.member_no||'').trim();
+      if(!no||seen.has(no)) continue;
+      seen.add(no);
+      const depth=current.depth+1;
+
+      if(no===targetNo){
+        foundDepth=depth;
+        break;
+      }
+      if(depth<20){
+        queue.push({row:child,depth});
+      }
+    }
+    if(foundDepth!==null) break;
+  }
+
+  if(foundDepth===null){
+    return {
+      ok:true,
+      found:true,
+      in_team:false,
+      member:null,
+      depth_from_target:null
+    };
+  }
+
+  return {
+    ok:true,
+    found:true,
+    in_team:true,
+    member:{...target,depth_from_target:foundDepth},
+    depth_from_target:foundDepth
+  };
+}
+
 async function directTeamIntelligenceFromTable(args){
   if(!SUPABASE_SECRET_KEY) throw new Error('SUPABASE_SECRET_KEY غير مضبوط في Vercel');
   const token=String(args.p_token||'').trim();
@@ -1030,6 +1146,16 @@ module.exports = async function handler(req, res) {
         return res.status(normal.status||500).json({
           error:String(fallbackError&&fallbackError.message||fallbackError)||normal.text||'تعذر تحميل سجل الاختبارات'
         });
+      }
+    }
+
+    if(fn==='team_member_search'){
+      try{
+        const data=await teamMemberSearchInRoot(args);
+        return res.status(200).json(data||{});
+      }catch(error){
+        console.error('team_member_search RPC error:',error);
+        return res.status(400).json({error:String(error&&error.message||error)});
       }
     }
 
