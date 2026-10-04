@@ -118,9 +118,7 @@ begin
         m.created_at,
         m.updated_at
       from public.dxn_team_members m
-      where lower(coalesce(m.member_name, '')) like
-        '%' || lower(replace(replace(replace(query_clean, '\\', '\\\\'), '%', '\\%'), '_', '\\_')) || '%'
-        escape '\\'
+      where position(lower(query_clean) in lower(coalesce(m.member_name, ''))) > 0
       limit max_rows
     ) x;
   end if;
