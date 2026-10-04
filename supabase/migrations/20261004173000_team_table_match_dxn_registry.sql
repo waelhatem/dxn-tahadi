@@ -1,6 +1,6 @@
--- Make the Team ("فريقي") downline payload expose the same DXN registry
--- fields used by the leader's DXN search table.
--- No table permissions are added; access remains through the protected RPC.
+-- Make the Team ("فريقي") downline payload use the same DXN registry
+-- data fields shown in the leader's DXN search table.
+-- Access remains through the protected RPC; no table SELECT grants are added.
 
 create or replace function public.get_dxn_team_intelligence(
   p_token uuid,
@@ -134,19 +134,6 @@ begin
 
   elsif mode_name='downline' then
     with recursive tree as (
-      select d.member_no,d.member_name,d.sponsor_member_no,d.sponsor_name,d.generation,d.rank,
-             d.dxn_status,d.downline_status,d.join_date,d.personal_pv,d.personal_group_pv,d.total_group_pv,
-             1 depth_from_target
-      from public.dxn_team_members d where d.sponsor_member_no=target_no
-      union all
-      select d.member_no,d.member_name,d.sponsor_member_no,d.sponsor_name,d.generation,d.rank,
-             d.dxn_status,d.downline_status,d.join_date,d.personal_pv,d.personal_group_pv,d.total_group_pv,
-             t.depth_from_target+1
-      from public.dxn_team_members d join tree t on d.sponsor_member_no=t.member_no
-      where t.depth_from_target<20
-    )
-  elsif mode_name='downline' then
-    with recursive tree as (
       select
         d.member_no,
         d.member_name,
@@ -194,6 +181,7 @@ begin
         d.diamond_group_pv,
         d.accumulated_group_pv_masked,
         d.accumulated_promotion_pv_masked,
+        d.diamond_group_pv_masked,
         d.source,
         d.source_updated_at,
         d.created_at,
@@ -289,7 +277,6 @@ begin
   return coalesce(result,'{}'::jsonb);
 end;
 $$;
-
 
 revoke all on function public.get_dxn_team_intelligence(uuid,text,text,integer,integer)
   from public, anon, authenticated;
