@@ -9209,14 +9209,16 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     if(host && panel.parentElement!==host) host.appendChild(panel);
     panel.classList.add('show');
 
-    const input=panel.querySelector('#teamMemberNumber');
+    // حمّل «فريقي» مباشرة عند فتح التبويب من سجل DXN.
+    loadTeam(panel);
+    const input=panel.querySelector('#teamSearchInput');
     if(input){
-      input.focus();
       setTimeout(()=>{
         try{
+          input.focus();
           panel.scrollIntoView({behavior:'smooth',block:'start'});
         }catch(_){}
-      },60);
+      },120);
     }
   }
 
