@@ -9096,6 +9096,46 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       return;
     }
 
+    // البحث باسم العضو يرجع مباشرة إلى سجل DXN في الخادم، وليس فقط إلى
+    // الصفوف الموجودة حالياً في المتصفح. يدعم الاسم العربي أو الإنجليزي
+    // كاملاً أو جزءاً منه، وتبقى النتائج محصورة داخل فريق الحساب الحالي.
+    if(teamSearchMode==='member_name'){
+      const t=sessionToken();
+      if(!t){
+        status.textContent='جلسة الدخول غير موجودة. أعد تسجيل الدخول.';
+        status.className='team-search-status team-search-warning';
+        return;
+      }
+
+      status.textContent='جارٍ البحث بالاسم داخل سجل DXN وفريقك بالكامل...';
+      status.className='team-search-status';
+
+      try{
+        const downline=await rpc('get_dxn_team_intelligence',{
+          p_token:t,
+          p_mode:'downline',
+          p_limit:10000
+        });
+        const members=Array.isArray(downline&&downline.members)?downline.members:[];
+        const rows=members.filter(row=>teamSearchMatches(row,'member_name',query));
+        panel.__teamSearchRows=rows.slice();
+
+        if(rows.length){
+          status.textContent='✅ تم العثور على '+rows.length+' نتيجة مطابقة للاسم داخل فريقك.';
+          status.className='team-search-status team-search-success';
+        }else{
+          status.textContent='لم يتم العثور على اسم مطابق داخل فريقك.';
+          status.className='team-search-status team-search-warning';
+        }
+        renderTeamSearchResults(panel,rows);
+      }catch(err){
+        status.textContent='تعذر تنفيذ البحث بالاسم: '+String(err&&err.message||err);
+        status.className='team-search-status team-search-warning';
+        renderTeamSearchResults(panel,[]);
+      }
+      return;
+    }
+
     if(!Array.isArray(panel.__teamMembers)){
       status.textContent='حمّل الفريق أولاً ثم نفّذ البحث داخله.';
       status.className='team-search-status team-search-warning';
