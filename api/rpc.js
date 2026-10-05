@@ -328,8 +328,44 @@ async function directTeamIntelligenceFromTable(args){
   if(!token) throw new Error('جلسة العضوية غير موجودة');
 
   const boot=await supabaseRpcRequest('bootstrap',{p_token:token},SUPABASE_SECRET_KEY,10000);
-  const rootNo=String(boot.data?.members?.[0]?.member_no||'').trim();
-  if(!rootNo) throw new Error('تعذر التحقق من العضوية الحالية');
+  if(!boot.ok) throw new Error((boot.data&&(boot.data.message||boot.data.error||boot.data.hint))||boot.text||'جلسة الدخول غير صالحة');
+
+  const role=String(boot.data?.role||'').trim().toLowerCase();
+  let rootNo=String(boot.data?.members?.[0]?.member_no||'').trim();
+
+  // مصدر جذر «فريقي» للقائد هو team_root_member_no في app_users.
+  // حساب القائد لا يحمل member_id، لذلك لا يمكن الاعتماد على bootstrap.members.
+  if(!rootNo){
+    const current=await supabaseRpcRequest('app_current_user_id',{p_token:token},SUPABASE_SECRET_KEY,10000);
+    if(current.ok && current.data){
+      const uid=encodeURIComponent(String(current.data));
+      const user=await supabaseRestRequest(
+        '/rest/v1/app_users?select=id,login_no,role,member_id,team_root_member_no&active=eq.true&id=eq.'+uid+'&limit=1',
+        SUPABASE_SECRET_KEY,10000
+      );
+      if(user.ok && Array.isArray(user.data) && user.data[0]){
+        const row=user.data[0];
+        if(role==='leader'){
+          rootNo=String(row.team_root_member_no||'').trim();
+        }else{
+          const memberId=String(row.member_id||'').trim();
+          if(memberId){
+            const member=await supabaseRestRequest(
+              '/rest/v1/members?select=member_no&id=eq.'+encodeURIComponent(memberId)+'&limit=1',
+              SUPABASE_SECRET_KEY,10000
+            );
+            rootNo=String(member.data?.[0]?.member_no||'').trim();
+          }
+        }
+      }
+    }
+  }
+
+  // توافق احتياطي مع قاعدة قديمة لم تُطبق عليها team_root_member_no بعد.
+  if(!rootNo && role==='leader'){
+    rootNo='820469486';
+  }
+  if(!rootNo) throw new Error('تعذر تحديد جذر فريقك');
 
   const fields=[
     'member_no','member_name','sponsor_member_no','sponsor_name','generation',
@@ -1202,6 +1238,16 @@ module.exports = async function handler(req, res) {
     // only when the deployed RPC still uses it. The root member is resolved from
     // the authenticated session, so a caller cannot choose an unrelated root.
     if(fn === 'get_dxn_team_intelligence' && args.p_token && !args.p_root_member_no){
+      // «فريقي» يعتمد مباشرة على سجل DXN نفسه. لا نستخدم نسخة أعضاء ثانية
+      // ولا RPC قديمًا بمصدر بيانات مختلف.
+      try{
+        const direct=await directTeamIntelligenceFromTable(args);
+        return res.status(200).json(direct);
+      }catch(directError){
+        console.error('direct Team Intelligence error:',directError);
+        return res.status(400).json({error:String(directError&&directError.message||directError)||'تعذر تحميل بيانات الفريق'});
+      }
+
       const current=await supabaseRpcRequest('get_dxn_team_intelligence_secure',args,SUPABASE_SECRET_KEY,10000);
       if(current.ok){
         return res.status(current.status||200).json(current.data||{});
