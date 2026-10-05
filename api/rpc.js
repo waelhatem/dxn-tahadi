@@ -339,10 +339,17 @@ async function directTeamIntelligenceFromTable(args){
     const current=await supabaseRpcRequest('app_current_user_id',{p_token:token},SUPABASE_SECRET_KEY,10000);
     if(current.ok && current.data){
       const uid=encodeURIComponent(String(current.data));
-      const user=await supabaseRestRequest(
+      let user=await supabaseRestRequest(
         '/rest/v1/app_users?select=id,login_no,role,member_id,team_root_member_no&active=eq.true&id=eq.'+uid+'&limit=1',
         SUPABASE_SECRET_KEY,10000
       );
+      // Old databases may not have team_root_member_no yet.
+      if(!user.ok){
+        user=await supabaseRestRequest(
+          '/rest/v1/app_users?select=id,login_no,role,member_id&active=eq.true&id=eq.'+uid+'&limit=1',
+          SUPABASE_SECRET_KEY,10000
+        );
+      }
       if(user.ok && Array.isArray(user.data) && user.data[0]){
         const row=user.data[0];
         if(role==='leader'){
@@ -400,7 +407,7 @@ async function directTeamIntelligenceFromTable(args){
       if(!no || seen.has(no)) continue;
       seen.add(no);
       reachable.push({...child,depth_from_target:depth+1});
-      if(depth+1<20) queue.push({member:child,depth:depth+1});
+      queue.push({member:child,depth:depth+1});
     }
   }
 
@@ -452,11 +459,9 @@ async function directTeamIntelligenceFromTable(args){
       if(!no || localSeen.has(no)) continue;
       localSeen.add(no);
       targetMembers.push({...member,depth_from_target:depth});
-      if(depth<20){
-        for(const child of (children.get(no)||[])) q.push({member:child,depth:depth+1});
-      }
+      for(const child of (children.get(no)||[])) q.push({member:child,depth:depth+1});
     }
-    const limit=Math.max(1,Math.min(Number(args.p_limit)||50,200));
+    const limit=Math.max(1,Math.min(Number(args.p_limit)||50,10000));
     return {mode:'downline',root_member_no:targetNo,count:targetMembers.length,members:targetMembers.slice(0,limit)};
   }
 
@@ -1248,46 +1253,7 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({error:String(directError&&directError.message||directError)||'تعذر تحميل بيانات الفريق'});
       }
 
-      const current=await supabaseRpcRequest('get_dxn_team_intelligence_secure',args,SUPABASE_SECRET_KEY,10000);
-      if(current.ok){
-        return res.status(current.status||200).json(current.data||{});
-      }
 
-      const boot=await supabaseRpcRequest('bootstrap',{p_token:String(args.p_token)},SUPABASE_SECRET_KEY,10000);
-      const bootRole=String(boot.data?.role||'').trim().toLowerCase();
-      const sessionMemberNo=String(boot.data?.members?.[0]?.member_no||'').trim();
-      const requestedMemberNo=String(args.p_member_no||'').trim();
-
-      // Leaders may inspect the member number they entered in "فريقي".
-      // Regular members are anchored to their own authenticated membership.
-      const memberNo=bootRole==='leader' ? requestedMemberNo : sessionMemberNo;
-      if(!memberNo){
-        return res.status(current.status||500).json(current.data||{error:current.text||'تعذر التحقق من العضوية الحالية'});
-      }
-
-      const legacyArgs={
-        p_root_member_no:memberNo,
-        p_mode:args.p_mode||'summary',
-        p_member_no:args.p_member_no||null,
-        p_generation:args.p_generation??null,
-        p_limit:args.p_limit??50
-      };
-      const legacy=await supabaseRpcRequest(fn,legacyArgs,SUPABASE_SECRET_KEY,10000);
-      if(legacy.ok){
-        return res.status(legacy.status||200).json(legacy.data||{});
-      }
-
-      // If the Team Intelligence migration has not yet been applied to Supabase,
-      // serve the same read-only result directly from dxn_team_members.
-      // The root member is still resolved from the authenticated session.
-      try{
-        const direct=await directTeamIntelligenceFromTable(args);
-        return res.status(200).json(direct);
-      }catch(directError){
-        return res.status(legacy.status||500).json({
-          error:String(directError&&directError.message||directError)||legacy.text||current.text||'تعذر تحميل بيانات الفريق'
-        });
-      }
     }
 
     if(fn==='community_private_user_search'){
