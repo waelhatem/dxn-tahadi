@@ -479,7 +479,19 @@ async function directTeamIntelligenceFromTable(args){
       for(const child of (children.get(no)||[])) q.push({member:child,depth:depth+1});
     }
     const limit=Math.max(1,Math.min(Number(args.p_limit)||50,10000));
-    return {mode:'downline',root_member_no:targetNo,count:targetMembers.length,members:targetMembers.slice(0,limit)};
+    // أعد ملخص الفريق مع نفس استجابة downline حتى لا تضطر الواجهة
+    // إلى تنفيذ طلب summary منفصل يعيد قراءة وبناء شجرة DXN كاملة مرة ثانية.
+    const summaryTree=[target,...targetMembers];
+    const summary={
+      mode:'summary',
+      root_member_no:targetNo,
+      total_members:summaryTree.length,
+      direct_downline_count:targetMembers.filter(m=>Number(m.depth_from_target)===1).length,
+      personal_pv_total:summaryTree.reduce((n,m)=>n+(Number(m.personal_pv)||0),0),
+      personal_pv_members:summaryTree.filter(m=>m.personal_pv!=null).length,
+      total_group_pv_sum:summaryTree.reduce((n,m)=>n+(Number(m.total_group_pv)||0),0)
+    };
+    return {mode:'downline',root_member_no:targetNo,count:targetMembers.length,members:targetMembers.slice(0,limit),summary};
   }
 
   if(mode==='generation'){
