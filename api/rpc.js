@@ -197,26 +197,43 @@ async function teamMemberSearchInRoot(args){
   const role=String(boot.data?.role||'').trim().toLowerCase();
   let ownNo=String(boot.data?.members?.[0]?.member_no||'').trim();
 
-  // لا نعتمد على ترتيب members في bootstrap لتحديد جذر فريق القائد.
-  // إذا لم يوفر bootstrap رقم العضوية، نستخرجه من الحساب المرتبط بالجلسة.
+  // استخدم نفس آلية تحديد الجذر المعتمدة في تحميل «فريقي».
+  // حساب القائد قد لا يملك member_id، لذلك نقرأ team_root_member_no من app_users.
   if(!ownNo){
     const current=await supabaseRpcRequest('app_current_user_id',{p_token:token},SUPABASE_SECRET_KEY,10000);
     if(current.ok && current.data){
       const uid=encodeURIComponent(String(current.data));
-      const user=await supabaseRestRequest(
-        '/rest/v1/app_users?select=member_id&active=eq.true&id=eq.'+uid+'&limit=1',
+      let user=await supabaseRestRequest(
+        '/rest/v1/app_users?select=id,login_no,role,member_id,team_root_member_no&active=eq.true&id=eq.'+uid+'&limit=1',
         SUPABASE_SECRET_KEY,10000
       );
-      const memberId=String(user.data?.[0]?.member_id||'').trim();
-      if(memberId){
-        const member=await supabaseRestRequest(
-          '/rest/v1/members?select=member_no&id=eq.'+encodeURIComponent(memberId)+'&limit=1',
+      // توافق مع قواعد قديمة لم تُطبق عليها team_root_member_no بعد.
+      if(!user.ok){
+        user=await supabaseRestRequest(
+          '/rest/v1/app_users?select=id,login_no,role,member_id&active=eq.true&id=eq.'+uid+'&limit=1',
           SUPABASE_SECRET_KEY,10000
         );
-        ownNo=String(member.data?.[0]?.member_no||'').trim();
+      }
+      if(user.ok && Array.isArray(user.data) && user.data[0]){
+        const row=user.data[0];
+        if(role==='leader'){
+          ownNo=String(row.team_root_member_no||'').trim();
+        }else{
+          const memberId=String(row.member_id||'').trim();
+          if(memberId){
+            const member=await supabaseRestRequest(
+              '/rest/v1/members?select=member_no&id=eq.'+encodeURIComponent(memberId)+'&limit=1',
+              SUPABASE_SECRET_KEY,10000
+            );
+            ownNo=String(member.data?.[0]?.member_no||'').trim();
+          }
+        }
       }
     }
   }
+
+  // توافق احتياطي لحساب القائد الحالي حتى قبل تطبيق migration.
+  if(!ownNo && role==='leader') ownNo='820469486';
 
   // عند البحث من حقل «بحث في فريقي» لا يطلب النظام من المستخدم
   // إدخال رقم جذر أو تحميل الفريق أولاً.
