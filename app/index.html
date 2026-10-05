@@ -8374,7 +8374,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     panel.innerHTML=
       '<div class="team-member-card" role="dialog" aria-modal="true" aria-labelledby="teamMemberTitle">'+
         '<div class="team-member-head">'+
-          '<div><h2 id="teamMemberTitle">🌳 فريقي</h2><div class="team-member-subtitle">أدخل رقم العضوية التي تريد عرض فريقها</div></div>'+
+          '<div><h2 id="teamMemberTitle">🌳 فريقي</h2><div class="team-member-subtitle">فريقك مرتبط مباشرة بسجل أعضاء DXN ويتم تحميله تلقائيًا حسب الحساب الحالي</div></div>'+
           '<div class="team-member-head-actions">'+
             '<button type="button" class="team-member-zoom-out" id="teamMemberZoomOut" aria-label="تصغير">−</button>'+
             '<span class="team-member-zoom-label" id="teamMemberZoomLabel">100%</span>'+
@@ -8384,13 +8384,12 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
           '</div>'+
         '</div>'+
         '<div class="team-member-lookup">'+
-          '<label for="teamMemberNumber">رقم العضوية</label>'+
           '<div class="team-member-input-row">'+
-            '<input id="teamMemberNumber" inputmode="numeric" autocomplete="off" placeholder="مثال: 820469486">'+
-            '<button type="button" class="team-member-search" id="teamMemberSearch">عرض الفريق</button>'+
+            '<button type="button" class="team-member-search" id="teamMemberSearch">🔄 تحميل فريقي من سجل DXN</button>'+
           '</div>'+
-          '<div class="team-member-hint">يمكنك إدخال رقم عضويتك أو رقم عضو تابع لك فقط.</div>'+
+          '<div class="team-member-hint">لا تحتاج إلى إدخال رقم العضوية. النظام يحدد جذر فريقك تلقائيًا من الحساب الحالي.</div>'+
         '</div>'+
+        '<input id="teamMemberNumber" type="hidden" value="">'+
         '<div id="teamMemberStatus" class="team-member-status hidden"></div>'+
         '<div id="teamMemberSummary" class="team-member-summary"></div>'+
 
@@ -9113,40 +9112,38 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     const summaryBox=panel.querySelector('#teamMemberSummary');
     const listBox=panel.querySelector('#teamMemberList');
     const t=sessionToken();
-    const rootNo=String(input.value||'').trim();
-
-    if(rootNo){
-      panel.__teamRootNo=rootNo;
-    }
 
     if(!t){
       status.className='team-member-status error';
       status.textContent='جلسة الدخول غير موجودة. أعد تسجيل الدخول.';
       return;
     }
-    if(!rootNo){
-      status.className='team-member-status error';
-      status.textContent='أدخل رقم العضوية أولًا.';
-      input.focus();
-      return;
-    }
 
     status.className='team-member-status';
-    status.textContent='جارٍ البحث عن العضو '+rootNo+' وتحميل فريقه...';
+    status.textContent='جارٍ تحميل فريقك مباشرة من سجل أعضاء DXN...';
     summaryBox.innerHTML='';
     listBox.innerHTML='';
 
     try{
-      const summary=await rpc('get_dxn_team_intelligence',{p_token:t,p_mode:'summary',p_member_no:rootNo,p_limit:5000});
+      // لا نرسل رقم جذر من الواجهة. الخادم يحدد جذر الفريق من الحساب الحالي،
+      // ثم يقرأ شجرة الفريق مباشرة من public.dxn_team_members.
+      const summary=await rpc('get_dxn_team_intelligence',{p_token:t,p_mode:'summary',p_limit:5000});
 
-      // Use the recursive downline response as the source of truth.
-      // It already includes depth_from_target plus the member PV/group-PV fields.
       const downline=await rpc('get_dxn_team_intelligence',{
         p_token:t,
         p_mode:'downline',
-        p_member_no:rootNo,
         p_limit:5000
       });
+
+      const rootNo=String(
+        downline&&downline.root_member_no ||
+        summary&&summary.root_member_no ||
+        ''
+      ).trim();
+      if(!rootNo) throw new Error('تعذر تحديد جذر فريقك من الحساب الحالي');
+
+      panel.__teamRootNo=rootNo;
+      if(input) input.value=rootNo;
       let allMembers=Array.isArray(downline&&downline.members)?downline.members:[];
       panel.__teamMembers=allMembers.slice();
       panel.__teamRootNo=rootNo;
@@ -9190,7 +9187,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
         searchStatus.className='team-search-status team-search-success';
       }
       status.className='team-member-status ok';
-      status.textContent='تم تحميل فريق العضو '+rootNo+' بنجاح.';
+      status.textContent='تم تحميل فريقك مباشرة من سجل أعضاء DXN بنجاح. الجذر: '+rootNo;
     }catch(err){
       status.className='team-member-status error';
       status.textContent='تعذر تحميل الفريق: '+String(err&&err.message||err);
