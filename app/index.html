@@ -8374,7 +8374,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     panel.innerHTML=
       '<div class="team-member-card" role="dialog" aria-modal="true" aria-labelledby="teamMemberTitle">'+
         '<div class="team-member-head">'+
-          '<div><h2 id="teamMemberTitle">🌳 فريقي</h2><div class="team-member-subtitle">أدخل رقم العضوية التي تريد عرض فريقها</div></div>'+
+          '<div><h2 id="teamMemberTitle">🌳 فريقي</h2><div class="team-member-subtitle">فريقك مرتبط مباشرة بسجل أعضاء DXN ويتم تحميله تلقائيًا حسب الحساب الحالي</div></div>'+
           '<div class="team-member-head-actions">'+
             '<button type="button" class="team-member-zoom-out" id="teamMemberZoomOut" aria-label="تصغير">−</button>'+
             '<span class="team-member-zoom-label" id="teamMemberZoomLabel">100%</span>'+
@@ -8384,19 +8384,18 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
           '</div>'+
         '</div>'+
         '<div class="team-member-lookup">'+
-          '<label for="teamMemberNumber">رقم العضوية</label>'+
           '<div class="team-member-input-row">'+
-            '<input id="teamMemberNumber" inputmode="numeric" autocomplete="off" placeholder="مثال: 820469486">'+
-            '<button type="button" class="team-member-search" id="teamMemberSearch">عرض الفريق</button>'+
+            '<button type="button" class="team-member-search" id="teamMemberSearch">🔄 تحميل فريقي من سجل DXN</button>'+
           '</div>'+
-          '<div class="team-member-hint">يمكنك إدخال رقم عضويتك أو رقم عضو تابع لك فقط.</div>'+
+          '<div class="team-member-hint">لا تحتاج إلى إدخال رقم العضوية. النظام يحدد جذر فريقك تلقائيًا من الحساب الحالي.</div>'+
         '</div>'+
+        '<input id="teamMemberNumber" type="hidden" value="">'+
         '<div id="teamMemberStatus" class="team-member-status hidden"></div>'+
         '<div id="teamMemberSummary" class="team-member-summary"></div>'+
 
         '<div class="team-search-panel">'+
           '<div class="team-search-title">🔎 البحث داخل سجل فريقي</div>'+
-          '<div class="team-search-subtitle">بعد تحميل الفريق يمكنك البحث داخله بنفس أربع طرق البحث الموجودة في سجل DXN.</div>'+
+          '<div class="team-search-subtitle">البحث برقم العضوية يرجع مباشرة إلى سجل DXN ويتحقق من أن العضو ضمن الفريق المحدد، ولا يعتمد على الصفوف الظاهرة في الجدول.</div>'+
 
           '<div class="team-search-buttons">'+
             '<button type="button" id="teamSearchModeMemberNumber" onclick="setTeamSearchMode(\'member_number\',this.closest(\'.team-member-panel\'))">🔢 رقم العضوية</button>'+
@@ -8796,8 +8795,31 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 
   function renderMembers(payload,panel){
     const list=Array.isArray(payload&&payload.members)?payload.members:[];
-    return teamTableHtml(list,panel&&panel.__teamSort||{key:'generation',mode:'asc'},'main');
+    const state=panel&&panel.__teamSort||{key:'generation',mode:'asc'};
+    const sorted=sortTeamRows(list,state);
+    const pageSize=50;
+    const totalPages=Math.max(1,Math.ceil(sorted.length/pageSize));
+    const page=Math.max(1,Math.min(Number(panel&&panel.__teamPage||1),totalPages));
+    if(panel) panel.__teamPage=page;
+    const start=(page-1)*pageSize;
+    const pageRows=sorted.slice(start,start+pageSize);
+    const table=teamTableHtml(pageRows,{key:'',mode:''},'main');
+    if(sorted.length<=pageSize)return table;
+    return table+
+      '<div class="actions" style="justify-content:center;align-items:center;margin-top:12px">'+
+        '<button type="button" '+(page<=1?'disabled':'')+' onclick="changeTeamPage(this.closest(\'.team-member-panel\'),-1)">السابق</button>'+
+        '<span class="muted">صفحة <b>'+page+'</b> من <b>'+totalPages+'</b> — '+sorted.length+' عضوًا</span>'+
+        '<button type="button" '+(page>=totalPages?'disabled':'')+' onclick="changeTeamPage(this.closest(\'.team-member-panel\'),1)">التالي</button>'+
+      '</div>';
   }
+
+  function changeTeamPage(panel,delta){
+    if(!panel)return;
+    panel.__teamPage=Math.max(1,Number(panel.__teamPage||1)+Number(delta||0));
+    const listBox=panel.querySelector('#teamMemberList');
+    if(listBox) listBox.innerHTML=renderMembers({members:panel.__teamMembers||[]},panel);
+  }
+  window.changeTeamPage=changeTeamPage;
 
   let teamSearchMode='member_number';
 
@@ -8908,6 +8930,10 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     }
   }
 
+  // أزرار البحث تستخدم onclick من واجهة HTML المولّدة ديناميكياً،
+  // لذلك يجب كشف دوالها على window حتى تعمل عند الضغط عليها.
+  window.setTeamSearchMode=setTeamSearchMode;
+
   function teamSearchMatches(row,mode,query){
     const q=String(query||'').trim();
     if(!q)return false;
@@ -8944,9 +8970,17 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
   function renderTeamSearchResults(panel,rows){
     const result=panel.querySelector('#teamSearchResult');
     const status=panel.querySelector('#teamSearchStatus');
+    const listBox=panel.querySelector('#teamMemberList');
+    const summaryBox=panel.querySelector('#teamMemberSummary');
     if(!result)return;
 
     panel.__teamSearchRows=Array.isArray(rows)?rows.slice():[];
+
+    // عند تنفيذ البحث، اعرض نتيجة البحث فقط.
+    // لا نعرض جدول الفريق المحمّل بالتزامن حتى لا يختلط على المستخدم
+    // بين "سجل العضو الذي بحث عنه" و"فريق العضو".
+    if(listBox) listBox.style.display='none';
+    if(summaryBox) summaryBox.style.display='none';
 
     if(!rows.length){
       if(status){
@@ -8958,7 +8992,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     }
 
     if(status){
-      status.textContent='✅ تم العثور على '+rows.length+' سجل داخل فريق العضو المحدد. يعرض الجدول جميع بيانات سجل DXN.';
+      status.textContent='✅ تم العثور على سجل العضو المطلوب فقط. لا يتم عرض فريقه في نتيجة البحث.';
       status.className='team-search-status team-search-success';
     }
 
@@ -8988,14 +9022,18 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     }
 
     panel.__teamSort=state;
+    panel.__teamPage=1;
     const listBox=panel.querySelector('#teamMemberList');
     if(listBox){
       const rows=Array.isArray(panel.__teamMembers)?panel.__teamMembers:[];
-      listBox.innerHTML=teamTableHtml(rows,state,'main');
+      listBox.innerHTML=renderMembers({members:rows},panel);
     }
   }
 
   window.sortTeamTable=sortTeamTable;
+
+  // نفس الأمر لزر «بحث في فريقي» و Enter داخل حقل البحث.
+  window.searchTeamRecord=searchTeamRecord;
 
   async function searchTeamRecord(panel){
     const input=panel.querySelector('#teamSearchInput');
@@ -9036,21 +9074,20 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       }
 
       const rootInput=panel.querySelector('#teamMemberNumber');
-      const rootNo=String(rootInput&&rootInput.value||'').trim();
+      const rootNo=String(
+        panel.__teamRootNo ||
+        (rootInput&&rootInput.value||'')
+      ).trim();
 
-      if(!rootNo){
-        status.textContent='أدخل رقم العضوية التي تريد عرض فريقها أولاً.';
-        status.className='team-search-status team-search-warning';
-        return;
-      }
-
-      status.textContent='جارٍ البحث في سجل DXN والتأكد من وجود العضو داخل الفريق المحدد...';
+      // البحث برقم العضوية لا يحتاج إلى تحميل فريق أو إدخال رقم جذر.
+      // الخادم يستخرج جذر الفريق تلقائياً من الحساب المسجل دخوله.
+      status.textContent='جارٍ البحث في سجل DXN والتأكد من وجود العضو داخل فريقك...';
       status.className='team-search-status';
 
       try{
         const found=await rpc('team_member_search',{
           p_token:t,
-          p_root_member_no:rootNo,
+          p_root_member_no:rootNo || null,
           p_member_no:query
         });
 
@@ -9083,6 +9120,43 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       return;
     }
 
+    // البحث باسم العضو يرجع مباشرة إلى سجل DXN في الخادم، وليس فقط إلى
+    // الصفوف الموجودة حالياً في المتصفح. يدعم الاسم العربي أو الإنجليزي
+    // كاملاً أو جزءاً منه، وتبقى النتائج محصورة داخل فريق الحساب الحالي.
+    if(teamSearchMode==='member_name'){
+      const t=sessionToken();
+      if(!t){
+        status.textContent='جلسة الدخول غير موجودة. أعد تسجيل الدخول.';
+        status.className='team-search-status team-search-warning';
+        return;
+      }
+
+      status.textContent='جارٍ البحث بالاسم داخل فريقك...';
+      status.className='team-search-status';
+
+      try{
+        // الفريق حُمّل من سجل DXN عند فتح التبويب؛ أعد استخدام النسخة نفسها
+        // بدل تنزيل آلاف السجلات من الخادم في كل بحث بالاسم.
+        const members=Array.isArray(panel.__teamMembers)?panel.__teamMembers:[];
+        const rows=members.filter(row=>teamSearchMatches(row,'member_name',query));
+        panel.__teamSearchRows=rows.slice();
+
+        if(rows.length){
+          status.textContent='✅ تم العثور على '+rows.length+' نتيجة مطابقة للاسم داخل فريقك.';
+          status.className='team-search-status team-search-success';
+        }else{
+          status.textContent='لم يتم العثور على اسم مطابق داخل فريقك.';
+          status.className='team-search-status team-search-warning';
+        }
+        renderTeamSearchResults(panel,rows);
+      }catch(err){
+        status.textContent='تعذر تنفيذ البحث بالاسم: '+String(err&&err.message||err);
+        status.className='team-search-status team-search-warning';
+        renderTeamSearchResults(panel,[]);
+      }
+      return;
+    }
+
     if(!Array.isArray(panel.__teamMembers)){
       status.textContent='حمّل الفريق أولاً ثم نفّذ البحث داخله.';
       status.className='team-search-status team-search-warning';
@@ -9099,67 +9173,53 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     const summaryBox=panel.querySelector('#teamMemberSummary');
     const listBox=panel.querySelector('#teamMemberList');
     const t=sessionToken();
-    const rootNo=String(input.value||'').trim();
 
     if(!t){
       status.className='team-member-status error';
       status.textContent='جلسة الدخول غير موجودة. أعد تسجيل الدخول.';
       return;
     }
-    if(!rootNo){
-      status.className='team-member-status error';
-      status.textContent='أدخل رقم العضوية أولًا.';
-      input.focus();
-      return;
-    }
 
     status.className='team-member-status';
-    status.textContent='جارٍ البحث عن العضو '+rootNo+' وتحميل فريقه...';
+    status.textContent='جارٍ تحميل فريقك مباشرة من سجل أعضاء DXN...';
     summaryBox.innerHTML='';
     listBox.innerHTML='';
 
     try{
-      const summary=await rpc('get_dxn_team_intelligence',{p_token:t,p_mode:'summary',p_member_no:rootNo,p_limit:5000});
-
-      // Use the recursive downline response as the source of truth.
-      // It already includes depth_from_target plus the member PV/group-PV fields.
+      // لا نرسل رقم جذر من الواجهة. الخادم يحدد جذر الفريق من الحساب الحالي،
+      // ثم يقرأ شجرة الفريق مباشرة من public.dxn_team_members.
+      // طلب واحد فقط: downline يعيد الآن الملخص معه لتجنب بناء شجرة DXN مرتين.
       const downline=await rpc('get_dxn_team_intelligence',{
         p_token:t,
         p_mode:'downline',
-        p_member_no:rootNo,
-        p_limit:5000
+        p_limit:10000
       });
+      const summary=downline&&downline.summary?downline.summary:{
+        root_member_no:downline&&downline.root_member_no,
+        total_members:Number(downline&&downline.count||0)+1,
+        direct_downline_count:(Array.isArray(downline&&downline.members)?downline.members:[]).filter(m=>Number(m.depth_from_target)===1).length,
+        personal_pv_total:0
+      };
+
+      const rootNo=String(
+        downline&&downline.root_member_no ||
+        summary&&summary.root_member_no ||
+        ''
+      ).trim();
+      if(!rootNo) throw new Error('تعذر تحديد جذر فريقك من الحساب الحالي');
+
+      panel.__teamRootNo=rootNo;
+      if(input) input.value=rootNo;
       let allMembers=Array.isArray(downline&&downline.members)?downline.members:[];
       panel.__teamMembers=allMembers.slice();
+      panel.__teamRootNo=rootNo;
       
-      // Backward-compatible fallback for an older RPC that still returns only
-      // a limited downline payload.
-      if(Number(downline&&downline.count||0)>allMembers.length){
-        const generationCalls=Array.from({length:20},(_,i)=>
-          rpc('get_dxn_team_intelligence',{
-            p_token:t,
-            p_mode:'generation',
-            p_member_no:rootNo,
-            p_generation:i+1,
-            p_limit:5000
-          }).catch(()=>({mode:'generation',generation:i+1,members:[]}))
-        );
-        const generations=await Promise.all(generationCalls);
-        allMembers=[];
-        generations.forEach((g,i)=>{
-          const members=Array.isArray(g&&g.members)?g.members:[];
-          members.forEach(m=>{
-            if(m && (m.member_no||m.member_name)){
-              m.depth_from_target=i+1;
-              allMembers.push(m);
-            }
-          });
-        });
-      }
-
       panel.__teamSort={key:'generation',mode:'asc'};
+      panel.__teamPage=1;
       panel.__teamSearchSort={key:'',mode:''};
       panel.__teamSearchRows=[];
+      summaryBox.style.display='';
+      listBox.style.display='';
       summaryBox.innerHTML=renderSummary(summary,rootNo);
       listBox.innerHTML=renderMembers({members:allMembers},panel);
       const searchStatus=panel.querySelector('#teamSearchStatus');
@@ -9169,7 +9229,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
         searchStatus.className='team-search-status team-search-success';
       }
       status.className='team-member-status ok';
-      status.textContent='تم تحميل فريق العضو '+rootNo+' بنجاح.';
+      status.textContent='تم تحميل فريقك مباشرة من سجل أعضاء DXN بنجاح. الجذر: '+rootNo;
     }catch(err){
       status.className='team-member-status error';
       status.textContent='تعذر تحميل الفريق: '+String(err&&err.message||err);
@@ -9191,14 +9251,16 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     if(host && panel.parentElement!==host) host.appendChild(panel);
     panel.classList.add('show');
 
-    const input=panel.querySelector('#teamMemberNumber');
+    // حمّل «فريقي» مباشرة عند فتح التبويب من سجل DXN.
+    loadTeam(panel);
+    const input=panel.querySelector('#teamSearchInput');
     if(input){
-      input.focus();
       setTimeout(()=>{
         try{
+          input.focus();
           panel.scrollIntoView({behavior:'smooth',block:'start'});
         }catch(_){}
-      },60);
+      },120);
     }
   }
 
