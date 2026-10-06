@@ -39,6 +39,7 @@
     if(!r.ok)throw new Error((d&&(d.message||d.error))||t||('HTTP '+r.status));
     return d;
   }
+  function isRagwanOnlyMode(){try{return typeof trainingSubtab!=='undefined'&&trainingSubtab==='ragwan_success_plan'}catch(e){return false}}
   function style(){
     if(document.getElementById('dxn-tqm-style-864621'))return;
     var s=document.createElement('style');s.id='dxn-tqm-style-864621';
@@ -79,7 +80,7 @@
     });
     return out;
   }
-  function attachButtons(){
+  function attachButtons(){if(isRagwanOnlyMode()){document.querySelectorAll('.dxn-training-manage-btn').forEach(function(x){x.remove()});return;}
     if(!isLeader())return;
     style();
     findTrainingCards().forEach(function(x){
