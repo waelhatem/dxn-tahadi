@@ -95,6 +95,11 @@
     else{var actions=card.querySelector('.actions');if(actions)actions.appendChild(b);else card.appendChild(b)}
   }
   function refresh(){
+    /* لا تُضاف أزرار الاختبارات العامة داخل خطة رجوان. */
+    if(typeof trainingSubtab!=='undefined' && trainingSubtab==='ragwan_success_plan'){
+      document.querySelectorAll('[data-training-assessment-button]').forEach(function(b){b.remove();});
+      return;
+    }
     if(!isMember())return;
     var ls=lessons();if(!ls.length)return;
     ls.forEach(function(l,i){

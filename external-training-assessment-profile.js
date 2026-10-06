@@ -8,6 +8,9 @@
       return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
     });
   }
+  function isRagwanOnlyMode(){
+    try{return typeof trainingSubtab!=='undefined' && trainingSubtab==='ragwan_success_plan';}catch(e){return false;}
+  }
   function token(){
     try{return localStorage.getItem('dxn_session')||'';}catch(e){return '';}
   }
@@ -95,6 +98,8 @@
   }
 
   function renderLeaderHistory(modal,rows){
+    if(isRagwanOnlyMode()){return;}
+
     var old=document.getElementById('dxn-external-assessment-history');
     if(old)old.remove();
     var box=document.createElement('div');
@@ -108,6 +113,8 @@
   }
 
   function renderMemberHistory(rows){
+    if(isRagwanOnlyMode()){return;}
+
     var root=document.getElementById('app');
     if(!root)return;
     var old=document.getElementById('dxn-member-external-assessment-history');
@@ -136,6 +143,8 @@
   }
 
   async function loadMemberHistory(){
+    if(isRagwanOnlyMode()){return;}
+
     if(typeof role!=='undefined'&&role!=='member')return;
     var no=memberNo(), t=token();
     if(!no||!t)return;
@@ -251,6 +260,8 @@
   }
 
   async function loadForModal(modal){
+    if(isRagwanOnlyMode()){return;}
+
     var no=getModalMembershipNumber(), t=token();
     if(!no||!t)return;
     try{
@@ -267,6 +278,8 @@
   }
 
   function scanLeaderModal(){
+    if(isRagwanOnlyMode()){return;}
+
     if(typeof role!=='undefined'&&role!=='leader')return;
     var modal=document.getElementById('memberProfileModal');
     if(!modal||modal.getAttribute('data-external-assessment-loaded')==='1')return;
@@ -277,6 +290,8 @@
 
   var lastMemberRenderKey='';
   function scanMember(){
+    if(isRagwanOnlyMode()){return;}
+
     if(typeof role!=='undefined'&&role!=='member')return;
     var root=document.getElementById('app');
     if(!root)return;
@@ -291,6 +306,13 @@
 
   var mo=new MutationObserver(function(){
     try{
+      if(isRagwanOnlyMode()){
+        ['dxn-training-assessment','dxn-member-external-assessment-history','dxn-external-assessment-summary','dxn-external-assessment-history'].forEach(function(id){
+          var el=document.getElementById(id);if(el)el.remove();
+        });
+        document.querySelectorAll('[data-training-assessment-button],details[data-dxn-assessment-lesson]').forEach(function(el){el.remove();});
+        return;
+      }
       if(typeof role!=='undefined'&&role==='member')scanMember();
       if(typeof role!=='undefined'&&role==='leader'){
         scanLeaderModal();
