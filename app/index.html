@@ -9175,15 +9175,17 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       return;
     }
 
+    // امنع الطلبات المتوازية قبل مسح الجدول الحالي، حتى لا تختفي البيانات
+    // إذا ضغط المستخدم زر التحديث أكثر من مرة بسرعة.
+    if(panel.__teamLoadBusy) return;
+    panel.__teamLoadBusy=true;
+
     status.className='team-member-status';
     status.textContent='جارٍ تحميل فريقك مباشرة من سجل أعضاء DXN...';
     summaryBox.innerHTML='';
     listBox.innerHTML='';
 
     try{
-      // امنع الطلبات المتوازية إذا ضغط المستخدم زر التحميل أكثر من مرة بسرعة.
-      if(panel.__teamLoadBusy) return;
-      panel.__teamLoadBusy=true;
       // لا نرسل رقم جذر من الواجهة. الخادم يحدد جذر الفريق من الحساب الحالي،
       // ثم يقرأ شجرة الفريق مباشرة من public.dxn_team_members.
       // طلب واحد فقط: downline يعيد الآن الملخص معه لتجنب بناء شجرة DXN مرتين.
