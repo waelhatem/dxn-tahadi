@@ -9186,6 +9186,9 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     listBox.innerHTML='';
 
     try{
+      // امنع الطلبات المتوازية إذا ضغط المستخدم زر التحميل أكثر من مرة بسرعة.
+      if(panel.__teamLoadBusy) return;
+      panel.__teamLoadBusy=true;
       // لا نرسل رقم جذر من الواجهة. الخادم يحدد جذر الفريق من الحساب الحالي،
       // ثم يقرأ شجرة الفريق مباشرة من public.dxn_team_members.
       // طلب واحد فقط: downline يعيد الآن الملخص معه لتجنب بناء شجرة DXN مرتين.
@@ -9233,6 +9236,8 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     }catch(err){
       status.className='team-member-status error';
       status.textContent='تعذر تحميل الفريق: '+String(err&&err.message||err);
+    }finally{
+      panel.__teamLoadBusy=false;
     }
   }
 
@@ -9251,8 +9256,12 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     if(host && panel.parentElement!==host) host.appendChild(panel);
     panel.classList.add('show');
 
-    // حمّل «فريقي» مباشرة عند فتح التبويب من سجل DXN.
-    loadTeam(panel);
+    // لا تعِد تنزيل آلاف سجلات DXN في كل مرة يعود فيها المستخدم إلى «فريقي».
+    // نعيد استخدام النسخة المحملة في الجلسة الحالية، وزر التحديث يبقى متاحًا للتحميل اليدوي.
+    const hasLoadedTeam=Array.isArray(panel.__teamMembers) && !!panel.__teamRootNo;
+    if(!hasLoadedTeam && !panel.__teamLoadingPromise){
+      panel.__teamLoadingPromise=Promise.resolve(loadTeam(panel)).finally(()=>{panel.__teamLoadingPromise=null});
+    }
     const input=panel.querySelector('#teamSearchInput');
     if(input){
       setTimeout(()=>{
