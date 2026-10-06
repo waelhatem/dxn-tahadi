@@ -8727,7 +8727,9 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     return list.sort((a,b)=>compareTeamValues(a,b,state.key,state.mode));
   }
 
-  function teamTableHtml(rows,sortState,target){
+  // footerHtml اختياري: كل جدول يمرر سطر العدد الخاص به، حتى لا يُفهم
+  // عدد صفحة واحدة أو نتيجة بحث على أنه إجمالي الفريق.
+  function teamTableHtml(rows,sortState,target,footerHtml){
     const list=sortTeamRows(rows,sortState);
     if(!list.length)return '<div class="team-member-empty">🌱 لا يوجد أعضاء تابعون لهذا العضو حاليًا.</div>';
 
@@ -8784,7 +8786,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
         '<tbody>'+rowsHtml+'</tbody>'+
       '</table>'+
     '</div>'+
-    '<div class="team-table-count">عرض <b>'+list.length+'</b> عضوًا. استخدم القائمة المنسدلة داخل عنوان الحقل لاختيار طريقة الترتيب.</div>';
+    '<div class="team-table-count">'+(footerHtml||('عرض <b>'+list.length+'</b> عضوًا.'))+' استخدم القائمة المنسدلة داخل عنوان الحقل لاختيار طريقة الترتيب.</div>';
   }
 
   function renderMembers(payload,panel){
@@ -8797,7 +8799,10 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     if(panel) panel.__teamPage=page;
     const start=(page-1)*pageSize;
     const pageRows=sorted.slice(start,start+pageSize);
-    const table=teamTableHtml(pageRows,{key:'',mode:''},'main');
+    const footer=pageRows.length
+      ? 'عرض <b>'+(start+1)+'–'+(start+pageRows.length)+'</b> من <b>'+sorted.length+'</b> عضوًا.'
+      : '';
+    const table=teamTableHtml(pageRows,{key:'',mode:''},'main',footer);
     if(sorted.length<=pageSize)return table;
     return table+
       '<div class="actions" style="justify-content:center;align-items:center;margin-top:12px">'+
@@ -8919,9 +8924,80 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       status.className='team-search-status';
     }
 
+    // تغيير طريقة البحث يمسح النتيجة السابقة، فأعد إظهار جدول الفريق
+    // بدل ترك الشاشة فارغة والجدول مخفيًا.
     if(result){
-      result.innerHTML='<div class="empty">ستظهر نتيجة البحث هنا.</div>';
+      resetTeamSearchResult(panel);
+      showTeamTable(panel);
     }
+  }
+
+  function resetTeamSearchResult(panel){
+    if(!panel)return;
+    panel.__teamSearchRows=[];
+    panel.__teamSearchMeta=null;
+    panel.__teamSearchSort={key:'',mode:''};
+    const result=panel.querySelector('#teamSearchResult');
+    if(result) result.innerHTML='<div class="empty">ستظهر نتيجة البحث هنا.</div>';
+  }
+
+  // يعرض ملخص الفريق وجدوله الرئيسي من البيانات المحمّلة مسبقًا، بلا طلب جديد.
+  function showTeamTable(panel){
+    if(!panel)return;
+    const listBox=panel.querySelector('#teamMemberList');
+    const summaryBox=panel.querySelector('#teamMemberSummary');
+    if(summaryBox) summaryBox.style.display='';
+    if(listBox){
+      listBox.style.display='';
+      if(Array.isArray(panel.__teamMembers)){
+        listBox.innerHTML=renderMembers({members:panel.__teamMembers},panel);
+      }
+    }
+  }
+
+  function backToTeamTable(panel){
+    if(!panel)return;
+    resetTeamSearchResult(panel);
+    const status=panel.querySelector('#teamSearchStatus');
+    const cfg=teamSearchConfig(teamSearchMode);
+    if(status&&cfg){
+      const loaded=Array.isArray(panel.__teamMembers);
+      status.textContent=(loaded?'✅ الفريق محمّل. ':'')+cfg.help+' ثم اضغط «بحث في فريقي».';
+      status.className=loaded?'team-search-status team-search-success':'team-search-status';
+    }
+    showTeamTable(panel);
+  }
+  window.backToTeamTable=backToTeamTable;
+
+  function teamSearchHeading(meta,count){
+    const q=String(meta&&meta.query||'').trim();
+    switch(meta&&meta.mode){
+      case 'sponsor_number': return 'نتائج البحث: '+count+' عضوًا مباشرًا للراعي '+q;
+      case 'sponsor_name': return 'نتائج البحث: '+count+' عضوًا يطابق اسم راعيهم «'+q+'»';
+      case 'member_name': return 'نتائج البحث: '+count+' عضوًا يطابق اسمهم «'+q+'»';
+      case 'member_number': return 'نتائج البحث: العضو '+q+' ضمن فريقك';
+      default: return 'نتائج البحث: '+count+' عضوًا';
+    }
+  }
+
+  // نتيجة البحث تُعرض منفصلة عن جدول الفريق: عنوان يوضح ماذا تمثل،
+  // وزر للعودة إلى الجدول الكامل، وسطر عدد خاص بالنتائج.
+  function teamSearchResultHtml(panel){
+    const rows=Array.isArray(panel.__teamSearchRows)?panel.__teamSearchRows:[];
+    const heading=rows.length
+      ? teamSearchHeading(panel.__teamSearchMeta,rows.length)
+      : 'لا توجد نتائج مطابقة داخل هذا الفريق.';
+    const head='<div class="team-search-result-head" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0">'+
+      '<b>'+escapeHtml(heading)+'</b>'+
+      '<button type="button" class="team-search-back" onclick="backToTeamTable(this.closest(\'.team-member-panel\'))">↩ العودة إلى جدول فريقي</button>'+
+    '</div>';
+    if(!rows.length)return head;
+    return head+teamTableHtml(
+      rows,
+      panel.__teamSearchSort||{key:'',mode:''},
+      'search',
+      'نتائج البحث: <b>'+rows.length+'</b> عضوًا.'
+    );
   }
 
   // أزرار البحث تستخدم onclick من واجهة HTML المولّدة ديناميكياً،
@@ -8969,6 +9045,8 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     if(!result)return;
 
     panel.__teamSearchRows=Array.isArray(rows)?rows.slice():[];
+    const input=panel.querySelector('#teamSearchInput');
+    panel.__teamSearchMeta={mode:teamSearchMode,query:String(input&&input.value||'').trim()};
 
     // عند تنفيذ البحث، اعرض نتيجة البحث فقط.
     // لا نعرض جدول الفريق المحمّل بالتزامن حتى لا يختلط على المستخدم
@@ -8981,20 +9059,16 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
         status.textContent='لم يتم العثور على نتيجة مطابقة داخل فريق العضو المحدد.';
         status.className='team-search-status team-search-warning';
       }
-      result.innerHTML='<div class="empty">لا توجد نتائج مطابقة داخل هذا الفريق.</div>';
+      result.innerHTML=teamSearchResultHtml(panel);
       return;
     }
 
     if(status){
-      status.textContent='✅ تم العثور على سجل العضو المطلوب فقط. لا يتم عرض فريقه في نتيجة البحث.';
+      status.textContent='✅ '+teamSearchHeading(panel.__teamSearchMeta,rows.length)+'. جدول فريقك الكامل مخفي مؤقتًا؛ اضغط «العودة إلى جدول فريقي» لعرضه.';
       status.className='team-search-status team-search-success';
     }
 
-    result.innerHTML=teamTableHtml(
-      rows,
-      panel.__teamSearchSort||{key:'',mode:''},
-      'search'
-    );
+    result.innerHTML=teamSearchResultHtml(panel);
   }
 
   function sortTeamTable(panel,key,mode,target){
@@ -9006,12 +9080,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     if(where==='search'){
       panel.__teamSearchSort=state;
       const result=panel.querySelector('#teamSearchResult');
-      if(result){
-        const rows=Array.isArray(panel.__teamSearchRows)?panel.__teamSearchRows:[];
-        result.innerHTML=rows.length
-          ? teamTableHtml(rows,state,'search')
-          : '<div class="empty">لا توجد نتائج مطابقة داخل هذا الفريق.</div>';
-      }
+      if(result) result.innerHTML=teamSearchResultHtml(panel);
       return;
     }
 
@@ -9183,6 +9252,16 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     status.textContent='جارٍ تحميل فريقك مباشرة من سجل أعضاء DXN...';
     summaryBox.innerHTML='';
     listBox.innerHTML='';
+
+    // امسح أي نتيجة بحث سابقة ورسالتها، حتى لا تبقى نتيجة بحث قديمة
+    // (مثل الأعضاء المباشرين لراعٍ) ظاهرة بجانب ملخص الفريق الكامل.
+    resetTeamSearchResult(panel);
+    const loadSearchStatus=panel.querySelector('#teamSearchStatus');
+    const loadSearchCfg=teamSearchConfig(teamSearchMode);
+    if(loadSearchStatus&&loadSearchCfg){
+      loadSearchStatus.textContent=loadSearchCfg.help+' ثم اضغط «بحث في فريقي».';
+      loadSearchStatus.className='team-search-status';
+    }
 
     try{
       // لا نرسل رقم جذر من الواجهة. الخادم يحدد جذر الفريق من الحساب الحالي،
