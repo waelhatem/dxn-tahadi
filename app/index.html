@@ -2187,7 +2187,7 @@ function getDailyMission(){
 }
 
 function memberAchievementCenter(){
- if(role!=='member'||!me)return '';
+ if((role!=='member'&&role!=='leader')||!me)return '';
  const stars=Math.max(0,Number(me.stars||0));
  const lvl=getLevel(stars);
  const approved=myApprovedSubs().length;
@@ -3471,10 +3471,12 @@ let ragwanSelectedProgress={completed:[],started:[]};
 let ragwanTraineeSearchTimer=null;
 
 function ragwanSelectedKey(){
-  const sponsor=String((me&&(
-    me.member_no||me.membership_no||me.membership_number||me.username||me.phone
-  ))||'self').replace(/[^a-zA-Z0-9_-]/g,'_');
-  return RAGWAN_SELECTED_TRAINEE_KEY+'_'+sponsor;
+  const sponsor=role==='leader'
+    ? String(localStorage.getItem('dxn_login_no')||'leader')
+    : String((me&&(
+      me.member_no||me.membership_no||me.membership_number||me.username||me.phone
+    ))||'self');
+  return RAGWAN_SELECTED_TRAINEE_KEY+'_'+sponsor.replace(/[^a-zA-Z0-9_-]/g,'_');
 }
 function ragwanProgressKey(){
   return 'dxn_ragwan_progress_db_'+String(ragwanSelectedTraineeId||'none');
@@ -3533,7 +3535,7 @@ async function ragwanLoadSelectedTraineeProgress(){
   }
 }
 async function ragwanRestoreSelectedTrainee(){
-  if(role!=='member')return;
+  if(role!=='member'&&role!=='leader')return;
   const saved=String(localStorage.getItem(ragwanSelectedKey())||'').trim();
   if(!saved)return;
   try{
