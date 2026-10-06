@@ -8487,11 +8487,6 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     return String(value);
   }
 
-  function teamCellValue(value){
-    if(value===null||value===undefined||String(value)==='')return '—';
-    return String(value);
-  }
-
   function teamCellPv(value,masked){
     if(masked===true)return '***';
     return teamCellValue(value);
