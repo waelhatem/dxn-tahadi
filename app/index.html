@@ -9253,11 +9253,12 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     if(host && panel.parentElement!==host) host.appendChild(panel);
     panel.classList.add('show');
 
-    // لا تعِد تنزيل آلاف سجلات DXN في كل مرة يعود فيها المستخدم إلى «فريقي».
-    // نعيد استخدام النسخة المحملة في الجلسة الحالية، وزر التحديث يبقى متاحًا للتحميل اليدوي.
-    const hasLoadedTeam=Array.isArray(panel.__teamMembers) && !!panel.__teamRootNo;
-    if(!hasLoadedTeam && !panel.__teamLoadingPromise){
-      panel.__teamLoadingPromise=Promise.resolve(loadTeam(panel)).finally(()=>{panel.__teamLoadingPromise=null});
+    // لا يوجد تحميل تلقائي عند فتح «فريقي».
+    // يتم الاتصال بسجل DXN فقط عندما يضغط المستخدم زر «تحميل فريقي من سجل DXN».
+    const status=panel.querySelector('#teamMemberStatus');
+    if(status && !Array.isArray(panel.__teamMembers)){
+      status.className='team-member-status hidden';
+      status.textContent='';
     }
     const input=panel.querySelector('#teamSearchInput');
     if(input){
