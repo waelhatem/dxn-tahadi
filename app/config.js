@@ -14,7 +14,7 @@ window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezzn.supabase.co',SUPAB
   patchClient();var c=0,ct=setInterval(function(){if(patchClient()||++c>240)clearInterval(ct)},50);
 })();
 (function(){
-  function load(src){var s=document.createElement('script');s.src=src;s.defer=true;document.head.appendChild(s)}
+  function load(src){var s=document.createElement('script');s.src=src;s.async=false;document.head.appendChild(s)}
   function go(){
     /* Files with explicit tags in app/index.html are intentionally omitted here to prevent duplicate execution. */
     load('/device-selector-dedupe.js?v=86.66');
