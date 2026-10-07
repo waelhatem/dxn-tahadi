@@ -71,3 +71,11 @@
  .ds-aspects{grid-template-columns:repeat(2,1fr)}
  .design-studio-tab::after{display:none}
 }
+
+
+/* Keep Design Studio isolated from training widgets that are injected/repositioned outside the SPA content area. */
+body.dxn-design-studio-active #dxn-training-assessment,
+body.dxn-design-studio-active .dxn-training-assessment-inline,
+body.dxn-design-studio-active [data-dxn-assessment-lesson]{
+  display:none!important;
+}
