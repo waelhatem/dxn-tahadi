@@ -3467,6 +3467,9 @@ function ragwanDoorData(){
 const RAGWAN_SELECTED_TRAINEE_KEY='dxn_ragwan_selected_trainee_v1';
 let ragwanSelectedTraineeId='';
 let ragwanSelectedTrainee=null;
+/* اسم العرض خاص بهذا المدرب فقط ويُستخدم للعرض. الاسم الرسمي يبقى في name
+   ويُستخدم للإكمال والشهادة، ولا يُستبدل باسم العرض. */
+function ragwanTraineeLabel(t){return String(t&&(t.display_name||t.name)||'').trim()}
 let ragwanSelectedProgress={completed:[],started:[]};
 let ragwanTraineeSearchTimer=null;
 
@@ -3514,7 +3517,7 @@ function ragwanSelectedTraineeSummary(){
   const state=ragwanProgressLoad(),done=state.completed.length,current=done<10?done+1:10;
   return '<div class="ragwan-selected-trainee">'+
     '<div class="ragwan-selected-trainee-icon">👤</div>'+
-    '<div class="ragwan-selected-trainee-copy"><span>المتدرب الحالي</span><b>'+esc(ragwanSelectedTrainee.name||'')+'</b>'+
+    '<div class="ragwan-selected-trainee-copy"><span>المتدرب الحالي</span><b>'+esc(ragwanTraineeLabel(ragwanSelectedTrainee))+'</b>'+
     (ragwanSelectedTrainee.member_no?'<small>رقم العضوية: '+esc(ragwanSelectedTrainee.member_no)+'</small>':'')+
     '<small>📚 التقدم: '+done+' / 10 — '+(done===10?'الخطة مكتملة 🏆':'وصلت إلى الباب '+current)+'</small></div>'+
     '<button type="button" onclick="ragwanClearSelectedTrainee()">تغيير المتدرب</button></div>';
@@ -3562,7 +3565,7 @@ async function ragwanSelectTrainee(memberId){
     ragwanRenderProgress();
     ragwanOpenDoor(ragwanProgressNextStep());
     requestAnimationFrame(()=>document.getElementById('ragwanTraineePanel')?.scrollIntoView({behavior:'smooth',block:'start'}));
-    toast('✅ تم اختيار المتدرب: '+(ragwanSelectedTrainee.name||'')+' — ظهرت صفحة تدريبه الآن.');
+    toast('✅ تم اختيار المتدرب: '+ragwanTraineeLabel(ragwanSelectedTrainee)+' — ظهرت صفحة تدريبه الآن.');
   }catch(e){toast('⚠️ '+(e.message||'تعذر اختيار المتدرب.'))}
 }
 function ragwanClearSelectedTrainee(){
@@ -3610,18 +3613,19 @@ async function ragwanAddTraineeByMemberNo(){
     ragwanSelectedTrainee={
       member_id:ragwanSelectedTraineeId,
       name:String(trainee.name||'').trim(),
+      display_name:trainee.display_name||null,
       member_no:String(trainee.member_no||memberNo).trim(),
       completed_at:trainee.completed_at||null,
       last_activity_at:trainee.last_activity_at||null
     };
     await ragwanLoadSelectedTraineeProgress();
     localStorage.setItem(ragwanSelectedKey(),ragwanSelectedTraineeId);
-    if(status)status.textContent='✅ تمت إضافة المتدرب: '+(ragwanSelectedTrainee.name||'')+' — رقم العضوية: '+(ragwanSelectedTrainee.member_no||'');
+    if(status)status.textContent='✅ تمت إضافة المتدرب: '+ragwanTraineeLabel(ragwanSelectedTrainee)+' — رقم العضوية: '+(ragwanSelectedTrainee.member_no||'');
     if(input)input.value='';
     ragwanRenderTraineePanel();
     ragwanRenderProgress();
     ragwanOpenDoor(ragwanProgressNextStep());
-    toast('✅ تمت إضافة المتدرب '+(ragwanSelectedTrainee.name||'')+' وبدء سجل خطة مستقل له.');
+    toast('✅ تمت إضافة المتدرب '+ragwanTraineeLabel(ragwanSelectedTrainee)+' وبدء سجل خطة مستقل له.');
   }catch(e){
     if(status)status.textContent='⚠️ '+String(e?.message||'تعذر إضافة المتدرب.');
     input?.focus();
@@ -3634,15 +3638,117 @@ async function ragwanOpenTraineesTable(){
   document.body.appendChild(modal);
   try{
     const out=await ragwanPlanApi('list_trainees'),rows=Array.isArray(out.trainees)?out.trainees:[];
+    window.__ragwanTraineeRows=rows;
     const body=$('ragwanTraineesTableBody');
     if(!rows.length){body.innerHTML='<div class="empty">لم تبدأ الخطة مع أي متدرب بعد.</div>';return}
     body.innerHTML='<div class="ragwan-trainees-table-wrap"><table class="admin-table ragwan-trainees-table"><thead><tr><th>المتدرب</th><th>حالة التدريب</th><th>التقدم</th><th>الباب الحالي</th><th>آخر نشاط</th><th></th></tr></thead><tbody>'+
       rows.map(m=>{
         const done=Number(m.completed_count||0),current=done<10?done+1:10;
         const activity=m.last_activity_at?new Date(m.last_activity_at).toLocaleString('ar-IQ',{dateStyle:'short',timeStyle:'short'}):'—';
-        const completed=!!m.completed_at; const status=completed?'✅ أكمل التدريب':done===10?'📝 بانتظار تسجيل الإكمال':'⏳ قيد التدريب'; const stage=completed?'🏆 مكتملة':done===10?'✅ الأبواب العشرة مكتملة':'الباب '+current; return '<tr><td><b>'+esc(m.name||'')+'</b><div class="small muted">'+esc(m.member_no||'')+'</div></td><td><b>'+status+'</b>'+(completed&&m.completed_at?'<div class="small muted">'+esc(new Date(m.completed_at).toLocaleString('ar-IQ',{dateStyle:'short',timeStyle:'short'}))+'</div>':'')+'</td><td>'+done+' / 10</td><td>'+stage+'</td><td>'+esc(activity)+'</td><td><button type="button" class="primary" onclick="ragwanSelectTrainee(\''+esc(String(m.member_id||''))+'\');document.getElementById(\'ragwanTraineesTableModal\')?.remove()">👤 اختيار وفتح التدريب</button></td></tr>';
+        const completed=!!m.completed_at; const status=completed?'✅ أكمل التدريب':done===10?'📝 بانتظار تسجيل الإكمال':'⏳ قيد التدريب'; const stage=completed?'🏆 مكتملة':done===10?'✅ الأبواب العشرة مكتملة':'الباب '+current; return '<tr><td><b>'+esc(m.name||'')+'</b><div class="small muted">'+esc(m.member_no||'')+'</div></td><td><b>'+status+'</b>'+(completed&&m.completed_at?'<div class="small muted">'+esc(new Date(m.completed_at).toLocaleString('ar-IQ',{dateStyle:'short',timeStyle:'short'}))+'</div>':'')+'</td><td>'+done+' / 10</td><td>'+stage+'</td><td>'+esc(activity)+'</td><td><div class="ragwan-trainee-row-actions"><button type="button" class="primary" onclick="ragwanSelectTrainee(\''+esc(String(m.member_id||''))+'\');document.getElementById(\'ragwanTraineesTableModal\')?.remove()">👤 اختيار وفتح التدريب</button>'+ragwanTraineeRowActions(m)+'</div></td></tr>';
       }).join('')+'</tbody></table></div>';
   }catch(e){const body=$('ragwanTraineesTableBody');if(body)body.innerHTML='<div class="muted">⚠️ '+esc(e.message||'تعذر تحميل المتدربين.')+'</div>'}
+}
+/* تعديل اسم العرض وحذف (أرشفة) المتدرب من قائمة هذا المدرب.
+   التحقق الحقيقي من الملكية يتم داخل دوال PostgreSQL، وليس في هذه الواجهة. */
+function ragwanTraineeRowActions(m){
+  const id=esc(String(m.enrollment_id||''));
+  const label=esc(ragwanTraineeLabel(m));
+  if(!id)return '';
+  return '<button type="button" class="ragwan-trainee-action" title="تعديل اسم العرض: '+label+'" aria-label="تعديل اسم العرض: '+label+'" onclick="ragwanEditTrainee(\''+id+'\')">✏️<span class="ragwan-trainee-action-text"> تعديل</span></button>'+
+    '<button type="button" class="ragwan-trainee-action danger" title="حذف المتدرب من خطة رجوان: '+label+'" aria-label="حذف المتدرب من خطة رجوان: '+label+'" onclick="ragwanArchiveTraineePrompt(\''+id+'\')">🗑️<span class="ragwan-trainee-action-text"> حذف</span></button>';
+}
+function ragwanFindTraineeRow(enrollmentId){
+  return (window.__ragwanTraineeRows||[]).find(r=>String(r.enrollment_id)===String(enrollmentId))||null;
+}
+function ragwanCloseTraineeDialog(){const d=$('ragwanTraineeDialog');if(d)d.remove()}
+function ragwanOpenTraineeDialog(html,labelId){
+  ragwanCloseTraineeDialog();
+  const d=document.createElement('div');d.id='ragwanTraineeDialog';
+  d.innerHTML='<div class="evidence-backdrop ragwan-trainee-dialog-backdrop" onclick="ragwanCloseTraineeDialog()"></div><div class="evidence-modal card ragwan-trainee-dialog" role="dialog" aria-modal="true" aria-labelledby="'+labelId+'">'+html+'</div>';
+  d.addEventListener('keydown',e=>{if(e.key==='Escape')ragwanCloseTraineeDialog()});
+  document.body.appendChild(d);
+  return d;
+}
+function ragwanTraineeFactsHtml(m){
+  return '<div class="ragwan-trainee-dialog-facts">'+
+    '<div><span>الاسم الرسمي</span><b>'+esc(m.official_name||m.name||'')+'</b></div>'+
+    '<div><span>رقم العضوية (غير قابل للتعديل)</span><b dir="ltr">'+esc(m.member_no||'')+'</b></div></div>';
+}
+function ragwanEditTrainee(enrollmentId){
+  const m=ragwanFindTraineeRow(enrollmentId);if(!m)return;
+  const id=esc(String(m.enrollment_id));
+  ragwanOpenTraineeDialog(
+    '<div class="title" id="ragwanTraineeDialogTitle">✏️ تعديل اسم العرض</div>'+
+    ragwanTraineeFactsHtml(m)+
+    '<label for="ragwanTraineeDisplayNameInput">اسم العرض (اختياري)</label>'+
+    '<input id="ragwanTraineeDisplayNameInput" type="text" maxlength="120" autocomplete="off" value="'+esc(m.display_name||'')+'" placeholder="اتركه فارغًا لاستخدام الاسم الرسمي">'+
+    '<div class="small muted">يظهر هذا الاسم لك فقط في قائمتك وصفحة التدريب. لا يغيّر الاسم الرسمي ولا يظهر في الشهادة.</div>'+
+    '<div id="ragwanTraineeDialogStatus" class="small muted" role="status"></div>'+
+    '<div class="actions"><button type="button" onclick="ragwanCloseTraineeDialog()">إلغاء</button>'+
+    '<button type="button" class="primary" id="ragwanTraineeDialogConfirm" onclick="ragwanSaveTraineeDisplayName(\''+id+'\')">💾 حفظ</button></div>',
+    'ragwanTraineeDialogTitle');
+  const input=$('ragwanTraineeDisplayNameInput');
+  if(input){
+    input.focus();input.select();
+    input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();ragwanSaveTraineeDisplayName(m.enrollment_id)}});
+  }
+}
+async function ragwanSaveTraineeDisplayName(enrollmentId){
+  const input=$('ragwanTraineeDisplayNameInput'),status=$('ragwanTraineeDialogStatus'),btn=$('ragwanTraineeDialogConfirm');
+  const value=String(input?.value||'').trim();
+  if(value&&(value.length<2||value.length>120)){
+    if(status)status.textContent='⚠️ اسم العرض يجب أن يكون بين 2 و120 حرفًا، أو اتركه فارغًا.';
+    return;
+  }
+  if(btn)btn.disabled=true;
+  if(status)status.textContent='⏳ جارٍ الحفظ...';
+  try{
+    const out=await ragwanPlanApi('update_trainee_display_name',{enrollment_id:enrollmentId,display_name:value});
+    const t=out?.trainee||{};
+    if(ragwanSelectedTrainee&&String(ragwanSelectedTraineeId)===String(t.member_id||'')){
+      ragwanSelectedTrainee={...ragwanSelectedTrainee,display_name:t.display_name||null};
+      ragwanRenderTraineePanel();
+    }
+    ragwanCloseTraineeDialog();
+    toast(t.display_name?'✅ تم حفظ اسم العرض.':'✅ تم مسح اسم العرض، وسيظهر الاسم الرسمي.');
+    ragwanOpenTraineesTable();
+  }catch(e){
+    if(status)status.textContent='⚠️ '+String(e?.message||'تعذر حفظ اسم العرض.');
+    if(btn)btn.disabled=false;
+  }
+}
+function ragwanArchiveTraineePrompt(enrollmentId){
+  const m=ragwanFindTraineeRow(enrollmentId);if(!m)return;
+  const id=esc(String(m.enrollment_id));
+  ragwanOpenTraineeDialog(
+    '<div class="title" id="ragwanTraineeDialogTitle">🗑️ هل أنت متأكد من حذف هذا المتدرب من خطة رجوان؟</div>'+
+    '<div class="ragwan-trainee-dialog-facts"><div><span>المتدرب</span><b>'+esc(ragwanTraineeLabel(m))+'</b></div>'+
+    '<div><span>رقم العضوية</span><b dir="ltr">'+esc(m.member_no||'')+'</b></div></div>'+
+    '<p class="ragwan-trainee-dialog-note">سيختفي المتدرب من قائمتك، وسيبقى تقدمه السابق محفوظًا ويمكن استعادته عند إضافته مرة أخرى.</p>'+
+    '<div id="ragwanTraineeDialogStatus" class="small muted" role="status"></div>'+
+    '<div class="actions"><button type="button" id="ragwanTraineeDialogCancel" onclick="ragwanCloseTraineeDialog()">إلغاء</button>'+
+    '<button type="button" class="danger" id="ragwanTraineeDialogConfirm" onclick="ragwanConfirmArchiveTrainee(\''+id+'\')">حذف المتدرب</button></div>',
+    'ragwanTraineeDialogTitle');
+  $('ragwanTraineeDialogCancel')?.focus();
+}
+async function ragwanConfirmArchiveTrainee(enrollmentId){
+  const status=$('ragwanTraineeDialogStatus'),btn=$('ragwanTraineeDialogConfirm');
+  if(btn)btn.disabled=true;
+  if(status)status.textContent='⏳ جارٍ الحذف...';
+  try{
+    const out=await ragwanPlanApi('archive_trainee',{enrollment_id:enrollmentId});
+    const memberId=String(out?.trainee?.member_id||'');
+    // إذا كان المتدرب المحذوف هو المفتوح حاليًا، أغلقه وامسح اختياره المحفوظ.
+    let saved='';try{saved=String(localStorage.getItem(ragwanSelectedKey())||'')}catch(_){}
+    if(memberId&&(String(ragwanSelectedTraineeId||'')===memberId||saved===memberId))ragwanClearSelectedTrainee();
+    ragwanCloseTraineeDialog();
+    toast('🗑️ تم حذف المتدرب من قائمتك. تقدمه محفوظ ويمكن استعادته بإضافته مرة أخرى.');
+    ragwanOpenTraineesTable();
+  }catch(e){
+    if(status)status.textContent='⚠️ '+String(e?.message||'تعذر حذف المتدرب.');
+    if(btn)btn.disabled=false;
+  }
 }
 function ragwanTraineePanelMarkup(){
   if(role!=='member'||!me)return '';
@@ -5839,7 +5945,7 @@ async function ragwanCompleteStep(){
     const out=await ragwanPlanApi('save_training_step',{trainee_member_id:ragwanSelectedTraineeId,step,status:'completed'});
     ragwanSelectedProgress=ragwanNormalizeDbProgress(out.progress);
     ragwanRenderProgress();
-    toast(step===10?'🏆 أحسنت! أكملت خطة رجوان كاملة مع '+(ragwanSelectedTrainee.name||'المتدرب')+'.':'🟢 تم تسجيل إنجاز الخطوة للمتدرب.');
+    toast(step===10?'🏆 أحسنت! أكملت خطة رجوان كاملة مع '+(ragwanTraineeLabel(ragwanSelectedTrainee)||'المتدرب')+'.':'🟢 تم تسجيل إنجاز الخطوة للمتدرب.');
     ragwanOpenDoor(step>=10?10:step+1);
     if(step===10)setTimeout(ragwanRenderPlanCompletionInline,120);
   }catch(e){toast('⚠️ '+(e.message||'تعذر حفظ إنجاز الخطوة.'))}
@@ -5857,7 +5963,7 @@ function ragwanRenderPlanCompletionInline(){
   host.classList.add('visible');
   if(host.dataset.saved==='1')return;
   host.innerHTML='<label>🏆 الخطة مكتملة</label>'+
-    '<div class="hint">أكملت الأبواب العشرة مع المتدرب: <b>'+esc(ragwanSelectedTrainee.name||'')+'</b></div>'+
+    '<div class="hint">أكملت الأبواب العشرة مع المتدرب: <b>'+esc(ragwanTraineeLabel(ragwanSelectedTrainee))+'</b></div>'+
     '<div class="muted" style="margin-top:6px">سيُسجَّل الإكمال باسم هذا المتدرب، ويُحفظ في سجله، ويصل إشعار إلى السبونسر والقائد متضمنًا اسم كل طرف ورقم عضويته.</div>'+
     '<button type="button" class="save" id="ragwanPlanCompletionSaveInline" onclick="ragwanSavePlanCompletionMemberInline()">💾 تسجيل إكمال الخطة</button>'+
     '<div id="ragwanPlanCompletionInlineStatus" class="status" aria-live="polite"></div>';
@@ -9395,6 +9501,21 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 .ragwan-trainees-modal{max-width:920px}
 .ragwan-trainees-table-wrap{overflow:auto}
 .ragwan-trainees-table{min-width:720px}
+.ragwan-trainee-row-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ragwan-trainee-action{padding:6px 10px;font-size:12px;line-height:1.2;white-space:nowrap}
+.ragwan-trainee-dialog-backdrop{z-index:90}
+.ragwan-trainee-dialog{z-index:91;width:min(460px,94vw)}
+.ragwan-trainee-dialog-facts{display:grid;gap:8px;margin:12px 0;padding:10px 12px;border-radius:12px;background:var(--soft,#f4f8f6)}
+.ragwan-trainee-dialog-facts span{display:block;font-size:11px;color:var(--muted)}
+.ragwan-trainee-dialog-facts b{display:block;word-break:break-word}
+.ragwan-trainee-dialog input{width:100%;margin-top:6px}
+.ragwan-trainee-dialog-note{margin:8px 0;line-height:1.8}
+.ragwan-trainee-dialog .actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}
+@media(max-width:650px){
+  .ragwan-trainee-action-text{display:none}
+  .ragwan-trainee-action{padding:7px 9px;font-size:15px}
+  .ragwan-trainee-dialog .actions button{flex:1 1 140px}
+}
 @media(max-width:650px){
   .ragwan-trainee-search-row{flex-direction:column;align-items:stretch}
   .ragwan-search-wrap{width:100%}
