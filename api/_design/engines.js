@@ -26,17 +26,32 @@ function boolEnv(name) { const v = env(name).toLowerCase(); if (v === 'true' || 
 
 function providerDef(engine, provider) { return (PROVIDERS[engine] && PROVIDERS[engine][provider]) || null; }
 function isConfigured(engine, provider) { const d = providerDef(engine, provider); return !!(d && /^https:\/\//i.test(env(d.url))); }
+function nativeCapabilities() {
+  return {
+    image: { openai: !!env('OPENAI_API_KEY'), fal: !!env('FAL_KEY') },
+    video: { fal: !!env('FAL_KEY') }
+  };
+}
+function nativeAvailable(engine, caps = nativeCapabilities()) {
+  if (engine === 'image') return !!(caps.image.openai || caps.image.fal);
+  if (engine === 'video') return !!caps.video.fal;
+  return false;
+}
 
 /* الإعدادات العامة التي تُرسل للمتصفح: مفاتيح التشغيل + اسم المحرك المفعل لكل وحدة. بدون عناوين أو مفاتيح. */
 function publicConfig() {
   const flags = {};
   for (const name of FLAG_NAMES) { const v = boolEnv(name); if (v !== undefined) flags[name] = v; }
   const providers = {};
+  const capabilities = nativeCapabilities();
   for (const engine of ENGINES) {
     const chosen = env('DESIGN_' + engine.toUpperCase() + '_PROVIDER').toLowerCase();
-    providers[engine] = chosen && chosen !== 'local' && isConfigured(engine, chosen) ? chosen : 'local';
+    if (chosen === 'native' && nativeAvailable(engine, capabilities)) providers[engine] = 'native';
+    else if (chosen && chosen !== 'local' && isConfigured(engine, chosen)) providers[engine] = chosen;
+    else if (!chosen && nativeAvailable(engine, capabilities)) providers[engine] = 'native';
+    else providers[engine] = 'local';
   }
-  return { flags, providers };
+  return { flags, providers, capabilities };
 }
 
 function secret() { return env('DESIGN_JOB_SIGNING_SECRET') || env('SUPABASE_SECRET_KEY') || env('SUPABASE_SERVICE_ROLE_KEY'); }
@@ -107,4 +122,4 @@ async function cancel({ userId, jobId }) {
   return { status: 'cancelled' };
 }
 
-module.exports = { PROVIDERS, ENGINES, publicConfig, isConfigured, signJob, verifyJob, submit, status, cancel, EngineError };
+module.exports = { PROVIDERS, ENGINES, publicConfig, isConfigured, nativeCapabilities, signJob, verifyJob, submit, status, cancel, EngineError };
