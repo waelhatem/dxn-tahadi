@@ -572,24 +572,38 @@ begin
     raise exception 'طلب التسجيل غير متاح';
   end if;
 
+  -- Reject the pending community account. (The live version removed it too,
+  -- via the cascade from deleting the members row.)
   delete from public.app_users where id=u.id;
 
+  -- Lock the identity before checking it, so a concurrent insert that references
+  -- it (e.g. a Ragwan enrollment) waits and is seen by the check below instead
+  -- of being cascaded away by the delete.
+  perform 1 from public.members where id=p_member for update;
+
+  -- Keep the identity if ANY row references it, through ANY foreign key to
+  -- public.members (any referenced column, single- or multi-column), read from
+  -- the catalog rather than a fixed list of tables.
   for fk in
-    select c.conrelid::regclass as tbl, a.attname as col
+    select c.conrelid::regclass as tbl,
+           string_agg(format('t.%I = m.%I', fa.attname, ra.attname), ' and ' order by k.ord) as join_cond
     from pg_catalog.pg_constraint c
-    join pg_catalog.pg_attribute a
-      on a.attrelid=c.conrelid and a.attnum=c.conkey[1]
-    where c.contype='f'
-      and c.confrelid='public.members'::regclass
-      and array_length(c.conkey,1)=1
-      and c.conrelid<>'public.app_users'::regclass
+    cross join lateral unnest(c.conkey, c.confkey) with ordinality as k(fk_att, ref_att, ord)
+    join pg_catalog.pg_attribute fa on fa.attrelid = c.conrelid and fa.attnum = k.fk_att
+    join pg_catalog.pg_attribute ra on ra.attrelid = c.confrelid and ra.attnum = k.ref_att
+    where c.contype = 'f'
+      and c.confrelid = 'public.members'::regclass
+    group by c.oid, c.conrelid
   loop
-    execute format('select exists(select 1 from %s where %I=$1)', fk.tbl, fk.col)
+    execute format(
+      'select exists(select 1 from %s t join public.members m on %s where m.id = $1)',
+      fk.tbl, fk.join_cond)
       into referenced
       using p_member;
     exit when referenced;
   end loop;
 
+  -- Only an identity nothing depends on is deleted, as before.
   if not referenced then
     delete from public.members where id=p_member;
   end if;
