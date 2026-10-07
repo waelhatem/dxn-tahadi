@@ -2,6 +2,15 @@
   "functions": {
     "api/rpc.js": {
       "maxDuration": 60
+    },
+    "api/design-image.js": {
+      "maxDuration": 60
+    },
+    "api/design-video.js": {
+      "maxDuration": 60
+    },
+    "api/design-video-status.js": {
+      "maxDuration": 60
     }
   },
   "crons": [
