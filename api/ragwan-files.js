@@ -119,7 +119,7 @@ async function ragwanPlanFiles(args){
   const boot=await supabaseSecretRpc('bootstrap',{p_token:token}),role=String(boot&&boot.role||'');
   if(!['leader','member'].includes(role))throw new Error('غير مصرح.');
   const bucket='ragwan-plan';
-  if(['search_trainees','list_trainees','select_trainee','add_trainee_by_member_no','get_training_progress','save_training_step','record_plan_completion_for_member','certificate_trainee_data'].includes(action)){
+  if(['search_trainees','list_trainees','select_trainee','add_trainee_by_member_no','get_training_progress','save_training_step','record_plan_completion_for_member','certificate_trainee_data','update_trainee_display_name','archive_trainee'].includes(action)){
     const rpcMap={
       search_trainees:'search_ragwan_trainees',
       list_trainees:'list_ragwan_trainees',
@@ -127,9 +127,18 @@ async function ragwanPlanFiles(args){
       add_trainee_by_member_no:'add_ragwan_trainee_by_member_no',
       get_training_progress:'get_ragwan_training_progress',
       save_training_step:'save_ragwan_training_step',
-      record_plan_completion_for_member:'record_ragwan_plan_completion_for_member'
+      record_plan_completion_for_member:'record_ragwan_plan_completion_for_member',
+      update_trainee_display_name:'update_ragwan_trainee_display_name',
+      archive_trainee:'archive_ragwan_trainee'
     };
     const fn=rpcMap[action];
+    // Ownership and archive rules are enforced inside these PostgreSQL functions.
+    if(action==='update_trainee_display_name'){
+      return {trainee:await supabaseSecretRpc(fn,{p_token:token,p_enrollment_id:String(args.enrollment_id||'').trim(),p_display_name:String(args.display_name||'').slice(0,200)})};
+    }
+    if(action==='archive_trainee'){
+      return {trainee:await supabaseSecretRpc(fn,{p_token:token,p_enrollment_id:String(args.enrollment_id||'').trim()})};
+    }
     if(action==='search_trainees'){
       return {trainees:await supabaseSecretRpc(fn,{p_token:token,p_query:String(args.query||'').trim().slice(0,120)})};
     }
