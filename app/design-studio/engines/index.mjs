@@ -2,23 +2,40 @@
    يُختار المزود من config.getProvider(engine): 'local' أو محول خارجي (comfyui, remotion, ...). */
 import { getProvider } from '../config.mjs';
 import { remoteAdapter } from './remote.mjs';
+import { NativeImageAdapter, NativeVideoAdapter } from './native.mjs';
 
 const lazy = { image: () => import('./local/image.mjs'), video: () => import('./local/video.mjs'), media: () => import('./local/media.mjs'), content: () => import('./local/content.mjs') };
+const nativeImage = new NativeImageAdapter();
+const nativeVideo = new NativeVideoAdapter();
 
 function remote(engine) {
   const provider = getProvider(engine);
-  return provider === 'local' ? null : remoteAdapter(engine, provider);
+  return provider === 'local' || provider === 'native' ? null : remoteAdapter(engine, provider);
 }
 
 export const imageEngine = {
-  async supports(tool) { if (remote('image')) return true; const m = await lazy.image(); return m.LOCAL_IMAGE_TOOLS.has(tool); },
-  async process(input, ctx) { const r = remote('image'); if (r) return r.run('process', input, ctx); return (await lazy.image()).processImage(input, ctx); }
+  async supports(tool) {
+    const provider=getProvider('image');
+    if(provider==='native'&&nativeImage.supports(tool))return true;
+    if(remote('image'))return true;
+    const m=await lazy.image();
+    return m.LOCAL_IMAGE_TOOLS.has(tool);
+  },
+  async process(input, ctx) {
+    const provider=getProvider('image');
+    if(provider==='native'&&nativeImage.supports(input.tool))return nativeImage.process(input,ctx);
+    const r=remote('image');
+    if(r)return r.run('process',input,ctx);
+    return (await lazy.image()).processImage(input,ctx);
+  }
 };
 
 export const videoEngine = {
   async canRender() { if (remote('video')) return true; return (await lazy.video()).canRenderLocally(); },
   async preview(plan) { return (await lazy.video()).buildTimeline(plan); },
   async render(plan, ctx) { const r = remote('video'); if (r) return r.run('render', plan, ctx); return (await lazy.video()).renderVideo(plan, ctx); },
+  supportsImageToVideo() { return getProvider('video')==='native'&&nativeVideo.available(); },
+  imageToVideo(input,ctx) { return nativeVideo.imageToVideo(input,ctx); },
   getStatus(jobId) { const r = remote('video'); return r ? r.status(jobId) : Promise.resolve(null); },
   cancel(jobId) { const r = remote('video'); return r ? r.cancel(jobId) : Promise.resolve(false); }
 };
