@@ -40,8 +40,16 @@
     if(a.status==='retry')return '<span style="font-weight:900;color:#8a5300">🔁 تحتاج إعادة المحاولة · '+Number(a.score||0)+'/100</span>';
     return '<span style="font-weight:900;color:#8a5300">🤖 جارٍ التقييم التلقائي</span>';
   }
-  function anchorForMember(){
-    var cards=document.querySelectorAll('.card');
+  function lessonsHost(){
+    // تبويب «التدريبات» + المسار الداخلي «الشروحات والتدريبات» (trainingSubtab === 'lessons').
+    try{
+      if(typeof tab!=='undefined'&&tab!=='training')return null;
+      if(typeof trainingSubtab==='undefined'||trainingSubtab!=='lessons')return null;
+    }catch(e){return null}
+    return document.getElementById('section-training');
+  }
+  function anchorForMember(host){
+    var cards=host.querySelectorAll('.card');
     for(var i=0;i<cards.length;i++){
       var title=cards[i].querySelector('.title');
       if(title&&/الشروحات والتدريبات|التدريبات والشروحات/.test(title.textContent||''))return cards[i];
@@ -56,19 +64,25 @@
       return;
     }
     if(state.role!=='member')return;
+    /* قسم اختبارات الاستيعاب جزء من مسار «الشروحات والتدريبات» فقط: يُركَّب داخل
+       #section-training عندما يكون المسار المفتوح lessons، ويُزال في واجهة اختيار
+       المسارات وخطة رجوان وبقية التبويبات. لا يُضاف إلى #app أبدًا. */
+    var host=lessonsHost();
     var root=document.getElementById('dxn-training-assessment');
+    if(!host){
+      if(root)root.remove();
+      return;
+    }
+    if(root&&!host.contains(root)){root.remove();root=null;}
     if(root&&!force)return;
     if(!root){
       root=document.createElement('section');
       root.id='dxn-training-assessment';
       root.className='card';
       root.style.cssText='margin:16px 0;border:2px solid #cfe4da;background:linear-gradient(135deg,#f8fcfa,#fff);direction:rtl;text-align:right';
-      var anchor=anchorForMember();
+      var anchor=anchorForMember(host);
       if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(root,anchor.nextSibling);
-      else {
-        var host=document.querySelector('#app .app')||document.getElementById('app')||document.body;
-        host.appendChild(root);
-      }
+      else host.appendChild(root);
       root.style.setProperty('width','100%','important');
       root.style.setProperty('max-width','none','important');
       root.style.setProperty('box-sizing','border-box','important');
