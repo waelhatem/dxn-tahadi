@@ -181,6 +181,7 @@
 
   function openStudio(){
     state.active=true;
+    syncBodyMode();
     try{sessionStorage.setItem('dxn_design_studio_active','1')}catch(_){}
     if(typeof window.render==='function') window.render();
     else sync();
