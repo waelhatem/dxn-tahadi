@@ -132,7 +132,7 @@ module.exports=async function handler(req,res){
       n:1
     },{
       Authorization:`Bearer ${OPENAI_API_KEY}`
-    },110000);
+    },55000);
 
     if(!api.ok){
       const message=api.data?.error?.message||api.data?.message||api.text||'تعذر إنشاء الصورة';
