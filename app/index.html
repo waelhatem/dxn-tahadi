@@ -1,6 +1,6 @@
 <!-- deploy-sync-2026-09-25-community-stable -->
 <!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0f513f"><meta name="description" content="مجتمع الصحة والثراء — منصة تدريب ومتابعة وتحديات لبناء النشاط وتطوير الفريق."><meta name="application-name" content="مجتمع الصحة والثراء"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="مجتمع الصحة والثراء"><link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="preconnect" href="https://www.youtube.com" crossorigin><link rel="manifest" href="/app/manifest.json?v=20260922-3"><link rel="apple-touch-icon" href="/community-icon-512.png?v=20260922-4">
-<script src="/pwa-install.js?v=20260922-3"></script><title>مجتمع الصحة والثراء</title><style>
+<script src="/pwa-install.js?v=20260922-3" defer></script><title>مجتمع الصحة والثراء</title><style>
 :root{--bg:#eef5f1;--card:#fff;--text:#182234;--muted:#667085;--line:#e2e8e5;--green:#0f513f;--green2:#176b55;--gold:#d99a18;--red:#b42318;--blue:#e8f1ff}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif}.app{max-width:980px;margin:auto;padding:14px 14px 85px}.top{position:relative;background:linear-gradient(135deg,#0c4738,#1a725b);color:white;border-radius:0 0 36px 36px;padding:18px 18px 25px;text-align:center;box-shadow:0 8px 28px #0001}.login-header-top{width:100%;aspect-ratio:1920/500;min-height:0;padding:18px;background-image:url("/login-header.png");background-size:cover;background-position:center;border-radius:0 0 36px 36px;overflow:hidden}.login-header-top:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.16),rgba(0,0,0,0) 55%);pointer-events:none}.login-header-top .member-identity{z-index:2}.login-header-top .logo,.login-header-top h1,.login-header-top p,.login-header-top img{display:none!important;visibility:hidden!important;width:0!important;height:0!important;margin:0!important;padding:0!important}.mobile-member-identity{display:none}@media(max-width:799px){.login-header-top .member-identity{display:none!important}.mobile-member-identity{display:flex!important;align-items:center;justify-content:space-between;gap:10px;margin:10px 0 12px;padding:10px 12px;border:1px solid #d7e6df;border-radius:18px;background:linear-gradient(135deg,#ffffff,#f3faf7);box-shadow:0 7px 20px rgba(15,81,63,.10);color:#123b30;direction:rtl;position:relative;z-index:3}.mobile-member-identity .mobile-member-info{display:flex;align-items:center;gap:9px;min-width:0}.mobile-member-identity .mobile-member-icon{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(135deg,#eaf7f0,#d9eee4);font-size:21px;flex:0 0 auto}.mobile-member-identity .mobile-member-text{min-width:0;text-align:right}.mobile-member-identity .mobile-member-text .role-label{display:block;color:#0f513f;font-size:11px;font-weight:950}.mobile-member-identity .mobile-member-text b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mobile-member-identity .mobile-member-text span{display:block;color:#718078;font-size:10px}.mobile-member-identity .logout-top{margin:0!important;min-height:38px!important;padding:7px 11px!important;border-radius:12px!important;background:#0f513f!important;color:#fff!important;border:0!important;box-shadow:0 5px 14px rgba(15,81,63,.18)}}
 @media(max-width:799px){
   /* Mobile-only post-login header: keep the upper slogan and the full lower logo visible. */
@@ -1119,7 +1119,7 @@ window.DXNI18N={setLanguage:(l)=>{if(packs[l]){current=l;apply()}},getLanguage:(
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=86.44.8"></script><script src="academy.js?v=1"></script><script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=86.44.9"></script><script src="academy.js?v=1"></script><script>
 function validateDXNAge18(birthDate){
   if(!birthDate) return {ok:false, message:'يرجى إدخال تاريخ التولد.'};
   const d = new Date(birthDate + 'T00:00:00');
@@ -8311,8 +8311,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 })();
 </script>
 <script src="../ai-agent-chat.js?v=12"></script>
-<script src="membership-registration-guard.js?v=1"></script>
-<script src="login-scene.js?v=86.65"></script>
+<script src="login-scene.js?v=86.65" defer></script>
 
 <style>
 /* V87.4 — Mobile training feature cards: visual-only enhancement, existing actions unchanged. */
@@ -8593,11 +8592,6 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     return String(value);
   }
 
-  function teamCellValue(value){
-    if(value===null||value===undefined||String(value)==='')return '—';
-    return String(value);
-  }
-
   function teamCellPv(value,masked){
     if(masked===true)return '***';
     return teamCellValue(value);
@@ -8839,7 +8833,9 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     return list.sort((a,b)=>compareTeamValues(a,b,state.key,state.mode));
   }
 
-  function teamTableHtml(rows,sortState,target){
+  // footerHtml اختياري: كل جدول يمرر سطر العدد الخاص به، حتى لا يُفهم
+  // عدد صفحة واحدة أو نتيجة بحث على أنه إجمالي الفريق.
+  function teamTableHtml(rows,sortState,target,footerHtml){
     const list=sortTeamRows(rows,sortState);
     if(!list.length)return '<div class="team-member-empty">🌱 لا يوجد أعضاء تابعون لهذا العضو حاليًا.</div>';
 
@@ -8896,7 +8892,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
         '<tbody>'+rowsHtml+'</tbody>'+
       '</table>'+
     '</div>'+
-    '<div class="team-table-count">عرض <b>'+list.length+'</b> عضوًا. استخدم القائمة المنسدلة داخل عنوان الحقل لاختيار طريقة الترتيب.</div>';
+    '<div class="team-table-count">'+(footerHtml||('عرض <b>'+list.length+'</b> عضوًا.'))+' استخدم القائمة المنسدلة داخل عنوان الحقل لاختيار طريقة الترتيب.</div>';
   }
 
   function renderMembers(payload,panel){
@@ -8909,7 +8905,10 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     if(panel) panel.__teamPage=page;
     const start=(page-1)*pageSize;
     const pageRows=sorted.slice(start,start+pageSize);
-    const table=teamTableHtml(pageRows,{key:'',mode:''},'main');
+    const footer=pageRows.length
+      ? 'عرض <b>'+(start+1)+'–'+(start+pageRows.length)+'</b> من <b>'+sorted.length+'</b> عضوًا.'
+      : '';
+    const table=teamTableHtml(pageRows,{key:'',mode:''},'main',footer);
     if(sorted.length<=pageSize)return table;
     return table+
       '<div class="actions" style="justify-content:center;align-items:center;margin-top:12px">'+
@@ -9031,9 +9030,80 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       status.className='team-search-status';
     }
 
+    // تغيير طريقة البحث يمسح النتيجة السابقة، فأعد إظهار جدول الفريق
+    // بدل ترك الشاشة فارغة والجدول مخفيًا.
     if(result){
-      result.innerHTML='<div class="empty">ستظهر نتيجة البحث هنا.</div>';
+      resetTeamSearchResult(panel);
+      showTeamTable(panel);
     }
+  }
+
+  function resetTeamSearchResult(panel){
+    if(!panel)return;
+    panel.__teamSearchRows=[];
+    panel.__teamSearchMeta=null;
+    panel.__teamSearchSort={key:'',mode:''};
+    const result=panel.querySelector('#teamSearchResult');
+    if(result) result.innerHTML='<div class="empty">ستظهر نتيجة البحث هنا.</div>';
+  }
+
+  // يعرض ملخص الفريق وجدوله الرئيسي من البيانات المحمّلة مسبقًا، بلا طلب جديد.
+  function showTeamTable(panel){
+    if(!panel)return;
+    const listBox=panel.querySelector('#teamMemberList');
+    const summaryBox=panel.querySelector('#teamMemberSummary');
+    if(summaryBox) summaryBox.style.display='';
+    if(listBox){
+      listBox.style.display='';
+      if(Array.isArray(panel.__teamMembers)){
+        listBox.innerHTML=renderMembers({members:panel.__teamMembers},panel);
+      }
+    }
+  }
+
+  function backToTeamTable(panel){
+    if(!panel)return;
+    resetTeamSearchResult(panel);
+    const status=panel.querySelector('#teamSearchStatus');
+    const cfg=teamSearchConfig(teamSearchMode);
+    if(status&&cfg){
+      const loaded=Array.isArray(panel.__teamMembers);
+      status.textContent=(loaded?'✅ الفريق محمّل. ':'')+cfg.help+' ثم اضغط «بحث في فريقي».';
+      status.className=loaded?'team-search-status team-search-success':'team-search-status';
+    }
+    showTeamTable(panel);
+  }
+  window.backToTeamTable=backToTeamTable;
+
+  function teamSearchHeading(meta,count){
+    const q=String(meta&&meta.query||'').trim();
+    switch(meta&&meta.mode){
+      case 'sponsor_number': return 'نتائج البحث: '+count+' عضوًا مباشرًا للراعي '+q;
+      case 'sponsor_name': return 'نتائج البحث: '+count+' عضوًا يطابق اسم راعيهم «'+q+'»';
+      case 'member_name': return 'نتائج البحث: '+count+' عضوًا يطابق اسمهم «'+q+'»';
+      case 'member_number': return 'نتائج البحث: العضو '+q+' ضمن فريقك';
+      default: return 'نتائج البحث: '+count+' عضوًا';
+    }
+  }
+
+  // نتيجة البحث تُعرض منفصلة عن جدول الفريق: عنوان يوضح ماذا تمثل،
+  // وزر للعودة إلى الجدول الكامل، وسطر عدد خاص بالنتائج.
+  function teamSearchResultHtml(panel){
+    const rows=Array.isArray(panel.__teamSearchRows)?panel.__teamSearchRows:[];
+    const heading=rows.length
+      ? teamSearchHeading(panel.__teamSearchMeta,rows.length)
+      : 'لا توجد نتائج مطابقة داخل هذا الفريق.';
+    const head='<div class="team-search-result-head" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0">'+
+      '<b>'+escapeHtml(heading)+'</b>'+
+      '<button type="button" class="team-search-back" onclick="backToTeamTable(this.closest(\'.team-member-panel\'))">↩ العودة إلى جدول فريقي</button>'+
+    '</div>';
+    if(!rows.length)return head;
+    return head+teamTableHtml(
+      rows,
+      panel.__teamSearchSort||{key:'',mode:''},
+      'search',
+      'نتائج البحث: <b>'+rows.length+'</b> عضوًا.'
+    );
   }
 
   // أزرار البحث تستخدم onclick من واجهة HTML المولّدة ديناميكياً،
@@ -9081,6 +9151,8 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     if(!result)return;
 
     panel.__teamSearchRows=Array.isArray(rows)?rows.slice():[];
+    const input=panel.querySelector('#teamSearchInput');
+    panel.__teamSearchMeta={mode:teamSearchMode,query:String(input&&input.value||'').trim()};
 
     // عند تنفيذ البحث، اعرض نتيجة البحث فقط.
     // لا نعرض جدول الفريق المحمّل بالتزامن حتى لا يختلط على المستخدم
@@ -9093,20 +9165,16 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
         status.textContent='لم يتم العثور على نتيجة مطابقة داخل فريق العضو المحدد.';
         status.className='team-search-status team-search-warning';
       }
-      result.innerHTML='<div class="empty">لا توجد نتائج مطابقة داخل هذا الفريق.</div>';
+      result.innerHTML=teamSearchResultHtml(panel);
       return;
     }
 
     if(status){
-      status.textContent='✅ تم العثور على سجل العضو المطلوب فقط. لا يتم عرض فريقه في نتيجة البحث.';
+      status.textContent='✅ '+teamSearchHeading(panel.__teamSearchMeta,rows.length)+'. جدول فريقك الكامل مخفي مؤقتًا؛ اضغط «العودة إلى جدول فريقي» لعرضه.';
       status.className='team-search-status team-search-success';
     }
 
-    result.innerHTML=teamTableHtml(
-      rows,
-      panel.__teamSearchSort||{key:'',mode:''},
-      'search'
-    );
+    result.innerHTML=teamSearchResultHtml(panel);
   }
 
   function sortTeamTable(panel,key,mode,target){
@@ -9118,12 +9186,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     if(where==='search'){
       panel.__teamSearchSort=state;
       const result=panel.querySelector('#teamSearchResult');
-      if(result){
-        const rows=Array.isArray(panel.__teamSearchRows)?panel.__teamSearchRows:[];
-        result.innerHTML=rows.length
-          ? teamTableHtml(rows,state,'search')
-          : '<div class="empty">لا توجد نتائج مطابقة داخل هذا الفريق.</div>';
-      }
+      if(result) result.innerHTML=teamSearchResultHtml(panel);
       return;
     }
 
@@ -9286,10 +9349,25 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       return;
     }
 
+    // امنع الطلبات المتوازية قبل مسح الجدول الحالي، حتى لا تختفي البيانات
+    // إذا ضغط المستخدم زر التحديث أكثر من مرة بسرعة.
+    if(panel.__teamLoadBusy) return;
+    panel.__teamLoadBusy=true;
+
     status.className='team-member-status';
     status.textContent='جارٍ تحميل فريقك مباشرة من سجل أعضاء DXN...';
     summaryBox.innerHTML='';
     listBox.innerHTML='';
+
+    // امسح أي نتيجة بحث سابقة ورسالتها، حتى لا تبقى نتيجة بحث قديمة
+    // (مثل الأعضاء المباشرين لراعٍ) ظاهرة بجانب ملخص الفريق الكامل.
+    resetTeamSearchResult(panel);
+    const loadSearchStatus=panel.querySelector('#teamSearchStatus');
+    const loadSearchCfg=teamSearchConfig(teamSearchMode);
+    if(loadSearchStatus&&loadSearchCfg){
+      loadSearchStatus.textContent=loadSearchCfg.help+' ثم اضغط «بحث في فريقي».';
+      loadSearchStatus.className='team-search-status';
+    }
 
     try{
       // لا نرسل رقم جذر من الواجهة. الخادم يحدد جذر الفريق من الحساب الحالي،
@@ -9339,6 +9417,8 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     }catch(err){
       status.className='team-member-status error';
       status.textContent='تعذر تحميل الفريق: '+String(err&&err.message||err);
+    }finally{
+      panel.__teamLoadBusy=false;
     }
   }
 
@@ -9357,8 +9437,13 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     if(host && panel.parentElement!==host) host.appendChild(panel);
     panel.classList.add('show');
 
-    // حمّل «فريقي» مباشرة عند فتح التبويب من سجل DXN.
-    loadTeam(panel);
+    // لا يوجد تحميل تلقائي عند فتح «فريقي».
+    // يتم الاتصال بسجل DXN فقط عندما يضغط المستخدم زر «تحميل فريقي من سجل DXN».
+    const status=panel.querySelector('#teamMemberStatus');
+    if(status && !Array.isArray(panel.__teamMembers)){
+      status.className='team-member-status hidden';
+      status.textContent='';
+    }
     const input=panel.querySelector('#teamSearchInput');
     if(input){
       setTimeout(()=>{
