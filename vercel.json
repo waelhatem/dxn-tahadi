@@ -2,6 +2,9 @@
   "functions": {
     "api/rpc.js": {
       "maxDuration": 60
+    },
+    "api/design-studio.js": {
+      "maxDuration": 60
     }
   },
   "crons": [
