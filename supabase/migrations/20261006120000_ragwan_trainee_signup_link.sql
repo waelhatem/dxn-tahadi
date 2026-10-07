@@ -11,8 +11,7 @@
 --     are never touched, so all previous progress stays linked to the same id.
 --   * Members without an account are hidden from the member_stats view.
 --     Their members row is kept. team_stats is not changed here.
---   * member_stats below follows the repository definition (20261002090000);
---     it must be checked against the live view definition before applying.
+--   * member_stats below is the live view definition plus one WHERE clause.
 --
 -- add_ragwan_trainee_by_member_no keeps its rules and its recursive downline
 -- exactly as in 20261005100000 (trainee must be in dxn_team_members and anywhere
@@ -610,8 +609,11 @@ begin
 end;
 $function$;
 
--- 4) member_stats shows only members linked to a community account.
---    Same columns and order as the current definition.
+-- 4) member_stats shows only members linked to a community account (any
+--    app_users row, so pending registrations stay visible exactly as today).
+--    Identical to the LIVE definition (same columns, order and types; note
+--    approved_challenges is 8th, before the photo columns) plus one WHERE.
+--    CREATE OR REPLACE keeps the view, its grants and dependants; no DROP.
 create or replace view public.member_stats as
 select
   m.id,
@@ -621,27 +623,35 @@ select
   m.stars,
   m.active,
   t.name as team_name,
-  coalesce((
-    select p.public_url
-    from public.member_profile_photos p
-    where p.member_id = m.id
-      and p.active = true
-    order by p.created_at desc
-    limit 1
-  ), '') as profile_photo_url,
-  coalesce((
-    select p.storage_path
-    from public.member_profile_photos p
-    where p.member_id = m.id
-      and p.active = true
-    order by p.created_at desc
-    limit 1
-  ), '') as profile_photo_path,
-  count(cs.id) filter (where cs.status='approved') as approved_challenges
+  count(cs.id) filter (where cs.status = 'approved'::text) as approved_challenges,
+  coalesce(
+    (
+      select p.public_url
+      from public.member_profile_photos p
+      where p.member_id = m.id
+        and p.active = true
+      order by p.created_at desc
+      limit 1
+    ),
+    ''::text
+  ) as profile_photo_url,
+  coalesce(
+    (
+      select p.storage_path
+      from public.member_profile_photos p
+      where p.member_id = m.id
+        and p.active = true
+      order by p.created_at desc
+      limit 1
+    ),
+    ''::text
+  ) as profile_photo_path
 from public.members m
-left join public.teams t on t.id=m.team_id
-left join public.challenge_submissions cs on cs.member_id=m.id
+left join public.teams t
+  on t.id = m.team_id
+left join public.challenge_submissions cs
+  on cs.member_id = m.id
 where exists (select 1 from public.app_users u where u.member_id = m.id)
-group by m.id,t.name;
+group by m.id, t.name;
 
 notify pgrst, 'reload schema';
