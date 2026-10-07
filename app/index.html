@@ -3645,7 +3645,7 @@ async function ragwanOpenTraineesTable(){
       rows.map(m=>{
         const done=Number(m.completed_count||0),current=done<10?done+1:10;
         const activity=m.last_activity_at?new Date(m.last_activity_at).toLocaleString('ar-IQ',{dateStyle:'short',timeStyle:'short'}):'—';
-        const completed=!!m.completed_at; const status=completed?'✅ أكمل التدريب':done===10?'📝 بانتظار تسجيل الإكمال':'⏳ قيد التدريب'; const stage=completed?'🏆 مكتملة':done===10?'✅ الأبواب العشرة مكتملة':'الباب '+current; return '<tr><td><b>'+esc(m.name||'')+'</b><div class="small muted">'+esc(m.member_no||'')+'</div></td><td><b>'+status+'</b>'+(completed&&m.completed_at?'<div class="small muted">'+esc(new Date(m.completed_at).toLocaleString('ar-IQ',{dateStyle:'short',timeStyle:'short'}))+'</div>':'')+'</td><td>'+done+' / 10</td><td>'+stage+'</td><td>'+esc(activity)+'</td><td><div class="ragwan-trainee-row-actions"><button type="button" class="primary" onclick="ragwanSelectTrainee(\''+esc(String(m.member_id||''))+'\');document.getElementById(\'ragwanTraineesTableModal\')?.remove()">👤 اختيار وفتح التدريب</button>'+ragwanTraineeRowActions(m)+'</div></td></tr>';
+        const completed=!!m.completed_at; const status=completed?'✅ أكمل التدريب':done===10?'📝 بانتظار تسجيل الإكمال':'⏳ قيد التدريب'; const stage=completed?'🏆 مكتملة':done===10?'✅ الأبواب العشرة مكتملة':'الباب '+current; return '<tr><td class="ragwan-trainee-name-cell"><b>'+esc(m.name||'')+'</b><div class="small muted">'+esc(m.member_no||'')+'</div></td><td data-label="حالة التدريب"><b>'+status+'</b>'+(completed&&m.completed_at?'<div class="small muted">'+esc(new Date(m.completed_at).toLocaleString('ar-IQ',{dateStyle:'short',timeStyle:'short'}))+'</div>':'')+'</td><td data-label="التقدم">'+done+' / 10</td><td data-label="الباب الحالي">'+stage+'</td><td data-label="آخر نشاط">'+esc(activity)+'</td><td class="ragwan-trainee-actions-cell"><div class="ragwan-trainee-row-actions"><button type="button" class="primary" onclick="ragwanSelectTrainee(\''+esc(String(m.member_id||''))+'\');document.getElementById(\'ragwanTraineesTableModal\')?.remove()">👤 اختيار وفتح التدريب</button>'+ragwanTraineeRowActions(m)+'</div></td></tr>';
       }).join('')+'</tbody></table></div>';
   }catch(e){const body=$('ragwanTraineesTableBody');if(body)body.innerHTML='<div class="muted">⚠️ '+esc(e.message||'تعذر تحميل المتدربين.')+'</div>'}
 }
@@ -9498,9 +9498,14 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 .ragwan-selected-trainee-copy{min-width:0;flex:1}
 .ragwan-selected-trainee-copy span,.ragwan-selected-trainee-copy small{display:block;color:var(--muted);font-size:11px}
 .ragwan-selected-trainee-copy b{display:block;font-size:17px;margin:2px 0}
-.ragwan-trainees-modal{max-width:920px}
-.ragwan-trainees-table-wrap{overflow:auto}
-.ragwan-trainees-table{min-width:720px}
+/* نافذة «المتدربون في خطة رجوان»: أعرض على Desktop حتى تظهر الأعمدة كاملة بلا تمرير أفقي. */
+.evidence-modal.ragwan-trainees-modal{width:min(96vw,1200px);max-width:1200px}
+.ragwan-trainees-table-wrap{overflow-x:auto}
+.ragwan-trainees-table{width:100%;min-width:0}
+.ragwan-trainees-table th,.ragwan-trainees-table td{white-space:normal;vertical-align:middle;padding:10px 9px}
+.ragwan-trainees-table .ragwan-trainee-name-cell{min-width:200px}
+.ragwan-trainees-table .ragwan-trainee-name-cell b{display:block;font-size:14px;overflow-wrap:anywhere}
+.ragwan-trainees-table .ragwan-trainee-actions-cell{min-width:340px}
 .ragwan-trainee-row-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .ragwan-trainee-action{padding:6px 10px;font-size:12px;line-height:1.2;white-space:nowrap}
 .ragwan-trainee-dialog-backdrop{z-index:90}
@@ -9511,10 +9516,24 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 .ragwan-trainee-dialog input{width:100%;margin-top:6px}
 .ragwan-trainee-dialog-note{margin:8px 0;line-height:1.8}
 .ragwan-trainee-dialog .actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}
-@media(max-width:650px){
+/* Mobile: كل متدرب بطاقة مستقلة بدل جدول عريض، فلا يوجد تمرير أفقي. */
+@media(max-width:799px){
+  .ragwan-trainees-table,.ragwan-trainees-table tbody,.ragwan-trainees-table tr,.ragwan-trainees-table td{display:block;width:100%;white-space:normal}
+  .ragwan-trainees-table thead{display:none}
+  .ragwan-trainees-table tr{border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:10px;background:var(--card,#fff)}
+  .ragwan-trainees-table td{border:0;padding:5px 0;min-width:0}
+  .ragwan-trainees-table td[data-label]{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:4px 12px}
+  .ragwan-trainees-table td[data-label] > .small{flex:1 0 100%;text-align:left}
+  .ragwan-trainees-table td[data-label]::before{content:attr(data-label);color:var(--muted);font-weight:700;flex:0 0 auto}
+  .ragwan-trainees-table .ragwan-trainee-name-cell,.ragwan-trainees-table .ragwan-trainee-actions-cell{min-width:0}
+  .ragwan-trainees-table .ragwan-trainee-name-cell{padding-bottom:8px;margin-bottom:4px;border-bottom:1px solid var(--line)}
+  .ragwan-trainees-table .ragwan-trainee-actions-cell{padding-top:10px}
+  .ragwan-trainee-row-actions button{flex:1 1 auto}
+  .ragwan-trainee-dialog .actions button{flex:1 1 140px}
+}
+@media(max-width:360px){
   .ragwan-trainee-action-text{display:none}
   .ragwan-trainee-action{padding:7px 9px;font-size:15px}
-  .ragwan-trainee-dialog .actions button{flex:1 1 140px}
 }
 @media(max-width:650px){
   .ragwan-trainee-search-row{flex-direction:column;align-items:stretch}
