@@ -108,10 +108,12 @@
   }
 
   function renderMemberHistory(rows){
-    var root=document.getElementById('app');
-    if(!root)return;
+    /* سجل اختبارات العضو جزء من تبويب «التدريبات» فقط: يُركَّب داخل #section-training.
+       يُفحص التبويب عند التركيب نفسه لأن التحميل غير متزامن، ولا يُضاف إلى #app أبدًا. */
+    var root=document.getElementById('section-training');
     var old=document.getElementById('dxn-member-external-assessment-history');
     if(old)old.remove();
+    if(!root)return;
 
     var box=document.createElement('section');
     box.id='dxn-member-external-assessment-history';
@@ -120,25 +122,22 @@
     box.innerHTML='<div class="row" style="border:0;align-items:center"><div><div class="title">📝 سجل الاختبارات</div><div class="muted" style="margin-top:4px">اسم العضو، الدرجة، والنتيجة فقط.</div></div><button type="button" id="dxnMemberAssessmentRefresh">🔄 تحديث</button></div>'
       +tableHtml(rows,'لم يرسل هذا العضو أي اختبار حتى الآن.');
 
-    var anchor=null;
-    try{
-      var cards=root.querySelectorAll('.card');
-      for(var i=0;i<cards.length;i++){
-        var title=cards[i].querySelector('.title');
-        if(title&&/اختبارات استيعاب التدريبات|التقدّم|تقدّمي/.test(title.textContent||'')){anchor=cards[i];break;}
-      }
-    }catch(e){}
-    if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(box,anchor.nextSibling);
+    var anchor=document.getElementById('dxn-training-assessment');
+    if(anchor&&root.contains(anchor)&&anchor.parentNode)anchor.parentNode.insertBefore(box,anchor.nextSibling);
     else root.appendChild(box);
 
     var btn=document.getElementById('dxnMemberAssessmentRefresh');
     if(btn)btn.onclick=function(){loadMemberHistory();};
   }
 
+  var memberHistoryLoading=false;
   async function loadMemberHistory(){
     if(typeof role!=='undefined'&&role!=='member')return;
     var no=memberNo(), t=token();
     if(!no||!t)return;
+    // لا تبدأ طلبًا جديدًا بينما الطلب السابق لم ينتهِ (MutationObserver يُستدعى كثيرًا).
+    if(memberHistoryLoading)return;
+    memberHistoryLoading=true;
     try{
       var data=await rpc('get_external_training_assessment_submissions',{p_token:t,p_membership_number:no});
       renderMemberHistory(Array.isArray(data)?data:[]);
@@ -150,6 +149,8 @@
         var err=document.createElement('div');err.className='challenge';err.style.cssText='margin-top:10px;border-color:#f0b7b2;background:#fff7f6';
         err.innerHTML='<b>⚠️ تعذر تحميل السجل</b><div class="muted" style="margin-top:5px">'+esc(e&&e.message||String(e))+'</div>';box.appendChild(err);
       }
+    }finally{
+      memberHistoryLoading=false;
     }
   }
 
@@ -281,8 +282,12 @@
     var root=document.getElementById('app');
     if(!root)return;
     var key=memberNo()+'|'+String(typeof tab!=='undefined'?tab:'');
-    var eligible=String(typeof tab!=='undefined'?tab:'home');
-    if(eligible!=='home'&&eligible!=='progress')return;
+    // V4 — سجل الاختبارات للعضو يظهر داخل تبويب «التدريبات» فقط.
+    if(!document.getElementById('section-training')){
+      var stale=document.getElementById('dxn-member-external-assessment-history');
+      if(stale)stale.remove();
+      return;
+    }
     if(!memberNo())return;
     if(document.getElementById('dxn-member-external-assessment-history') && lastMemberRenderKey===key)return;
     loadMemberHistory();
