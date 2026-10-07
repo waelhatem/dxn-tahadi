@@ -40,6 +40,14 @@
     if(a.status==='retry')return '<span style="font-weight:900;color:#8a5300">🔁 تحتاج إعادة المحاولة · '+Number(a.score||0)+'/100</span>';
     return '<span style="font-weight:900;color:#8a5300">🤖 جارٍ التقييم التلقائي</span>';
   }
+  function lessonsHost(){
+    // تبويب «التدريبات» + المسار الداخلي «الشروحات والتدريبات» (trainingSubtab === 'lessons').
+    try{
+      if(typeof tab!=='undefined'&&tab!=='training')return null;
+      if(typeof trainingSubtab==='undefined'||trainingSubtab!=='lessons')return null;
+    }catch(e){return null}
+    return document.getElementById('section-training');
+  }
   function anchorForMember(host){
     var cards=host.querySelectorAll('.card');
     for(var i=0;i<cards.length;i++){
@@ -56,9 +64,10 @@
       return;
     }
     if(state.role!=='member')return;
-    /* قسم اختبارات الاستيعاب جزء من تبويب «التدريبات» فقط: يُركَّب داخل
-       #section-training، ويُزال إذا كان تبويب آخر مفتوحًا. لا يُضاف إلى #app أبدًا. */
-    var host=document.getElementById('section-training');
+    /* قسم اختبارات الاستيعاب جزء من مسار «الشروحات والتدريبات» فقط: يُركَّب داخل
+       #section-training عندما يكون المسار المفتوح lessons، ويُزال في واجهة اختيار
+       المسارات وخطة رجوان وبقية التبويبات. لا يُضاف إلى #app أبدًا. */
+    var host=lessonsHost();
     var root=document.getElementById('dxn-training-assessment');
     if(!host){
       if(root)root.remove();

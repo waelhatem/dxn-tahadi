@@ -107,10 +107,20 @@
     insertBox(modal,box);
   }
 
+  function lessonsHost(){
+    // تبويب «التدريبات» + المسار الداخلي «الشروحات والتدريبات» (trainingSubtab === 'lessons').
+    try{
+      if(typeof tab!=='undefined'&&tab!=='training')return null;
+      if(typeof trainingSubtab==='undefined'||trainingSubtab!=='lessons')return null;
+    }catch(e){return null}
+    return document.getElementById('section-training');
+  }
+
   function renderMemberHistory(rows){
-    /* سجل اختبارات العضو جزء من تبويب «التدريبات» فقط: يُركَّب داخل #section-training.
-       يُفحص التبويب عند التركيب نفسه لأن التحميل غير متزامن، ولا يُضاف إلى #app أبدًا. */
-    var root=document.getElementById('section-training');
+    /* سجل اختبارات العضو جزء من مسار «الشروحات والتدريبات» فقط: يُركَّب داخل #section-training
+       عندما يكون المسار المفتوح lessons. يُفحص ذلك عند التركيب نفسه لأن التحميل غير متزامن،
+       ولا يُضاف إلى #app أبدًا. */
+    var root=lessonsHost();
     var old=document.getElementById('dxn-member-external-assessment-history');
     if(old)old.remove();
     if(!root)return;
@@ -282,8 +292,8 @@
     var root=document.getElementById('app');
     if(!root)return;
     var key=memberNo()+'|'+String(typeof tab!=='undefined'?tab:'');
-    // V4 — سجل الاختبارات للعضو يظهر داخل تبويب «التدريبات» فقط.
-    if(!document.getElementById('section-training')){
+    // V4 — سجل الاختبارات للعضو يظهر داخل مسار «الشروحات والتدريبات» فقط.
+    if(!lessonsHost()){
       var stale=document.getElementById('dxn-member-external-assessment-history');
       if(stale)stale.remove();
       return;
