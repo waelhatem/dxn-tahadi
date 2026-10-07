@@ -1,0 +1,73 @@
+
+/* AI Design Studio — isolated styles, Phase 1 */
+.design-studio-tab{position:relative}
+.design-studio-tab::after{content:"جديد";position:absolute;top:-7px;left:-5px;background:#0f766e;color:#fff;border-radius:999px;padding:2px 6px;font-size:9px;font-weight:900;line-height:1.2}
+.dxn-design-studio{direction:rtl;text-align:right;max-width:1180px;margin:0 auto 28px}
+.ds-hero{position:relative;overflow:hidden;border:1px solid #d7e6df;border-radius:26px;padding:26px;background:linear-gradient(135deg,#f0fdf8 0%,#fff 55%,#f8f5ff 100%);box-shadow:0 12px 34px rgba(15,118,110,.08)}
+.ds-hero::before{content:"";position:absolute;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(16,185,129,.14),rgba(16,185,129,0));top:-110px;left:-50px;pointer-events:none}
+.ds-kicker{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:999px;background:#e7f8f1;color:#08735d;font-size:12px;font-weight:900}
+.ds-hero h2{margin:12px 0 6px;font-size:clamp(25px,4vw,37px);line-height:1.2;color:#17352d}
+.ds-hero p{margin:0;max-width:760px;line-height:1.9;color:#587068;font-weight:700}
+.ds-subnav{display:flex;gap:8px;margin:16px 0}
+.ds-subnav button{border:1px solid #d8e4df;background:#fff;border-radius:13px;padding:10px 15px;font-weight:900;cursor:pointer}
+.ds-subnav button.active{background:#155f4c;color:#fff;border-color:#155f4c}
+.ds-tools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}
+.ds-tool{appearance:none;border:1px solid #dce8e3;border-radius:20px;background:#fff;padding:17px;text-align:right;cursor:pointer;min-height:148px;transition:.18s ease;box-shadow:0 7px 18px rgba(20,55,45,.04)}
+.ds-tool:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(20,55,45,.08)}
+.ds-tool.active{border:2px solid #16866b;background:linear-gradient(180deg,#f4fffb,#fff);box-shadow:0 0 0 3px rgba(22,134,107,.08)}
+.ds-tool-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:15px;background:#eef8f4;font-size:25px;margin-bottom:10px}
+.ds-tool b{display:block;color:#183b32;font-size:16px;margin-bottom:5px}
+.ds-tool span{display:block;color:#6b7d77;font-size:12px;line-height:1.65}
+.ds-workspace{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(330px,.92fr);gap:14px;align-items:start}
+.ds-panel{background:#fff;border:1px solid #dce7e2;border-radius:22px;padding:17px;box-shadow:0 8px 26px rgba(19,57,46,.045)}
+.ds-panel h3{margin:0 0 4px;font-size:19px;color:#173c32}
+.ds-panel .ds-hint{margin:0 0 13px;color:#71827c;font-size:12px;line-height:1.7}
+.ds-drop{position:relative;display:grid;place-items:center;min-height:340px;border:2px dashed #b9d4ca;border-radius:19px;background:#f8fcfa;overflow:hidden;cursor:pointer}
+.ds-drop.drag{border-color:#0f8a6a;background:#f0fff9}
+.ds-empty-upload{text-align:center;padding:26px}
+.ds-empty-upload .icon{font-size:48px;margin-bottom:8px}
+.ds-empty-upload b{display:block;color:#21463c;margin-bottom:5px}
+.ds-empty-upload span{color:#73847e;font-size:12px;line-height:1.7}
+.ds-preview{width:100%;height:100%;min-height:340px;display:none;position:relative;background:#eef3f1}
+.ds-preview.has-image{display:block}
+.ds-preview img{width:100%;height:340px;object-fit:contain;display:block}
+.ds-preview-bar{position:absolute;right:10px;left:10px;bottom:10px;display:flex;gap:7px;justify-content:center;flex-wrap:wrap}
+.ds-preview-bar button{border:0;border-radius:12px;background:rgba(16,44,36,.88);color:#fff;padding:8px 11px;font-weight:900;cursor:pointer;backdrop-filter:blur(6px)}
+.ds-file{display:none}
+.ds-form-row{margin-top:13px}
+.ds-label{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px;font-weight:900;color:#24483e;font-size:13px}
+.ds-preserve{display:flex;align-items:center;gap:9px;padding:11px 12px;border:1px solid #dce8e3;border-radius:14px;background:#fbfefc;font-weight:800;color:#254a40;cursor:pointer}
+.ds-preserve input{width:19px;height:19px;accent-color:#14785f}
+.ds-warning{margin-top:7px;padding:9px 11px;border-radius:12px;background:#fff8e8;color:#81611b;font-size:11px;line-height:1.7}
+.ds-textarea{width:100%;min-height:112px;box-sizing:border-box;border:1px solid #cfded8;border-radius:14px;padding:12px;font:inherit;resize:vertical;outline:none;background:#fff}
+.ds-textarea:focus{border-color:#16866b;box-shadow:0 0 0 3px rgba(22,134,107,.09)}
+.ds-aspects{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.ds-aspect{border:1px solid #d7e3de;border-radius:12px;background:#fff;padding:9px 5px;font-size:11px;font-weight:900;cursor:pointer}
+.ds-aspect.active{border-color:#14795f;background:#eaf8f3;color:#0d6650}
+.ds-generate{width:100%;margin-top:15px;border:0;border-radius:15px;background:linear-gradient(135deg,#0d745c,#159975);color:#fff;padding:13px 16px;font:inherit;font-weight:950;cursor:pointer;box-shadow:0 8px 20px rgba(13,116,92,.18)}
+.ds-generate:disabled{opacity:.55;cursor:not-allowed;box-shadow:none}
+.ds-phase-note{margin-top:9px;text-align:center;color:#70817b;font-size:11px}
+.ds-result{display:none;margin-top:14px;border:1px solid #cfe4dc;border-radius:16px;padding:14px;background:#f4fdf9}
+.ds-result.visible{display:block}
+.ds-result b{display:block;color:#155d4a;margin-bottom:5px}
+.ds-result p{margin:0;color:#60746d;font-size:12px;line-height:1.75}
+.ds-history{display:none}
+.ds-history.active{display:block}
+.ds-create.hidden{display:none}
+.ds-empty-history{display:grid;place-items:center;text-align:center;min-height:300px;background:#fff;border:1px dashed #c8dcd4;border-radius:22px;padding:26px;color:#71817c}
+.ds-empty-history .icon{font-size:46px;margin-bottom:8px}
+.ds-badge{display:inline-flex;gap:6px;align-items:center;background:#eef8f4;border:1px solid #d6e9e1;color:#18614f;padding:6px 9px;border-radius:999px;font-size:11px;font-weight:900}
+@media(max-width:980px){.ds-tools{grid-template-columns:repeat(2,minmax(0,1fr))}.ds-workspace{grid-template-columns:1fr}}
+@media(max-width:600px){
+ .dxn-design-studio{margin-bottom:90px}
+ .ds-hero{padding:19px;border-radius:20px}
+ .ds-tools{grid-template-columns:1fr 1fr;gap:8px}
+ .ds-tool{padding:12px;min-height:132px;border-radius:17px}
+ .ds-tool-icon{width:41px;height:41px;font-size:21px}
+ .ds-tool b{font-size:14px}
+ .ds-tool span{font-size:11px}
+ .ds-panel{padding:13px;border-radius:18px}
+ .ds-drop,.ds-preview,.ds-preview img{min-height:270px;height:270px}
+ .ds-aspects{grid-template-columns:repeat(2,1fr)}
+ .design-studio-tab::after{display:none}
+}
