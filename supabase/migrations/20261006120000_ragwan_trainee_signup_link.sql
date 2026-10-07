@@ -22,10 +22,10 @@
 -- dxn_team_members.sponsor_member_no column inside the recursive CTE and every
 -- call fails with: column reference "sponsor_member_no" is ambiguous.
 --
--- register_verified_member and self_register are not defined in this repository.
--- They must call public.resolve_member_identity_for_signup() instead of
--- inserting into public.members directly; that change is pending their live
--- definitions and is NOT part of this migration.
+-- register_verified_member (live definition, not previously in this repository)
+-- keeps all its validation, the DXN check, PIN hashing and messages; only its
+-- "members row exists" rejection is replaced by reusing that identity.
+-- self_register is NOT changed here: its live definition is still pending.
 
 -- 0) Ragwan trainee enrollment: identical to 20261005100000 except the
 --    v_sponsor_member_no rename (see header).
@@ -361,6 +361,77 @@ begin
 exception when unique_violation then raise exception 'رقم العضوية مستخدم مسبقاً';
 end;
 $$;
+
+-- 3b) Self-service sign-up for verified DXN members.
+--     Same as the live definition except the identity block: an existing
+--     app_users row still blocks with the original message, but a members row
+--     without an account is reused instead of rejected.
+create or replace function public.register_verified_member(
+  p_member_no text,
+  p_name text,
+  p_pin text
+)
+returns uuid
+language plpgsql
+security definer
+set search_path to 'public'
+as $function$
+declare
+  v_no text := trim(coalesce(p_member_no, ''));
+  v_name text := trim(coalesce(p_name, ''));
+  v_pin text := trim(coalesce(p_pin, ''));
+  x uuid;
+begin
+  if v_no !~ '^[0-9]{9}$' then
+    raise exception 'رقم العضوية يجب أن يكون 9 أرقام بالضبط';
+  end if;
+
+  if length(v_name) < 2 then
+    raise exception 'الاسم غير صحيح';
+  end if;
+
+  if length(v_pin) < 4 then
+    raise exception 'PIN يجب أن يكون 4 أحرف أو أرقام على الأقل';
+  end if;
+
+  if not exists (
+    select 1
+    from public.dxn_team_members
+    where member_no = v_no
+  ) then
+    raise exception 'هذه العضوية غير موجودة في سجل أعضاء DXN';
+  end if;
+
+  -- Only a real community account (app_users) blocks a new sign-up.
+  if exists (
+    select 1
+    from public.app_users u
+    left join public.members m on m.id = u.member_id
+    where trim(u.login_no) = v_no
+       or trim(m.member_no) = v_no
+  ) then
+    raise exception 'هذا الحساب موجود مسبقاً؛ استخدم تسجيل الدخول.';
+  end if;
+
+  -- Reuse an existing members identity (e.g. a Ragwan trainee), else create it
+  -- with team_id NULL as before.
+  x := public.resolve_member_identity_for_signup(v_no, v_name, null);
+
+  insert into public.app_users(login_no, pin_hash, role, member_id)
+  values(
+    v_no,
+    crypt(v_pin, gen_salt('bf')),
+    'member',
+    x
+  );
+
+  return x;
+
+exception
+  when unique_violation then
+    raise exception 'رقم العضوية مستخدم مسبقاً';
+end;
+$function$;
 
 -- 4) member_stats shows only members linked to a community account.
 --    Same columns and order as the current definition.
