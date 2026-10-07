@@ -297,7 +297,7 @@
   window.__DXN_DS_FILE__ = onFile;
   window.__DXN_DS_GENERATE__ = generate;
 
-  if(typeof window.tab!=='undefined' && window.tab==='design' && typeof window.render==='function'){
-    setTimeout(()=>window.render(),0);
+  if(typeof tab!=='undefined' && tab==='design' && typeof render==='function'){
+    setTimeout(()=>render(),0);
   }
 })();
