@@ -31,7 +31,12 @@
     document.body.appendChild(n);setTimeout(()=>n.remove(),2800);
   }
 
+  function syncBodyMode(){
+    if(document.body) document.body.classList.toggle('dxn-design-studio-active',!!state.active);
+  }
+
   function setActiveTabVisual(){
+    syncBodyMode();
     document.querySelectorAll('.tabs .tab').forEach(x=>x.classList.remove('active'));
     const btn=document.querySelector('.design-studio-tab');
     if(btn) btn.classList.toggle('active',state.active);
@@ -182,6 +187,7 @@
   }
 
   function sync(){
+    syncBodyMode();
     injectTab();
     if(state.active) mountStudio();
   }
@@ -191,6 +197,7 @@
     window.switchTab=function(next){
       if(next==='design'){openStudio();return;}
       state.active=false;
+      syncBodyMode();
       try{sessionStorage.removeItem('dxn_design_studio_active')}catch(_){}
       return originalSwitch.apply(this,arguments);
     };
