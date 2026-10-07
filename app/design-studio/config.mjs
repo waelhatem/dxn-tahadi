@@ -30,7 +30,12 @@ export const DEFAULT_PROVIDERS = Object.freeze({
   publishing: 'local'
 });
 let providers = { ...DEFAULT_PROVIDERS };
+let capabilities = { image: { openai: false, fal: false }, video: { fal: false } };
 export function getProvider(engine) { return providers[engine] || 'local'; }
+export function getCapabilities() { return capabilities; }
+export function hasCapability(engine, provider) {
+  return !!(capabilities && capabilities[engine] && capabilities[engine][provider]);
+}
 
 /* يطبّق إعدادات الخادم (مفاتيح تشغيل + المحركات المُعدّة). القيم غير المعروفة تُتجاهل. */
 export function applyServerConfig(config) {
@@ -49,8 +54,21 @@ export function applyServerConfig(config) {
     }
     providers = next;
   }
+  if (config.capabilities && typeof config.capabilities === 'object') {
+    capabilities = {
+      image: {
+        openai: !!(config.capabilities.image && config.capabilities.image.openai),
+        fal: !!(config.capabilities.image && config.capabilities.image.fal)
+      },
+      video: { fal: !!(config.capabilities.video && config.capabilities.video.fal) }
+    };
+  }
 }
-export function resetConfig() { flags = { ...FLAGS }; providers = { ...DEFAULT_PROVIDERS }; }
+export function resetConfig() {
+  flags = { ...FLAGS };
+  providers = { ...DEFAULT_PROVIDERS };
+  capabilities = { image: { openai: false, fal: false }, video: { fal: false } };
+}
 
 const MB = 1024 * 1024;
 /* حدود الملفات قابلة للتعديل من هنا. يُتحقق من نوع MIME ومن توقيع الملف نفسه وليس الامتداد فقط. */
