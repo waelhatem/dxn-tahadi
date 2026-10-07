@@ -9,8 +9,10 @@
 --   * Sign-up reuses an existing members.id that has no account, and only adds
 --     the app_users row. ragwan_training_enrollments / ragwan_training_progress
 --     are never touched, so all previous progress stays linked to the same id.
---   * Members without an account are hidden from community views
---     (member_stats, team_stats). Their members row is kept.
+--   * Members without an account are hidden from the member_stats view.
+--     Their members row is kept. team_stats is not changed here.
+--   * member_stats below follows the repository definition (20261002090000);
+--     it must be checked against the live view definition before applying.
 --
 -- add_ragwan_trainee_by_member_no keeps its rules and its recursive downline
 -- exactly as in 20261005100000 (trainee must be in dxn_team_members and anywhere
@@ -360,7 +362,7 @@ exception when unique_violation then raise exception 'رقم العضوية مس
 end;
 $$;
 
--- 4) Community views show only members linked to a community account.
+-- 4) member_stats shows only members linked to a community account.
 --    Same columns and order as the current definition.
 create or replace view public.member_stats as
 select
@@ -393,17 +395,5 @@ left join public.teams t on t.id=m.team_id
 left join public.challenge_submissions cs on cs.member_id=m.id
 where exists (select 1 from public.app_users u where u.member_id = m.id)
 group by m.id,t.name;
-
-create or replace view public.team_stats as
-select t.id,t.name,
-       count(distinct m.id) filter (where m.active) as members,
-       coalesce(sum(m.stars) filter (where m.active),0) as stars,
-       count(cs.id) filter (where cs.status='approved') as approved_challenges
-from public.teams t
-left join public.members m
-  on m.team_id=t.id
- and exists (select 1 from public.app_users u where u.member_id = m.id)
-left join public.challenge_submissions cs on cs.member_id=m.id
-group by t.id;
 
 notify pgrst, 'reload schema';
