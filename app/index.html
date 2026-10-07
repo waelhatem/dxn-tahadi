@@ -1020,7 +1020,8 @@ body:has(.login-header-top)::before{
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
   else init();
 })();
-</script><link rel="stylesheet" href="/app/design-studio.css?v=1">\n</head><body>
+</script><link rel="stylesheet" href="/app/design-studio.css?v=1">
+</head><body>
 <div id="pwaInstallPrompt" class="pwa-install" role="dialog" aria-label="تثبيت مجتمع الصحة والثراء" aria-live="polite">
   <div class="pwa-install-text"><b>📲 ثبّت مجتمع الصحة والثراء</b><br><span>أضفه إلى الشاشة الرئيسية لفتح المنصة كتطبيق وبسرعة أكبر.</span></div>
   <div class="pwa-install-actions"><button id="pwaInstallBtn" class="primary" type="button">تثبيت</button><button id="pwaInstallClose" class="pwa-install-close" type="button">لاحقًا</button></div>
@@ -6709,7 +6710,7 @@ function printProspectLog(){
     'body{font-family:Arial,Tahoma,sans-serif;padding:28px;color:#173b32}h1{text-align:center;margin:0 0 8px;font-size:24px}p{text-align:center;color:#66756f;margin:0 0 22px}.print-table{width:100%;border-collapse:collapse;font-size:14px}.print-table th{background:#eef4f1;font-weight:900}.print-table th,.print-table td{border:1px solid #bfcfc8;padding:12px 14px;text-align:right;vertical-align:middle}.print-status{font-weight:900}.print-status-ok{color:#15803d}.print-status-no{color:#b91c1c}.print-status-wait{color:#b77900}@media print{body{padding:10px}button{display:none}}'+
     '</style></head><body><h1>📋 سجل طلبات التواصل</h1><p>مجتمع الصحة والثراء — جميع طلبات التواصل</p>'+
     clone.outerHTML.replace('class="prospect-log-table"','class="print-table"')+
-    '<!-- stable deployment refresh 2026-09-21 --><script src="/app/design-studio.js?v=1"></script>\n</body></html>');
+    '<!-- stable deployment refresh 2026-09-21 --></body></html>');
   w.document.close();
   setTimeout(function(){w.print();},300);
 }
@@ -9539,6 +9540,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observe);else observe();
 })();
 </script>
+<script src="/app/design-studio.js?v=1"></script>
 </body>
 
 </html>
