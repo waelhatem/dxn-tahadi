@@ -25,7 +25,11 @@
 -- register_verified_member (live definition, not previously in this repository)
 -- keeps all its validation, the DXN check, PIN hashing and messages; only its
 -- "members row exists" rejection is replaced by reusing that identity.
--- self_register is NOT changed here: its live definition is still pending.
+-- self_register (live definition) keeps its validation, team check, PIN hashing
+-- and pending account (app_users.active=false, registration_status='pending').
+-- A members row without an account is reused; its members.active is left as is
+-- so the sponsor keeps access to the trainee's Ragwan record (select_ragwan_trainee
+-- requires members.active=true).
 
 -- 0) Ragwan trainee enrollment: identical to 20261005100000 except the
 --    v_sponsor_member_no rename (see header).
@@ -430,6 +434,108 @@ begin
 exception
   when unique_violation then
     raise exception 'رقم العضوية مستخدم مسبقاً';
+end;
+$function$;
+
+-- 3c) Pending self-registration.
+--     Same as the live definition except the identity block: an existing
+--     app_users row still blocks, but a members row without an account is
+--     reused (same members.id) instead of rejected. A brand-new identity is
+--     still created with active=false exactly as before.
+create or replace function public.self_register(
+  p_member_no text,
+  p_name text,
+  p_pin text,
+  p_team uuid
+)
+returns json
+language plpgsql
+security definer
+set search_path to 'public'
+as $function$
+declare
+  mid uuid;
+  existing_team boolean;
+begin
+  if trim(coalesce(p_member_no,'')) !~ '^[0-9]{9}$' then
+    raise exception 'رقم العضوية يجب أن يتكون من 9 أرقام بالضبط';
+  end if;
+
+  if length(trim(coalesce(p_name,''))) < 2 then
+    raise exception 'أدخل الاسم الكامل';
+  end if;
+
+  if length(trim(coalesce(p_pin,''))) < 4 then
+    raise exception 'PIN يجب أن يكون 4 أحرف أو أرقام على الأقل';
+  end if;
+
+  if p_team is not null then
+    select exists(
+      select 1
+      from public.teams
+      where id=p_team and active=true
+    ) into existing_team;
+
+    if not existing_team then
+      raise exception 'الفريق غير متاح';
+    end if;
+  end if;
+
+  -- Only a real community account (app_users) blocks a new registration.
+  if exists(
+       select 1
+       from public.app_users u
+       left join public.members m on m.id=u.member_id
+       where trim(u.login_no)=trim(p_member_no)
+          or trim(m.member_no)=trim(p_member_no)
+     ) then
+    raise exception 'رقم العضوية مستخدم مسبقاً';
+  end if;
+
+  -- Reuse an identity created earlier (e.g. a Ragwan trainee) without an account.
+  select m.id
+    into mid
+  from public.members m
+  where trim(m.member_no)=trim(p_member_no)
+  order by m.created_at
+  limit 1
+  for update;
+
+  if mid is not null then
+    update public.members
+    set name=trim(p_name),
+        team_id=coalesce(p_team,team_id)
+    where id=mid;
+  else
+    insert into public.members(member_no,name,team_id,active)
+    values(trim(p_member_no),trim(p_name),p_team,false)
+    returning id into mid;
+  end if;
+
+  insert into public.app_users(
+    login_no,
+    pin_hash,
+    role,
+    member_id,
+    active,
+    registration_status
+  )
+  values(
+    trim(p_member_no),
+    public.crypt(trim(p_pin),public.gen_salt('bf')),
+    'member',
+    mid,
+    false,
+    'pending'
+  );
+
+  return json_build_object(
+    'member_id',mid,
+    'status','pending'
+  );
+
+exception when unique_violation then
+  raise exception 'رقم العضوية مستخدم مسبقاً';
 end;
 $function$;
 
