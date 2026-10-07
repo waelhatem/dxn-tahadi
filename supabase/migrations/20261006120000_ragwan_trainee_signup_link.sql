@@ -30,6 +30,9 @@
 -- A members row without an account is reused; its members.active is left as is
 -- so the sponsor keeps access to the trainee's Ragwan record (select_ragwan_trainee
 -- requires members.active=true).
+-- reject_member_registration deletes only the pending account and keeps the
+-- members identity whenever any table references it (Ragwan training included).
+-- approve_member_registration is unchanged (it already keeps the same identity).
 
 -- 0) Ragwan trainee enrollment: identical to 20261005100000 except the
 --    v_sponsor_member_no rename (see header).
@@ -536,6 +539,60 @@ begin
 
 exception when unique_violation then
   raise exception 'رقم العضوية مستخدم مسبقاً';
+end;
+$function$;
+
+-- 3d) Rejecting a pending community registration rejects the ACCOUNT only.
+--     Leader check and the pending condition match approve_member_registration.
+--     The pending app_users row is deleted (so the person can apply again).
+--     The members identity is deleted as before ONLY when no other row in the
+--     database references it; the check reads every foreign key that points to
+--     public.members from the catalog, so Ragwan enrollments/progress (and any
+--     other dependent data) keep the identity alive and are never cascaded away.
+--     NOTE: written from the live approve_member_registration and the described
+--     live behaviour of this function; compare with its live text before applying.
+create or replace function public.reject_member_registration(p_token uuid, p_member uuid)
+returns void
+language plpgsql
+security definer
+set search_path to 'public'
+as $function$
+declare
+  uid uuid;
+  u public.app_users;
+  fk record;
+  referenced boolean := false;
+begin
+  uid:=public.current_user_id(p_token);
+  if uid is null or public.app_current_role(p_token)<>'leader' then
+    raise exception 'صلاحية القائد فقط';
+  end if;
+  select * into u from public.app_users where member_id=p_member and role='member' for update;
+  if u.id is null or u.registration_status<>'pending' then
+    raise exception 'طلب التسجيل غير متاح';
+  end if;
+
+  delete from public.app_users where id=u.id;
+
+  for fk in
+    select c.conrelid::regclass as tbl, a.attname as col
+    from pg_catalog.pg_constraint c
+    join pg_catalog.pg_attribute a
+      on a.attrelid=c.conrelid and a.attnum=c.conkey[1]
+    where c.contype='f'
+      and c.confrelid='public.members'::regclass
+      and array_length(c.conkey,1)=1
+      and c.conrelid<>'public.app_users'::regclass
+  loop
+    execute format('select exists(select 1 from %s where %I=$1)', fk.tbl, fk.col)
+      into referenced
+      using p_member;
+    exit when referenced;
+  end loop;
+
+  if not referenced then
+    delete from public.members where id=p_member;
+  end if;
 end;
 $function$;
 
