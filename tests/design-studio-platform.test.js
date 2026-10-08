@@ -119,6 +119,28 @@ test('browser AI models: self-hosted files match size and SHA-256, remote files 
   assert.ok(fs.existsSync(path.join(DS, 'models', 'LICENSE-real-esrgan.txt')), 'BSD-3 notice ships with the self-hosted model');
 });
 
+test('THIRD_PARTY_AI_MODELS.md documents every model with its hash prefix and a commercial-use license', async () => {
+  const { MODELS } = await load('engines/browser-ai/models.mjs');
+  const doc = fs.readFileSync(path.join(__dirname, '..', 'THIRD_PARTY_AI_MODELS.md'), 'utf8');
+  for (const m of Object.values(MODELS)) {
+    assert.ok(doc.includes(m.sha256.slice(0, 8)), `${m.id} hash listed`);
+    assert.ok(doc.includes(m.license), `${m.id} license listed`);
+    if (m.externalData) assert.ok(doc.includes(m.externalData.sha256.slice(0, 8)), `${m.id} weights hash listed`);
+  }
+  assert.match(doc, /RMBG-2\.0[^\n]*Non-commercial/i, 'non-commercial BRIA models are recorded as rejected');
+  assert.doesNotMatch(JSON.stringify(MODELS), /briaai|\bRMBG-[12]|imgly/i, 'no non-commercial or AGPL model is registered');
+});
+
+test('browser AI inference runs in a module Worker with a page fallback and automatic WebGPU→WASM fallback', () => {
+  const runtime = fs.readFileSync(path.join(DS, 'engines', 'browser-ai', 'runtime.mjs'), 'utf8');
+  const worker = fs.readFileSync(path.join(DS, 'engines', 'browser-ai', 'worker.mjs'), 'utf8');
+  assert.match(runtime, /new Worker\(new URL\('\.\/worker\.mjs', import\.meta\.url\), \{ type: 'module' \}\)/);
+  assert.match(runtime, /err\.code === 'WORKER'\) return pageSession\(/, 'falls back to the page when Workers are unavailable');
+  assert.match(worker, /if \(entry\.backend !== 'webgpu'\) throw err;[\s\S]*buildSession\(entry\.model, false\)/, 'GPU failure retries on WASM');
+  assert.match(worker, /code: 'MEMORY'/, 'out-of-memory becomes a friendly error');
+  assert.match(runtime, /CACHE_NAME|fetchModel/);
+});
+
 test('browser AI enhance: levels stretch a flat image, color correction pulls a color cast toward neutral', async () => {
   const { autoLevels, colorCorrect } = await load('engines/browser-ai/enhance.mjs');
   const flat = new Uint8ClampedArray(4 * 100);
