@@ -52,3 +52,21 @@ test('training isolation regression remains included',()=>{
   assert.match(assessment,/function lessonsHost\(\)/);
   assert.match(assessment,/tab!==['"]training['"]/);
 });
+
+
+test('image enhancement reports visible resolution metadata and updated cache version',()=>{
+  const local=read('app/design-studio/engines/local/image.mjs');
+  assert.match(local,/sourceWidth/);
+  assert.match(local,/sourceHeight/);
+  assert.match(local,/provider: 'local'/);
+  assert.match(local,/contrast: 1\.16/);
+  assert.match(local,/sharpen\(c\.getContext\('2d'\), c\.width, c\.height, 0\.42\)/);
+  const view=read('app/design-studio/views/image.mjs');
+  assert.match(view,/معالجة محلية/);
+  assert.match(view,/قبل:/);
+  assert.match(view,/عرض بالحجم الكامل/);
+  const loader=read('app/design-studio-loader.js');
+  assert.match(loader,/VERSION='2'/);
+  const html=read('app/index.html');
+  assert.match(html,/design-studio-loader\.js\?v=2/);
+});
