@@ -1,22 +1,37 @@
-/* تشغيل نماذج ONNX داخل المتصفح: WebGPU عند توفره، وإلا WebAssembly.
-   لا يُحمَّل أي شيء هنا عند فتح الموقع؛ أول تحميل يحدث عند ضغط أداة تحتاج نموذجًا. */
+/* تشغيل نماذج ONNX داخل المتصفح. التشغيل الفعلي يتم داخل Worker حتى لا تتجمد الواجهة؛
+   إذا لم يدعم المتصفح Worker نعمل في الصفحة نفسها كخيار احتياطي.
+   لا يُحمَّل أي شيء هنا عند فتح الموقع أو الاستوديو؛ أول تحميل يحدث عند ضغط أداة تحتاج نموذجًا. */
 import { MESSAGES } from '../../config.mjs';
+import { fetchModel, sessionOptions, sizeLabel } from './model-store.mjs';
 
 const ORT_VERSION = '1.30.0';
 const ORT_BASE = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_VERSION}/dist/`;
-/* لا يبدأ الاسم بـ dxn- لأن sw.js يحذف كل كاشات dxn-*. */
-const CACHE_NAME = 'design-studio-models-v1';
 
-let gpuPromise = null;
-let ortPromise = null;
-const sessions = new Map();
-/* قياسات آخر العمليات (تُعرض في التقرير وأدوات المطور فقط). */
+/* قياسات العمليات (للتقرير وأدوات المطور). */
 export const metrics = [];
+/* ملخص آخر عملية لعرضه للمستخدم: حجم النموذج، وضع التشغيل، الأوقات. */
+let runInfo = null;
+export function resetRunInfo() { runInfo = { models: [], backend: null, fellBack: false, runMs: 0, heapBytes: null }; }
+export function takeRunInfo() { const r = runInfo; runInfo = null; return r; }
+function noteModel(model, info) {
+  if (!runInfo) resetRunInfo();
+  runInfo.models.push({ label: model.label, bytes: model.bytes + (model.externalData ? model.externalData.bytes : 0), cached: info.cached, downloadMs: info.downloadMs, initMs: info.initMs });
+  runInfo.backend = info.backend;
+}
+function noteRun(ms, backend, fellBack, heapBytes) {
+  if (!runInfo) resetRunInfo();
+  runInfo.runMs += ms; runInfo.backend = backend; runInfo.fellBack = runInfo.fellBack || !!fellBack;
+  if (heapBytes) runInfo.heapBytes = Math.max(runInfo.heapBytes || 0, heapBytes);
+}
+
+export function modeLabel(backend) { return backend === 'webgpu' ? 'WebGPU — كرت الشاشة' : 'WASM — المعالج'; }
+export function modelSize(model) { return sizeLabel(model.bytes + (model.externalData ? model.externalData.bytes : 0)); }
 
 export function browserAiSupported() {
   return typeof WebAssembly === 'object' && typeof fetch === 'function' && !!(globalThis.crypto && crypto.subtle);
 }
 
+let gpuPromise = null;
 export function gpuInfo() {
   if (!gpuPromise) gpuPromise = (async () => {
     try {
@@ -29,7 +44,78 @@ export function gpuInfo() {
   return gpuPromise;
 }
 
-export function loadOrt() {
+/* جهاز محدود: ذاكرة 4GB أو أقل وبدون WebGPU. نستخدمها لتقليل أحجام المعالجة وإظهار تنبيه. */
+export async function isLowEndDevice() {
+  const { gpu } = await gpuInfo();
+  const mem = Number(navigator.deviceMemory) || 8;
+  return !gpu && mem <= 4;
+}
+
+/* Tensor بسيط ينتقل إلى الـWorker كما هو (type, data, dims). */
+class Tensor { constructor(type, data, dims) { this.type = type; this.data = data; this.dims = dims; } }
+const workerOrt = Object.freeze({ Tensor });
+
+/* ===== عميل الـWorker ===== */
+let worker = null, workerBroken = typeof Worker === 'undefined', seq = 0;
+const pending = new Map();
+function failAll(err) { for (const p of pending.values()) p.reject(err); pending.clear(); }
+function getWorker() {
+  if (workerBroken) return null;
+  if (!worker) {
+    try {
+      worker = new Worker(new URL('./worker.mjs', import.meta.url), { type: 'module' });
+      worker.onmessage = e => {
+        const m = e.data || {}, p = pending.get(m.id);
+        if (!p) return;
+        if (!('ok' in m)) { if ('progress' in m && p.onProgress) p.onProgress(m.progress); return; }
+        pending.delete(m.id);
+        if (m.ok) p.resolve(m); else p.reject(Object.assign(new Error(m.error), { code: m.code }));
+      };
+      worker.onerror = ev => {
+        if (ev && ev.preventDefault) ev.preventDefault();
+        workerBroken = true; worker = null;
+        failAll(Object.assign(new Error('WORKER_FAILED'), { code: 'WORKER' }));
+      };
+    } catch (_) { workerBroken = true; worker = null; return null; }
+  }
+  return worker;
+}
+function call(msg, { onProgress, signal } = {}) {
+  const w = getWorker();
+  if (!w) return Promise.reject(Object.assign(new Error('WORKER_FAILED'), { code: 'WORKER' }));
+  const id = ++seq;
+  return new Promise((resolve, reject) => {
+    pending.set(id, { resolve, reject, onProgress });
+    if (signal) signal.addEventListener('abort', () => {
+      w.postMessage({ op: 'abort', target: id });
+      if (pending.has(id)) { pending.delete(id); reject(new Error(MESSAGES.cancelled)); }
+    }, { once: true });
+    w.postMessage({ ...msg, id });
+  });
+}
+
+async function workerSession(model, { onProgress, signal, preferGpu }) {
+  const res = await call({ op: 'session', model, preferGpu }, { onProgress, signal });
+  const entry = { model, key: res.key, ...res.info };
+  const session = {
+    inputNames: res.info.inputNames,
+    outputNames: res.info.outputNames,
+    inputMetadata: res.info.inputMetadata,
+    async run(feeds) {
+      const payload = {};
+      for (const [name, t] of Object.entries(feeds)) payload[name] = { type: t.type, dims: t.dims, data: t.data };
+      const out = await call({ op: 'run', key: entry.key, feeds: payload });
+      entry.backend = out.backend;
+      noteRun(out.runMs, out.backend, out.fellBack, out.heapBytes);
+      return out.outputs;
+    }
+  };
+  return { ort: workerOrt, session, ...entry, inWorker: true };
+}
+
+/* ===== احتياطي: التشغيل في الصفحة نفسها ===== */
+let ortPromise = null;
+function loadOrt() {
   if (!ortPromise) ortPromise = (async () => {
     const { gpu } = await gpuInfo();
     const ort = await import(ORT_BASE + (gpu ? 'ort.webgpu.min.mjs' : 'ort.min.mjs'));
@@ -40,90 +126,49 @@ export function loadOrt() {
   })().catch(err => { ortPromise = null; throw new Error('تعذر تحميل محرك الذكاء الاصطناعي في المتصفح. تحقق من الاتصال ثم أعد المحاولة.', { cause: err }); });
   return ortPromise;
 }
-
-function hex(buffer) { return [...new Uint8Array(buffer)].map(b => b.toString(16).padStart(2, '0')).join(''); }
-
-async function openCache() {
-  try { return 'caches' in globalThis ? await caches.open(CACHE_NAME) : null; } catch (_) { return null; }
-}
-
-/* ينزّل النموذج مرة واحدة مع تقدم، يتحقق من الحجم والبصمة، ثم يحفظه في كاش المتصفح. */
-export async function fetchModel(model, { onProgress, signal } = {}) {
-  const cache = await openCache();
-  if (cache) {
-    try {
-      const hit = await cache.match(model.url);
-      if (hit) {
-        const bytes = new Uint8Array(await hit.arrayBuffer());
-        if (bytes.byteLength === model.bytes) { if (onProgress) onProgress(1); return { bytes, cached: true }; }
-        await cache.delete(model.url);
-      }
-    } catch (_) { /* نكمل بالتنزيل */ }
-  }
-  let res;
-  try { res = await fetch(model.url, { signal, mode: 'cors' }); }
+async function pageSession(model, { onProgress, signal, preferGpu }) {
+  const { ort, gpu } = await loadOrt();
+  const t0 = performance.now();
+  const files = await fetchModel(model, { onProgress, signal });
+  const t1 = performance.now();
+  const wantGpu = gpu && preferGpu;
+  let raw, backend = wantGpu ? 'webgpu' : 'wasm';
+  try { raw = await ort.InferenceSession.create(files.graph, sessionOptions(model, files.weights, wantGpu ? ['webgpu', 'wasm'] : ['wasm'])); }
   catch (err) {
-    if (signal && signal.aborted) throw new Error(MESSAGES.cancelled);
-    throw new Error(`تعذر تنزيل ${model.label}. تحقق من الاتصال ثم أعد المحاولة.`);
+    if (!wantGpu) throw err;
+    raw = await ort.InferenceSession.create(files.graph, sessionOptions(model, files.weights, ['wasm']));
+    backend = 'wasm';
   }
-  if (!res.ok) throw new Error(`تعذر تنزيل ${model.label} (${res.status}).`);
-  const total = model.bytes;
-  let bytes;
-  if (res.body && res.body.getReader) {
-    bytes = new Uint8Array(total);
-    const reader = res.body.getReader();
-    let loaded = 0;
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      if (loaded + value.length > total) throw new Error(`حجم ${model.label} غير متوقع.`);
-      bytes.set(value, loaded);
-      loaded += value.length;
-      if (onProgress) onProgress(loaded / total);
+  const session = {
+    inputNames: raw.inputNames, outputNames: raw.outputNames, inputMetadata: raw.inputMetadata,
+    async run(feeds) {
+      const t = performance.now();
+      const real = Object.fromEntries(Object.entries(feeds).map(([n, x]) => [n, new ort.Tensor(x.type, x.data, x.dims)]));
+      const out = await raw.run(real);
+      noteRun(Math.round(performance.now() - t), backend, false, (performance.memory && performance.memory.usedJSHeapSize) || null);
+      return out;
     }
-    if (loaded !== total) throw new Error(`لم يكتمل تنزيل ${model.label}. أعد المحاولة.`);
-  } else {
-    bytes = new Uint8Array(await res.arrayBuffer());
-    if (bytes.byteLength !== total) throw new Error(`حجم ${model.label} غير متوقع.`);
-  }
-  const digest = hex(await crypto.subtle.digest('SHA-256', bytes));
-  if (digest !== model.sha256) throw new Error(`فشل التحقق من سلامة ${model.label}.`);
-  if (cache) { try { await cache.put(model.url, new Response(bytes, { headers: { 'Content-Type': 'application/octet-stream' } })); } catch (_) { /* الكاش اختياري */ } }
-  return { bytes, cached: false };
+  };
+  return { ort: workerOrt, session, model, backend, cached: files.cached, downloadMs: Math.round(t1 - t0), initMs: Math.round(performance.now() - t1), inWorker: false };
 }
 
 /* جلسة واحدة لكل نموذج طوال بقاء الصفحة مفتوحة. */
+const sessions = new Map();
 export function getSession(model, { onProgress, signal, preferGpu = true } = {}) {
   const key = `${model.id}:${preferGpu ? 'gpu' : 'cpu'}`;
-  if (sessions.has(key)) return sessions.get(key);
-  const pending = (async () => {
-    const { ort, gpu } = await loadOrt();
-    const t0 = performance.now();
-    /* بعض النماذج أوزانها في ملف خارجي؛ التقدم يُوزّع على الملفين حسب الحجم. */
-    const ext = model.externalData;
-    const totalBytes = model.bytes + (ext ? ext.bytes : 0);
-    const part = (offset, size) => p => { if (onProgress) onProgress((offset + size * p) / totalBytes); };
-    const graph = await fetchModel(model, { onProgress: part(0, model.bytes), signal });
-    const weights = ext ? await fetchModel({ ...ext, label: model.label }, { onProgress: part(model.bytes, ext.bytes), signal }) : null;
-    const cached = graph.cached && (!weights || weights.cached);
-    const t1 = performance.now();
-    const wantGpu = gpu && preferGpu;
-    const options = eps => ({ executionProviders: eps, graphOptimizationLevel: 'all', ...(weights ? { externalData: [{ path: ext.path, data: weights.bytes }] } : {}) });
-    let session, backend = wantGpu ? 'webgpu' : 'wasm';
-    try {
-      session = await ort.InferenceSession.create(graph.bytes, options(wantGpu ? ['webgpu', 'wasm'] : ['wasm']));
-    } catch (err) {
-      if (!wantGpu) throw err;
-      session = await ort.InferenceSession.create(graph.bytes, options(['wasm']));
-      backend = 'wasm';
-    }
-    const info = { model: model.id, cached, backend, downloadMs: Math.round(t1 - t0), initMs: Math.round(performance.now() - t1) };
-    metrics.push({ type: 'load', ...info });
-    return { ort, session, ...info };
-  })();
-  sessions.set(key, pending);
-  pending.catch(() => sessions.delete(key));
-  return pending;
+  if (!sessions.has(key)) {
+    const pendingSession = (async () => {
+      try { return await workerSession(model, { onProgress, signal, preferGpu }); }
+      catch (err) { if (err && err.code === 'WORKER') return pageSession(model, { onProgress, signal, preferGpu }); throw err; }
+    })();
+    sessions.set(key, pendingSession);
+    pendingSession.catch(() => sessions.delete(key));
+  }
+  return sessions.get(key).then(entry => {
+    noteModel(model, entry);
+    metrics.push({ type: 'load', model: model.id, backend: entry.backend, cached: entry.cached, downloadMs: entry.downloadMs, initMs: entry.initMs, inWorker: entry.inWorker });
+    return entry;
+  });
 }
 
 /* تحويلات fp16 للنماذج التي مدخلاتها/مخرجاتها float16. */
@@ -172,4 +217,4 @@ export function canvasOf(w, h) { const c = document.createElement('canvas'); c.w
 export function throwIfAborted(signal) { if (signal && signal.aborted) throw new Error(MESSAGES.cancelled); }
 /* يعطي المتصفح فرصة لرسم شريط التقدم بين الدفعات. */
 export function yieldFrame() { return new Promise(r => setTimeout(r, 0)); }
-export function downloadStage(label) { return p => `جاري تنزيل ${label} لأول مرة... ${Math.round(p * 100)}%`; }
+export function downloadStage(model) { const size = modelSize(model); return p => `جاري تنزيل ${model.label} (${size}) لأول مرة... ${Math.round(p * 100)}%`; }
