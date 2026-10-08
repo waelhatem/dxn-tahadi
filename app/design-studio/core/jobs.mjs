@@ -34,11 +34,14 @@ export class JobManager {
   async _start(job) {
     const controller = new AbortController();
     job._controller = controller;
-    let timer = null;
-    const timeout = new Promise((_, reject) => { timer = setTimeout(() => { controller.abort(); reject(new Error(MESSAGES.timeout)); }, this.timeoutMs); });
+    /* المهلة مهلة توقف: تُحسب من آخر تقدم وليس من البداية، حتى لا يفشل تنزيل نموذج كبير على اتصال بطيء ما دام يتقدم. */
+    let timer = null, fail = null;
+    const arm = () => { clearTimeout(timer); timer = setTimeout(() => { controller.abort(); if (fail) fail(new Error(MESSAGES.timeout)); }, this.timeoutMs); };
+    const timeout = new Promise((_, reject) => { fail = reject; arm(); });
     this._update(job, { status: 'processing', progress: 5, stage: 'جاري التحضير...', error: null });
     const progress = (pct, stage) => {
       if (job.status !== 'processing') return;
+      arm();
       this._update(job, { progress: Math.max(job.progress, Math.min(99, Math.round(pct))), stage: stage || job.stage });
     };
     try {
