@@ -66,7 +66,8 @@ test('image enhancement reports visible resolution metadata and updated cache ve
   assert.match(view,/قبل:/);
   assert.match(view,/عرض بالحجم الكامل/);
   const loader=read('app/design-studio-loader.js');
-  assert.match(loader,/VERSION='2'/);
+  const version=(loader.match(/VERSION='(\d+)'/)||[])[1];
+  assert.ok(version,'loader declares a VERSION');
   const html=read('app/index.html');
-  assert.match(html,/design-studio-loader\.js\?v=2/);
+  assert.ok(html.includes(`design-studio-loader.js?v=${version}`),'index.html loads the same loader version');
 });

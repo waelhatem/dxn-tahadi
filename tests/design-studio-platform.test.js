@@ -97,6 +97,63 @@ test('jobs: a listener added while an event is emitted does not receive that eve
   assert.equal(nested, 0, 'listener subscribed during emit missed the in-flight event');
 });
 
+test('browser AI models: self-hosted files match size and SHA-256, remote files are pinned, licenses are permissive', async () => {
+  const crypto = require('node:crypto');
+  const { MODELS } = await load('engines/browser-ai/models.mjs');
+  const files = [];
+  for (const m of Object.values(MODELS)) {
+    files.push({ url: m.url, bytes: m.bytes, sha256: m.sha256, license: m.license });
+    if (m.externalData) files.push({ url: m.externalData.url, bytes: m.externalData.bytes, sha256: m.externalData.sha256, license: m.license });
+  }
+  for (const f of files) {
+    assert.match(f.license, /^(MIT|Apache-2\.0|BSD-3-Clause)$/, `${f.url} license`);
+    assert.match(f.sha256, /^[0-9a-f]{64}$/);
+    if (f.url.startsWith('file:')) {
+      const buf = fs.readFileSync(new URL(f.url));
+      assert.equal(buf.length, f.bytes, `${f.url} size`);
+      assert.equal(crypto.createHash('sha256').update(buf).digest('hex'), f.sha256, `${f.url} sha256`);
+    } else {
+      assert.match(f.url, /^https:\/\/huggingface\.co\/[^/]+\/[^/]+\/resolve\/[0-9a-f]{40}\//, `${f.url} must be pinned to a commit`);
+    }
+  }
+  assert.ok(fs.existsSync(path.join(DS, 'models', 'LICENSE-real-esrgan.txt')), 'BSD-3 notice ships with the self-hosted model');
+});
+
+test('browser AI enhance: levels stretch a flat image, color correction pulls a color cast toward neutral', async () => {
+  const { autoLevels, colorCorrect } = await load('engines/browser-ai/enhance.mjs');
+  const flat = new Uint8ClampedArray(4 * 100);
+  for (let i = 0; i < 100; i++) { const v = 90 + (i % 50); flat.set([v, v, v, 255], i * 4); }
+  autoLevels(flat);
+  let mn = 255, mx = 0;
+  for (let i = 0; i < flat.length; i += 4) { mn = Math.min(mn, flat[i]); mx = Math.max(mx, flat[i]); }
+  assert.ok(mx - mn > 49 * 1.3, 'contrast range widened');
+  const warm = new Uint8ClampedArray(4 * 64);
+  for (let i = 0; i < 64; i++) warm.set([200, 150, 110, 255], i * 4);
+  colorCorrect(warm, { saturation: 1 });
+  assert.ok(warm[0] - warm[2] < 200 - 110, 'red/blue gap reduced');
+});
+
+test('browser AI routing: free tools do not depend on server keys, object removal needs a painted mask', () => {
+  const src = fs.readFileSync(path.join(DS, 'engines', 'index.mjs'), 'utf8');
+  assert.match(src, /BROWSER_AI_TOOLS = new Set\(\['enhance','upscale','removeBg','changeBg','product','removeObject'\]\)/);
+  assert.match(src, /if\(BROWSER_AI_TOOLS\.has\(tool\)&&browserAiSupported\(\)\)return true;/);
+  assert.match(src, /input\.tool === 'removeObject'\) return !!\(input\.options && input\.options\.mask\)/);
+  assert.match(src, /lazy\.browserAi = \(\) => import\('\.\/browser-ai\/index\.mjs'\)/, 'engine loaded only on demand');
+});
+
+test('jobs: the timeout counts from the last progress, so a slow but advancing job (model download) completes', async () => {
+  const { JobManager } = await load('core/jobs.mjs');
+  const m = new JobManager({ timeoutMs: 60 });
+  const done = new Promise(r => m.subscribe(j => (j.status === 'completed' || j.status === 'failed') && r(j)));
+  m.submit({ type: 'image', run: async ({ progress }) => {
+    for (let i = 1; i <= 6; i++) { await new Promise(r => setTimeout(r, 35)); progress(10 * i, `download ${i}`); }
+    return 'ok';
+  } });
+  const job = await done;
+  assert.equal(job.status, 'completed', 'total run time (210ms) exceeds the 60ms limit but progress kept arriving');
+  assert.equal(job.result, 'ok');
+});
+
 test('jobs: timeout fails the job with an Arabic message', async () => {
   const { JobManager } = await load('core/jobs.mjs');
   const { MESSAGES } = await load('config.mjs');
@@ -190,7 +247,7 @@ test('frontend: no secrets, no engine names in visible UI text, no innerHTML', (
   const views = files.filter(f => f.includes(`${path.sep}views${path.sep}`));
   for (const file of views) {
     const strings = fs.readFileSync(file, 'utf8').match(/'[^'\n]*'|`[^`\n]*`/g) || [];
-    for (const s of strings) assert.doesNotMatch(s, /ComfyUI|WhisperX|Remotion|HyperFrames|PyVideoTrans|OpenShorts|Postiz|\bMock\b/i, `${path.basename(file)}: ${s}`);
+    for (const s of strings) assert.doesNotMatch(s, /ComfyUI|WhisperX|Remotion|HyperFrames|PyVideoTrans|OpenShorts|Postiz|ESRGAN|ORMBG|MI-GAN|ONNX|\bMock\b/i, `${path.basename(file)}: ${s}`);
   }
 });
 
