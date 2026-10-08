@@ -154,15 +154,21 @@ export async function processImage({ tool, source, options = {} }, { progress, s
   if (!LOCAL_IMAGE_TOOLS.has(tool)) { const e = new Error('ENGINE_REQUIRED'); e.code = 'ENGINE_REQUIRED'; throw e; }
   await steps(progress, signal, [[15, 'جاري قراءة الصورة...'], [30, 'جاري التحليل...']]);
   const img = await loadImage(source);
+  const sourceWidth = img.naturalWidth || img.width;
+  const sourceHeight = img.naturalHeight || img.height;
   let c = drawScaled(img, tool === 'upscale' ? UPSCALE_MAX_SIDE : IMAGE_MAX_SIDE);
   await steps(progress, signal, [[50, 'جاري المعالجة...']]);
   switch (tool) {
-    case 'enhance': applyAdjust(c, { brightness: 1.04, contrast: 1.1, saturation: 1.12 }); sharpen(c.getContext('2d'), c.width, c.height, 0.3); break;
+    case 'enhance':
+      applyAdjust(c, { brightness: 1.07, contrast: 1.16, saturation: 1.13, gamma: 1.04, warmth: 2 });
+      sharpen(c.getContext('2d'), c.width, c.height, 0.42);
+      break;
     case 'upscale': {
       const f = Math.min(2, UPSCALE_MAX_SIDE / Math.max(c.width, c.height));
       const up = canvasFor(c.width * f, c.height * f), ux = up.getContext('2d');
-      ux.imageSmoothingQuality = 'high'; ux.drawImage(c, 0, 0, up.width, up.height);
-      sharpen(ux, up.width, up.height, 0.25); c = up; break;
+      ux.imageSmoothingEnabled = true; ux.imageSmoothingQuality = 'high'; ux.drawImage(c, 0, 0, up.width, up.height);
+      sharpen(ux, up.width, up.height, 0.42);
+      c = up; break;
     }
     case 'lighting': applyAdjust(c, { brightness: 1.12, contrast: 1.05, gamma: 1.12 }); break;
     case 'colors': applyAdjust(c, { saturation: 1.3, contrast: 1.06, warmth: 6 }); break;
@@ -183,5 +189,5 @@ export async function processImage({ tool, source, options = {} }, { progress, s
   const type = tool === 'removeBg' ? 'image/png' : 'image/jpeg';
   const resultSrc = c.toDataURL(type, 0.92);
   progress(95, 'اكتمل تقريبًا...');
-  return { resultSrc, width: c.width, height: c.height, mime: type, sample: false };
+  return { resultSrc, width: c.width, height: c.height, sourceWidth, sourceHeight, mime: type, sample: false, provider: 'local' };
 }
