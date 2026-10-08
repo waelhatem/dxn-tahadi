@@ -3,7 +3,7 @@
 (function(){
   if(window.__DXN_DESIGN_STUDIO_LOADER_V1__)return;
   window.__DXN_DESIGN_STUDIO_LOADER_V1__=true;
-  var VERSION='4';
+  var VERSION='5';
   /* مفتاح تشغيل التبويب كاملًا (DESIGN_STUDIO_ENABLED). يمكن إيقافه بـ window.DXN_DESIGN_STUDIO_ENABLED=false قبل هذا الملف. */
   if(window.DXN_DESIGN_STUDIO_ENABLED!==false)window.DXN_DESIGN_STUDIO_ENABLED=true;
   var modulePromise=null;

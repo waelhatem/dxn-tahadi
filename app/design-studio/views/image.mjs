@@ -38,7 +38,7 @@ const BG_OPTIONS = [
 ].map(([value, label]) => ({ value, label }));
 
 /* حالة العمل الحالية (تبقى عند إعادة رسم التبويب). */
-const state = { original: null, current: null, history: [], tool: 'enhance', aspect: '1:1', social: 'instagram-post', headline: '', prompt: '', background: 'studio', aiUpscale: true, factor: 2, mask: null, jobId: null, result: null, projectId: null, fileName: '' };
+const state = { original: null, current: null, history: [], tool: 'enhance', aspect: '1:1', social: 'instagram-post', headline: '', prompt: '', background: 'studio', aiUpscale: true, factor: 2, subject: 'person', mask: null, jobId: null, result: null, projectId: null, fileName: '' };
 /* أدوات لا معنى للمقاس فيها لأنها تحافظ على إطار الصورة الأصلي. */
 const KEEP_FRAME_TOOLS = new Set(['enhance','upscale','removeBg','changeBg','removeObject']);
 
@@ -65,8 +65,22 @@ function resultInfo(result, tool){
   return h('div',{class:'ds-result-info'},
     h('b',{text:browserAi?'ذكاء اصطناعي داخل المتصفح (مجاني)':local?'معالجة محلية':'معالجة متقدمة'}),
     h('span',{text:`قبل: ${src}  ←  بعد: ${out}`}),
+    browserAi&&result.ai?aiDetails(result.ai):null,
     h('small',{class:'ds-hint',text:note}));
 }
+/* حجم النموذج، وضع التشغيل (WebGPU/WASM)، وقت التنزيل والمعالجة. */
+function aiDetails(ai){
+  const sec=ms=>`${(ms/1000).toFixed(1)} ث`;
+  const mode=ai.backend==='webgpu'?'WebGPU (كرت الشاشة)':'WASM (المعالج)';
+  const models=(ai.models||[]).filter((m,i,a)=>a.findIndex(x=>x.label===m.label)===i);
+  const size=models.map(m=>`${(m.bytes/1048576).toFixed(1)} MB${m.cached?' من الكاش':` — تنزيل ${sec(m.downloadMs+m.initMs)}`}`).join('، ');
+  return h('small',{class:'ds-ai-details'},
+    h('span',{text:`التشغيل: ${mode}${ai.fellBack?' (تحوّل تلقائيًا من كرت الشاشة)':''}`}),
+    size?h('span',{text:`النموذج: ${size}`}):null,
+    h('span',{text:`المعالجة: ${sec(ai.runMs||0)} · الإجمالي: ${sec(ai.totalMs||0)}`}),
+    ai.lowEnd?h('span',{text:'تمت المعالجة بحجم أصغر لأن الجهاز محدود الموارد.'}):null);
+}
+const SUBJECTS=[{value:'person',label:'شخص'},{value:'object',label:'منتج أو أي عنصر'}];
 
 /* لوحة رسم القناع لإزالة العناصر: المستخدم يلوّن العنصر بالفرشاة. onChange(dataUrl|null). */
 function maskPainter(src, initialMask, onChange) {
@@ -115,7 +129,7 @@ export function imageView(ctx, params = {}) {
     const supported = await imageEngine.supports(state.tool);
     if (!supported) { toast(MESSAGES.engineUnavailable); return; }
     const fmt = SOCIAL_FORMATS.find(f => f.value === state.social) || SOCIAL_FORMATS[0];
-    const options = { aspect: state.tool === 'social' ? fmt.aspect : (state.aspect||'1:1'), headline: state.headline, prompt: state.prompt, background: state.background, preserveProduct: true, aiUpscale: state.aiUpscale, factor: state.factor, mask: state.tool === 'removeObject' ? state.mask : null };
+    const options = { aspect: state.tool === 'social' ? fmt.aspect : (state.aspect||'1:1'), headline: state.headline, prompt: state.prompt, background: state.background, preserveProduct: true, aiUpscale: state.aiUpscale, factor: state.factor, subject: state.subject, mask: state.tool === 'removeObject' ? state.mask : null };
     const input = { tool: state.tool, source: state.current || '', options };
     state.result = null;
     state.jobId = jobs.submit({ type: 'image', provider: getProvider('image'), input, run: c => imageEngine.process(input, c) });
@@ -139,6 +153,7 @@ export function imageView(ctx, params = {}) {
           field('الأداة', toolGrid()),
           toolDef.hint ? h('small', { class: 'ds-hint', text: toolDef.hint }) : null,
           state.tool === 'social' ? field('نوع التصميم', chips(SOCIAL_FORMATS.map(f => ({ value: f.value, label: f.label })), state.social, v => { state.social = v; })) : null,
+          state.tool === 'removeBg' || state.tool === 'changeBg' ? field('ماذا في الصورة؟', chips(SUBJECTS, state.subject, v => { state.subject = v; }), state.subject === 'person' ? 'نموذج صغير (6.3 MB) مخصص للأشخاص.' : 'نموذج أكبر يناسب المنتجات وأي عنصر، وهو الأسرع على الأجهزة التي تدعم كرت الشاشة.') : null,
           state.tool === 'changeBg' ? field('الخلفية', chips(BG_OPTIONS, state.background, v => { state.background = v; })) : null,
           state.tool === 'enhance' ? field('الجودة', h('label', { class: 'ds-toggle' },
             h('input', { type: 'checkbox', checked: state.aiUpscale, onChange: e => { state.aiUpscale = e.target.checked; } }),
