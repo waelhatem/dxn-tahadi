@@ -1,15 +1,15 @@
 /* إزالة العناصر (تجريبي): MI-GAN داخل المتصفح. المستخدم يرسم على العنصر، والنموذج يملأ المكان. */
 import { MODELS } from './models.mjs';
-import { getSession, canvasOf, throwIfAborted, downloadStage, metrics } from './runtime.mjs';
+import { getSession, canvasOf, throwIfAborted, downloadStage, modeLabel, metrics } from './runtime.mjs';
 
 /* src: canvas، mask: canvas بنفس الحجم (البكسلات المرسومة = المطلوب حذفها). */
 export async function inpaint(src, mask, { progress = () => {}, signal, from = 5, to = 92 } = {}) {
   const loadEnd = from + (to - from) * 0.7;
-  const stage = downloadStage(MODELS.inpainter.label);
+  const stage = downloadStage(MODELS.inpainter);
   /* MI-GAN يعمل بثبات على WASM؛ WebGPU لهذا النموذج ما زال تجريبيًا. */
   const { ort, session, backend } = await getSession(MODELS.inpainter, { signal, preferGpu: false, onProgress: p => progress(from + (loadEnd - from) * p, stage(p)) });
   throwIfAborted(signal);
-  progress(loadEnd, 'جاري إزالة العنصر...');
+  progress(loadEnd, `جاري إزالة العنصر (${modeLabel(backend)})...`);
   const W = src.width, H = src.height, plane = W * H;
   const px = src.getContext('2d').getImageData(0, 0, W, H).data;
   const mk = mask.getContext('2d').getImageData(0, 0, W, H).data;

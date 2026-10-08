@@ -1,6 +1,6 @@
 /* زيادة الدقة بالذكاء الاصطناعي: Real-ESRGAN (×4) على مربعات صغيرة مع تداخل، ثم ×2 أو ×4. */
 import { MODELS } from './models.mjs';
-import { getSession, makeTensor, tensorToFloat, inputType, inputShape, canvasOf, throwIfAborted, yieldFrame, downloadStage, metrics } from './runtime.mjs';
+import { getSession, makeTensor, tensorToFloat, inputType, inputShape, canvasOf, throwIfAborted, yieldFrame, downloadStage, modeLabel, metrics } from './runtime.mjs';
 
 export const MAX_OUTPUT_SIDE = 4096;
 const DEFAULT_TILE = 192;
@@ -28,7 +28,7 @@ function hasAlpha(data) { for (let i = 3; i < data.length; i += 4) if (data[i] <
 /* source: canvas. يعيد canvas بحجم source × factor. */
 export async function upscaleCanvas(source, { factor = 2, progress = () => {}, signal, from = 5, to = 95 } = {}) {
   const loadEnd = from + (to - from) * 0.3;
-  const stage = downloadStage(MODELS.upscaler.label);
+  const stage = downloadStage(MODELS.upscaler);
   const { ort, session, backend } = await getSession(MODELS.upscaler, { signal, onProgress: p => progress(from + (loadEnd - from) * p, stage(p)) });
   const src = fitSource(source, factor);
   const W = src.width, H = src.height, S = MODELS.upscaler.scale;
@@ -73,7 +73,7 @@ export async function upscaleCanvas(source, { factor = 2, progress = () => {}, s
       tx.putImageData(tileImage, 0, 0);
       ox.drawImage(tileCanvas, (cx - ix) * S, (cy - iy) * S, cw * S, ch * S, cx * factor, cy * factor, cw * factor, ch * factor);
       done++;
-      progress(loadEnd + (to - loadEnd) * done / total, `جاري زيادة الدقة بالذكاء الاصطناعي... ${done}/${total}`);
+      progress(loadEnd + (to - loadEnd) * done / total, `جاري زيادة الدقة بالذكاء الاصطناعي (${modeLabel(backend)})... ${done}/${total}`);
       if (done % 4 === 0) await yieldFrame();
     }
   }

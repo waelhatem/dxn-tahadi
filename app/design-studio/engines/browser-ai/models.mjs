@@ -24,7 +24,18 @@ export const MODELS = Object.freeze({
     scale: 4,
     tile: [128, 128]
   },
-  /* ORMBG (Open Remove Background) — Apache-2.0. نسخة int8 للمعالج، fp16 لكرت الشاشة. */
+  /* MODNet (ZHKKKe/MODNet) — Apache-2.0. مخصص لفصل الأشخاص (Portrait matting)، صغير وسريع.
+     يعمل على WASM فقط: على WebGPU (ONNX Runtime 1.30) يعطي قناعًا خاطئًا بنسختي fp16 و fp32 (اختُبر على Chrome/Windows).
+     نسخة int8 (6.3MB) صحيحة على WASM. المدخل: أقصر ضلع 512 والأبعاد من مضاعفات 32، والقيم بين -1 و 1. */
+  portraitInt8: {
+    id: 'modnet-int8',
+    label: 'نموذج فصل الأشخاص',
+    url: `${HF}/Xenova/modnet/resolve/fa2fa546052fba4c08921230a26cc69a333fca12/onnx/model_quantized.onnx`,
+    bytes: 6632188,
+    sha256: '92e49898c3e05a6d7a944fc67a8cb87c4aad754ffb6ebd949528c7d1105fee3a',
+    license: 'Apache-2.0'
+  },
+  /* ORMBG (Open Remove Background) — Apache-2.0. لأي عنصر (منتجات وأشياء). int8 للمعالج، fp16 لكرت الشاشة. */
   segmenterInt8: {
     id: 'ormbg-int8',
     label: 'نموذج إزالة الخلفية',
