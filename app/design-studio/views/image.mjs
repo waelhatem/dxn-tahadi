@@ -49,6 +49,19 @@ function promptMeta(tool){
 }
 
 function resetResult() { state.jobId = null; state.result = null; }
+function resultInfo(result, tool){
+  if(!result)return null;
+  const src=(result.sourceWidth&&result.sourceHeight)?`${result.sourceWidth}×${result.sourceHeight}`:'—';
+  const out=(result.width&&result.height)?`${result.width}×${result.height}`:'—';
+  const local=result.provider==='local';
+  let note=local?'تمت المعالجة محليًا داخل المتصفح.':'تمت المعالجة بالمحرك المتقدم.';
+  if(local&&tool==='upscale')note='تمت زيادة أبعاد الصورة فعليًا. لأن المعاينة تعرض الصورتين بنفس المساحة قد لا يبدو الحجم مختلفًا بصريًا؛ راقب الأبعاد أو افتح النتيجة بالحجم الكامل.';
+  if(local&&tool==='enhance')note='التحسين المحلي يزيد الإضاءة والتباين والحدة، لكنه لا يستطيع استرجاع تفاصيل مفقودة من صورة شديدة الضبابية مثل محرك التحسين المتقدم.';
+  return h('div',{class:'ds-result-info'},
+    h('b',{text:local?'معالجة محلية':'معالجة متقدمة'}),
+    h('span',{text:`قبل: ${src}  ←  بعد: ${out}`}),
+    h('small',{class:'ds-hint',text:note}));
+}
 
 export function imageView(ctx, params = {}) {
   if (params.tool) state.tool = params.tool;
@@ -79,7 +92,7 @@ export function imageView(ctx, params = {}) {
     const preview = state.result ? beforeAfter(state.current, state.result.resultSrc) : h('img', { src: state.current, alt: 'معاينة الصورة', class: 'ds-preview-img' });
     return [
       h('div', { class: 'ds-split' },
-        h('div', { class: 'ds-preview' }, preview, sampleBadge(state.result)),
+        h('div', { class: 'ds-preview' }, preview, sampleBadge(state.result), resultInfo(state.result,state.tool)),
         h('div', { class: 'ds-panel' },
           field('الأداة', toolGrid()),
           toolDef.hint ? h('small', { class: 'ds-hint', text: toolDef.hint }) : null,
@@ -98,7 +111,7 @@ export function imageView(ctx, params = {}) {
   function generatorBody(){
     const preview=state.result?h('img',{src:state.result.resultSrc,alt:'الصورة المنشأة',class:'ds-preview-img'}):h('div',{class:'ds-empty'},h('div',{class:'ds-empty-icon',text:'🌟'}),h('p',{text:'اكتب وصفًا واضحًا للصورة التي تريد إنشاءها.'}));
     return h('div',{class:'ds-split'},
-      h('div',{class:'ds-preview'},preview,sampleBadge(state.result)),
+      h('div',{class:'ds-preview'},preview,sampleBadge(state.result),resultInfo(state.result,state.tool)),
       h('div',{class:'ds-panel'},
         field('وصف الصورة',textInput(state.prompt,v=>{state.prompt=v;},{placeholder:'مثال: كوب قهوة فاخر على طاولة خشبية بإضاءة صباحية طبيعية',multiline:true,maxLength:900})),
         aspectPicker(state.aspect||'1:1',v=>{state.aspect=v;}),
@@ -126,6 +139,7 @@ export function imageView(ctx, params = {}) {
         state.projectId = rec.id;
       }, { variant: 'primary', icon: '💾' }),
       button('تنزيل', () => downloadDataUrl(state.result.resultSrc, `design-${Date.now()}.${state.result.mime === 'image/png' ? 'png' : 'jpg'}`), { icon: '⬇️' }),
+      button('عرض بالحجم الكامل', () => { const w=window.open('about:blank','_blank','noopener'); if(w){w.document.write('<title>النتيجة</title><style>html,body{margin:0;background:#111;display:grid;place-items:center;min-height:100%}img{max-width:none;height:auto}</style><img src="'+state.result.resultSrc+'">');w.document.close();} }, { icon: '🔎', variant: 'ghost' }),
       button('إنشاء نسخة', () => { if(state.current)state.history.push(state.current); state.current = state.result.resultSrc; if(!state.original)state.original=state.result.resultSrc; state.tool='enhance'; state.projectId = null; resetResult(); render(); toast('تم اعتماد النتيجة كنسخة جديدة يمكنك متابعة التعديل عليها.'); }, { icon: '🧬' }),
       state.original ? button('العودة للأصل', () => { state.current = state.original; state.history = []; resetResult(); render(); }, { variant: 'ghost', icon: '↩️' }) : null);
   }
