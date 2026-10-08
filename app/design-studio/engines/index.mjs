@@ -13,11 +13,14 @@ function remote(engine) {
   return provider === 'local' || provider === 'native' ? null : remoteAdapter(engine, provider);
 }
 
+const AI_QUALITY_IMAGE_TOOLS = new Set(['enhance','upscale']);
+
 export const imageEngine = {
   async supports(tool) {
     const provider=getProvider('image');
     if(provider==='native'&&nativeImage.supports(tool))return true;
     if(remote('image'))return true;
+    if(AI_QUALITY_IMAGE_TOOLS.has(tool))return false;
     const m=await lazy.image();
     return m.LOCAL_IMAGE_TOOLS.has(tool);
   },
@@ -26,6 +29,11 @@ export const imageEngine = {
     if(provider==='native'&&nativeImage.supports(input.tool))return nativeImage.process(input,ctx);
     const r=remote('image');
     if(r)return r.run('process',input,ctx);
+    if(AI_QUALITY_IMAGE_TOOLS.has(input.tool)) {
+      const e=new Error('يتطلب تحسين الصورة وزيادة الدقة تفعيل محرك الذكاء الاصطناعي في بيئة Preview.');
+      e.code='ENGINE_REQUIRED';
+      throw e;
+    }
     return (await lazy.image()).processImage(input,ctx);
   }
 };
