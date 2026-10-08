@@ -7,15 +7,15 @@ import { getProvider, MESSAGES } from '../config.mjs';
 import { header, uploader, chips, aspectPicker, field, textInput, jobPanel, beforeAfter, saveProject, downloadDataUrl, sampleBadge } from './components.mjs';
 
 export const IMAGE_TOOLS = [
-  { id: 'enhance', label: 'تحسين الصورة', icon: '✨' },
-  { id: 'upscale', label: 'زيادة الدقة', icon: '🔍' },
+  { id: 'enhance', label: 'تحسين الصورة', icon: '✨', free: true },
+  { id: 'upscale', label: 'زيادة الدقة', icon: '🔍', free: true, hint: 'زيادة دقة حقيقية بالذكاء الاصطناعي داخل متصفحك.' },
   { id: 'lighting', label: 'تحسين الإضاءة', icon: '💡' },
   { id: 'colors', label: 'تحسين الألوان', icon: '🎨' },
-  { id: 'removeBg', label: 'إزالة الخلفية', icon: '🧽', hint: 'تعمل بأفضل شكل مع الخلفيات السادة.' },
-  { id: 'changeBg', label: 'تغيير الخلفية', icon: '🌄', hint: 'تعمل بأفضل شكل مع الخلفيات السادة.' },
+  { id: 'removeBg', label: 'إزالة الخلفية', icon: '🧽', free: true, hint: 'يحدد الذكاء الاصطناعي العنصر الأساسي ويزيل الخلفية، والنتيجة PNG شفافة.' },
+  { id: 'changeBg', label: 'تغيير الخلفية', icon: '🌄', free: true },
   { id: 'cleanup', label: 'تنظيف الصورة', icon: '🧹' },
   { id: 'social', label: 'تصميم لمنصات التواصل', icon: '📣' },
-  { id: 'removeObject', label: 'إزالة عناصر', icon: '✂️' },
+  { id: 'removeObject', label: 'إزالة عناصر', icon: '✂️', free: true, hint: 'تجريبي: ارسم بالفرشاة على العنصر الذي تريد إزالته ثم اضغط تنفيذ.' },
   { id: 'addObject', label: 'إضافة عناصر', icon: '➕' },
   { id: 'productMarketing', label: 'صورة تسويقية للمنتج', icon: '🛒' },
   { id: 'freeEdit', label: 'تعديل حر بالذكاء الاصطناعي', icon: '🪄' },
@@ -38,7 +38,9 @@ const BG_OPTIONS = [
 ].map(([value, label]) => ({ value, label }));
 
 /* حالة العمل الحالية (تبقى عند إعادة رسم التبويب). */
-const state = { original: null, current: null, history: [], tool: 'enhance', aspect: '1:1', social: 'instagram-post', headline: '', prompt: '', background: 'studio', jobId: null, result: null, projectId: null, fileName: '' };
+const state = { original: null, current: null, history: [], tool: 'enhance', aspect: '1:1', social: 'instagram-post', headline: '', prompt: '', background: 'studio', aiUpscale: true, factor: 2, mask: null, jobId: null, result: null, projectId: null, fileName: '' };
+/* أدوات لا معنى للمقاس فيها لأنها تحافظ على إطار الصورة الأصلي. */
+const KEEP_FRAME_TOOLS = new Set(['enhance','upscale','removeBg','changeBg','removeObject']);
 
 const PROMPT_TOOLS = new Set(['removeObject','addObject','productMarketing','freeEdit','ad']);
 function promptMeta(tool){
@@ -53,14 +55,48 @@ function resultInfo(result, tool){
   if(!result)return null;
   const src=(result.sourceWidth&&result.sourceHeight)?`${result.sourceWidth}×${result.sourceHeight}`:'—';
   const out=(result.width&&result.height)?`${result.width}×${result.height}`:'—';
-  const local=result.provider==='local';
+  const local=result.provider==='local', browserAi=result.provider==='browser-ai';
   let note=local?'تمت المعالجة محليًا داخل المتصفح.':'تمت المعالجة بالمحرك المتقدم.';
+  if(browserAi)note='تمت المعالجة بالذكاء الاصطناعي داخل متصفحك مجانًا، ولم تُرسل الصورة إلى أي خادم.';
+  if(browserAi&&tool==='upscale')note='زيادة دقة حقيقية بالذكاء الاصطناعي داخل متصفحك. افتح النتيجة بالحجم الكامل لترى التفاصيل.';
+  if(browserAi&&tool==='removeObject')note='ميزة تجريبية: النتيجة أفضل مع العناصر الصغيرة والخلفيات البسيطة.';
   if(local&&tool==='upscale')note='تمت زيادة أبعاد الصورة فعليًا. لأن المعاينة تعرض الصورتين بنفس المساحة قد لا يبدو الحجم مختلفًا بصريًا؛ راقب الأبعاد أو افتح النتيجة بالحجم الكامل.';
   if(local&&tool==='enhance')note='التحسين المحلي يزيد الإضاءة والتباين والحدة، لكنه لا يستطيع استرجاع تفاصيل مفقودة من صورة شديدة الضبابية مثل محرك التحسين المتقدم.';
   return h('div',{class:'ds-result-info'},
-    h('b',{text:local?'معالجة محلية':'معالجة متقدمة'}),
+    h('b',{text:browserAi?'ذكاء اصطناعي داخل المتصفح (مجاني)':local?'معالجة محلية':'معالجة متقدمة'}),
     h('span',{text:`قبل: ${src}  ←  بعد: ${out}`}),
     h('small',{class:'ds-hint',text:note}));
+}
+
+/* لوحة رسم القناع لإزالة العناصر: المستخدم يلوّن العنصر بالفرشاة. onChange(dataUrl|null). */
+function maskPainter(src, initialMask, onChange) {
+  const img = h('img', { src, alt: 'حدد العنصر المطلوب إزالته', class: 'ds-mask-img' });
+  const canvas = h('canvas', { class: 'ds-mask-canvas', attrs: { 'aria-label': 'ارسم على العنصر المطلوب إزالته' } });
+  let brush = 32, drawing = false, last = null;
+  img.addEventListener('load', () => {
+    canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+    if (initialMask) { const m = new Image(); m.onload = () => canvas.getContext('2d').drawImage(m, 0, 0, canvas.width, canvas.height); m.src = initialMask; }
+  });
+  const point = e => { const r = canvas.getBoundingClientRect(), s = canvas.width / r.width; return [(e.clientX - r.left) * s, (e.clientY - r.top) * s, s]; };
+  const draw = e => {
+    const [x, y, s] = point(e), c = canvas.getContext('2d');
+    c.strokeStyle = c.fillStyle = 'rgba(255,40,90,.6)'; c.lineWidth = brush * s; c.lineCap = c.lineJoin = 'round';
+    c.beginPath();
+    if (last) { c.moveTo(last[0], last[1]); c.lineTo(x, y); c.stroke(); } else { c.arc(x, y, brush * s / 2, 0, Math.PI * 2); c.fill(); }
+    last = [x, y];
+  };
+  canvas.addEventListener('pointerdown', e => { drawing = true; last = null; canvas.setPointerCapture(e.pointerId); draw(e); e.preventDefault(); });
+  canvas.addEventListener('pointermove', e => { if (drawing) { draw(e); e.preventDefault(); } });
+  const end = () => { if (!drawing) return; drawing = false; last = null; onChange(canvas.toDataURL('image/png')); };
+  canvas.addEventListener('pointerup', end);
+  canvas.addEventListener('pointercancel', end);
+  const size = h('input', { type: 'range', min: 8, max: 120, value: brush, attrs: { 'aria-label': 'حجم الفرشاة' } });
+  size.addEventListener('input', () => { brush = Number(size.value); });
+  return h('div', { class: 'ds-mask' },
+    h('div', { class: 'ds-mask-wrap' }, img, canvas),
+    h('div', { class: 'ds-mask-tools' },
+      h('label', { class: 'ds-brush' }, h('span', { text: 'حجم الفرشاة' }), size),
+      button('مسح التحديد', () => { canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height); onChange(null); }, { variant: 'ghost', icon: '🧽' })));
 }
 
 export function imageView(ctx, params = {}) {
@@ -68,16 +104,18 @@ export function imageView(ctx, params = {}) {
   const root = h('div', { class: 'ds-studio' }, header(ctx, '🖼️ استوديو الصور', 'ارفع صورة، اختر الأداة، واضغط تنفيذ.'));
   const work = h('div', { class: 'ds-work' });
   const render = () => work.replaceChildren(...body());
-  const aiNotice = h('div',{class:'ds-note',text:'ملاحظة: تحسين الصورة وزيادة الدقة الاحترافيان يعتمدان على محرك AI. إذا ظهر عليهما «يتطلب AI» فهذا يعني أن مفاتيح Preview غير مفعلة، ولن نعرض نتيجة محلية مضللة.'});
+  const aiNotice = h('div',{class:'ds-note',text:'الأدوات المميزة بـ «مجاني» تعمل بالذكاء الاصطناعي داخل متصفحك دون أي تكلفة ودون رفع صورتك لأي خادم. أول استخدام لكل أداة ينزّل نموذجها مرة واحدة ثم يُحفظ في المتصفح.'});
   const runTool = async () => {
     const needsSource = state.tool !== 'generate';
     if (needsSource && !state.current) { toast(MESSAGES.needFile); return; }
     if (state.tool === 'generate' && !String(state.prompt||'').trim()) { toast('اكتب وصف الصورة التي تريد إنشاءها.'); return; }
-    if (PROMPT_TOOLS.has(state.tool) && (state.tool==='removeObject'||state.tool==='addObject'||state.tool==='freeEdit') && !String(state.prompt||'').trim()) { toast('اكتب التعديل المطلوب أولًا.'); return; }
+    const hasPrompt = !!String(state.prompt||'').trim();
+    if (state.tool === 'removeObject' && !state.mask && !(hasPrompt && imageEngine.supportsPromptErase())) { toast('ارسم بالفرشاة على العنصر الذي تريد إزالته أولًا.'); return; }
+    if ((state.tool==='addObject'||state.tool==='freeEdit') && !hasPrompt) { toast('اكتب التعديل المطلوب أولًا.'); return; }
     const supported = await imageEngine.supports(state.tool);
     if (!supported) { toast(MESSAGES.engineUnavailable); return; }
     const fmt = SOCIAL_FORMATS.find(f => f.value === state.social) || SOCIAL_FORMATS[0];
-    const options = { aspect: state.tool === 'social' ? fmt.aspect : (state.aspect||'1:1'), headline: state.headline, prompt: state.prompt, background: state.background, preserveProduct: true };
+    const options = { aspect: state.tool === 'social' ? fmt.aspect : (state.aspect||'1:1'), headline: state.headline, prompt: state.prompt, background: state.background, preserveProduct: true, aiUpscale: state.aiUpscale, factor: state.factor, mask: state.tool === 'removeObject' ? state.mask : null };
     const input = { tool: state.tool, source: state.current || '', options };
     state.result = null;
     state.jobId = jobs.submit({ type: 'image', provider: getProvider('image'), input, run: c => imageEngine.process(input, c) });
@@ -85,12 +123,15 @@ export function imageView(ctx, params = {}) {
   };
   function body() {
     if (!state.original && state.tool !== 'generate') return [
-      uploader({ kind: 'image', onFiles: async ([f]) => { state.original = await readAsDataURL(f); state.current = state.original; state.history = []; state.fileName = f.name; state.projectId = null; resetResult(); render(); } }),
+      uploader({ kind: 'image', onFiles: async ([f]) => { state.mask = null; state.original = await readAsDataURL(f); state.current = state.original; state.history = []; state.fileName = f.name; state.projectId = null; resetResult(); render(); } }),
       h('div',{class:'ds-actions'},button('إنشاء صورة من وصف',()=>{state.tool='generate';state.result=null;state.jobId=null;render();},{icon:'🌟',variant:'ghost'}))
     ];
     if (!state.original && state.tool === 'generate') return [generatorBody()];
     const toolDef = IMAGE_TOOLS.find(t => t.id === state.tool) || IMAGE_TOOLS[0];
-    const preview = state.result ? beforeAfter(state.current, state.result.resultSrc) : h('img', { src: state.current, alt: 'معاينة الصورة', class: 'ds-preview-img' });
+    const preview = state.result ? beforeAfter(state.current, state.result.resultSrc)
+      : state.tool === 'removeObject' ? maskPainter(state.current, state.mask, m => { state.mask = m; })
+      : h('img', { src: state.current, alt: 'معاينة الصورة', class: 'ds-preview-img' });
+    const showPrompt = PROMPT_TOOLS.has(state.tool) && (state.tool !== 'removeObject' || imageEngine.supportsPromptErase());
     return [
       h('div', { class: 'ds-split' },
         h('div', { class: 'ds-preview' }, preview, sampleBadge(state.result), resultInfo(state.result,state.tool)),
@@ -99,12 +140,16 @@ export function imageView(ctx, params = {}) {
           toolDef.hint ? h('small', { class: 'ds-hint', text: toolDef.hint }) : null,
           state.tool === 'social' ? field('نوع التصميم', chips(SOCIAL_FORMATS.map(f => ({ value: f.value, label: f.label })), state.social, v => { state.social = v; })) : null,
           state.tool === 'changeBg' ? field('الخلفية', chips(BG_OPTIONS, state.background, v => { state.background = v; })) : null,
-          state.tool !== 'social' ? aspectPicker(state.aspect || '1:1', v => { state.aspect = v; }) : null,
-          PROMPT_TOOLS.has(state.tool) ? (()=>{const m=promptMeta(state.tool);return field(m[0], textInput(state.prompt, v => { state.prompt = v; }, { placeholder:m[1], multiline:true, maxLength:700 }));})() : null,
-          (state.tool === 'social' || state.aspect) ? field('نص على الصورة (اختياري)', textInput(state.headline, v => { state.headline = v; }, { placeholder: 'مثال: عرض خاص هذا الأسبوع', maxLength: 60 })) : null,
+          state.tool === 'enhance' ? field('الجودة', h('label', { class: 'ds-toggle' },
+            h('input', { type: 'checkbox', checked: state.aiUpscale, onChange: e => { state.aiUpscale = e.target.checked; } }),
+            h('span', { text: 'تحسين التفاصيل وزيادة الدقة ×2 بالذكاء الاصطناعي' })), 'بدونها: إزالة تشويش وضبط الإضاءة والألوان والحدة فقط (أسرع).') : null,
+          state.tool === 'upscale' ? field('مقدار التكبير', chips([{ value: 2, label: '×2' }, { value: 4, label: '×4' }], state.factor, v => { state.factor = v; }), 'الحد الأقصى للناتج 4096 بكسل.') : null,
+          !KEEP_FRAME_TOOLS.has(state.tool) && state.tool !== 'social' ? aspectPicker(state.aspect || '1:1', v => { state.aspect = v; }) : null,
+          showPrompt ? (()=>{const m=promptMeta(state.tool);return field(state.tool==='removeObject'?'أو صف العنصر (يستخدم المحرك المتقدم)':m[0], textInput(state.prompt, v => { state.prompt = v; }, { placeholder:m[1], multiline:true, maxLength:700 }));})() : null,
+          !KEEP_FRAME_TOOLS.has(state.tool) && (state.tool === 'social' || state.aspect) ? field('نص على الصورة (اختياري)', textInput(state.headline, v => { state.headline = v; }, { placeholder: 'مثال: عرض خاص هذا الأسبوع', maxLength: 60 })) : null,
           h('div', { class: 'ds-actions' },
             button('تنفيذ', runTool, { variant: 'primary', icon: '⚡' }),
-            button('صورة أخرى', () => { state.original = null; state.current = null; resetResult(); render(); }, { variant: 'ghost', icon: '🔄' })),
+            button('صورة أخرى', () => { state.mask = null; state.original = null; state.current = null; resetResult(); render(); }, { variant: 'ghost', icon: '🔄' })),
           state.jobId ? jobPanel(state.jobId, { onResult: res => { state.result = res; render(); } }) : null,
           state.result ? resultActions() : null))
     ];
@@ -126,15 +171,15 @@ export function imageView(ctx, params = {}) {
   function toolGrid() {
     const grid = h('div', { class: 'ds-tool-grid' });
     IMAGE_TOOLS.forEach(t => {
-      const btn = h('button', { type: 'button', class: 'ds-tool' + (t.id === state.tool ? ' is-active' : ''), onClick: () => { state.tool = t.id; resetResult(); render(); } }, h('span', { attrs: { 'aria-hidden': 'true' }, text: t.icon }), h('span', { text: t.label }));
+      const btn = h('button', { type: 'button', class: 'ds-tool' + (t.id === state.tool ? ' is-active' : ''), onClick: () => { state.tool = t.id; resetResult(); render(); } }, h('span', { attrs: { 'aria-hidden': 'true' }, text: t.icon }), h('span', { text: t.label }), t.free ? h('small', { class: 'ds-free', text: 'مجاني' }) : null);
       grid.appendChild(btn);
       imageEngine.supports(t.id).then(ok => {
         if (!ok) {
           btn.disabled = true;
           btn.classList.add('is-soon');
-          const needsAi = t.id === 'enhance' || t.id === 'upscale';
+          const needsAi = !t.free; /* الأدوات غير المجانية تعتمد على محرك الذكاء الاصطناعي على الخادم. */
           btn.appendChild(h('small', { class: 'ds-soon', text: needsAi ? 'يتطلب AI' : 'قريبًا' }));
-          btn.title = needsAi ? 'هذه الأداة تحتاج تفعيل محرك الذكاء الاصطناعي في نسخة Preview.' : MESSAGES.engineUnavailable;
+          btn.title = needsAi ? 'هذه الأداة تحتاج تفعيل محرك الذكاء الاصطناعي على الخادم.' : MESSAGES.engineUnavailable;
         }
       });
     });
@@ -149,8 +194,8 @@ export function imageView(ctx, params = {}) {
       }, { variant: 'primary', icon: '💾' }),
       button('تنزيل', () => downloadDataUrl(state.result.resultSrc, `design-${Date.now()}.${state.result.mime === 'image/png' ? 'png' : 'jpg'}`), { icon: '⬇️' }),
       button('عرض بالحجم الكامل', () => { const w=window.open('about:blank','_blank','noopener'); if(w){w.document.write('<title>النتيجة</title><style>html,body{margin:0;background:#111;display:grid;place-items:center;min-height:100%}img{max-width:none;height:auto}</style><img src="'+state.result.resultSrc+'">');w.document.close();} }, { icon: '🔎', variant: 'ghost' }),
-      button('إنشاء نسخة', () => { if(state.current)state.history.push(state.current); state.current = state.result.resultSrc; if(!state.original)state.original=state.result.resultSrc; state.tool='enhance'; state.projectId = null; resetResult(); render(); toast('تم اعتماد النتيجة كنسخة جديدة يمكنك متابعة التعديل عليها.'); }, { icon: '🧬' }),
-      state.original ? button('العودة للأصل', () => { state.current = state.original; state.history = []; resetResult(); render(); }, { variant: 'ghost', icon: '↩️' }) : null);
+      button('إنشاء نسخة', () => { state.mask = null; if(state.current)state.history.push(state.current); state.current = state.result.resultSrc; if(!state.original)state.original=state.result.resultSrc; state.tool='enhance'; state.projectId = null; resetResult(); render(); toast('تم اعتماد النتيجة كنسخة جديدة يمكنك متابعة التعديل عليها.'); }, { icon: '🧬' }),
+      state.original ? button('العودة للأصل', () => { state.mask = null; state.current = state.original; state.history = []; resetResult(); render(); }, { variant: 'ghost', icon: '↩️' }) : null);
   }
   render();
   root.appendChild(aiNotice);
