@@ -14,17 +14,34 @@ function remote(engine) {
 }
 
 const AI_QUALITY_IMAGE_TOOLS = new Set(['enhance','upscale']);
+/* أدوات تعمل مجانًا بنماذج ذكاء اصطناعي داخل المتصفح (لا تحتاج أي مفاتيح API على الخادم).
+   النماذج لا تُحمّل إلا عند تنفيذ الأداة. */
+const BROWSER_AI_TOOLS = new Set(['enhance','upscale','removeBg','changeBg','product','removeObject']);
+lazy.browserAi = () => import('./browser-ai/index.mjs');
+function browserAiSupported() {
+  return typeof WebAssembly === 'object' && typeof fetch === 'function' && !!(globalThis.crypto && crypto.subtle);
+}
+/* إزالة العناصر: برسم قناع ← محليًا (MI-GAN). بوصف نصي فقط ← OpenAI إن كان متاحًا. */
+function useBrowserAi(input) {
+  if (!BROWSER_AI_TOOLS.has(input.tool) || !browserAiSupported()) return false;
+  if (input.tool === 'removeObject') return !!(input.options && input.options.mask);
+  return true;
+}
 
 export const imageEngine = {
   async supports(tool) {
     const provider=getProvider('image');
+    if(BROWSER_AI_TOOLS.has(tool)&&browserAiSupported())return true;
     if(provider==='native'&&nativeImage.supports(tool))return true;
     if(remote('image'))return true;
     if(AI_QUALITY_IMAGE_TOOLS.has(tool))return false;
     const m=await lazy.image();
     return m.LOCAL_IMAGE_TOOLS.has(tool);
   },
+  /* هل تتوفر إزالة العناصر بالوصف النصي (OpenAI)؟ */
+  supportsPromptErase() { return getProvider('image')==='native'&&nativeImage.supports('removeObject'); },
   async process(input, ctx) {
+    if(useBrowserAi(input))return (await lazy.browserAi()).process(input,ctx);
     const provider=getProvider('image');
     if(provider==='native'&&nativeImage.supports(input.tool))return nativeImage.process(input,ctx);
     const r=remote('image');
