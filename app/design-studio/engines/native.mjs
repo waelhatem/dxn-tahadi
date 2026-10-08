@@ -55,6 +55,15 @@ async function shrinkDataUrl(source,maxChars=3000000){
 function backgroundKey(value){
   return ({studio:'premium',white:'white',luxury:'dark',wood:'warm',kitchen:'lifestyle',office:'lifestyle',nature:'natural',lifestyle:'lifestyle',social:'premium',minimal:'white',cinematic:'dark'})[value]||'premium';
 }
+function imageSize(src){
+  return new Promise(resolve=>{
+    if(!src)return resolve({width:0,height:0});
+    const img=new Image();
+    img.onload=()=>resolve({width:img.naturalWidth||img.width||0,height:img.naturalHeight||img.height||0});
+    img.onerror=()=>resolve({width:0,height:0});
+    img.src=src;
+  });
+}
 
 export function nativeImageSupports(tool){
   const caps=getCapabilities();
@@ -72,6 +81,7 @@ export class NativeImageAdapter{
     const image=tool==='generate'?'':await shrinkDataUrl(source);
     progress(28,'تم تجهيز الملف...');
     const prompt=String(options.prompt||options.instruction||options.headline||'').trim();
+    const sourceSize=await imageSize(source);
     const data=await postJson('/api/design-image',{
       token:sessionToken(),
       task,
@@ -84,8 +94,18 @@ export class NativeImageAdapter{
     progress(92,'جاري تجهيز النتيجة...');
     const resultSrc=String(data.image_data||data.url||'');
     if(!resultSrc)throw new Error(MESSAGES.processingFailed);
+    const resultSize=await imageSize(resultSrc);
     const mime=resultSrc.startsWith('data:image/png')?'image/png':'image/jpeg';
-    return {resultSrc,mime,sample:false,provider:data.provider||'native'};
+    return {
+      resultSrc,
+      mime,
+      sample:false,
+      provider:data.provider||'native',
+      sourceWidth:sourceSize.width,
+      sourceHeight:sourceSize.height,
+      width:resultSize.width,
+      height:resultSize.height
+    };
   }
 }
 
