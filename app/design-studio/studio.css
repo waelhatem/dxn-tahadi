@@ -80,6 +80,7 @@ textarea.ds-input{min-height:90px;resize:vertical}
 .ds-ba-tag{position:absolute;top:8px;padding:3px 10px;border-radius:999px;background:rgba(0,0,0,.6);color:#fff;font-size:12px}
 .ds-ba-before{right:8px}.ds-ba-after{left:8px}
 .ds-sample{display:inline-block;margin-top:8px;padding:3px 10px;border-radius:999px;background:#fff4dc;color:#8a5300;font-size:12px;font-weight:800}
+.ds-result-info{display:flex;flex-direction:column;gap:4px;margin-top:10px;padding:10px 12px;border:1px solid var(--ds-line);border-radius:12px;background:#fff;line-height:1.6}.ds-result-info>b{color:var(--ds-green)}.ds-result-info>span{font-size:13px;font-weight:800;direction:ltr;text-align:right}
 .ds-toggle{display:flex;align-items:center;gap:8px;min-height:44px;font-weight:700;cursor:pointer}
 .ds-toggle input{width:20px;height:20px}
 .ds-thumbs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
