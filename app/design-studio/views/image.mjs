@@ -68,6 +68,7 @@ export function imageView(ctx, params = {}) {
   const root = h('div', { class: 'ds-studio' }, header(ctx, '🖼️ استوديو الصور', 'ارفع صورة، اختر الأداة، واضغط تنفيذ.'));
   const work = h('div', { class: 'ds-work' });
   const render = () => work.replaceChildren(...body());
+  const aiNotice = h('div',{class:'ds-note',text:'ملاحظة: تحسين الصورة وزيادة الدقة الاحترافيان يعتمدان على محرك AI. إذا ظهر عليهما «يتطلب AI» فهذا يعني أن مفاتيح Preview غير مفعلة، ولن نعرض نتيجة محلية مضللة.'});
   const runTool = async () => {
     const needsSource = state.tool !== 'generate';
     if (needsSource && !state.current) { toast(MESSAGES.needFile); return; }
@@ -127,7 +128,15 @@ export function imageView(ctx, params = {}) {
     IMAGE_TOOLS.forEach(t => {
       const btn = h('button', { type: 'button', class: 'ds-tool' + (t.id === state.tool ? ' is-active' : ''), onClick: () => { state.tool = t.id; resetResult(); render(); } }, h('span', { attrs: { 'aria-hidden': 'true' }, text: t.icon }), h('span', { text: t.label }));
       grid.appendChild(btn);
-      imageEngine.supports(t.id).then(ok => { if (!ok) { btn.disabled = true; btn.classList.add('is-soon'); btn.appendChild(h('small', { class: 'ds-soon', text: 'قريبًا' })); btn.title = MESSAGES.engineUnavailable; } });
+      imageEngine.supports(t.id).then(ok => {
+        if (!ok) {
+          btn.disabled = true;
+          btn.classList.add('is-soon');
+          const needsAi = t.id === 'enhance' || t.id === 'upscale';
+          btn.appendChild(h('small', { class: 'ds-soon', text: needsAi ? 'يتطلب AI' : 'قريبًا' }));
+          btn.title = needsAi ? 'هذه الأداة تحتاج تفعيل محرك الذكاء الاصطناعي في نسخة Preview.' : MESSAGES.engineUnavailable;
+        }
+      });
     });
     return grid;
   }
@@ -144,6 +153,7 @@ export function imageView(ctx, params = {}) {
       state.original ? button('العودة للأصل', () => { state.current = state.original; state.history = []; resetResult(); render(); }, { variant: 'ghost', icon: '↩️' }) : null);
   }
   render();
+  root.appendChild(aiNotice);
   root.appendChild(work);
   return root;
 }
