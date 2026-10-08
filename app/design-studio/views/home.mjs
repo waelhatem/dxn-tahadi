@@ -7,9 +7,11 @@ import { TEMPLATES } from '../templates.mjs';
 const QUICK = [
   { label: 'تحسين صورة', icon: '✨', view: 'image', params: { tool: 'enhance' }, flag: 'DESIGN_IMAGE_ENABLED' },
   { label: 'تصميم منتج', icon: '🛍️', view: 'product', flag: 'DESIGN_IMAGE_ENABLED' },
-  { label: 'إنشاء إعلان', icon: '📣', view: 'image', params: { tool: 'social' }, flag: 'DESIGN_IMAGE_ENABLED' },
+  { label: 'إنشاء صورة', icon: '🌟', view: 'image', params: { tool: 'generate' }, flag: 'DESIGN_IMAGE_ENABLED' },
+  { label: 'إنشاء إعلان', icon: '📣', view: 'image', params: { tool: 'ad' }, flag: 'DESIGN_IMAGE_ENABLED' },
+  { label: 'صورة إلى فيديو', icon: '✨', view: 'video', params: { mode: 'image-ai' }, flag: 'DESIGN_VIDEO_ENABLED' },
   { label: 'إنشاء Reel', icon: '🎞️', view: 'video', params: { preset: 'ig-reel' }, flag: 'DESIGN_VIDEO_ENABLED' },
-  { label: 'إنشاء فيديو', icon: '🎬', view: 'video', flag: 'DESIGN_VIDEO_ENABLED' },
+  { label: 'إنشاء فيديو', icon: '🎬', view: 'video', params: { mode: 'slideshow' }, flag: 'DESIGN_VIDEO_ENABLED' },
   { label: 'إضافة ترجمة', icon: '💬', view: 'audio', params: { tab: 'subtitles' }, flag: 'DESIGN_AUDIO_ENABLED' },
   { label: 'فيديو إلى Shorts', icon: '✂️', view: 'shorts', flag: 'DESIGN_SHORTS_ENABLED' }
 ];

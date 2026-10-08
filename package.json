@@ -6,12 +6,13 @@
   "scripts": {
     "start": "node server.js",
     "build": "node -e \"console.log('DXN build complete')\"",
-    "test": "node --test tests/exact-source-index.test.js tests/helper-reasoning-effort.test.js tests/helper-json-output.test.js tests/helper-prompt.test.js tests/academy-tab.test.js tests/global-announcements.test.js tests/design-studio-platform.test.js tests/training-tab-isolation.test.js"
+    "test": "node --test tests/exact-source-index.test.js tests/helper-reasoning-effort.test.js tests/helper-json-output.test.js tests/helper-prompt.test.js tests/academy-tab.test.js tests/global-announcements.test.js tests/design-studio-platform.test.js tests/training-tab-isolation.test.js tests/design-studio-native.test.js"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
-    "web-push": "3.6.7"
+    "web-push": "3.6.7",
+    "@fal-ai/client": "1.10.1"
   }
 }
