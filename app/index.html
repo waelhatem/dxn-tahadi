@@ -9623,9 +9623,12 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     previewNode=document.createElement('div');previewNode.className='dxn-global-announcement-preview';
     previewNode.innerHTML='<div class="dxn-global-announcement-panel '+typeClass(k)+'" role="dialog" aria-modal="true">'+
       '<div class="ga-type">'+typeLabel(k)+'</div><h2>'+safeEsc(t)+'</h2><div class="ga-body">'+safeEsc(b)+'</div>'+
-      '<div class="ga-footer"><button type="button" onclick="window.__DXN_GA_CLOSE_PREVIEW__()">↩️ تعديل</button><button type="button" class="primary" onclick="window.__DXN_GA_CONFIRM_SEND__()">📢 تأكيد الإرسال للجميع</button></div></div>';
+      '<div class="ga-footer"><button type="button" data-ga-action="edit">↩️ تعديل</button><button type="button" class="primary" data-ga-action="confirm">📢 تأكيد الإرسال للجميع</button></div></div>';
     document.body.appendChild(previewNode);
-    window.__DXN_GA_CONFIRM_SEND__=sendAnnouncement;window.__DXN_GA_CLOSE_PREVIEW__=closePreview;
+    var editButton=previewNode.querySelector('[data-ga-action="edit"]');
+    var confirmButton=previewNode.querySelector('[data-ga-action="confirm"]');
+    if(editButton)editButton.addEventListener('click',closePreview);
+    if(confirmButton)confirmButton.addEventListener('click',sendAnnouncement);
   }
   async function sendAnnouncement(){
     var title=document.getElementById('gaTitle'),body=document.getElementById('gaBody'),type=document.getElementById('gaType');
@@ -9662,9 +9665,12 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     var node=document.createElement('div');node.id='dxnGlobalAnnouncementModal';node.className='dxn-global-announcement-modal';
     node.innerHTML='<div class="dxn-global-announcement-panel '+typeClass(item.announcement_type)+'" role="dialog" aria-modal="true" aria-label="إعلان عام">'+
       '<div class="ga-type">'+typeLabel(item.announcement_type)+'</div><h2>'+safeEsc(item.title)+'</h2><div class="ga-body">'+safeEsc(item.body)+'</div>'+
-      '<div class="ga-footer"><button type="button" class="primary" onclick="window.__DXN_GA_ACK__()">✓ فهمت</button><button type="button" onclick="window.__DXN_GA_CLOSE__()">إغلاق</button></div></div>';
+      '<div class="ga-footer"><button type="button" class="primary" data-ga-action="ack">✓ فهمت</button><button type="button" data-ga-action="close">إغلاق</button></div></div>';
     document.body.appendChild(node);
-    window.__DXN_GA_ACK__=function(){acknowledgeAnnouncement(item.id)};window.__DXN_GA_CLOSE__=closeMemberModal;
+    var ackButton=node.querySelector('[data-ga-action="ack"]');
+    var closeButton=node.querySelector('[data-ga-action="close"]');
+    if(ackButton)ackButton.addEventListener('click',function(){acknowledgeAnnouncement(item.id)});
+    if(closeButton)closeButton.addEventListener('click',closeMemberModal);
   }
   async function loadMemberAnnouncements(){
     if(loadingMemberAnnouncements||memberAnnouncementShown)return;
