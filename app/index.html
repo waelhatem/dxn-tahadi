@@ -9623,10 +9623,23 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     previewNode=document.createElement('div');previewNode.className='dxn-global-announcement-preview';
     previewNode.innerHTML='<div class="dxn-global-announcement-panel '+typeClass(k)+'" role="dialog" aria-modal="true">'+
       '<div class="ga-type">'+typeLabel(k)+'</div><h2>'+safeEsc(t)+'</h2><div class="ga-body">'+safeEsc(b)+'</div>'+
-      '<div class="ga-footer"><button type="button" onclick="window.__DXN_GA_CLOSE_PREVIEW__()">↩️ تعديل</button><button type="button" class="primary" onclick="window.__DXN_GA_CONFIRM_SEND__()">📢 تأكيد الإرسال للجميع</button></div></div>';
+      '<div class="ga-footer"><button type="button" id="dxnGlobalAnnouncementEditBtn">↩️ تعديل</button><button type="button" id="dxnGlobalAnnouncementConfirmSend" class="primary">📢 تأكيد الإرسال للجميع</button></div></div>';
     document.body.appendChild(previewNode);
     window.__DXN_GA_CONFIRM_SEND__=sendAnnouncement;window.__DXN_GA_CLOSE_PREVIEW__=closePreview;
   }
+  if(!window.__DXN_GLOBAL_ANNOUNCEMENT_CONFIRM_CAPTURE__) {
+    window.__DXN_GLOBAL_ANNOUNCEMENT_CONFIRM_CAPTURE__=true;
+    document.addEventListener('click',function(e){
+      var btn=e.target&&e.target.closest?e.target.closest('#dxnGlobalAnnouncementConfirmSend'):null;
+      if(!btn)return;
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      if(btn.disabled)return;
+      sendAnnouncement();
+    },true);
+  }
+
   async function sendAnnouncement(){
     var title=document.getElementById('gaTitle'),body=document.getElementById('gaBody'),type=document.getElementById('gaType');
     var t=String(title&&title.value||'').trim(),b=String(body&&body.value||'').trim(),k=String(type&&type.value||'announcement');
