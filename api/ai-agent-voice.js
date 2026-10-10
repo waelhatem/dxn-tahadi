@@ -42,6 +42,7 @@ async function verifyToken(token){
   if(!r.ok)throw new Error((r.data&&(r.data.message||r.data.error||r.data.hint))||r.text||'جلسة الدخول غير صالحة');
   const role=String(r.data&&r.data.role||'').toLowerCase();
   if(role!=='member'&&role!=='leader')throw new Error('نوع الحساب غير مدعوم');
+  return {role};
 }
 
 function openaiTranscriptionMultipart(audio,filename,mime,model){
@@ -108,12 +109,19 @@ async function transcribe(audio,filename,mime){
   throw new Error(lastError);
 }
 
-async function speak(text){
+const COACH_VOICE_INSTRUCTIONS='أنت المدرب وائل حاتم، مدرب عراقي ودود ومرح. صوت رجل دافئ ومريح وحيوي. تكلم باللهجة العراقية الطبيعية، بإيقاع محادثة مريح ونبرة متفائلة وخفيفة، مع تنويع طبيعي في النبرة والوقفات. لا تكن متشنجًا أو رسميًا أو كأنك تقرأ نشرة. لا تبالغ في المزاح.';
+
+/* V86.80 — options اختيارية لمدرب الاستقطاب الصوتي (صوت وتعليمات الشخصية).
+   بدونها يبقى صوت المدرب وائل حاتم كما هو. المستدعي مسؤول عن التحقق من قيمة voice. */
+async function speak(text,options){
   const input=String(text||'').trim();
   if(!input)throw new Error('النص المطلوب تحويله إلى صوت فارغ');
   if(input.length>4096)throw new Error('رد المدرب وائل حاتم أطول من الحد المسموح للصوت.');
+  const opts=options||{};
+  const instructions=opts.instructions||COACH_VOICE_INSTRUCTIONS;
 
   const attempts=[
+    ...(opts.voice?[{model:'gpt-4o-mini-tts',voice:opts.voice}]:[]),
     {model:'gpt-4o-mini-tts',voice:'onyx'},
     {model:'gpt-4o-mini-tts',voice:'cedar'}
   ];
@@ -132,7 +140,7 @@ async function speak(text){
           voice:attempt.voice,
           input,
           response_format:'mp3',
-          instructions:'أنت المدرب وائل حاتم، مدرب عراقي ودود ومرح. صوت رجل دافئ ومريح وحيوي. تكلم باللهجة العراقية الطبيعية، بإيقاع محادثة مريح ونبرة متفائلة وخفيفة، مع تنويع طبيعي في النبرة والوقفات. لا تكن متشنجًا أو رسميًا أو كأنك تقرأ نشرة. لا تبالغ في المزاح.'
+          instructions
         })
       });
       const buffer=Buffer.from(await r.arrayBuffer());
@@ -187,3 +195,9 @@ module.exports=async function handler(req,res){
     return json(res,500,{error:String(e&&e.message||e)});
   }
 };
+
+/* V86.80 — إعادة استخدام التحقق من الجلسة والصوت في api/recruitment-coach.js بدل نسخها. */
+module.exports.verifyToken=verifyToken;
+module.exports.transcribe=transcribe;
+module.exports.speak=speak;
+module.exports.supabaseRpc=supabaseRpc;
