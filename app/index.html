@@ -1786,7 +1786,8 @@ function dxnNavRestore(target){
 function renderInAppNav(){
   let el=document.getElementById('dxnInAppNav');
   if(!el){el=document.createElement('nav');el.id='dxnInAppNav';el.className='dxn-inapp-nav';el.setAttribute('aria-label','التنقل بين الصفحات');document.body.appendChild(el);}
-  el.innerHTML=`<button type="button" class="dxn-nav-btn" ${dxnNav.back.length?'':'disabled'} onclick="event.preventDefault();this.blur();dxnNavGoBack()" aria-label="الرجوع للصفحة السابقة" title="الرجوع للصفحة السابقة">◀️ <span>رجوع</span></button><button type="button" class="dxn-nav-btn" ${dxnNav.forward.length?'':'disabled'} onclick="event.preventDefault();this.blur();dxnNavGoForward()" aria-label="التقدم إلى الصفحة التالية" title="التقدم إلى الصفحة التالية"><span>تقدم</span> ▶️</button>`;
+  /* V86.70 — أيقونات الأسهم داخل span حتى تستبدلها واجهة الموبايل بأسهم أوضح؛ شكل الحاسوب كما هو. */
+  el.innerHTML=`<button type="button" class="dxn-nav-btn dxn-nav-back" ${dxnNav.back.length?'':'disabled'} onclick="event.preventDefault();this.blur();dxnNavGoBack()" aria-label="الرجوع للصفحة السابقة" title="الرجوع للصفحة السابقة"><span class="dxn-nav-ico" aria-hidden="true">◀️</span> <span>رجوع</span></button><button type="button" class="dxn-nav-btn dxn-nav-forward" ${dxnNav.forward.length?'':'disabled'} onclick="event.preventDefault();this.blur();dxnNavGoForward()" aria-label="التقدم إلى الصفحة التالية" title="التقدم إلى الصفحة التالية"><span>تقدم</span> <span class="dxn-nav-ico" aria-hidden="true">▶️</span></button>`;
 }
 function scrollToTabContent(){return;}
 function switchTab(next){if(next==='training'&&!canAccessTraining())return;if(next==='training')trainingSubtab='home';tab=next;saveDxnUiState({tab:next,trainingSubtab});try{render();dxnNavPush(`tab:${next}`);recordSiteVisit(role||'visitor',next)}catch(e){console.error(e);toast('تعذر فتح القسم: '+(e.message||e))}}
@@ -8311,6 +8312,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 })();
 </script>
 <script src="../ai-agent-chat.js?v=12"></script>
+<script src="mobile-bottom-controls.js?v=1"></script>
 <script src="membership-registration-guard.js?v=1"></script>
 <script src="login-scene.js?v=86.65"></script>
 
