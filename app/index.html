@@ -8312,7 +8312,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 })();
 </script>
 <script src="../ai-agent-chat.js?v=12"></script>
-<script src="mobile-bottom-controls.js?v=1"></script>
+<script src="mobile-bottom-controls.js?v=2"></script>
 <script src="membership-registration-guard.js?v=1"></script>
 <script src="login-scene.js?v=86.65"></script>
 
@@ -9552,17 +9552,15 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
  const p=new URLSearchParams(location.search),embedded=p.get('globalPreviewFrame')==='1';
  const launcher=document.getElementById('globalPreviewLauncher'),panel=document.getElementById('globalPreviewPanel'),openBtn=document.getElementById('globalPreviewOpen'),closeBtn=document.getElementById('globalPreviewClose'),device=document.getElementById('globalPreviewDevice'),frame=document.getElementById('globalPreviewFrame'),zoomIn=document.getElementById('globalPreviewZoomIn'),zoomOut=document.getElementById('globalPreviewZoomOut'),zoomReset=document.getElementById('globalPreviewZoomReset');
  if(embedded){if(launcher)launcher.remove();if(panel)panel.remove();window.addEventListener('message',function(e){if(!e.data||e.data.type!=='dxn-preview-sync')return;try{if(typeof tab!=='undefined'&&e.data.tab)tab=e.data.tab;if(typeof trainingSubtab!=='undefined'){trainingSubtab=e.data.tab==='training'?'home':(e.data.trainingSubtab||'home')}if(e.data.deviceMode==='tablet'){document.body.classList.add('tablet-preview-mode');if(typeof applyMode==='function')applyMode('mobile')}else{document.body.classList.remove('tablet-preview-mode');if(e.data.deviceMode&&typeof applyMode==='function'){applyMode(e.data.deviceMode)}}if(typeof render==='function')render()}catch(err){console.debug('preview sync',err)}});return;}
+ /* V86.71 — قاعدة صارمة: «معاينة الموقع» للقائد على الحاسوب فقط.
+    مخفي للعضو والزائر على كل الأجهزة، ومخفي على الموبايل والتابلت حتى للقائد.
+    نفس حدود الشاشات الصغيرة المستخدمة في mobile-bottom-controls.js. */
+ const smallScreen=window.matchMedia?window.matchMedia('(max-width:1024px), (hover:none) and (pointer:coarse) and (max-width:1366px)'):null;
+ function isDesktop(){return !(smallScreen&&smallScreen.matches)}
  function eligible(){
    if(embedded)return false;
-   if(typeof role==='undefined')return false;
-   if(role==='leader')return true;
-   if(role!=='member')return false;
-   const memberNo=String(
-     (typeof me!=='undefined'&&me&&(
-       me.member_no??me.membership_no??me.membership_number
-     ))||''
-   ).trim();
-   return memberNo==='820469486';
+   if(typeof role==='undefined'||role!=='leader')return false;
+   return isDesktop();
  }
  function url(){const u=new URL(location.href);u.searchParams.set('globalPreviewFrame','1');return u.href}
  function sync(){if(!frame||!frame.contentWindow)return;try{frame.contentWindow.postMessage({type:'dxn-preview-sync',tab:typeof tab!=='undefined'?tab:'home',trainingSubtab:typeof trainingSubtab!=='undefined'?trainingSubtab:'home'},location.origin)}catch(e){}}
@@ -9574,8 +9572,11 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
  function mode(m){device.classList.remove('desktop','portrait','landscape','tablet');device.classList.add(m);document.querySelectorAll('#globalPreviewPanel [data-preview-mode]').forEach(b=>b.classList.toggle('active',b.dataset.previewMode===m));frame.title=m==='desktop'?'معاينة نسخة الكمبيوتر':m==='landscape'?'معاينة الموبايل الأفقي':m==='tablet'?'معاينة جهاز لوحي (آيباد)':'معاينة نسخة الموبايل';const previewUrl=url();if(frame.getAttribute('src')!==previewUrl)frame.setAttribute('src',previewUrl);setTimeout(function(){hideEmbeddedScrollbars();try{frame.contentWindow.postMessage({type:'dxn-preview-sync',tab:typeof tab!=='undefined'?tab:'home',trainingSubtab:typeof trainingSubtab!=='undefined'?trainingSubtab:'home',deviceMode:m==='tablet'?'tablet':null},location.origin)}catch(e){}fitDevice(m)},150)}
  function show(){if(!eligible())return;panel.classList.add('show');panel.setAttribute('aria-hidden','false');mode('portrait');document.body.style.overflow='hidden'}
  function hide(){panel.classList.remove('show');panel.setAttribute('aria-hidden','true');document.body.style.overflow=''}
- function mount(){const ok=eligible();launcher.classList.toggle('show',ok);launcher.setAttribute('aria-hidden',String(!ok))}
- openBtn&&openBtn.addEventListener('click',show);closeBtn&&closeBtn.addEventListener('click',hide);zoomIn&&zoomIn.addEventListener('click',()=>changeZoom(.1));zoomOut&&zoomOut.addEventListener('click',()=>changeZoom(-.1));zoomReset&&zoomReset.addEventListener('click',()=>{previewZoom=1;const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});document.querySelectorAll('#globalPreviewPanel [data-preview-mode]').forEach(b=>b.addEventListener('click',()=>mode(b.dataset.previewMode)));frame&&frame.addEventListener('load',function(){hideEmbeddedScrollbars();try{frame.contentWindow.postMessage({type:'dxn-preview-auth',token:typeof token!=='undefined'?token:'',issued:localStorage.getItem('dxn_session_issued')||Date.now()},location.origin)}catch(e){}sync();const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});window.addEventListener('resize',function(){const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&panel.classList.contains('show'))hide()});mount();const t=setInterval(()=>{if(eligible()){mount();clearInterval(t)}},500);
+ function mount(){if(!launcher)return;const ok=eligible();if(launcher.classList.contains('show')!==ok){launcher.classList.toggle('show',ok);launcher.setAttribute('aria-hidden',String(!ok))}if(!ok&&panel&&panel.classList.contains('show'))hide()}
+ openBtn&&openBtn.addEventListener('click',show);closeBtn&&closeBtn.addEventListener('click',hide);zoomIn&&zoomIn.addEventListener('click',()=>changeZoom(.1));zoomOut&&zoomOut.addEventListener('click',()=>changeZoom(-.1));zoomReset&&zoomReset.addEventListener('click',()=>{previewZoom=1;const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});document.querySelectorAll('#globalPreviewPanel [data-preview-mode]').forEach(b=>b.addEventListener('click',()=>mode(b.dataset.previewMode)));frame&&frame.addEventListener('load',function(){hideEmbeddedScrollbars();try{frame.contentWindow.postMessage({type:'dxn-preview-auth',token:typeof token!=='undefined'?token:'',issued:localStorage.getItem('dxn_session_issued')||Date.now()},location.origin)}catch(e){}sync();const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});window.addEventListener('resize',function(){const b=document.querySelector('#globalPreviewPanel .gp-controls button.active');fitDevice(b?b.dataset.previewMode:'portrait')});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&panel.classList.contains('show'))hide()});mount();
+ /* V86.71 — إعادة التحقق بعد كل render أو تغيير تبويب أو دخول/خروج أو تغيير حجم الشاشة، لا مرة واحدة فقط. */
+ setInterval(mount,500);window.addEventListener('resize',mount);if(smallScreen){if(smallScreen.addEventListener)smallScreen.addEventListener('change',mount);else if(smallScreen.addListener)smallScreen.addListener(mount)}
+ const appRoot=document.getElementById('app');if(appRoot&&window.MutationObserver)new MutationObserver(mount).observe(appRoot,{childList:true});
 })();
 </script>
 <style id="dxn-global-announcements-v1">

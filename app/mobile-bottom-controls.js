@@ -17,6 +17,8 @@
     '@media '+SMALL_SCREEN+'{'+
       'html{--dxn-mbc-bar:0px}'+
       '#global-page-navigation,#aiGuideFab,#dxnAgentLauncher{display:none!important}'+
+      /* V86.71 — «معاينة الموقع» للحاسوب فقط؛ المنطق الأساسي في eligible() داخل app/index.html وهذا احتياط إضافي. */
+      '#globalPreviewLauncher{display:none!important}'+
       /* شريط رجوع/تقدّم */
       '.dxn-inapp-nav{left:12px!important;right:12px!important;bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;transform:none!important;max-width:520px;margin:0 auto;gap:8px!important;padding:6px!important;border-radius:16px!important}'+
       '.dxn-inapp-nav .dxn-nav-btn{flex:1 1 0;min-width:0!important;min-height:44px;display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 12px!important;font-size:15px!important;color:#0f513f;border-radius:12px!important}'+
