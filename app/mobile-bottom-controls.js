@@ -9,18 +9,18 @@
   window.__DXN_MOBILE_BOTTOM_CONTROLS_V8670__=true;
 
   var SMALL_SCREEN='(max-width:1024px), (hover:none) and (pointer:coarse) and (max-width:1366px)';
+  var GAP_ABOVE_TABS=8;
   var GAP_ABOVE_BAR=10;
-  var FAB_SPACE=64;
+  var CONTENT_GAP=12;
 
   var STYLE=''+
     '#dxnAssistantFab,#dxnAssistantSheet,#dxnAssistantBackdrop{display:none}'+
     '@media '+SMALL_SCREEN+'{'+
-      'html{--dxn-mbc-bar:0px}'+
       '#global-page-navigation,#aiGuideFab,#dxnAgentLauncher{display:none!important}'+
       /* V86.71 — «معاينة الموقع» للحاسوب فقط؛ المنطق الأساسي في eligible() داخل app/index.html وهذا احتياط إضافي. */
       '#globalPreviewLauncher{display:none!important}'+
       /* شريط رجوع/تقدّم */
-      '.dxn-inapp-nav{left:12px!important;right:12px!important;bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;transform:none!important;max-width:520px;margin:0 auto;gap:8px!important;padding:6px!important;border-radius:16px!important}'+
+      '.dxn-inapp-nav{left:12px!important;right:12px!important;bottom:var(--dxn-mbc-nav-bottom,calc(8px + env(safe-area-inset-bottom,0px)))!important;transform:none!important;max-width:520px;margin:0 auto;gap:8px!important;padding:6px!important;border-radius:16px!important}'+
       '.dxn-inapp-nav .dxn-nav-btn{flex:1 1 0;min-width:0!important;min-height:44px;display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 12px!important;font-size:15px!important;color:#0f513f;border-radius:12px!important}'+
       '.dxn-inapp-nav .dxn-nav-ico{display:none}'+
       /* إلغاء طبقة button::before العامة (اللمعة) حتى يظهر السهم بجانب النص لا فوقه */
@@ -29,7 +29,7 @@
       '.dxn-inapp-nav .dxn-nav-forward::after{content:"←"}'+
       '.dxn-inapp-nav .dxn-nav-back::after,.dxn-inapp-nav .dxn-nav-forward::before{content:none!important}'+
       /* الزر العائم */
-      '#dxnAssistantFab{display:flex;align-items:center;gap:6px;position:fixed;left:12px;bottom:calc(var(--dxn-mbc-bar) + '+GAP_ABOVE_BAR+'px + env(safe-area-inset-bottom,0px));z-index:9999;min-height:46px;padding:10px 16px;border:0;border-radius:999px;background:linear-gradient(135deg,#0f513f,#1a8064);color:#fff;font-weight:800;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.22);cursor:pointer;direction:rtl}'+
+      '#dxnAssistantFab{display:flex;align-items:center;gap:6px;position:fixed;left:12px;bottom:var(--dxn-mbc-fab-bottom,calc('+GAP_ABOVE_BAR+'px + env(safe-area-inset-bottom,0px)));z-index:9999;min-height:46px;padding:10px 16px;border:0;border-radius:999px;background:linear-gradient(135deg,#0f513f,#1a8064);color:#fff;font-weight:800;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.22);cursor:pointer;direction:rtl}'+
       '#dxnAssistantFab[hidden]{display:none!important}'+
       '#dxnAssistantFab:focus-visible{outline:3px solid #2563eb;outline-offset:2px}'+
       /* القائمة السفلية */
@@ -45,7 +45,7 @@
       '.dxn-assistant-option b{display:block;font-size:15px}'+
       '.dxn-assistant-option small{display:block;color:#667085;font-size:12px;margin-top:2px}'+
       /* مساحة أسفل المحتوى حتى لا يغطيه الشريط والزر العائم */
-      '#app{padding-bottom:calc(var(--dxn-mbc-bar) + '+FAB_SPACE+'px + env(safe-area-inset-bottom,0px))!important}'+
+      '#app{padding-bottom:var(--dxn-mbc-pad,calc(76px + env(safe-area-inset-bottom,0px)))!important}'+
     '}';
 
   var fab,sheet,backdrop,lastFocus=null,scheduled=false;
@@ -61,17 +61,44 @@
     return cs.display!=='none'&&cs.visibility!=='hidden'&&el.getBoundingClientRect().height>0;
   }
 
-  /* يرفع الزر العائم فوق شريط رجوع/تقدّم عندما يكون ظاهرًا فقط (مثلًا: الشريط مخفي في صفحة الدخول). */
+  /* V86.72 — شريط التبويبات الرئيسي (.nav داخل #app) يُعاد إنشاؤه مع كل render، وعلى الموبايل يكون
+     ثابتًا أسفل الشاشة وارتفاعه يتغير حسب التفاف الأزرار؛ لذلك نقيس موقعه الفعلي في كل مرة. */
+  function bottomTabs(){
+    var tabs=document.querySelector('#app .nav');
+    if(!isShown(tabs)||getComputedStyle(tabs).position!=='fixed')return null;
+    return tabs;
+  }
+  /* المسافة من أسفل الشاشة حتى الحافة العلوية للعنصر. */
+  function coverFromBottom(el){
+    return Math.max(0,Math.round(window.innerHeight-el.getBoundingClientRect().top));
+  }
+
+  /* الترتيب من الأسفل للأعلى: شريط التبويبات ← رجوع/تقدّم ← 🤖 المساعد الذكي.
+     إذا لم يوجد شريط تبويبات يرجع رجوع/تقدّم إلى أسفل الشاشة مع مراعاة safe-area. */
   function layout(){
     scheduled=false;
     if(!fab)return;
-    var nav=document.getElementById('dxnInAppNav');
-    var bar=0;
-    if(isSmall()&&isShown(nav)){
-      var r=nav.getBoundingClientRect();
-      bar=Math.max(0,Math.round(window.innerHeight-r.top));
+    var root=document.documentElement.style;
+    if(!isSmall()){
+      ['--dxn-mbc-nav-bottom','--dxn-mbc-fab-bottom','--dxn-mbc-pad'].forEach(function(v){root.removeProperty(v);});
+    }else{
+      var tabs=bottomTabs();
+      var tabsCover=tabs?coverFromBottom(tabs):0;
+      if(tabs)root.setProperty('--dxn-mbc-nav-bottom',(tabsCover+GAP_ABOVE_TABS)+'px');
+      else root.removeProperty('--dxn-mbc-nav-bottom');
+      var nav=document.getElementById('dxnInAppNav');
+      var stackCover=tabsCover;
+      if(isShown(nav)){
+        stackCover=coverFromBottom(nav);
+        root.setProperty('--dxn-mbc-fab-bottom',(stackCover+GAP_ABOVE_BAR)+'px');
+      }else if(tabs){
+        root.setProperty('--dxn-mbc-fab-bottom',(tabsCover+GAP_ABOVE_BAR)+'px');
+      }else{
+        root.removeProperty('--dxn-mbc-fab-bottom');
+      }
+      if(isShown(fab))stackCover=Math.max(stackCover,coverFromBottom(fab));
+      root.setProperty('--dxn-mbc-pad',(stackCover+CONTENT_GAP)+'px');
     }
-    document.documentElement.style.setProperty('--dxn-mbc-bar',bar+'px');
     var hasGuide=!!guideBtn(),hasCoach=!!coachBtn();
     fab.hidden=!(hasGuide||hasCoach);
     sheet.querySelector('[data-target="guide"]').disabled=!hasGuide;
@@ -147,7 +174,11 @@
     if(mq){if(mq.addEventListener)mq.addEventListener('change',scheduleLayout);else if(mq.addListener)mq.addListener(scheduleLayout);}
     window.addEventListener('resize',scheduleLayout);
     if(window.MutationObserver){
-      new MutationObserver(scheduleLayout).observe(document.body,{childList:true,attributes:true,attributeFilter:['class']});
+      var observer=new MutationObserver(scheduleLayout);
+      observer.observe(document.body,{childList:true,attributes:true,attributeFilter:['class']});
+      /* render() يستبدل محتوى #app (ومعه شريط التبويبات) مع كل تغيير تبويب. */
+      var app=document.getElementById('app');
+      if(app)observer.observe(app,{childList:true});
     }
     layout();
     setTimeout(layout,600);
