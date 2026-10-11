@@ -9,7 +9,8 @@
    select p.proname, pg_get_function_identity_arguments(p.oid) as args, pg_get_functiondef(p.oid) as definition
    from pg_proc p join pg_namespace n on n.oid=p.pronamespace
    where n.nspname='public'
-     and p.proname in ('ragwan_current_sponsor','add_ragwan_trainee_by_member_no','search_ragwan_trainees','ragwan_current_trainer_root_no');
+     and p.proname in ('ragwan_current_sponsor','add_ragwan_trainee_by_member_no','search_ragwan_trainees','ragwan_current_trainer_root_no',
+                       'ragwan_leader_can_manage_training','get_ragwan_plan_completions','save_ragwan_success_plan_content');
    ```
    احفظ الناتج كاملًا في ملف خارج المستودع.
 
@@ -18,8 +19,15 @@
    select p.proname, pg_get_function_identity_arguments(p.oid) as args, p.proacl
    from pg_proc p join pg_namespace n on n.oid=p.pronamespace
    where n.nspname='public'
-     and p.proname in ('ragwan_current_sponsor','add_ragwan_trainee_by_member_no','search_ragwan_trainees');
+     and p.proname in ('ragwan_current_sponsor','add_ragwan_trainee_by_member_no','search_ragwan_trainees',
+                       'get_ragwan_plan_completions','save_ragwan_success_plan_content');
    ```
+
+## ترتيب النشر (مهم)
+- الواجهة و `api/ragwan-files.js` في هذا الفرع تسأل قاعدة البيانات عبر `ragwan_leader_can_manage_training`.
+  قبل تطبيق الملف لا توجد هذه الدالة، فيعامل الخادم **كل** حسابات القائد كوضع مطالعة (fail closed):
+  لا رفع ملفات ولا مراجعة إثباتات للقائد حتى يُطبَّق الملف. العضو لا يتأثر.
+- لذلك: طبّق الملف أولًا، تحقق، ثم انشر/ادمج الكود. لا تدمج الكود قبل الملف.
 
 3. **لقطة أعداد** (تُعاد بعد التطبيق ويجب أن تتطابق):
    ```sql
@@ -51,11 +59,21 @@
           has_function_privilege('service_role','public.search_ragwan_trainees(uuid,text)','execute') as server_search;
    -- المتوقع: false, false, true
    ```
+5. وضع المطالعة (LEADER1 بلا جذر فريق) — لا يغيّر أي حساب، قراءة فقط:
+   ```sql
+   select au.username, au.role, au.active, au.team_root_member_no,
+          exists(select 1 from public.app_users x where x.id=au.id and x.role='leader' and x.active
+                 and coalesce(trim(x.team_root_member_no),'') ~ '^[0-9]{9}$') as can_manage_training
+   from public.app_users au where au.role='leader';
+   -- المتوقع: LEADER → true، LEADER1 → false
+   ```
+   ثم بحساب LEADER1: تفتح الخطة والأبواب، ويظهر «وضع المطالعة»، وأي محاولة إضافة/اختيار تُرفض.
 
 ## التراجع
 لا يحتاج استعادة بيانات؛ الملف لا يغيّر أي صف عند التطبيق.
 
-1. شغّل التعريفات المحفوظة في الخطوة 1 لـ `ragwan_current_sponsor` و `add_ragwan_trainee_by_member_no`.
+1. شغّل التعريفات المحفوظة في الخطوة 1 لـ `ragwan_current_sponsor` و `add_ragwan_trainee_by_member_no`
+   و `get_ragwan_plan_completions` و `save_ragwan_success_plan_content`.
 2. أعد صلاحياتها كما حُفظت في الخطوة 2 (مثال إن كانت متاحة لـ anon و authenticated):
    ```sql
    grant execute on function public.ragwan_current_sponsor(uuid) to anon, authenticated;
@@ -63,6 +81,8 @@
 3. احذف ما أنشأه الملف ولم يكن موجودًا قبله:
    ```sql
    drop function if exists public.ragwan_current_trainer_root_no(uuid);
+   -- ملاحظة: احذفها فقط بعد إرجاع كود الخادم أيضًا، وإلا يعامل الخادم كل القادة كوضع مطالعة.
+   drop function if exists public.ragwan_leader_can_manage_training(uuid);
    -- فقط إذا أكدت الخطوة 1 أن search_ragwan_trainees لم تكن موجودة:
    drop function if exists public.search_ragwan_trainees(uuid,text);
    notify pgrst, 'reload schema';

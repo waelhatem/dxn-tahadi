@@ -19,13 +19,14 @@ function extractFunction(name){
   return HTML.slice(start,i+1);
 }
 
-const FUNCTIONS=['ragwanCanTrain','ragwanJourneyVisible','ragwanTraineeLabel','ragwanSelectedKey','ragwanProgressLoad',
+const FUNCTIONS=['ragwanCanTrain','ragwanIsReadOnlyLeader','ragwanCanManageContent','ragwanJourneyVisible','ragwanTraineeLabel','ragwanSelectedKey','ragwanProgressLoad',
   'ragwanSelectedTraineeSummary','ragwanTraineePanelMarkup','ragwanStartStep','ragwanCompleteStep','ragwanCanCompleteStep'];
 
-function makePage({role,me,selected}){
+function makePage({role,me,selected,canManage}){
   const apiCalls=[];const toasts=[];
   const ctx={
     role,me,
+    ragwanLeaderCanManage:canManage===undefined?(role==='leader'?true:null):canManage,
     RAGWAN_SELECTED_TRAINEE_KEY:'dxn_ragwan_selected_trainee',
     ragwanSelectedTrainee:selected||null,
     ragwanSelectedTraineeId:selected?selected.member_id:'',
@@ -113,13 +114,53 @@ test('completion and certificate box is available to the leader with a selected 
 
 test('migration: review-only file, keeps the member branch, adds leader, never deletes data',()=>{
   assert.match(MIGRATION,/للمراجعة فقط/);
-  assert.match(MIGRATION,/\(au\.role='member' and m\.id is not null and m\.active=true\)\s*or au\.role='leader'/);
+  // فرع العضو كما كان؛ شرط القائد المشدد (جذر فريق صالح) له اختبار مستقل.
+  assert.match(MIGRATION,/\(au\.role='member' and m\.id is not null and m\.active=true\)/);
   assert.match(MIGRATION,/v_sponsor_member_no := public\.ragwan_current_trainer_root_no\(p_token\)/);
   assert.match(MIGRATION,/team_root_member_no/);
   assert.doesNotMatch(MIGRATION,/\b(drop table|truncate|delete from|alter table)\b/i);
   // كل دوال رجوان الأخرى تربط الملكية بـ sponsor_user_id، والبحث للقائد محصور في سجلاته.
   assert.match(MIGRATION,/where e\.sponsor_user_id=s\.user_id\s+and e\.archived_at is null/);
   assert.ok(!fs.existsSync(path.join(ROOT,'supabase','migrations','20261011120000_ragwan_leader_trainer_access.sql')),'must not be in supabase/migrations');
+});
+
+test('read-only leader (no team root): doors visible, read-only notice, no trainee or content management',()=>{
+  const ro=makePage({role:'leader',me:null,canManage:false});
+  assert.equal(ro.api.ragwanJourneyVisible(),true);
+  assert.equal(ro.api.ragwanCanTrain(),false);
+  assert.equal(ro.api.ragwanCanManageContent(),false);
+  const html=ro.api.ragwanTraineePanelMarkup();
+  assert.match(html,/وضع المطالعة/);
+  assert.doesNotMatch(html,/ragwanTraineeMemberNoInput|ragwanOpenTraineesTable/);
+});
+
+test('leader capability unknown yet: no management until the server confirms it',()=>{
+  const pending=makePage({role:'leader',me:null,canManage:null});
+  assert.equal(pending.api.ragwanCanTrain(),false);
+  assert.equal(pending.api.ragwanCanManageContent(),false);
+  assert.equal(pending.api.ragwanTraineePanelMarkup(),'');
+});
+
+test('UI gates content management and evidence on the server capability, not on role alone',()=>{
+  assert.match(HTML,/const leaderUpload=ragwanCanManageContent\(\)/);
+  assert.match(HTML,/ragwanCanManageContent\(\)\?`<button type="button" onclick="ragwanDeleteFile\(/);
+  assert.match(extractFunction('ragwanLoadEvidence'),/ragwanIsReadOnlyLeader\(\)/);
+  assert.match(extractFunction('initRagwanFiles'),/await ragwanLoadCapabilities\(\);/);
+});
+
+test('migration: leader is a training manager only with a valid team root, with no substitute number',()=>{
+  assert.match(MIGRATION,/or \(au\.role='leader' and coalesce\(trim\(au\.team_root_member_no\),''\) ~ '\^\[0-9\]\{9\}\$'\)/);
+  const root=MIGRATION.slice(MIGRATION.indexOf('function public.ragwan_current_trainer_root_no('),MIGRATION.indexOf('$$;',MIGRATION.indexOf('function public.ragwan_current_trainer_root_no(')));
+  assert.doesNotMatch(root,/coalesce\(nullif\(v_root,''\),v_member_no\)/,'no fallback to a linked member number');
+  assert.match(MIGRATION,/create or replace function public\.ragwan_leader_can_manage_training\(p_token uuid\)/);
+});
+
+test('migration: completions and content are wrapped, not rewritten, and the originals cannot be called directly',()=>{
+  assert.doesNotMatch(MIGRATION,/from public\.ragwan_plan_completions r/,'must not copy a completions body');
+  assert.match(MIGRATION,/alter function public\.get_ragwan_plan_completions\(uuid,uuid\) rename to get_ragwan_plan_completions_base/);
+  assert.match(MIGRATION,/alter function public\.save_ragwan_success_plan_content\(uuid,text,text,text\) rename to save_ragwan_success_plan_content_base/);
+  assert.match(MIGRATION,/return public\.get_ragwan_plan_completions_base\(p_token, p_member_id\)/);
+  assert.match(MIGRATION,/execute format\('grant execute on function %s to service_role', pair\[2\]\)/);
 });
 
 test('migration: explicit grants keep search and the sponsor helper server-only',()=>{

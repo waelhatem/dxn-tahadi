@@ -19,8 +19,14 @@
 --      لأن حساب القائد ليس عضوًا في جدول الفرق. فرع العضو كما هو بلا تغيير.
 --      ملاحظة: الفحص على Supabase أظهر أن هذه الدالة غير موجودة حاليًا، فهذا الملف ينشئها.
 --   5) الصلاحيات: ragwan_current_sponsor و search_ragwan_trainees و ragwan_current_trainer_root_no
---      لـ service_role فقط. api/ragwan-files.js يستدعي الدوال بالمفتاح السري، وكل دوال رجوان
---      التي تستدعي ragwan_current_sponsor هي SECURITY DEFINER فتعمل بصلاحيات مالكها.
+--      و ragwan_leader_can_manage_training لـ service_role فقط. api/ragwan-files.js يستدعي الدوال بالمفتاح
+--      السري، وكل دوال رجوان التي تستدعي ragwan_current_sponsor هي SECURITY DEFINER فتعمل بصلاحيات مالكها.
+--   6) وضع المطالعة: القائد «مدير تدريب» فقط إذا كان نشطًا وله team_root_member_no صالح (9 أرقام).
+--      حساب قائد بلا جذر (مثل LEADER1 المخصص للمطالعة) يرى محتوى الخطة والأبواب، لكن تُرفض له من الخادم:
+--      إضافة/بحث/اختيار/عرض/حفظ تقدم/إكمال/أرشفة/إعادة تسمية المتدربين وبيانات الشهادة
+--      (عبر ragwan_current_sponsor)، وقراءة سجلات الإكمال (get_ragwan_plan_completions)،
+--      وكتابة محتوى الخطة (save_ragwan_success_plan_content)، وعمليات الملفات والإثباتات في الخادم.
+--      لا يُستخدم أي رقم عضوية بديل، ولا يُغيَّر دور أو بيانات أي حساب، ولا تتأثر صلاحياته خارج خطة رجوان.
 --
 -- لا يعدّل أي صف عند التطبيق. لا يغيّر الجداول ولا تقدم المتدربين ولا الشهادات.
 -- التراجع: راجع supabase/pending-review/20261011120000_ragwan_leader_trainer_access.ROLLBACK.md
@@ -44,7 +50,9 @@ begin
     and au.active=true
     and (
       (au.role='member' and m.id is not null and m.active=true)
-      or au.role='leader'
+      -- القائد مدير تدريب فقط إذا كان له جذر فريق DXN صالح. حساب المطالعة (team_root_member_no = NULL)
+      -- لا يمر، فتُرفض له كل عمليات المتدربين في كل دوال رجوان التي تعتمد على هذه الدالة.
+      or (au.role='leader' and coalesce(trim(au.team_root_member_no),'') ~ '^[0-9]{9}$')
     )
   limit 1;
 end;
@@ -75,7 +83,11 @@ begin
   limit 1;
 
   if v_role='leader' then
-    return nullif(coalesce(nullif(v_root,''),v_member_no),'');
+    -- جذر الفريق الصريح فقط؛ لا رقم عضوية بديل لحساب بلا جذر.
+    if v_root ~ '^[0-9]{9}$' then
+      return v_root;
+    end if;
+    return null;
   end if;
   if v_role='member' then
     return nullif(v_member_no,'');
@@ -86,6 +98,29 @@ $$;
 
 revoke all on function public.ragwan_current_trainer_root_no(uuid) from public, anon, authenticated;
 grant execute on function public.ragwan_current_trainer_root_no(uuid) to service_role;
+
+-- 2ب) صلاحية إدارة التدريب للقائد، مثبتة من قاعدة البيانات (القاعدة الوحيدة المستخدمة في كل مكان):
+--      قائد نشط + team_root_member_no صالح (9 أرقام). يستخدمها الخادم api/ragwan-files.js
+--      لعمليات الملفات والإثباتات، وتستخدمها الدوال أدناه.
+create or replace function public.ragwan_leader_can_manage_training(p_token uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists(
+    select 1
+    from public.app_users au
+    where au.id=public.app_current_user_id(p_token)
+      and au.active=true
+      and au.role='leader'
+      and coalesce(trim(au.team_root_member_no),'') ~ '^[0-9]{9}$'
+  );
+$$;
+
+revoke all on function public.ragwan_leader_can_manage_training(uuid) from public, anon, authenticated;
+grant execute on function public.ragwan_leader_can_manage_training(uuid) to service_role;
 
 -- 3) إضافة متدرب: مطابقة للنسخة المطبقة (PR #105) مع مصدر جذر الفريق الجديد.
 create or replace function public.add_ragwan_trainee_by_member_no(
@@ -321,6 +356,94 @@ $$;
 -- الدالة غير موجودة حاليًا على Supabase، فإنشاؤها يمنحها EXECUTE لـ PUBLIC افتراضيًا؛ نحصرها بالخادم.
 revoke all on function public.search_ragwan_trainees(uuid,text) from public, anon, authenticated;
 grant execute on function public.search_ragwan_trainees(uuid,text) to service_role;
+
+-- 5) و 6) دوال خطة رجوان الأخرى: لا ننسخ أجسامها لأن للمستودع نسختين متعارضتين منها
+--    (20261002120000 و 20261002140000) ولا نعرف أيهما على Supabase. بدل ذلك:
+--    - نعيد تسمية الدالة الموجودة فعليًا كما هي إلى *_base (بدون أي تغيير في منطقها أو في حقوق الأعضاء)،
+--    - ننشئ غلافًا بالاسم الأصلي يرفض القائد الذي ليس مدير تدريب ثم يستدعي الدالة الأصلية،
+--    - ننسخ صلاحيات الأصل إلى الغلاف، ونحصر *_base بالخادم حتى لا يُتجاوز الغلاف باستدعائها مباشرة.
+
+-- 5) سجلات إكمال الخطة (بيانات خاصة).
+do $rename_completions$
+begin
+  if to_regprocedure('public.get_ragwan_plan_completions(uuid,uuid)') is not null
+     and to_regprocedure('public.get_ragwan_plan_completions_base(uuid,uuid)') is null then
+    alter function public.get_ragwan_plan_completions(uuid,uuid) rename to get_ragwan_plan_completions_base;
+  end if;
+end
+$rename_completions$;
+
+create or replace function public.get_ragwan_plan_completions(
+  p_token uuid,
+  p_member_id uuid
+)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if lower(coalesce(public.app_current_role(p_token),''))='leader'
+     and not public.ragwan_leader_can_manage_training(p_token) then
+    raise exception 'غير مصرح';
+  end if;
+  return public.get_ragwan_plan_completions_base(p_token, p_member_id);
+end;
+$$;
+
+-- 6) كتابة محتوى الخطة: مدير التدريب فقط. قراءة المحتوى (get_ragwan_success_plan_content) بلا تغيير.
+do $rename_content$
+begin
+  if to_regprocedure('public.save_ragwan_success_plan_content(uuid,text,text,text)') is not null
+     and to_regprocedure('public.save_ragwan_success_plan_content_base(uuid,text,text,text)') is null then
+    alter function public.save_ragwan_success_plan_content(uuid,text,text,text) rename to save_ragwan_success_plan_content_base;
+  end if;
+end
+$rename_content$;
+
+create or replace function public.save_ragwan_success_plan_content(
+  p_token uuid,
+  p_content_type text,
+  p_text_content text default null,
+  p_image_data text default null
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.ragwan_leader_can_manage_training(p_token) then
+    raise exception 'غير مصرح — إضافة محتوى الخطة متاحة لمدير التدريب فقط';
+  end if;
+  return public.save_ragwan_success_plan_content_base(p_token, p_content_type, p_text_content, p_image_data);
+end;
+$$;
+
+-- صلاحيات الأغلفة = صلاحيات الأصل نفسها؛ والأصل (*_base) للخادم فقط.
+do $copy_grants$
+declare
+  pair text[];
+  r text;
+begin
+  foreach pair slice 1 in array array[
+    ['public.get_ragwan_plan_completions(uuid,uuid)','public.get_ragwan_plan_completions_base(uuid,uuid)'],
+    ['public.save_ragwan_success_plan_content(uuid,text,text,text)','public.save_ragwan_success_plan_content_base(uuid,text,text,text)']
+  ] loop
+    if to_regprocedure(pair[2]) is null then
+      continue;
+    end if;
+    execute format('revoke all on function %s from public, anon, authenticated', pair[1]);
+    foreach r in array array['anon','authenticated','service_role'] loop
+      if has_function_privilege(r, pair[2], 'execute') then
+        execute format('grant execute on function %s to %I', pair[1], r);
+      end if;
+    end loop;
+    execute format('revoke all on function %s from public, anon, authenticated', pair[2]);
+    execute format('grant execute on function %s to service_role', pair[2]);
+  end loop;
+end
+$copy_grants$;
 
 notify pgrst, 'reload schema';
 

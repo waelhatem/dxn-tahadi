@@ -112,6 +112,13 @@ async function ragwanReadEvidenceRecord(path){
   const r=await supabaseStorageDownload('/storage/v1/object/authenticated/ragwan-plan/'+path.split('/').map(encodeURIComponent).join('/'),SUPABASE_SECRET_KEY,15000);
   if(!r.ok)return null;try{return JSON.parse(r.buffer.toString('utf8'));}catch(_){return null;}
 }
+/* V86.84 — وضع المطالعة في خطة رجوان: القائد «مدير تدريب» فقط إذا أثبتت قاعدة البيانات ذلك
+   (قائد نشط + team_root_member_no صالح). أي خطأ في التحقق = لا صلاحية (fail closed). */
+const RAGWAN_READ_ONLY_MESSAGE='هذا الحساب في وضع المطالعة لخطة رجوان؛ إدارة المتدربين والملفات والإثباتات غير متاحة له.';
+async function ragwanLeaderCanManage(token){
+  try{return (await supabaseSecretRpc('ragwan_leader_can_manage_training',{p_token:token}))===true;}
+  catch(error){console.error('ragwan manager check failed:',String(error&&error.message||error));return false;}
+}
 async function ragwanPlanFiles(args){
   const token=String(args.p_token||'').trim(),action=String(args.action||'').trim();
   if(!token)throw new Error('انتهت الجلسة. سجّل الدخول من جديد.');
@@ -119,7 +126,15 @@ async function ragwanPlanFiles(args){
   const boot=await supabaseSecretRpc('bootstrap',{p_token:token}),role=String(boot&&boot.role||'');
   if(!['leader','member'].includes(role))throw new Error('غير مصرح.');
   const bucket='ragwan-plan';
+  // العضو يحتفظ بحقوقه الحالية كما هي؛ التحقق الإضافي للقائد فقط.
+  const leaderCanManage=role==='leader'?await ragwanLeaderCanManage(token):false;
+  const requireLeaderManager=message=>{if(role!=='leader')throw new Error(message);if(!leaderCanManage)throw new Error(RAGWAN_READ_ONLY_MESSAGE);};
+  if(action==='capabilities'){
+    return {role,can_train:role==='member'||leaderCanManage,read_only:role==='leader'&&!leaderCanManage};
+  }
   if(['search_trainees','list_trainees','select_trainee','add_trainee_by_member_no','get_training_progress','save_training_step','record_plan_completion_for_member','certificate_trainee_data','update_trainee_display_name','archive_trainee'].includes(action)){
+    // قاعدة البيانات ترفض هذه العمليات أيضًا لحساب المطالعة (ragwan_current_sponsor)؛ هذا رفض مبكر برسالة واضحة.
+    if(role==='leader'&&!leaderCanManage)throw new Error(RAGWAN_READ_ONLY_MESSAGE);
     const rpcMap={
       search_trainees:'search_ragwan_trainees',
       list_trainees:'list_ragwan_trainees',
@@ -183,7 +198,7 @@ async function ragwanPlanFiles(args){
   }
 
   if(action==='sign_upload'){
-    if(role!=='leader')throw new Error('رفع الملفات متاح للقائد فقط.');
+    requireLeaderManager('رفع الملفات متاح للقائد فقط.');
     await ensureRagwanBucket();
     const name=String(args.name||'').trim(),type=String(args.content_type||'application/octet-stream').trim().slice(0,150),size=Number(args.size||0);
     if(!name)throw new Error('اسم الملف مطلوب.');
@@ -195,7 +210,7 @@ async function ragwanPlanFiles(args){
     return {path,name:safe,content_type:type,size,token:signed.data&&signed.data.token,signed_url:absoluteSupabaseStorageUrl(signed.data&&signed.data.signedURL)};
   }
   if(action==='sign_step_resource_upload'){
-    if(role!=='leader')throw new Error('رفع ملفات خطوات رجوان متاح للقائد فقط.');
+    requireLeaderManager('رفع ملفات خطوات رجوان متاح للقائد فقط.');
     await ensureRagwanBucket();
     const step=Math.max(1,Math.min(10,Number(args.step)||0));
     const name=String(args.name||'').trim(),type=String(args.content_type||'application/octet-stream').trim().slice(0,150),size=Number(args.size||0);
@@ -231,7 +246,7 @@ async function ragwanPlanFiles(args){
     })};
   }
   if(action==='delete_step_resource'){
-    if(role!=='leader')throw new Error('حذف مواد الخطوات متاح للقائد فقط.');
+    requireLeaderManager('حذف مواد الخطوات متاح للقائد فقط.');
     const path=String(args.path||'').trim();
     if(!/^step-resources\/step-(?:[1-9]|10)\//.test(path))throw new Error('مسار مادة الخطوة غير صالح.');
     const d=await supabaseStorageRequest('/storage/v1/object/'+bucket,'DELETE',SUPABASE_SECRET_KEY,{prefixes:[path]},15000);
@@ -264,7 +279,7 @@ async function ragwanPlanFiles(args){
     const saved=await supabaseStorageUploadJson(path,SUPABASE_SECRET_KEY,record);if(!saved.ok)throw new Error(saved.text||'تعذر حفظ طلب المراجعة.');return record;
   }
   if(action==='evidence_review'){
-    if(role!=='leader')throw new Error('مراجعة الإثباتات متاحة للقائد فقط.');
+    requireLeaderManager('مراجعة الإثباتات متاحة للقائد فقط.');
     const memberKey=String(args.member_key||'').trim(),step=Math.max(1,Math.min(10,Number(args.step)||0)),decision=String(args.status||'').trim();
     if(!memberKey||!step||!['approved','rejected'].includes(decision))throw new Error('بيانات المراجعة غير صالحة.');
     const path=await ragwanEvidenceRecordPath(memberKey,step),existing=await ragwanReadEvidenceRecord(path);if(!existing)throw new Error('لا يوجد طلب إثبات لهذه الخطوة.');
@@ -272,6 +287,8 @@ async function ragwanPlanFiles(args){
     const saved=await supabaseStorageUploadJson(path,SUPABASE_SECRET_KEY,record);if(!saved.ok)throw new Error(saved.text||'تعذر حفظ قرار المراجعة.');return record;
   }
   if(action==='evidence_records'){
+    // إثباتات الأعضاء بيانات خاصة: القائد يقرؤها كلها فقط إذا كان مدير تدريب.
+    if(role==='leader'&&!leaderCanManage)throw new Error(RAGWAN_READ_ONLY_MESSAGE);
     const requested=String(args.member_key||'').trim(),memberKey=role==='leader'?(requested||''):String(boot.member_no||boot.membership_no||boot.membership_number||boot.username||'member').replace(/[^\p{L}\p{N}_-]/gu,'_').slice(0,80)||'member';
     const prefix=role==='leader'?'evidence-records/':`evidence-records/${memberKey}/`,listed=await supabaseStorageRequest('/storage/v1/object/list/'+bucket,'POST',SUPABASE_SECRET_KEY,{prefix,limit:500,offset:0},15000);
     if(!listed.ok)throw new Error((listed.data&&(listed.data.message||listed.data.error))||listed.text||'تعذر تحميل حالات الإثبات.');
@@ -279,6 +296,7 @@ async function ragwanPlanFiles(args){
     return {records:rows};
   }
   if(action==='evidence_list'){
+    if(role==='leader'&&!leaderCanManage)throw new Error(RAGWAN_READ_ONLY_MESSAGE);
     const memberKey=String(boot.member_no||boot.membership_no||boot.membership_number||boot.username||'member').replace(/[^\p{L}\p{N}_-]/gu,'_').slice(0,80)||'member';
     const prefix=role==='leader'?'evidence/':`evidence/${memberKey}/`;
     const listed=await supabaseStorageRequest('/storage/v1/object/list/'+bucket,'POST',SUPABASE_SECRET_KEY,{prefix,limit:500,offset:0},15000);
@@ -307,7 +325,7 @@ async function ragwanPlanFiles(args){
     return {files:items.map(x=>{const path='ragwan/'+String(x.name||'');return {name:x.name||'file',path,created_at:x.created_at||x.updated_at||null,size:Number(x.metadata&&x.metadata.size||0),mime:String(x.metadata&&x.metadata.mimetype||x.metadata&&x.metadata.contentType||''),url:signedMap[path]||''}})};
   }
   if(action==='delete'){
-    if(role!=='leader')throw new Error('الحذف متاح للقائد فقط.');
+    requireLeaderManager('الحذف متاح للقائد فقط.');
     const path=String(args.path||'').trim();
     if(!path.startsWith('ragwan/'))throw new Error('مسار الملف غير صالح.');
     const d=await supabaseStorageRequest('/storage/v1/object/'+bucket,'DELETE',SUPABASE_SECRET_KEY,{prefixes:[path]},15000);

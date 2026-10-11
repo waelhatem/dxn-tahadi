@@ -3482,9 +3482,18 @@ function ragwanSelectedKey(){
   ))||fallback).replace(/[^a-zA-Z0-9_-]/g,'_');
   return RAGWAN_SELECTED_TRAINEE_KEY+'_'+sponsor;
 }
-/* من يستطيع تدريب متدربين في خطة رجوان: العضو (السبونسر) أو القائد.
-   الصلاحية الحقيقية وملكية السجلات تُفرض في دوال قاعدة البيانات. */
-function ragwanCanTrain(){return role==='leader'||(role==='member'&&!!me);}
+/* من يستطيع تدريب متدربين في خطة رجوان: العضو (السبونسر) أو القائد «مدير التدريب».
+   حساب القائد بلا جذر فريق DXN في وضع المطالعة. الصلاحية الحقيقية تُفرض في الخادم وقاعدة البيانات؛
+   الواجهة تعكسها فقط. null = لم تُعرف الصلاحية بعد (لا إدارة حتى تثبت). */
+let ragwanLeaderCanManage=null;
+function ragwanCanTrain(){return role==='leader'?ragwanLeaderCanManage===true:(role==='member'&&!!me);}
+function ragwanIsReadOnlyLeader(){return role==='leader'&&ragwanLeaderCanManage===false;}
+function ragwanCanManageContent(){return role==='leader'&&ragwanLeaderCanManage===true;}
+async function ragwanLoadCapabilities(){
+  if(role!=='leader'||ragwanLeaderCanManage!==null)return;
+  try{const out=await ragwanPlanApi('capabilities');ragwanLeaderCanManage=out?.can_train===true;}
+  catch(_){ragwanLeaderCanManage=false;}
+}
 function ragwanProgressKey(){
   return 'dxn_ragwan_progress_db_'+String(ragwanSelectedTraineeId||'none');
 }
@@ -3757,6 +3766,10 @@ async function ragwanConfirmArchiveTrainee(enrollmentId){
   }
 }
 function ragwanTraineePanelMarkup(){
+  if(ragwanIsReadOnlyLeader())return '<section class="ragwan-trainee-selector ragwan-read-only" id="ragwanReadOnlyNotice">'+
+    '<div class="ragwan-trainee-selector-head"><div><div class="ragwan-trainee-kicker">👁️ وضع المطالعة</div><h3>تصفح خطة رجوان والأبواب العشرة</h3>'+
+    '<p>هذا الحساب مخصص للمطالعة: يمكنك قراءة محتوى الخطة وتفاصيل كل باب. إدارة المتدربين وتسجيل التقدم والإثباتات والملفات غير متاحة له.</p></div></div>'+
+  '</section>';
   if(!ragwanCanTrain())return '';
   if(ragwanSelectedTrainee)return ragwanSelectedTraineeSummary();
   return '<section class="ragwan-trainee-selector" id="ragwanTraineeSelector">'+
@@ -5441,7 +5454,7 @@ function ragwanRenderStepResources(files){
     const bv=String(b?.mime||'').toLowerCase().startsWith('video/')||/\.(mp4|webm|mov|m4v|ogg)$/i.test(String(b?.name||''));
     return Number(av)-Number(bv);
   });
-  const leaderUpload=role==='leader'
+  const leaderUpload=ragwanCanManageContent()
     ? '<div class="ragwan-resource-upload"><label for="ragwanStepResourceInput">➕ إضافة ملفات هذه الخطوة</label><input id="ragwanStepResourceInput" type="file" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" onchange="ragwanUploadStepResources(this.files)"></div>'
     : '';
 
@@ -5474,7 +5487,7 @@ function ragwanRenderStepResources(files){
             : '<button type="button" class="ragwan-resource-copy js-ragwan-copy-info" data-index="'+index+'">📋 نسخ المعلومات</button>')+
           (isVideo&&url?'<button type="button" class="ragwan-resource-copy js-ragwan-share-video" data-index="'+index+'">📤 مشاركة الفيديو</button>':'')
       )+
-      (role==='leader'?'<button type="button" class="ragwan-resource-delete js-ragwan-delete" data-index="'+index+'">🗑️ حذف</button>':'')+
+      (ragwanCanManageContent()?'<button type="button" class="ragwan-resource-delete js-ragwan-delete" data-index="'+index+'">🗑️ حذف</button>':'')+
       '</div>';
 
     return '<div class="ragwan-resource-item">'+
@@ -5568,7 +5581,7 @@ function ragwanRenderStepResources(files){
   el.querySelectorAll('.js-ragwan-delete').forEach(btn=>btn.addEventListener('click',function(e){
     e.preventDefault();e.stopPropagation();
     const f=arr[Number(this.dataset.index)];
-    if(role==='leader'&&f)ragwanDeleteStepResource(String(f.path||''));
+    if(ragwanCanManageContent()&&f)ragwanDeleteStepResource(String(f.path||''));
   }));
 }
 async function ragwanFocusFirstMaterial(){
@@ -5702,7 +5715,7 @@ async function ragwanLoadStepResources(){
   catch(e){const el=document.getElementById('ragwanStepResources');if(el)el.innerHTML='<div class="ragwan-resource-empty">⚠️ '+esc(e.message||'تعذر تحميل مواد الخطوة.')+'</div>';}
 }
 async function ragwanUploadStepResources(files){
-  if(role!=='leader'||!files||!files.length)return;
+  if(!ragwanCanManageContent()||!files||!files.length)return;
   if(!sb)sb=supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY);
   const status=[];
   const input=document.getElementById('ragwanStepResourceInput');
@@ -5815,6 +5828,11 @@ async function ragwanReviewEvidence(memberKey,step,status){
   try{await ragwanEvidenceApi('evidence_review',{member_key:memberKey,step,status,note});toast(status==='approved'?'🟢 تم اعتماد الخطوة.':'🔴 تم إرجاع الخطوة للتعديل.');await ragwanLoadEvidence();}catch(e){toast('⚠️ '+String(e.message||'تعذر حفظ المراجعة.'));}
 }
 async function ragwanLoadEvidence(){
+  if(ragwanIsReadOnlyLeader()||(role==='leader'&&ragwanLeaderCanManage!==true)){
+    const box=document.getElementById('ragwanEvidenceBox');
+    if(box)box.innerHTML='<div class="ragwan-evidence-empty">👁️ إثباتات الأعضاء غير متاحة في وضع المطالعة.</div>';
+    return;
+  }
   try{
     const [out,records]=await Promise.all([ragwanEvidenceApi('evidence_list'),ragwanEvidenceApi('evidence_records')]);
     window.ragwanEvidenceRecords=records.records||[];
@@ -6128,7 +6146,7 @@ function ragwanRenderFiles(files){
     }else{
       media=`<div class="ragwan-file-media"><div class="ragwan-file-icon">${ragwanFileIcon(f)}</div></div>`;
     }
-    return `<div class="ragwan-file-card">${media}<div class="ragwan-file-info"><div class="ragwan-file-name">${esc(f.name)}</div><div class="ragwan-file-meta">${esc(ragwanFormatSize(f.size))}</div></div><div class="ragwan-file-actions"><button type="button" onclick='ragwanCopyPrizeInfo(${JSON.stringify(f).replace(/'/g,"&#39;") })'>📋 نسخ معلومات الصورة</button>${role==='leader'?`<button type="button" onclick="ragwanDeleteFile('${esc(f.path)}')">🗑️ حذف</button>`:''}</div></div>`;
+    return `<div class="ragwan-file-card">${media}<div class="ragwan-file-info"><div class="ragwan-file-name">${esc(f.name)}</div><div class="ragwan-file-meta">${esc(ragwanFormatSize(f.size))}</div></div><div class="ragwan-file-actions"><button type="button" onclick='ragwanCopyPrizeInfo(${JSON.stringify(f).replace(/'/g,"&#39;") })'>📋 نسخ معلومات الصورة</button>${ragwanCanManageContent()?`<button type="button" onclick="ragwanDeleteFile('${esc(f.path)}')">🗑️ حذف</button>`:''}</div></div>`;
   }).join('');
 }
 const RAGWAN_GENERAL_PRIZES_TEXT=`🎁 هدايا وجوائز فريق الأمل الريادي للأعضاء المتميزين
@@ -6206,6 +6224,10 @@ async function ragwanDeleteFile(path){
   try{await ragwanPlanApi('delete',{path});toast('تم حذف الملف.');await ragwanLoadFiles();}catch(e){toast(e.message||'تعذر حذف الملف.');}
 }
 async function initRagwanFiles(){
+  await ragwanLoadCapabilities();
+  /* وضع المطالعة: لا زر رفع ملفات (الخادم يرفض الرفع أيضًا). */
+  if(!ragwanCanManageContent())document.querySelector('label[for="ragwanFileInput"]')?.parentElement?.remove();
+  ragwanRenderTraineePanel();
   await ragwanRestoreSelectedTrainee();
   if(ragwanSelectedTrainee)ragwanOpenDoor(ragwanProgressNextStep());
   else ragwanRenderTraineePanel();
