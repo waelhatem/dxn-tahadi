@@ -155,12 +155,26 @@ test('migration: leader is a training manager only with a valid team root, with 
   assert.match(MIGRATION,/create or replace function public\.ragwan_leader_can_manage_training\(p_token uuid\)/);
 });
 
-test('migration: completions and content are wrapped, not rewritten, and the originals cannot be called directly',()=>{
-  assert.doesNotMatch(MIGRATION,/from public\.ragwan_plan_completions r/,'must not copy a completions body');
-  assert.match(MIGRATION,/alter function public\.get_ragwan_plan_completions\(uuid,uuid\) rename to get_ragwan_plan_completions_base/);
-  assert.match(MIGRATION,/alter function public\.save_ragwan_success_plan_content\(uuid,text,text,text\) rename to save_ragwan_success_plan_content_base/);
-  assert.match(MIGRATION,/return public\.get_ragwan_plan_completions_base\(p_token, p_member_id\)/);
-  assert.match(MIGRATION,/execute format\('grant execute on function %s to service_role', pair\[2\]\)/);
+test('migration: built on the Production state and refuses to run on any other',()=>{
+  // Production has no completions/content functions; the file must not create them and must stop if they appear.
+  assert.doesNotMatch(MIGRATION,/create or replace function public\.(get_ragwan_plan_completions|save_ragwan_success_plan_content)\(/);
+  assert.doesNotMatch(MIGRATION,/_base\b/,'no wrapper of a function that does not exist');
+  const pre=MIGRATION.slice(MIGRATION.indexOf('do $preconditions$'),MIGRATION.indexOf('$preconditions$;'));
+  assert.ok(MIGRATION.indexOf('do $preconditions$')<MIGRATION.indexOf('create or replace function'),'preconditions run before any change');
+  assert.match(pre,/p\.proname in \('get_ragwan_plan_completions','save_ragwan_success_plan_content'\)/);
+  for(const fn of ['add_ragwan_trainee_by_member_no','archive_ragwan_trainee','get_ragwan_training_progress','list_ragwan_trainees','record_ragwan_plan_completion_for_member','save_ragwan_training_step','select_ragwan_trainee','update_ragwan_trainee_display_name'])
+    assert.ok(pre.includes(`'${fn}'`),fn);
+});
+
+test('migration: the 8 trainee functions become server-only without touching their bodies',()=>{
+  const sec=MIGRATION.slice(MIGRATION.indexOf('do $trainee_grants$'),MIGRATION.indexOf('$trainee_grants$;'));
+  assert.match(sec,/revoke all on function %s from public, anon, authenticated/);
+  assert.match(sec,/grant execute on function %s to service_role/);
+  for(const fn of ['archive_ragwan_trainee','get_ragwan_training_progress','list_ragwan_trainees','record_ragwan_plan_completion_for_member','save_ragwan_training_step','select_ragwan_trainee','update_ragwan_trainee_display_name'])
+    assert.doesNotMatch(MIGRATION,new RegExp('create or replace function public\\.'+fn+'\\('),fn);
+  // The browser never calls them directly; only api/ragwan-files.js does, with the secret key.
+  for(const fn of ['add_ragwan_trainee_by_member_no','list_ragwan_trainees','select_ragwan_trainee','save_ragwan_training_step','get_ragwan_training_progress'])
+    assert.doesNotMatch(HTML,new RegExp("rpc\\(['\"]"+fn),fn);
 });
 
 test('migration: explicit grants keep search and the sponsor helper server-only',()=>{

@@ -19,20 +19,105 @@
 --      لأن حساب القائد ليس عضوًا في جدول الفرق. فرع العضو كما هو بلا تغيير.
 --      ملاحظة: الفحص على Supabase أظهر أن هذه الدالة غير موجودة حاليًا، فهذا الملف ينشئها.
 --   5) الصلاحيات: ragwan_current_sponsor و search_ragwan_trainees و ragwan_current_trainer_root_no
---      و ragwan_leader_can_manage_training لـ service_role فقط. api/ragwan-files.js يستدعي الدوال بالمفتاح
---      السري، وكل دوال رجوان التي تستدعي ragwan_current_sponsor هي SECURITY DEFINER فتعمل بصلاحيات مالكها.
+--      و ragwan_leader_can_manage_training ودوال إدارة المتدربين الثمانية لـ service_role فقط.
+--      api/ragwan-files.js يستدعيها كلها بالمفتاح السري، والواجهة لا تستدعي أيًا منها مباشرة،
+--      وكل دوال رجوان التي تستدعي ragwan_current_sponsor هي SECURITY DEFINER فتعمل بصلاحيات مالكها.
 --   6) وضع المطالعة: القائد «مدير تدريب» فقط إذا كان نشطًا وله team_root_member_no صالح (9 أرقام).
---      حساب قائد بلا جذر (مثل LEADER1 المخصص للمطالعة) يرى محتوى الخطة والأبواب، لكن تُرفض له من الخادم:
---      إضافة/بحث/اختيار/عرض/حفظ تقدم/إكمال/أرشفة/إعادة تسمية المتدربين وبيانات الشهادة
---      (عبر ragwan_current_sponsor)، وقراءة سجلات الإكمال (get_ragwan_plan_completions)،
---      وكتابة محتوى الخطة (save_ragwan_success_plan_content)، وعمليات الملفات والإثباتات في الخادم.
+--      حساب قائد بلا جذر (مثل LEADER1 المخصص للمطالعة) يرى محتوى الخطة والأبواب، لكن تُرفض له
+--      إضافة/بحث/اختيار/عرض/حفظ تقدم/إكمال/أرشفة/إعادة تسمية المتدربين وبيانات الشهادة: في قاعدة البيانات
+--      (ragwan_current_sponsor)، وفي الخادم (api/ragwan-files.js)، ولا يمكن تجاوز الخادم بالمفتاح العام (البند 5).
 --      لا يُستخدم أي رقم عضوية بديل، ولا يُغيَّر دور أو بيانات أي حساب، ولا تتأثر صلاحياته خارج خطة رجوان.
+--
+-- مبني على حالة Production المفحوصة (11 دالة لرجوان؛ search_ragwan_trainees و get_ragwan_plan_completions
+-- و save_ragwan_success_plan_content غير موجودة). القسم 0 يتحقق من هذه الحالة ويوقف التطبيق كاملًا إن اختلفت.
 --
 -- لا يعدّل أي صف عند التطبيق. لا يغيّر الجداول ولا تقدم المتدربين ولا الشهادات.
 -- التراجع: راجع supabase/pending-review/20261011120000_ragwan_leader_trainer_access.ROLLBACK.md
--- (المصدر الموثوق للتراجع هو تعريفات الدوال المحفوظة من Supabase قبل التطبيق، وليس ملفات المستودع).
+-- (المصدر الموثوق للتراجع هو تعريفات الدوال وصلاحياتها المحفوظة من Supabase قبل التطبيق، وليس ملفات المستودع).
 
 begin;
+
+-- 0) تحقق مسبق من حالة Production. أي اختلاف يوقف الملف قبل أي تغيير (الملف كله داخل معاملة واحدة).
+do $preconditions$
+declare
+  required text[] := array[
+    'ragwan_current_sponsor','add_ragwan_trainee_by_member_no','archive_ragwan_trainee','get_ragwan_training_progress',
+    'list_ragwan_trainees','record_ragwan_plan_completion_for_member','save_ragwan_training_step',
+    'select_ragwan_trainee','update_ragwan_trainee_display_name'
+  ];
+  missing text[];
+  bad text[];
+begin
+  select array_agg(x) into missing
+  from unnest(required) x
+  where not exists(
+    select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+    where n.nspname='public' and p.proname=x
+  );
+  if missing is not null then
+    raise exception 'ragwan precondition: دوال مطلوبة غير موجودة: %', array_to_string(missing,', ');
+  end if;
+
+  -- create or replace يفشل إن اختلف نوع الإرجاع أو أسماء المعاملات؛ نوقف برسالة واضحة بدل ذلك.
+  if to_regprocedure('public.ragwan_current_sponsor(uuid)') is null
+     or pg_get_function_result('public.ragwan_current_sponsor(uuid)'::regprocedure)
+        <> 'TABLE(user_id uuid, member_id uuid, team_id uuid, member_name text)' then
+    raise exception 'ragwan precondition: توقيع ragwan_current_sponsor على Supabase مختلف عن الملف';
+  end if;
+  if to_regprocedure('public.add_ragwan_trainee_by_member_no(uuid,text)') is null
+     or pg_get_function_arguments('public.add_ragwan_trainee_by_member_no(uuid,text)'::regprocedure)
+        <> 'p_token uuid, p_trainee_member_no text'
+     or pg_get_function_result('public.add_ragwan_trainee_by_member_no(uuid,text)'::regprocedure) <> 'json' then
+    raise exception 'ragwan precondition: توقيع add_ragwan_trainee_by_member_no على Supabase مختلف عن الملف';
+  end if;
+
+  -- دوال بيانات خاصة بلا فحص «مدير التدريب». غير موجودة على Production؛ إن ظهرت فالملف يحتاج مراجعة.
+  select array_agg(p.proname::text) into bad
+  from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='public'
+    and p.proname in ('get_ragwan_plan_completions','save_ragwan_success_plan_content');
+  if bad is not null then
+    raise exception 'ragwan precondition: دوال لم يُبنَ الملف على وجودها: % — أعد المراجعة قبل التطبيق', array_to_string(bad,', ');
+  end if;
+  -- search_ragwan_trainees غير موجودة؛ يُسمح فقط بالتوقيع الذي ينشئه هذا الملف (إعادة التشغيل).
+  if exists(
+    select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+    where n.nspname='public' and p.proname='search_ragwan_trainees'
+      and (p.oid::regprocedure::text <> 'search_ragwan_trainees(uuid,text)' or pg_get_function_result(p.oid) <> 'json')
+  ) then
+    raise exception 'ragwan precondition: توجد نسخة أخرى من search_ragwan_trainees — أعد المراجعة قبل التطبيق';
+  end if;
+
+  -- الأعمدة والقيود التي تعتمد عليها add_ragwan_trainee_by_member_no و search_ragwan_trainees.
+  select array_agg(c) into missing
+  from unnest(array[
+    'app_users.team_root_member_no','app_users.role','app_users.active','app_users.member_id',
+    'members.member_no','members.name','members.team_id','members.active',
+    'dxn_team_members.member_no','dxn_team_members.member_name','dxn_team_members.sponsor_member_no',
+    'ragwan_training_enrollments.trainee_display_name','ragwan_training_enrollments.archived_at',
+    'ragwan_training_enrollments.trainee_member_no','ragwan_training_enrollments.last_activity_at',
+    'ragwan_training_progress.enrollment_id','ragwan_training_progress.step','ragwan_training_progress.status'
+  ]) c
+  where not exists(
+    select 1 from information_schema.columns ic
+    where ic.table_schema='public' and ic.table_name=split_part(c,'.',1) and ic.column_name=split_part(c,'.',2)
+  );
+  if missing is not null then
+    raise exception 'ragwan precondition: أعمدة غير موجودة: %', array_to_string(missing,', ');
+  end if;
+  if not exists(
+    select 1 from pg_index i
+    where i.indrelid='public.ragwan_training_enrollments'::regclass and i.indisunique
+      and (select array_agg(a.attname::text order by a.attname::text) from pg_attribute a
+           where a.attrelid=i.indrelid and a.attnum=any(i.indkey)) = array['sponsor_user_id','trainee_member_id']
+  ) then
+    raise exception 'ragwan precondition: لا يوجد قيد فريد على (sponsor_user_id, trainee_member_id)';
+  end if;
+  if not exists(select 1 from pg_roles where rolname='service_role') then
+    raise exception 'ragwan precondition: الدور service_role غير موجود';
+  end if;
+end
+$preconditions$;
 
 -- 1) المدرب الحالي: عضو (كما كان) أو قائد نشط.
 create or replace function public.ragwan_current_sponsor(p_token uuid)
@@ -357,93 +442,35 @@ $$;
 revoke all on function public.search_ragwan_trainees(uuid,text) from public, anon, authenticated;
 grant execute on function public.search_ragwan_trainees(uuid,text) to service_role;
 
--- 5) و 6) دوال خطة رجوان الأخرى: لا ننسخ أجسامها لأن للمستودع نسختين متعارضتين منها
---    (20261002120000 و 20261002140000) ولا نعرف أيهما على Supabase. بدل ذلك:
---    - نعيد تسمية الدالة الموجودة فعليًا كما هي إلى *_base (بدون أي تغيير في منطقها أو في حقوق الأعضاء)،
---    - ننشئ غلافًا بالاسم الأصلي يرفض القائد الذي ليس مدير تدريب ثم يستدعي الدالة الأصلية،
---    - ننسخ صلاحيات الأصل إلى الغلاف، ونحصر *_base بالخادم حتى لا يُتجاوز الغلاف باستدعائها مباشرة.
-
--- 5) سجلات إكمال الخطة (بيانات خاصة).
-do $rename_completions$
-begin
-  if to_regprocedure('public.get_ragwan_plan_completions(uuid,uuid)') is not null
-     and to_regprocedure('public.get_ragwan_plan_completions_base(uuid,uuid)') is null then
-    alter function public.get_ragwan_plan_completions(uuid,uuid) rename to get_ragwan_plan_completions_base;
-  end if;
-end
-$rename_completions$;
-
-create or replace function public.get_ragwan_plan_completions(
-  p_token uuid,
-  p_member_id uuid
-)
-returns json
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  if lower(coalesce(public.app_current_role(p_token),''))='leader'
-     and not public.ragwan_leader_can_manage_training(p_token) then
-    raise exception 'غير مصرح';
-  end if;
-  return public.get_ragwan_plan_completions_base(p_token, p_member_id);
-end;
-$$;
-
--- 6) كتابة محتوى الخطة: مدير التدريب فقط. قراءة المحتوى (get_ragwan_success_plan_content) بلا تغيير.
-do $rename_content$
-begin
-  if to_regprocedure('public.save_ragwan_success_plan_content(uuid,text,text,text)') is not null
-     and to_regprocedure('public.save_ragwan_success_plan_content_base(uuid,text,text,text)') is null then
-    alter function public.save_ragwan_success_plan_content(uuid,text,text,text) rename to save_ragwan_success_plan_content_base;
-  end if;
-end
-$rename_content$;
-
-create or replace function public.save_ragwan_success_plan_content(
-  p_token uuid,
-  p_content_type text,
-  p_text_content text default null,
-  p_image_data text default null
-)
-returns uuid
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  if not public.ragwan_leader_can_manage_training(p_token) then
-    raise exception 'غير مصرح — إضافة محتوى الخطة متاحة لمدير التدريب فقط';
-  end if;
-  return public.save_ragwan_success_plan_content_base(p_token, p_content_type, p_text_content, p_image_data);
-end;
-$$;
-
--- صلاحيات الأغلفة = صلاحيات الأصل نفسها؛ والأصل (*_base) للخادم فقط.
-do $copy_grants$
+-- 5) دوال إدارة المتدربين الثمانية الموجودة على Production: للخادم فقط.
+--    على Production يمكن اليوم استدعاء بعضها بالمفتاح العام (anon) عبر /api/rpc أو مباشرة على Supabase،
+--    فيصل حساب المطالعة إليها متجاوزًا رفض api/ragwan-files.js، وتكون الحماية معتمدة على أجسامها وحدها.
+--    الواجهة لا تستدعي أيًا منها مباشرة؛ كل استدعاءاتها تمر عبر api/ragwan-files.js بالمفتاح السري
+--    (service_role)، وهو المسار الذي يبقى يعمل. لا يتغير جسم أي منها.
+--    تُعامل كل التواقيع الموجودة لكل اسم، فلا يعتمد هذا القسم على توقيع بعينه.
+do $trainee_grants$
 declare
-  pair text[];
-  r text;
+  r record;
 begin
-  foreach pair slice 1 in array array[
-    ['public.get_ragwan_plan_completions(uuid,uuid)','public.get_ragwan_plan_completions_base(uuid,uuid)'],
-    ['public.save_ragwan_success_plan_content(uuid,text,text,text)','public.save_ragwan_success_plan_content_base(uuid,text,text,text)']
-  ] loop
-    if to_regprocedure(pair[2]) is null then
-      continue;
-    end if;
-    execute format('revoke all on function %s from public, anon, authenticated', pair[1]);
-    foreach r in array array['anon','authenticated','service_role'] loop
-      if has_function_privilege(r, pair[2], 'execute') then
-        execute format('grant execute on function %s to %I', pair[1], r);
-      end if;
-    end loop;
-    execute format('revoke all on function %s from public, anon, authenticated', pair[2]);
-    execute format('grant execute on function %s to service_role', pair[2]);
+  for r in
+    select p.oid::regprocedure as sig
+    from pg_proc p
+    join pg_namespace n on n.oid=p.pronamespace
+    where n.nspname='public'
+      and p.proname in (
+        'add_ragwan_trainee_by_member_no','archive_ragwan_trainee','get_ragwan_training_progress',
+        'list_ragwan_trainees','record_ragwan_plan_completion_for_member','save_ragwan_training_step',
+        'select_ragwan_trainee','update_ragwan_trainee_display_name'
+      )
+  loop
+    execute format('revoke all on function %s from public, anon, authenticated', r.sig);
+    execute format('grant execute on function %s to service_role', r.sig);
   end loop;
 end
-$copy_grants$;
+$trainee_grants$;
+
+-- لا ينشئ هذا الملف get_ragwan_plan_completions ولا save_ragwan_success_plan_content (غير موجودتين على
+-- Production، والقسم 0 يوقف التطبيق إن ظهرتا). قراءة محتوى الخطة وكل ما يعرض الأبواب العشرة لا يُمس.
 
 notify pgrst, 'reload schema';
 
