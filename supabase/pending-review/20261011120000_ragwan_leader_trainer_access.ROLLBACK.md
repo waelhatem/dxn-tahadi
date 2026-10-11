@@ -98,6 +98,32 @@
           (select team_id is not null from public.members where trim(member_no)='820469486' limit 1) as root_member_has_team;
    -- team_id_nullable يجب أن يكون 'YES' (القسم 0 يوقف الملف إن لم يكن)، فلا تفشل الإضافة بسبب الفريق.
    -- root_member_has_team = false يعني أن متدربي الأجيال التي لا جدّ لها في members سيُنشؤون بلا فريق.
+   -- نتيجة Production (11 أكتوبر 2026): team_id_nullable = YES، root_member_has_team = true، وLEADER غير مرتبط بسجل members.
+   ```
+
+8. **قيود الجداول التي يكتب فيها مسار القائد** (قراءة فقط). LEADER غير مرتبط بسجل members، فيُكتب `sponsor_member_id`
+   و `recipient_member_id` فارغين:
+   ```sql
+   select c.table_name, c.column_name, c.is_nullable
+   from information_schema.columns c
+   where c.table_schema='public'
+     and (c.table_name, c.column_name) in (
+       ('members','team_id'),('members','name'),('members','member_no'),
+       ('ragwan_training_enrollments','sponsor_member_id'),('ragwan_training_enrollments','trainee_name'),
+       ('ragwan_plan_completions','sponsor_member_id'),('app_notifications','recipient_member_id'))
+   order by 1,2;
+   -- المتوقع: team_id و sponsor_member_id (الجدولان) و recipient_member_id = YES.
+   ```
+
+9. **أي نسخة من دالة إكمال الخطة على Production** (قراءة فقط):
+   ```sql
+   select pg_get_function_identity_arguments(p.oid) as args,
+          position('ragwan_plan_completions' in p.prosrc) > 0 as inserts_completion_row,
+          position('app_notifications' in p.prosrc) > 0 as sends_notifications
+   from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+   where n.nspname='public' and p.proname='record_ragwan_plan_completion_for_member';
+   -- إن كانت sends_notifications = true: يعمل الإكمال لـ LEADER، لكن نص الإشعار يُظهر اسم السبونسر ورقمه فارغين
+   -- ("غير مسجل") لأن حسابه بلا سجل members. تجميلي فقط، والملف لا يغيّر هذه الدالة.
    ```
 
 ## ترتيب النشر (مهم)
