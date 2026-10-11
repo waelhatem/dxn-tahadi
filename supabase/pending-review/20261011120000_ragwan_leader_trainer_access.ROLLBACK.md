@@ -125,6 +125,11 @@
    -- إن كانت sends_notifications = true: يعمل الإكمال لـ LEADER، لكن نص الإشعار يُظهر اسم السبونسر ورقمه فارغين
    -- ("غير مسجل") لأن حسابه بلا سجل members. تجميلي فقط، والملف لا يغيّر هذه الدالة.
    ```
+   **نتيجة Production (11 أكتوبر 2026):** جدول `ragwan_plan_completions` غير موجود. الدالة بالتوقيع
+   `(p_member_id uuid, p_token uuid)` تطابق وصفيًا نسخة المستودع `20261007100000_ragwan_trainee_edit_archive.sql`:
+   تتحقق بـ `ragwan_current_sponsor`، وتشترط تسجيلًا غير مؤرشف لنفس `sponsor_user_id`، وتتحقق من الأبواب العشرة،
+   وتحدّث `completed_at` و `last_activity_at` فقط. لا تستخدم `sponsor_member_id`. الملف لا يغيّر جسمها،
+   ويحصر تنفيذها بـ `service_role` فقط. (في الخطوة 8 لن يظهر سطر `ragwan_plan_completions`، وهذا متوقع.)
 
 ## ترتيب النشر (مهم)
 - الواجهة و `api/ragwan-files.js` في هذا الفرع تسأل قاعدة البيانات عبر `ragwan_leader_can_manage_training`.
