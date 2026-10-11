@@ -189,6 +189,6 @@ test('migration: adding a trainee never reactivates or renames an existing membe
   const body=MIGRATION.slice(start,MIGRATION.indexOf('$$;',start));
   assert.doesNotMatch(body,/active\s*=\s*true\s*(,|\n|where)/i,'must not set active = true on members');
   assert.match(body,/if local_member\.active is distinct from true then\s*raise exception/);
-  assert.match(body,/if trim\(coalesce\(local_member\.name,''\)\) = '' then\s*update public\.members\s*set name = target_dxn\.member_name/);
+  assert.doesNotMatch(body,/update public.members/i,'must not update any existing member row');
   assert.ok(fs.existsSync(path.join(ROOT,'supabase','pending-review','20261011120000_ragwan_leader_trainer_access.ROLLBACK.md')),'rollback plan must ship with the file');
 });

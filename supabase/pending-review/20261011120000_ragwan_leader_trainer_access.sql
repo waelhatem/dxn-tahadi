@@ -11,10 +11,11 @@
 --      ويعدّل متدربيه هو فقط، ولا يصل إلى متدربي أي سبونسر آخر.
 --   2) ragwan_current_trainer_root_no (جديدة): رقم عضوية DXN الذي يبدأ منه فريق المدرب.
 --      العضو: رقم عضويته (كما في السابق). القائد: app_users.team_root_member_no.
---   3) add_ragwan_trainee_by_member_no: نفس الدالة المطبقة حاليًا، مع ثلاثة فروق:
+--   3) add_ragwan_trainee_by_member_no: نفس الدالة المطبقة حاليًا، مع أربعة فروق:
 --      أ) مصدر رقم جذر الفريق (الدالة الجديدة أعلاه)، ب) رسالة الدور،
 --      ج) لا تغيّر سجل عضو موجود في members: لا تعيد تفعيل عضو معطّل (يُرفض برسالة واضحة)،
---         ولا تستبدل اسمه؛ تملأ الاسم فقط إذا كان فارغًا. قاعدة «أي جيل ضمن فريق DXN» كما هي.
+--         ولا تغيّر اسمه إطلاقًا (ولا حتى إن كان فارغًا). قاعدة «أي جيل ضمن فريق DXN» كما هي.
+--      د) سجل members الجديد يأخذ فريق المدرب، وللقائد بلا سجل members فريقَ سجل جذر فريقه.
 --   4) search_ragwan_trainees: فرع للقائد يبحث في متدربيه المسجلين (غير المؤرشفين) فقط،
 --      لأن حساب القائد ليس عضوًا في جدول الفرق. فرع العضو كما هو بلا تغيير.
 --      ملاحظة: الفحص على Supabase أظهر أن هذه الدالة غير موجودة حاليًا، فهذا الملف ينشئها.
@@ -56,6 +57,11 @@ begin
   );
   if missing is not null then
     raise exception 'ragwan precondition: دوال مطلوبة غير موجودة: %', array_to_string(missing,', ');
+  end if;
+
+  -- الدالة الوحيدة خارج هذا الملف التي يعتمد عليها (تستخدمها ragwan_current_sponsor الحالية أيضًا).
+  if to_regprocedure('public.app_current_user_id(uuid)') is null then
+    raise exception 'ragwan precondition: الدالة app_current_user_id(uuid) غير موجودة';
   end if;
 
   -- create or replace يفشل إن اختلف نوع الإرجاع أو أسماء المعاملات؛ نوقف برسالة واضحة بدل ذلك.
@@ -300,21 +306,27 @@ begin
   where trim(m.member_no) = normalized_no
   limit 1;
   if local_member.id is null then
+    -- فريق السجل الجديد: فريق المدرب كما في النسخة الحالية. حساب القائد قد لا يرتبط بسجل members،
+    -- فنأخذ فريق سجل جذر فريقه إن وُجد، بدل إنشاء عضو بلا فريق.
     insert into public.members(member_no, name, team_id, active)
-    values(normalized_no, target_dxn.member_name, sponsor_row.team_id, true)
+    values(
+      normalized_no,
+      target_dxn.member_name,
+      coalesce(
+        sponsor_row.team_id,
+        (select m.team_id from public.members m
+         where trim(m.member_no) = v_sponsor_member_no and m.team_id is not null
+         limit 1)
+      ),
+      true
+    )
     returning * into local_member;
   else
-    /* لا نغيّر بيانات عضو موجود دون ضرورة:
+    /* لا نغيّر أي بيانات لعضو موجود (النسخة الحالية على Production تعيد كتابة الاسم و active=true):
        - لا نعيد تفعيل عضو معطّل؛ التعطيل قرار إداري، وإعادة التفعيل قد تعيد صلاحيات حسابه.
-       - لا نستبدل اسمه؛ نملؤه فقط إذا كان فارغًا لأن select_ragwan_trainee يعرض members.name. */
+       - لا نغيّر اسمه إطلاقًا؛ اسم DXN يُحفظ في ragwan_training_enrollments.trainee_name. */
     if local_member.active is distinct from true then
       raise exception 'هذا العضو غير نشط في المجتمع؛ لا يمكن إضافته متدربًا قبل إعادة تفعيله من القائد';
-    end if;
-    if trim(coalesce(local_member.name,'')) = '' then
-      update public.members
-      set name = target_dxn.member_name
-      where id = local_member.id
-      returning * into local_member;
     end if;
   end if;
 

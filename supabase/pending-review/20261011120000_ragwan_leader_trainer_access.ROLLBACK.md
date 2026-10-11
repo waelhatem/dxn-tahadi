@@ -73,6 +73,31 @@
 
 5. **قارن** تعريف `add_ragwan_trainee_by_member_no` و `ragwan_current_sponsor` من الخطوة 1 بالملف. أي منطق في النسخة الحالية
    غير موجود في الملف يجب نقله إلى الملف قبل التطبيق (الملف يستبدل هاتين الدالتين فقط).
+   الفروق المقصودة عن النسخة الحالية (حسب فحص Production): فرع للقائد ذي الجذر الصالح في `ragwan_current_sponsor`؛
+   وفي الإضافة: لا `UPDATE` لأي عضو موجود (لا اسم ولا `active=true`)، والعضو المعطّل يُرفض برسالة واضحة.
+
+6. **الدوال الثماني تمر عبر `ragwan_current_sponsor`؟** (قراءة فقط) يحدد هل يستطيع LEADER الإدارة بعد التطبيق:
+   ```sql
+   select p.proname,
+          position('ragwan_current_sponsor' in p.prosrc) > 0 as uses_sponsor,
+          p.prosrc ~* $r$role\s*(=|<>|!=)\s*'member'|app_current_role$r$ as has_own_role_check
+   from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+   where n.nspname='public' and p.proname in ('archive_ragwan_trainee','get_ragwan_training_progress','list_ragwan_trainees',
+     'record_ragwan_plan_completion_for_member','save_ragwan_training_step','select_ragwan_trainee','update_ragwan_trainee_display_name')
+   order by 1;
+   -- المتوقع: uses_sponsor = true و has_own_role_check = false لكل الدوال السبع.
+   -- أي دالة بخلاف ذلك ستبقى ترفض LEADER (لا خطر أمني، لكنها تحتاج تعديلًا ليعمل LEADER).
+   ```
+
+7. **فريق السجلات الجديدة التي يضيفها LEADER** (قراءة فقط):
+   ```sql
+   select (select is_nullable from information_schema.columns
+           where table_schema='public' and table_name='members' and column_name='team_id') as team_id_nullable,
+          (select member_id is not null from public.app_users where username='LEADER') as leader_linked_to_member,
+          (select team_id is not null from public.members where trim(member_no)='820469486' limit 1) as root_member_has_team;
+   -- إن كان leader_linked_to_member و root_member_has_team كلاهما false: المتدرب الجديد غير الموجود في members
+   -- يُنشأ بلا فريق، أو تفشل إضافته إن كان team_id_nullable = 'NO'.
+   ```
 
 ## ترتيب النشر (مهم)
 - الواجهة و `api/ragwan-files.js` في هذا الفرع تسأل قاعدة البيانات عبر `ragwan_leader_can_manage_training`.
