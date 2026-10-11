@@ -11,16 +11,20 @@
 --      ويعدّل متدربيه هو فقط، ولا يصل إلى متدربي أي سبونسر آخر.
 --   2) ragwan_current_trainer_root_no (جديدة): رقم عضوية DXN الذي يبدأ منه فريق المدرب.
 --      العضو: رقم عضويته (كما في السابق). القائد: app_users.team_root_member_no.
---   3) add_ragwan_trainee_by_member_no: نفس الدالة المطبقة حاليًا حرفيًا، باستثناء مصدر رقم
---      جذر الفريق (الدالة الجديدة أعلاه) ورسالة الدور. قاعدة «أي جيل ضمن فريق DXN» كما هي.
+--   3) add_ragwan_trainee_by_member_no: نفس الدالة المطبقة حاليًا، مع ثلاثة فروق:
+--      أ) مصدر رقم جذر الفريق (الدالة الجديدة أعلاه)، ب) رسالة الدور،
+--      ج) لا تغيّر سجل عضو موجود في members: لا تعيد تفعيل عضو معطّل (يُرفض برسالة واضحة)،
+--         ولا تستبدل اسمه؛ تملأ الاسم فقط إذا كان فارغًا. قاعدة «أي جيل ضمن فريق DXN» كما هي.
 --   4) search_ragwan_trainees: فرع للقائد يبحث في متدربيه المسجلين (غير المؤرشفين) فقط،
 --      لأن حساب القائد ليس عضوًا في جدول الفرق. فرع العضو كما هو بلا تغيير.
+--      ملاحظة: الفحص على Supabase أظهر أن هذه الدالة غير موجودة حاليًا، فهذا الملف ينشئها.
+--   5) الصلاحيات: ragwan_current_sponsor و search_ragwan_trainees و ragwan_current_trainer_root_no
+--      لـ service_role فقط. api/ragwan-files.js يستدعي الدوال بالمفتاح السري، وكل دوال رجوان
+--      التي تستدعي ragwan_current_sponsor هي SECURITY DEFINER فتعمل بصلاحيات مالكها.
 --
--- لا يُنشئ أو يحذف أو يعدّل أي صف. لا يغيّر الجداول ولا تقدم المتدربين ولا الشهادات.
--- التراجع: إعادة تشغيل تعريفات الدوال من
---   supabase/migrations/20261002160000_ragwan_trainee_tracking.sql (ragwan_current_sponsor, search_ragwan_trainees)
---   supabase/migrations/20261007100000_ragwan_trainee_edit_archive.sql (add_ragwan_trainee_by_member_no)
--- ثم: drop function public.ragwan_current_trainer_root_no(uuid);
+-- لا يعدّل أي صف عند التطبيق. لا يغيّر الجداول ولا تقدم المتدربين ولا الشهادات.
+-- التراجع: راجع supabase/pending-review/20261011120000_ragwan_leader_trainer_access.ROLLBACK.md
+-- (المصدر الموثوق للتراجع هو تعريفات الدوال المحفوظة من Supabase قبل التطبيق، وليس ملفات المستودع).
 
 begin;
 
@@ -45,6 +49,10 @@ begin
   limit 1;
 end;
 $$;
+
+-- تُستدعى من دوال رجوان (SECURITY DEFINER) ومن الخادم فقط؛ لا حاجة لاستدعائها بالمفتاح العام.
+revoke all on function public.ragwan_current_sponsor(uuid) from public, anon, authenticated;
+grant execute on function public.ragwan_current_sponsor(uuid) to service_role;
 
 -- 2) جذر فريق DXN للمدرب الحالي.
 create or replace function public.ragwan_current_trainer_root_no(p_token uuid)
@@ -176,11 +184,18 @@ begin
     values(normalized_no, target_dxn.member_name, sponsor_row.team_id, true)
     returning * into local_member;
   else
-    update public.members
-    set name = target_dxn.member_name,
-        active = true
-    where id = local_member.id;
-    select * into local_member from public.members where id = local_member.id limit 1;
+    /* لا نغيّر بيانات عضو موجود دون ضرورة:
+       - لا نعيد تفعيل عضو معطّل؛ التعطيل قرار إداري، وإعادة التفعيل قد تعيد صلاحيات حسابه.
+       - لا نستبدل اسمه؛ نملؤه فقط إذا كان فارغًا لأن select_ragwan_trainee يعرض members.name. */
+    if local_member.active is distinct from true then
+      raise exception 'هذا العضو غير نشط في المجتمع؛ لا يمكن إضافته متدربًا قبل إعادة تفعيله من القائد';
+    end if;
+    if trim(coalesce(local_member.name,'')) = '' then
+      update public.members
+      set name = target_dxn.member_name
+      where id = local_member.id
+      returning * into local_member;
+    end if;
   end if;
 
   insert into public.ragwan_training_enrollments(
@@ -302,6 +317,10 @@ begin
   ), '[]'::json);
 end;
 $$;
+
+-- الدالة غير موجودة حاليًا على Supabase، فإنشاؤها يمنحها EXECUTE لـ PUBLIC افتراضيًا؛ نحصرها بالخادم.
+revoke all on function public.search_ragwan_trainees(uuid,text) from public, anon, authenticated;
+grant execute on function public.search_ragwan_trainees(uuid,text) to service_role;
 
 notify pgrst, 'reload schema';
 

@@ -121,3 +121,19 @@ test('migration: review-only file, keeps the member branch, adds leader, never d
   assert.match(MIGRATION,/where e\.sponsor_user_id=s\.user_id\s+and e\.archived_at is null/);
   assert.ok(!fs.existsSync(path.join(ROOT,'supabase','migrations','20261011120000_ragwan_leader_trainer_access.sql')),'must not be in supabase/migrations');
 });
+
+test('migration: explicit grants keep search and the sponsor helper server-only',()=>{
+  for(const sig of ['ragwan_current_sponsor\\(uuid\\)','search_ragwan_trainees\\(uuid,text\\)','ragwan_current_trainer_root_no\\(uuid\\)']){
+    assert.match(MIGRATION,new RegExp('revoke all on function public\\.'+sig+' from public, anon, authenticated;'),sig);
+    assert.match(MIGRATION,new RegExp('grant execute on function public\\.'+sig+' to service_role;'),sig);
+  }
+});
+
+test('migration: adding a trainee never reactivates or renames an existing member',()=>{
+  const start=MIGRATION.indexOf('create or replace function public.add_ragwan_trainee_by_member_no(');
+  const body=MIGRATION.slice(start,MIGRATION.indexOf('$$;',start));
+  assert.doesNotMatch(body,/active\s*=\s*true\s*(,|\n|where)/i,'must not set active = true on members');
+  assert.match(body,/if local_member\.active is distinct from true then\s*raise exception/);
+  assert.match(body,/if trim\(coalesce\(local_member\.name,''\)\) = '' then\s*update public\.members\s*set name = target_dxn\.member_name/);
+  assert.ok(fs.existsSync(path.join(ROOT,'supabase','pending-review','20261011120000_ragwan_leader_trainer_access.ROLLBACK.md')),'rollback plan must ship with the file');
+});
