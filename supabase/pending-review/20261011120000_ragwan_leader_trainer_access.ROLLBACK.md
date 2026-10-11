@@ -73,12 +73,23 @@
 لا يحتاج استعادة بيانات؛ الملف لا يغيّر أي صف عند التطبيق.
 
 1. شغّل التعريفات المحفوظة في الخطوة 1 لـ `ragwan_current_sponsor` و `add_ragwan_trainee_by_member_no`
-   و `get_ragwan_plan_completions` و `save_ragwan_success_plan_content`.
-2. أعد صلاحياتها كما حُفظت في الخطوة 2 (مثال إن كانت متاحة لـ anon و authenticated):
+   فقط. لا تشغّل التعريفات المحفوظة لدالتي الإكمال والمحتوى؛ الملف لم يغيّر جسميهما بل أعاد تسميتهما، فتُستعاد كما في الخطوة 2.
+2. أزل الغلافين وأعد الأصل إلى اسمه (جسمه لم يتغير):
+   ```sql
+   begin;
+   drop function if exists public.get_ragwan_plan_completions(uuid,uuid);
+   alter function public.get_ragwan_plan_completions_base(uuid,uuid) rename to get_ragwan_plan_completions;
+   drop function if exists public.save_ragwan_success_plan_content(uuid,text,text,text);
+   alter function public.save_ragwan_success_plan_content_base(uuid,text,text,text) rename to save_ragwan_success_plan_content;
+   commit;
+   ```
+   إعادة التسمية لا تعيد الصلاحيات التي حُصرت بالخادم، فتابع الخطوة 3.
+3. أعد صلاحيات كل الدوال الأربع كما حُفظت في الخطوة 2 من «قبل التطبيق» (مثال إن كانت متاحة لـ anon و authenticated):
    ```sql
    grant execute on function public.ragwan_current_sponsor(uuid) to anon, authenticated;
+   grant execute on function public.get_ragwan_plan_completions(uuid,uuid) to anon, authenticated;
    ```
-3. احذف ما أنشأه الملف ولم يكن موجودًا قبله:
+4. احذف ما أنشأه الملف ولم يكن موجودًا قبله:
    ```sql
    drop function if exists public.ragwan_current_trainer_root_no(uuid);
    -- ملاحظة: احذفها فقط بعد إرجاع كود الخادم أيضًا، وإلا يعامل الخادم كل القادة كوضع مطالعة.
@@ -87,6 +98,6 @@
    drop function if exists public.search_ragwan_trainees(uuid,text);
    notify pgrst, 'reload schema';
    ```
-4. أعد استعلام الأعداد للتأكد.
+5. أعد استعلام الأعداد للتأكد.
 
 > ملاحظة: إذا أضاف القائد متدربين بعد التطبيق ثم حدث التراجع، تبقى سجلاتهم محفوظة في الجداول لكن لن يستطيع القائد فتحها حتى يُعاد تطبيق الملف. لا يُحذف شيء.

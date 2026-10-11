@@ -66,6 +66,14 @@ test('read-only leader is refused for every management or private-record action,
   }
 });
 
+test('read-only leader cannot submit evidence either (member-only actions)',async()=>{
+  for(const [action,extra] of [['sign_evidence_upload',{step:1,name:'a.jpg',size:10}],['evidence_submit',{step:1,note:'x'}]]){
+    const r=await callApi(TOKENS.readOnly,action,extra);
+    assert.equal(r.status,400,action);
+    assert.ok(!r.rpcs.some(p=>p.startsWith('/storage/')),action);
+  }
+});
+
 test('read-only leader can still read plan content (files and step resources)',async()=>{
   for(const action of [['list'],['step_resource_list',{step:3}]]){
     const r=await callApi(TOKENS.readOnly,action[0],action[1]);
