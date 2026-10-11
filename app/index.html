@@ -7533,6 +7533,32 @@ function openManualDxnMemberModal(){
   setTimeout(()=>document.getElementById('manualDxnMemberNo')?.focus(),0);
 }
 let manualDxnSponsorTimer=null;
+/* V86.82 — الإضافة اليدوية لسجل DXN تمر عبر /api/rpc (المفتاح السري على الخادم) بدل استدعاء Supabase
+   مباشرة من المتصفح؛ الدالتان مسموحتان لـ service_role فقط، والاتصال المباشر كان يفشل بـ «Failed to fetch».
+   يميّز الأخطاء: kind='network' أو 'server' = مشكلة تقنية، و'request' = رفض فعلي من قاعدة البيانات. */
+async function dxnRegistryRpc(fn,args){
+  let response;
+  try{
+    response=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fn,args:args||{}}),cache:'no-store'});
+  }catch(_){
+    const err=new Error('تعذر الاتصال بالخادم. تحقق من الإنترنت ثم حاول مرة أخرى.');
+    err.kind='network';
+    throw err;
+  }
+  const text=await response.text();
+  let data=null;
+  try{data=text?JSON.parse(text):null}catch(_){data=null}
+  if(!response.ok){
+    const detail=(data&&(data.message||data.error||data.hint))||'';
+    const technical=response.status>=500||!detail;
+    const err=new Error(technical?'تعذر الاتصال بسجل DXN حاليًا (HTTP '+response.status+'). حاول مرة أخرى.':detail);
+    err.kind=technical?'server':'request';
+    err.status=response.status;
+    throw err;
+  }
+  return data;
+}
+function isDxnRegistryTechnicalError(e){return !!e&&(e.kind==='network'||e.kind==='server');}
 async function lookupManualDxnSponsor(){
   clearTimeout(manualDxnSponsorTimer);
   const input=document.getElementById('manualDxnSponsorNo');
@@ -7547,14 +7573,27 @@ async function lookupManualDxnSponsor(){
   box.textContent='⏳ جارٍ التحقق من الراعي...';
   box.style.background='#fffaf0';box.style.color='#795900';
   manualDxnSponsorTimer=setTimeout(async()=>{
+    /* القاعدة: يكفي أن يكون رقم الراعي موجودًا في سجل DXN الرئيسي (dxn_team_members)،
+       ولا يشترط حسابًا في المجتمع (app_users) ولا جيلًا محددًا ولا ظهوره في «فريقي». */
     try{
-      const r=await rpc('lookup_dxn_team_sponsor',{p_token:token,p_member_no:no});
-      if(!r?.found)throw new Error(r?.message||'الراعي غير موجود في سجل DXN.');
+      const r=await dxnRegistryRpc('lookup_dxn_team_sponsor',{p_token:token,p_member_no:no});
+      if(input.value.trim()!==no)return;
+      if(!r?.found){
+        box.textContent='❌ '+(r?.message||'الراعي غير موجود في سجل DXN.');
+        box.style.background='#fff1ef';box.style.color='#a32318';
+        return;
+      }
       box.textContent='✅ الراعي: '+(r.sponsor_name||'—')+' · الجيل التالي للعضو: '+(r.next_generation??'—');
       box.style.background='#edf8f1';box.style.color='#17663f';
     }catch(e){
-      box.textContent='❌ '+(e.message||'تعذر التحقق من الراعي.');
-      box.style.background='#fff1ef';box.style.color='#a32318';
+      if(input.value.trim()!==no)return;
+      /* فشل تقني لا يعني أن الراعي غير موجود. */
+      const technical=isDxnRegistryTechnicalError(e);
+      box.textContent=technical
+        ?'⚠️ تعذر التحقق من الراعي بسبب مشكلة اتصال، ولم يُحكم على الراعي بأنه غير موجود. '+e.message
+        :'❌ '+(e.message||'تعذر التحقق من الراعي.');
+      box.style.background=technical?'#fffaf0':'#fff1ef';
+      box.style.color=technical?'#795900':'#a32318';
     }
   },300);
 }
@@ -7574,7 +7613,7 @@ async function saveManualDxnMember(){
   if(button)button.disabled=true;
   if(status){status.textContent='⏳ جارٍ إضافة العضو إلى سجل DXN...';status.style.background='#fffaf0';status.style.color='#795900';}
   try{
-    const r=await rpc('leader_add_dxn_team_member_manual',{
+    const r=await dxnRegistryRpc('leader_add_dxn_team_member_manual',{
       p_token:token,p_member_no:no,p_member_name:name,p_join_date:joinDate,p_sponsor_member_no:sponsorNo
     });
     if(!r?.ok)throw new Error('تعذر إكمال الإضافة.');
@@ -7583,7 +7622,11 @@ async function saveManualDxnMember(){
     await new Promise(resolve=>setTimeout(resolve,100));
     openDxnSync();
   }catch(e){
-    if(status){status.textContent='❌ '+(e.message||'تعذر إضافة العضو.');status.style.background='#fff1ef';status.style.color='#a32318';}
+    /* عند انقطاع الاتصال قد تكون الإضافة تمت فعلًا؛ إعادة المحاولة ستُظهر «موجود مسبقًا» ولن تكرر العضو. */
+    const message=isDxnRegistryTechnicalError(e)
+      ?'⚠️ '+e.message+' إذا تكررت المشكلة، تحقق من سجل DXN قبل إعادة الإضافة.'
+      :'❌ '+(e.message||'تعذر إضافة العضو.');
+    if(status){status.textContent=message;status.style.background=isDxnRegistryTechnicalError(e)?'#fffaf0':'#fff1ef';status.style.color=isDxnRegistryTechnicalError(e)?'#795900':'#a32318';}
     if(button)button.disabled=false;
   }
 }
