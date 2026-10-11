@@ -89,14 +89,15 @@
    -- أي دالة بخلاف ذلك ستبقى ترفض LEADER (لا خطر أمني، لكنها تحتاج تعديلًا ليعمل LEADER).
    ```
 
-7. **فريق السجلات الجديدة التي يضيفها LEADER** (قراءة فقط):
+7. **فريق السجلات الجديدة التي يضيفها LEADER** (قراءة فقط). القاعدة في الملف: المتدرب الجديد غير الموجود في `members`
+   يأخذ فريق أقرب جدّ له في سلسلته الفعلية في `dxn_team_members` (حتى الجذر 820469486) له سجل في `members` بفريق؛
+   وإلا يبقى بلا فريق. لا يُؤخذ فريق حساب القائد ولا أي فريق مخمّن. العضو يعطي متدربه فريقه كما هو اليوم.
    ```sql
    select (select is_nullable from information_schema.columns
            where table_schema='public' and table_name='members' and column_name='team_id') as team_id_nullable,
-          (select member_id is not null from public.app_users where username='LEADER') as leader_linked_to_member,
           (select team_id is not null from public.members where trim(member_no)='820469486' limit 1) as root_member_has_team;
-   -- إن كان leader_linked_to_member و root_member_has_team كلاهما false: المتدرب الجديد غير الموجود في members
-   -- يُنشأ بلا فريق، أو تفشل إضافته إن كان team_id_nullable = 'NO'.
+   -- team_id_nullable يجب أن يكون 'YES' (القسم 0 يوقف الملف إن لم يكن)، فلا تفشل الإضافة بسبب الفريق.
+   -- root_member_has_team = false يعني أن متدربي الأجيال التي لا جدّ لها في members سيُنشؤون بلا فريق.
    ```
 
 ## ترتيب النشر (مهم)

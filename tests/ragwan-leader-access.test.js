@@ -191,4 +191,11 @@ test('migration: adding a trainee never reactivates or renames an existing membe
   assert.match(body,/if local_member\.active is distinct from true then\s*raise exception/);
   assert.doesNotMatch(body,/update public.members/i,'must not update any existing member row');
   assert.ok(fs.existsSync(path.join(ROOT,'supabase','pending-review','20261011120000_ragwan_leader_trainer_access.ROLLBACK.md')),'rollback plan must ship with the file');
+  // A new trainee's team comes only from the trainee's own DXN chain (leader) or the sponsor (member); never guessed.
+  assert.match(body,/select d\.depth, d\.path\s+into found_depth, found_path/);
+  assert.match(body,/if v_sponsor_role = 'member' then\s+v_team_id := sponsor_row\.team_id;/);
+  assert.match(body,/from unnest\(found_path\) with ordinality as chain\(member_no, ord\)/);
+  assert.match(body,/values\(normalized_no, target_dxn\.member_name, v_team_id, true\)/);
+  assert.match(MIGRATION,/ic\.column_name='team_id' and ic\.is_nullable='NO'/,'stop if team_id is mandatory');
+  assert.match(MIGRATION,/to_regprocedure\('public\.app_current_user_id\(uuid\)'\) is null/,'app_current_user_id is a precondition');
 });

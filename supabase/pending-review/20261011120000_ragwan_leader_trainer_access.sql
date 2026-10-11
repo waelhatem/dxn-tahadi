@@ -15,7 +15,8 @@
 --      أ) مصدر رقم جذر الفريق (الدالة الجديدة أعلاه)، ب) رسالة الدور،
 --      ج) لا تغيّر سجل عضو موجود في members: لا تعيد تفعيل عضو معطّل (يُرفض برسالة واضحة)،
 --         ولا تغيّر اسمه إطلاقًا (ولا حتى إن كان فارغًا). قاعدة «أي جيل ضمن فريق DXN» كما هي.
---      د) سجل members الجديد يأخذ فريق المدرب، وللقائد بلا سجل members فريقَ سجل جذر فريقه.
+--      د) سجل members الجديد: العضو يعطيه فريقه (كما هو). القائد: فريق أقرب جدّ للمتدرب في سلسلته الفعلية في DXN
+--         له فريق في members، وإلا يبقى بلا فريق (لا فريق مخمّن). لا تفشل الإضافة بسبب team_id.
 --   4) search_ragwan_trainees: فرع للقائد يبحث في متدربيه المسجلين (غير المؤرشفين) فقط،
 --      لأن حساب القائد ليس عضوًا في جدول الفرق. فرع العضو كما هو بلا تغيير.
 --      ملاحظة: الفحص على Supabase أظهر أن هذه الدالة غير موجودة حاليًا، فهذا الملف ينشئها.
@@ -118,6 +119,14 @@ begin
            where a.attrelid=i.indrelid and a.attnum=any(i.indkey)) = array['sponsor_user_id','trainee_member_id']
   ) then
     raise exception 'ragwan precondition: لا يوجد قيد فريد على (sponsor_user_id, trainee_member_id)';
+  end if;
+  -- المتدرب الجديد الذي يضيفه القائد قد يبقى بلا فريق (لا نخمّن فريقًا)؛ يجب أن يقبل team_id القيمة NULL
+  -- كما في schema.sql، حتى لا تفشل الإضافة بسببه.
+  if exists(
+    select 1 from information_schema.columns ic
+    where ic.table_schema='public' and ic.table_name='members' and ic.column_name='team_id' and ic.is_nullable='NO'
+  ) then
+    raise exception 'ragwan precondition: members.team_id إلزامي على Supabase؛ إضافة القائد لمتدرب بلا فريق معروف ستفشل — أعد المراجعة';
   end if;
   if not exists(select 1 from pg_roles where rolname='service_role') then
     raise exception 'ragwan precondition: الدور service_role غير موجود';
@@ -231,6 +240,9 @@ declare
   enrollment_row public.ragwan_training_enrollments%rowtype;
   normalized_no text := trim(coalesce(p_trainee_member_no, ''));
   found_depth integer := null;
+  found_path text[] := null;
+  v_sponsor_role text;
+  v_team_id uuid := null;
 begin
   if normalized_no = '' then
     raise exception 'أدخل رقم عضوية المتدرب أولًا';
@@ -247,6 +259,7 @@ begin
   if sponsor_row.user_id is null then
     raise exception 'هذه العملية متاحة لحساب العضو أو القائد فقط';
   end if;
+  select lower(trim(au.role)) into v_sponsor_role from public.app_users au where au.id = sponsor_row.user_id;
 
   -- العضو: رقم عضويته. القائد: جذر فريقه في سجل DXN (team_root_member_no).
   v_sponsor_member_no := public.ragwan_current_trainer_root_no(p_token);
@@ -287,8 +300,8 @@ begin
       on trim(d.sponsor_member_no) = dline.member_no
     where not trim(d.member_no) = any(dline.path)
   )
-  select d.depth
-    into found_depth
+  select d.depth, d.path
+    into found_depth, found_path
   from downline d
   where d.member_no = normalized_no
   order by d.depth
@@ -306,20 +319,26 @@ begin
   where trim(m.member_no) = normalized_no
   limit 1;
   if local_member.id is null then
-    -- فريق السجل الجديد: فريق المدرب كما في النسخة الحالية. حساب القائد قد لا يرتبط بسجل members،
-    -- فنأخذ فريق سجل جذر فريقه إن وُجد، بدل إنشاء عضو بلا فريق.
+    /* فريق السجل الجديد:
+       - العضو: فريقه هو (كما في النسخة الحالية، بلا تغيير).
+       - القائد: حسابه ليس سبونسرًا مباشرًا، فلا نأخذ فريق حسابه. نأخذ فريق أقرب جدّ للمتدرب في سلسلته
+         الفعلية في سجل DXN (من المتدرب صعودًا حتى جذر الفريق) له سجل في members بفريق محدد.
+         إن لم يوجد: يبقى بلا فريق (team_id يقبل NULL بالتصميم، والقسم 0 يتحقق من ذلك). لا قيمة مخمّنة. */
+    if v_sponsor_role = 'member' then
+      v_team_id := sponsor_row.team_id;
+    else
+      select m.team_id
+        into v_team_id
+      from unnest(found_path) with ordinality as chain(member_no, ord)
+      join public.members m on trim(m.member_no) = chain.member_no
+      where chain.ord < array_length(found_path, 1)
+        and m.team_id is not null
+      order by chain.ord desc
+      limit 1;
+    end if;
+
     insert into public.members(member_no, name, team_id, active)
-    values(
-      normalized_no,
-      target_dxn.member_name,
-      coalesce(
-        sponsor_row.team_id,
-        (select m.team_id from public.members m
-         where trim(m.member_no) = v_sponsor_member_no and m.team_id is not null
-         limit 1)
-      ),
-      true
-    )
+    values(normalized_no, target_dxn.member_name, v_team_id, true)
     returning * into local_member;
   else
     /* لا نغيّر أي بيانات لعضو موجود (النسخة الحالية على Production تعيد كتابة الاسم و active=true):
