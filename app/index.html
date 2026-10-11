@@ -2972,9 +2972,10 @@ function ragwanSuccessIntro(){
   const line2='10 خطوات ستنقلك نقلة نوعية في العمل الاحترافي مع شركة DXN';
   const line3='ولكن إن لم تكن مستعدًا للتطبيق فلن تجدي معك نفعًا.';
   const words=s=>s.split(' ').map((w,i)=>`<span class="ragwan-word" style="animation-delay:${(i*0.16).toFixed(2)}s">${esc(w)}</span>`).join(' ');
+  /* V86.83 — التهيئة كانت مشروطة بعنصر ragwanPlanVideo المحذوف فلم تكن تعمل أبدًا،
+     فلا يُستعاد المتدرب المختار ولا تُحمَّل الملفات. نعتمد الآن على قسم الخطة نفسه. */
   setTimeout(()=>{
-    const video=document.getElementById('ragwanPlanVideo');
-    if(video && typeof initRagwanFiles==='function') initRagwanFiles();
+    if(document.getElementById('ragwanPlanShell') && typeof initRagwanFiles==='function') initRagwanFiles();
   },0);
   return `<style>
 .ragwan-plan-image-wrap{margin:18px auto 0;max-width:1100px;border-radius:18px;overflow:hidden;background:#fff;box-shadow:0 10px 28px rgba(15,81,63,.12);border:1px solid #e2e8e5}.ragwan-plan-image{display:block;width:100%;height:auto;max-width:100%;object-fit:contain}@media(max-width:700px){.ragwan-plan-image-wrap{margin-top:14px;border-radius:14px}.ragwan-plan-image{width:100%}}
@@ -3375,7 +3376,6 @@ function ragwanSuccessIntro(){
       </button>
     </div>
   </div>
-v>
   <div class="ragwan-files-box" id="ragwanFilesBox">
     <div class="ragwan-files-head">
       <div>
@@ -3475,11 +3475,16 @@ let ragwanSelectedProgress={completed:[],started:[]};
 let ragwanTraineeSearchTimer=null;
 
 function ragwanSelectedKey(){
+  /* حساب القائد ليس له me؛ مفتاح منفصل حتى لا يختلط اختياره باختيار أي عضو على نفس الجهاز. */
+  const fallback=role==='leader'?'leader':'self';
   const sponsor=String((me&&(
     me.member_no||me.membership_no||me.membership_number||me.username||me.phone
-  ))||'self').replace(/[^a-zA-Z0-9_-]/g,'_');
+  ))||fallback).replace(/[^a-zA-Z0-9_-]/g,'_');
   return RAGWAN_SELECTED_TRAINEE_KEY+'_'+sponsor;
 }
+/* من يستطيع تدريب متدربين في خطة رجوان: العضو (السبونسر) أو القائد.
+   الصلاحية الحقيقية وملكية السجلات تُفرض في دوال قاعدة البيانات. */
+function ragwanCanTrain(){return role==='leader'||(role==='member'&&!!me);}
 function ragwanProgressKey(){
   return 'dxn_ragwan_progress_db_'+String(ragwanSelectedTraineeId||'none');
 }
@@ -3537,7 +3542,7 @@ async function ragwanLoadSelectedTraineeProgress(){
   }
 }
 async function ragwanRestoreSelectedTrainee(){
-  if(role!=='member')return;
+  if(!ragwanCanTrain())return;
   const saved=String(localStorage.getItem(ragwanSelectedKey())||'').trim();
   if(!saved)return;
   try{
@@ -3752,7 +3757,7 @@ async function ragwanConfirmArchiveTrainee(enrollmentId){
   }
 }
 function ragwanTraineePanelMarkup(){
-  if(role!=='member'||!me)return '';
+  if(!ragwanCanTrain())return '';
   if(ragwanSelectedTrainee)return ragwanSelectedTraineeSummary();
   return '<section class="ragwan-trainee-selector" id="ragwanTraineeSelector">'+
     '<div class="ragwan-trainee-selector-head"><div><div class="ragwan-trainee-kicker">👤 المتدرب</div><h3>إضافة متدرب جديد إلى خطة رجوان</h3><p>أدخل رقم عضوية المتدرب فقط؛ سيجلب النظام الاسم ورقم العضوية تلقائيًا ويضيفه إلى سجل الخطة.</p></div></div>'+
@@ -3764,9 +3769,12 @@ function ragwanRenderTraineePanel(){
   const host=document.getElementById('ragwanTraineePanel');if(!host)return;
   host.innerHTML=ragwanTraineePanelMarkup();
   const journey=document.getElementById('ragwanJourneyContent');
-  if(journey)journey.style.display=ragwanSelectedTrainee?'block':'none';
+  if(journey)journey.style.display=ragwanJourneyVisible()?'block':'none';
   if(!ragwanSelectedTrainee)ragwanSearchTrainees();
 }
+/* العضو: الأبواب تظهر بعد اختيار المتدرب (كما كان). القائد: يتصفح الأبواب دائمًا،
+   ولا يُسجَّل أي تقدم إلا بعد اختيار متدرب. */
+function ragwanJourneyVisible(){return !!ragwanSelectedTrainee||role==='leader';}
 function ragwanStatusLabel(status){
   return status==='completed'?'مكتملة — متاحة للتطبيق':status==='started'?'قيد التنفيذ':status==='available'?'متاحة':'مغلقة';
 }
@@ -3822,7 +3830,7 @@ function ragwanDoorJourneyMarkup(){
   }).join('');
   return '<section class="ragwan-plan-shell" id="ragwanPlanShell">'+
 '<div id="ragwanTraineePanel">'+ragwanTraineePanelMarkup()+'</div>'+
-'<div id="ragwanJourneyContent" '+(ragwanSelectedTrainee?'':'style="display:none"')+'>'+
+'<div id="ragwanJourneyContent" '+(ragwanJourneyVisible()?'':'style="display:none"')+'>'+
 '<section class="ragwan-journey" id="ragwanJourney">'+
     '<div class="ragwan-journey-head"><div class="ragwan-journey-kicker">🚪 رحلة التطبيق الاحترافي</div><div class="ragwan-journey-title">خطوات خطة رجوان للنجاح</div><div class="ragwan-journey-sub">تُفتح الأبواب بالتسلسل؛ لا يفتح الباب التالي إلا بعد إكمال الباب السابق. يمكنك متابعة كل متدرب من آخر خطوة محفوظة له.</div></div>'+
     '<div class="ragwan-real-progress">'+
@@ -5901,6 +5909,11 @@ function ragwanOpenDoor(n){
     completeBtn.textContent=status==='completed'?'✓ تم إكمال الخطوة':canComplete?'✅ أكملت الخطوة':'🔒 أكمل الخطوات السابقة أولًا';
   }
   if(nextBtn){nextBtn.disabled=step>=10;nextBtn.textContent=step>=10?'🏆 الخطة كاملة':'الخطوة التالية ←';}
+  /* وضع التصفح للقائد بدون متدرب مختار: التفاصيل ظاهرة وأزرار تسجيل التقدم معطلة. */
+  if(!ragwanSelectedTrainee){
+    if(startBtn){startBtn.disabled=true;startBtn.textContent='👤 اختر متدربًا لتسجيل التقدم';}
+    if(completeBtn){completeBtn.disabled=true;completeBtn.textContent='👤 اختر متدربًا لتسجيل التقدم';}
+  }
   ragwanRenderProgress();
   ragwanLoadEvidence();
   const panel=document.getElementById('ragwanStepPanel');if(panel){
@@ -5915,7 +5928,8 @@ function ragwanOpenDoor(n){
   }
 }
 async function ragwanStartStep(){
-  if(role==='member'&&!ragwanSelectedTrainee){toast('👤 اختر المتدرب أولًا.');return}
+  /* لا تقدم بدون متدرب مختار، للعضو والقائد معًا (القائد يتصفح الأبواب فقط). */
+  if(!ragwanSelectedTrainee||!ragwanSelectedTraineeId){toast('👤 اختر المتدرب أولًا لتسجيل التقدم.');return}
   const state=ragwanProgressLoad(),step=ragwanCurrentStep;
   if(!state.started.includes(step))state.started.push(step);
   ragwanProgressSave(state);
@@ -5931,7 +5945,7 @@ function ragwanCanCompleteStep(step,state){
   return true;
 }
 async function ragwanCompleteStep(){
-  if(role==='member'&&!ragwanSelectedTrainee){toast('👤 اختر المتدرب أولًا.');return}
+  if(!ragwanSelectedTrainee||!ragwanSelectedTraineeId){toast('👤 اختر المتدرب أولًا لتسجيل التقدم.');return}
   const state=ragwanProgressLoad(),step=ragwanCurrentStep;
   if(!ragwanCanCompleteStep(step,state)){
     toast('⚠️ لا يمكنك إكمال '+ragwanStepWord(step)+' قبل إكمال جميع الخطوات السابقة بالترتيب.');
@@ -5954,7 +5968,7 @@ async function ragwanCompleteStep(){
 function ragwanRenderPlanCompletionInline(){
   const host=document.getElementById('ragwanPlanCompletionInline');
   if(!host)return;
-  if(ragwanCurrentStep!==10||role!=='member'||!ragwanSelectedTrainee){
+  if(ragwanCurrentStep!==10||!ragwanCanTrain()||!ragwanSelectedTrainee){
     host.classList.remove('visible');host.innerHTML='';return;
   }
   const state=ragwanProgressLoad();
