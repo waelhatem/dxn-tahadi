@@ -7658,6 +7658,71 @@ function teamRegistryPanel(){
   </div>`;
 }
 
+/* V86.85 — بيانات المدرب لحساب القائد (الاسم، رقم العضوية، الصفة). تُقرأ من الخادم لحساب app_users.id الحالي،
+   ويعدّلها حساب القائد مدير التدريب فقط (يتحقق الخادم وقاعدة البيانات من ذلك؛ إخفاء الزر ليس الحماية). */
+let leaderTrainerIdentity=null,leaderTrainerIdentityLoading=false;
+function leaderTrainerCardBody(t){
+  if(!t)return '<div class="muted">لم تُحدَّد بيانات المدرب بعد.</div>';
+  const row=(label,value)=>'<div><span class="muted">'+label+':</span> <b>'+esc(value||'—')+'</b></div>';
+  return row('الاسم',t.name)+row('رقم العضوية',t.member_no)+row('الصفة',t.title)+
+    (t.can_edit?'<div><button type="button" class="ghost" style="margin-top:8px" onclick="openLeaderTrainerProfileEditor()">✏️ تعديل بيانات المدرب</button></div>':'');
+}
+function leaderTrainerCardMarkup(){
+  if(role!=='leader')return '';
+  if(!leaderTrainerIdentity&&!leaderTrainerIdentityLoading)setTimeout(loadLeaderTrainerIdentity,0);
+  const body=leaderTrainerIdentity?leaderTrainerCardBody(leaderTrainerIdentity):'<div class="muted">⏳ جارٍ تحميل بيانات المدرب...</div>';
+  return '<div class="card" id="leaderTrainerIdentityCard" style="margin-top:14px"><div class="title">👤 بيانات المدرب</div><div id="leaderTrainerIdentityBody" style="margin-top:8px;display:grid;gap:4px">'+body+'</div></div>';
+}
+async function loadLeaderTrainerIdentity(){
+  leaderTrainerIdentityLoading=true;
+  try{
+    const out=await ragwanPlanApi('trainer_identity');
+    leaderTrainerIdentity=out&&out.trainer||null;
+    const host=document.getElementById('leaderTrainerIdentityBody');
+    if(host)host.innerHTML=leaderTrainerCardBody(leaderTrainerIdentity);
+  }catch(e){
+    const host=document.getElementById('leaderTrainerIdentityBody');
+    if(host)host.innerHTML='<div class="muted">تعذر تحميل بيانات المدرب حاليًا.</div>';
+  }finally{leaderTrainerIdentityLoading=false}
+}
+function closeLeaderTrainerProfileEditor(){const x=document.getElementById('leaderTrainerProfileModal');if(x)x.remove()}
+function openLeaderTrainerProfileEditor(){
+  const t=leaderTrainerIdentity||{};
+  if(!t.can_edit)return toast('تعديل بيانات المدرب متاح لحساب القائد فقط.');
+  closeLeaderTrainerProfileEditor();
+  const field=(id,label,value,extra)=>'<label style="display:block;margin-top:10px;font-weight:900">'+label+'<input id="'+id+'" value="'+esc(value||'')+'" '+extra+' style="display:block;width:100%;box-sizing:border-box;margin-top:5px;min-height:44px;padding:9px 11px;border:1px solid #cfe1d8;border-radius:11px"></label>';
+  const modal=document.createElement('div');
+  modal.id='leaderTrainerProfileModal';
+  modal.innerHTML='<div class="evidence-backdrop" onclick="closeLeaderTrainerProfileEditor()"></div><div class="evidence-modal card" style="max-width:520px;top:76px;max-height:calc(100vh - 176px)" role="dialog" aria-modal="true" aria-label="تعديل بيانات المدرب">'+
+    '<div class="title">✏️ تعديل بيانات المدرب</div><div class="muted" style="margin-top:4px">تظهر في حساب القائد وفي شهادات خطة رجوان.</div>'+
+    field('leaderTrainerName','الاسم',t.name,'maxlength="80"')+
+    field('leaderTrainerNo','رقم العضوية',t.member_no,'maxlength="9" inputmode="numeric" dir="ltr"')+
+    field('leaderTrainerTitle','الصفة',t.title,'maxlength="120"')+
+    '<div id="leaderTrainerStatus" class="status" aria-live="polite" style="margin-top:8px"></div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button type="button" class="save" id="leaderTrainerSave" onclick="saveLeaderTrainerProfile()">💾 حفظ</button><button type="button" class="ghost" onclick="closeLeaderTrainerProfileEditor()">إلغاء</button></div>'+
+  '</div>';
+  document.body.appendChild(modal);
+}
+async function saveLeaderTrainerProfile(){
+  const name=String(document.getElementById('leaderTrainerName')?.value||'').trim();
+  const memberNo=String(document.getElementById('leaderTrainerNo')?.value||'').trim();
+  const title=String(document.getElementById('leaderTrainerTitle')?.value||'').trim();
+  const status=document.getElementById('leaderTrainerStatus'),btn=document.getElementById('leaderTrainerSave');
+  const fail=msg=>{if(status)status.textContent='⚠️ '+msg;if(btn)btn.disabled=false};
+  if(name.length<2||name.length>80)return fail('الاسم يجب أن يكون بين 2 و80 حرفًا.');
+  if(!/^[0-9]{9}$/.test(memberNo))return fail('رقم العضوية يجب أن يتكوّن من 9 أرقام.');
+  if(title.length>120)return fail('الصفة يجب ألا تزيد على 120 حرفًا.');
+  if(btn)btn.disabled=true;if(status)status.textContent='⏳ جارٍ الحفظ...';
+  try{
+    const out=await ragwanPlanApi('trainer_profile_save',{display_name:name,member_no:memberNo,title});
+    leaderTrainerIdentity=out&&out.trainer||leaderTrainerIdentity;
+    closeLeaderTrainerProfileEditor();
+    const host=document.getElementById('leaderTrainerIdentityBody');
+    if(host)host.innerHTML=leaderTrainerCardBody(leaderTrainerIdentity);
+    toast('✅ تم حفظ بيانات المدرب.');
+  }catch(e){fail(String(e&&e.message||'تعذر حفظ بيانات المدرب.'))}
+}
+
 function leader(){
  if(leaderSection==='team_registry') return teamRegistryPanel();
  if(leaderSection==='dxn_sync') return dxnSyncPanel();
@@ -7676,7 +7741,7 @@ function leader(){
  const fmt=v=>{if(!v)return '';const d=new Date(v);return isNaN(d)?'':d.toLocaleString('ar-IQ',{dateStyle:'short',timeStyle:'short'})};
  const topMembers=[...members].sort((a,b)=>Number(b.stars||0)-Number(a.stars||0)).slice(0,8);
  const maxStars=Math.max(1,...topMembers.map(m=>Number(m.stars||0)));
- return ` <div class="card leaderbox" style="margin-top:14px">
+ return `${leaderTrainerCardMarkup()} <div class="card leaderbox" style="margin-top:14px">
    ${(()=>{
       const cap=(n,max)=>Math.min(max,Math.max(0,n));
       const pendingChallengePenalty=cap(pendingChallenges.length*4,20);

@@ -58,11 +58,15 @@
     const trainee=window.ragwanSelectedTrainee||{};
     const completion=window.ragwanLastCompletion||{};
     let resolved={};
+    /* V86.85 — the trainer (sponsor) shown on the certificate comes from the server for the signed-in account
+       (app_users.id): the leader's saved trainer profile, or the member's own name and number. */
+    let trainer={};
     const memberId=String(completion.member_id||trainee.member_id||trainee.id||window.ragwanSelectedTraineeId||'').trim();
     if(memberId&&typeof window.ragwanPlanApi==='function'){
       try{
         const out=await window.ragwanPlanApi('certificate_trainee_data',{member_id:memberId});
         resolved=out?.trainee||{};
+        trainer=out?.trainer||{};
         if(resolved.member_id){
           window.ragwanSelectedTrainee={...trainee,...resolved};
         }
@@ -74,8 +78,8 @@
       /* Enrollment/table values are authoritative for the trainee certificate. */
       traineeName:String(resolved.name||merged.name||completion.member_name||completion.trainee_name||'').trim(),
       traineeNo:String(resolved.member_no||merged.member_no||merged.membership_no||merged.membership_number||completion.member_no||completion.trainee_member_no||'').trim(),
-      sponsorName:String(completion.sponsor_member_name||completion.sponsor_name||sponsor.name||'').trim(),
-      sponsorNo:String(completion.sponsor_member_no||completion.sponsor_no||sponsor.member_no||'').trim(),
+      sponsorName:String(trainer.name||completion.sponsor_member_name||completion.sponsor_name||sponsor.name||'').trim(),
+      sponsorNo:String(trainer.member_no||completion.sponsor_member_no||completion.sponsor_no||sponsor.member_no||'').trim(),
       completedAt:String(resolved.completed_at||merged.completed_at||completion.completed_at||new Date().toISOString())
     };
   }

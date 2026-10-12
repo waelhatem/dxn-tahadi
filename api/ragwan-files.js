@@ -119,6 +119,17 @@ async function ragwanLeaderCanManage(token){
   try{return (await supabaseSecretRpc('ragwan_leader_can_manage_training',{p_token:token}))===true;}
   catch(error){console.error('ragwan manager check failed:',String(error&&error.message||error));return false;}
 }
+/* V86.85 — بيانات المدرب المعروضة (الاسم، رقم العضوية، الصفة) للحساب الحالي، مرتبطة بـ app_users.id.
+   للعرض فقط: إن تعذّر جلبها (مثلًا قبل تطبيق الملف) تُرجع null وتبقى الواجهة على قيمها الحالية. */
+function ragwanTrainerShape(x){
+  if(!x||typeof x!=='object')return null;
+  const text=(v,max)=>String(v==null?'':v).trim().slice(0,max);
+  return {type:text(x.type,10),name:text(x.name,80),member_no:text(x.member_no,9),title:text(x.title,120),can_edit:x.can_edit===true};
+}
+async function ragwanTrainerIdentity(token){
+  try{return ragwanTrainerShape(await supabaseSecretRpc('get_ragwan_trainer_identity',{p_token:token}));}
+  catch(error){console.error('ragwan trainer identity failed:',String(error&&error.message||error));return null;}
+}
 async function ragwanPlanFiles(args){
   const token=String(args.p_token||'').trim(),action=String(args.action||'').trim();
   if(!token)throw new Error('انتهت الجلسة. سجّل الدخول من جديد.');
@@ -131,6 +142,20 @@ async function ragwanPlanFiles(args){
   const requireLeaderManager=message=>{if(role!=='leader')throw new Error(message);if(!leaderCanManage)throw new Error(RAGWAN_READ_ONLY_MESSAGE);};
   if(action==='capabilities'){
     return {role,can_train:role==='member'||leaderCanManage,read_only:role==='leader'&&!leaderCanManage};
+  }
+  if(action==='trainer_identity'){
+    return {trainer:await ragwanTrainerIdentity(token)};
+  }
+  if(action==='trainer_profile_save'){
+    // تعديل بيانات المدرب: حساب القائد مدير التدريب فقط؛ قاعدة البيانات تتحقق من ذلك مرة ثانية.
+    requireLeaderManager('تعديل بيانات المدرب متاح لحساب القائد فقط.');
+    const saved=await supabaseSecretRpc('save_leader_trainer_profile',{
+      p_token:token,
+      p_display_name:String(args.display_name||'').trim().slice(0,80),
+      p_member_no:String(args.member_no||'').trim().slice(0,9),
+      p_title:String(args.title||'').trim().slice(0,120)
+    });
+    return {trainer:ragwanTrainerShape(saved)};
   }
   if(['search_trainees','list_trainees','select_trainee','add_trainee_by_member_no','get_training_progress','save_training_step','record_plan_completion_for_member','certificate_trainee_data','update_trainee_display_name','archive_trainee'].includes(action)){
     // قاعدة البيانات ترفض هذه العمليات أيضًا لحساب المطالعة (ragwan_current_sponsor)؛ هذا رفض مبكر برسالة واضحة.
@@ -192,7 +217,7 @@ async function ragwanPlanFiles(args){
         completed_at:trainee.completed_at||null,
         started_at:trainee.started_at||null,
         last_activity_at:trainee.last_activity_at||null
-      }};
+      },trainer:await ragwanTrainerIdentity(token)};
     }
     return {completion:await supabaseSecretRpc(fn,{p_token:token,p_member_id:String(args.member_id||'').trim()})};
   }

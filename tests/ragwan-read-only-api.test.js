@@ -7,7 +7,8 @@ const assert=require('node:assert/strict');
 const https=require('node:https');
 const {EventEmitter}=require('node:events');
 
-const TOKENS={leader:'11111111-1111-1111-1111-111111111111',readOnly:'22222222-2222-2222-2222-222222222222',member:'33333333-3333-3333-3333-333333333333',noCheck:'44444444-4444-4444-4444-444444444444'};
+const TOKENS={leader:'11111111-1111-1111-1111-111111111111',readOnly:'22222222-2222-2222-2222-222222222222',member:'33333333-3333-3333-3333-333333333333',noCheck:'44444444-4444-4444-4444-444444444444',leaderNoProfile:'55555555-5555-5555-5555-555555555555'};
+const TRAINER={leader:{type:'leader',name:'وائل حاتم',member_no:'820469486',title:'مصمم مجتمع الصحة والثراء وقائده',can_edit:true},member:{type:'member',name:'عضو',member_no:'820000001',title:null,can_edit:false},readOnly:{type:'leader',name:null,member_no:null,title:null,can_edit:false}};
 const calls=[];
 function fakeReply(path,body){
   const rpc=(path.match(/^\/rest\/v1\/rpc\/([a-z_]+)/)||[])[1];
@@ -17,8 +18,14 @@ function fakeReply(path,body){
   }
   if(rpc==='ragwan_leader_can_manage_training'){
     if(body.p_token===TOKENS.noCheck)return [404,{code:'PGRST202',message:'Could not find the function'}];
-    return [200,body.p_token===TOKENS.leader];
+    return [200,body.p_token===TOKENS.leader||body.p_token===TOKENS.leaderNoProfile];
   }
+  if(rpc==='get_ragwan_trainer_identity'){
+    if(body.p_token===TOKENS.leaderNoProfile)return [404,{code:'PGRST202',message:'Could not find the function'}];
+    return [200,body.p_token===TOKENS.leader?TRAINER.leader:body.p_token===TOKENS.member?TRAINER.member:TRAINER.readOnly];
+  }
+  if(rpc==='save_leader_trainer_profile')return [200,{...TRAINER.leader,name:body.p_display_name,member_no:body.p_member_no,title:body.p_title}];
+  if(rpc==='select_ragwan_trainee')return [200,{member_id:'m-1',name:'متدرب',member_no:'820000003',completed_at:'2026-10-11T10:00:00Z'}];
   if(rpc)return [200,rpc==='search_ragwan_trainees'||rpc==='list_ragwan_trainees'?[]:{ok:true}];
   return [200,path.includes('/object/list/')?[]:{token:'t',signedURL:'/x'}];
 }
@@ -53,8 +60,36 @@ const MANAGEMENT_ACTIONS=[
   ['archive_trainee',{enrollment_id:'x'}],
   ['sign_upload',{name:'a.pdf',size:10}],['delete',{path:'ragwan/a.pdf'}],
   ['sign_step_resource_upload',{step:1,name:'a.pdf',size:10}],['delete_step_resource',{path:'step-resources/step-1/a.pdf'}],
-  ['evidence_review',{member_key:'820000001',step:1,status:'approved'}],['evidence_records'],['evidence_list']
+  ['evidence_review',{member_key:'820000001',step:1,status:'approved'}],['evidence_records'],['evidence_list'],
+  ['trainer_profile_save',{display_name:'رجوان',member_no:'820000001'}]
 ];
+
+test('trainer profile: LEADER saves through the server, members are refused, LEADER1 sees no editable data',async()=>{
+  const saved=await callApi(TOKENS.leader,'trainer_profile_save',{display_name:'  وائل حاتم  ',member_no:'820469486',title:'قائد المجتمع'});
+  assert.equal(saved.status,200);
+  assert.deepEqual(saved.payload.trainer,{type:'leader',name:'وائل حاتم',member_no:'820469486',title:'قائد المجتمع',can_edit:true});
+  assert.ok(saved.rpcs.includes('/rest/v1/rpc/save_leader_trainer_profile'));
+  const member=await callApi(TOKENS.member,'trainer_profile_save',{display_name:'x',member_no:'820000001'});
+  assert.equal(member.status,400);
+  assert.ok(!member.rpcs.includes('/rest/v1/rpc/save_leader_trainer_profile'));
+  const ro=await callApi(TOKENS.readOnly,'trainer_identity');
+  assert.equal(ro.status,200);
+  assert.equal(ro.payload.trainer.can_edit,false);
+  assert.equal(ro.payload.trainer.name,'');
+});
+
+test('certificate data carries the trainer of the signed-in account; a missing profile never breaks it',async()=>{
+  const l=await callApi(TOKENS.leader,'certificate_trainee_data',{member_id:'m-1'});
+  assert.equal(l.status,200);
+  assert.equal(l.payload.trainer.name,'وائل حاتم');
+  assert.equal(l.payload.trainee.member_no,'820000003');
+  const m=await callApi(TOKENS.member,'certificate_trainee_data',{member_id:'m-1'});
+  assert.equal(m.payload.trainer.type,'member');
+  const missing=await callApi(TOKENS.leaderNoProfile,'certificate_trainee_data',{member_id:'m-1'});
+  assert.equal(missing.status,200);
+  assert.equal(missing.payload.trainer,null);
+  assert.equal(missing.payload.trainee.name,'متدرب');
+});
 
 test('read-only leader is refused for every management or private-record action, before any data call',async()=>{
   for(const [action,extra] of MANAGEMENT_ACTIONS){
