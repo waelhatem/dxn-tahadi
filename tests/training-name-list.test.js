@@ -120,3 +120,17 @@ test('basic learning path locks later videos until prior watch and submitted tes
  assert.match(js, /basic-bag-percentage/);
  assert.equal((sql.match(/أكمل مشاهدة واختبار التدريب السابق أولًا/g)||[]).length,3);
 });
+
+test('first basic lesson content is staged without database setup', () => {
+ const script = read('basic-training.js');
+ const quiz = JSON.parse(read('basic-training-01-quiz.json'));
+ assert.equal(quiz.length, 20);
+ assert.ok(quiz.every(q => q.options.length>=2 && q.options.length<=4 && Number.isInteger(q.answer) && q.answer>=0 && q.answer<q.options.length));
+ assert.match(quiz[7].question, /انتشار شركة DXN العالمي/);
+ assert.match(quiz[7].options[0], /أكثر من 180 دولة/);
+ assert.equal(quiz[7].answer, 0);
+ assert.match(script, /window\.basicTrainingCourseHtml=courseHtml/);
+ assert.match(script, /basicBagPreviewFirstQuiz=async/);
+ assert.match(script, /التدريب مغلق/);
+ assert.doesNotMatch(script.slice(script.indexOf('function courseHtml(){'),script.indexOf('async function loadOverview(){')), /loadOverview\(/);
+});
