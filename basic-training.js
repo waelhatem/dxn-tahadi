@@ -129,13 +129,13 @@
        p_training_no:m.no,p_current:Math.floor(m.max),p_duration:Math.floor(m.duration)});
    if(movie!==m)return;
    m.confirmed=Math.max(m.confirmed||0,fmt(r.watched));
+   const previous=progress.find(x=>x.training_no===m.no);
+   if(previous)Object.assign(previous,{watched:r.watched,duration:m.duration,completed:!!r.completed});
+   else progress.push({training_no:m.no,watched:r.watched,duration:m.duration,completed:!!r.completed});
    if(!r.completed)watchMessage('نسبة المشاهدة المحفوظة: '+Math.round(100*m.confirmed/m.duration)+'%');
    else{
      watchMessage('✅ اكتملت مشاهدة التدريب. يمكنك الآن أداء اختباره.');
-     const existing=progress.find(x=>x.training_no===m.no);
-     if(existing)Object.assign(existing,{watched:r.watched,duration:m.duration,completed:true});
-     else progress.push({training_no:m.no,watched:r.watched,duration:m.duration,completed:true});
-   }
+    }
   }catch(e){watchMessage('لم يتم حفظ التقدم: '+e.message);}
   finally{m.saving=false;}
  }
