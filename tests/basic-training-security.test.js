@@ -55,3 +55,17 @@ test('direct reads of questions and attempts are revoked',()=>{
  assert.match(base,/ENABLE ROW LEVEL SECURITY/);
  assert.match(adminSql,/REVOKE ALL ON public\.basic_training_revisions FROM PUBLIC,anon,authenticated/);
 });
+
+test('one-time private importer is restricted to service role and contains no published keys',()=>{
+ const importer=read('supabase/migrations/20261013_basic_training_private_import_function.sql');
+ const client=read('scripts/import-private-basic-training-bank.js');
+ assert.match(importer,/SECURITY INVOKER/);
+ assert.match(importer,/current_user <> 'service_role'/);
+ assert.match(importer,/FROM PUBLIC,anon,authenticated/);
+ assert.match(importer,/TO service_role/);
+ assert.match(importer,/jsonb_array_length\(p_bank\)<>8/);
+ assert.match(client,/PROD_REF/);
+ assert.match(client,/CONFIRM_ISOLATED_TEST_IMPORT/);
+ assert.match(client,/SUPABASE_TEST_SERVICE_ROLE_KEY/);
+ assert.match(read('.gitignore'),/\.private\//);
+});
