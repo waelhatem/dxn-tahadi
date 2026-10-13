@@ -10,7 +10,7 @@
   {no:1,title:'التعريف بمشروع DXN ومنتجاتها ونظامها التسويقي',video:'lxhnkUov9sE'},
   {no:2,title:'التعريف بشركة DXN ومنتجاتها ونظامها التسويقي والأرباح',video:'K_N80xZlxXw'},
   {no:3,title:'منتجات DXN وأصنافها وطرق تسويقها',video:'n7W9LoCMdPo'},
-  {no:4,title:'خطة DXN المالية وكيف تحقق دخلًا عاليًا بوقت مثالي',video:'ArJSiW2E4TM'}
+  {no:4,title:'المحاضرة الرابعة — بانتظار التفريغ والاعتماد',video:'AMKtcQt8ltc'}
  ];
  let loaded=false,backendReady=false,loading=false,progress=[],published=[],scores=[],movie=null,exam=null;
  let previewWatchedPercent=0;
