@@ -72,6 +72,14 @@ declare uid uuid; old_seconds integer; new_seconds integer; old_duration integer
 begin
  uid := public.app_current_user_id(p_token);
  if uid is null or not exists(select 1 from public.app_users where id=uid and active) then raise exception 'انتهت الجلسة';end if;
+ if p_training_no>1 and not (
+    exists(select 1 from public.basic_training_progress bp
+      where bp.owner_user_id=uid and bp.training_no=p_training_no-1 and bp.completed_at is not null)
+    and exists(select 1 from public.basic_training_attempts ba
+      where ba.owner_user_id=uid and ba.training_no=p_training_no-1)
+  ) then
+    raise exception 'أكمل مشاهدة واختبار التدريب السابق أولًا';
+  end if;
  if p_training_no not between 1 and 4 or p_duration not between 30 and 86400
  or p_current < 0 or p_current > p_duration+3 then raise exception 'بيانات مشاهدة غير صالحة';end if;
  insert into public.basic_training_progress(owner_user_id,training_no,max_watched_seconds,video_duration_seconds)
@@ -101,6 +109,14 @@ declare uid uuid; q jsonb; arr jsonb;
 begin
  uid:=public.app_current_user_id(p_token);
  if uid is null or not exists(select 1 from public.app_users where id=uid and active) then raise exception 'انتهت الجلسة';end if;
+ if p_training_no>1 and not (
+    exists(select 1 from public.basic_training_progress bp
+      where bp.owner_user_id=uid and bp.training_no=p_training_no-1 and bp.completed_at is not null)
+    and exists(select 1 from public.basic_training_attempts ba
+      where ba.owner_user_id=uid and ba.training_no=p_training_no-1)
+  ) then
+    raise exception 'أكمل مشاهدة واختبار التدريب السابق أولًا';
+  end if;
  if not exists(select 1 from public.basic_training_progress where owner_user_id=uid
   and training_no=p_training_no and completed_at is not null) then
   raise exception 'أكمل مشاهدة التدريب أولاً';
@@ -121,6 +137,14 @@ declare uid uuid;q jsonb; ver text;i integer;answer_num integer; right_answer in
 begin
  uid:=public.app_current_user_id(p_token);
  if uid is null or not exists(select 1 from public.app_users where id=uid and active) then raise exception 'انتهت الجلسة';end if;
+ if p_training_no>1 and not (
+    exists(select 1 from public.basic_training_progress bp
+      where bp.owner_user_id=uid and bp.training_no=p_training_no-1 and bp.completed_at is not null)
+    and exists(select 1 from public.basic_training_attempts ba
+      where ba.owner_user_id=uid and ba.training_no=p_training_no-1)
+  ) then
+    raise exception 'أكمل مشاهدة واختبار التدريب السابق أولًا';
+  end if;
  if not exists(select 1 from public.basic_training_progress where owner_user_id=uid
  and training_no=p_training_no and completed_at is not null) then
   raise exception 'أكمل مشاهدة التدريب أولاً';
