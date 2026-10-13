@@ -39,3 +39,15 @@
  .basic-bag-modal>header{align-items:flex-start}
  .basic-bag-exam button[type=submit]{min-width:0;width:100%}
 }
+
+/* Visibility/lock/preview additions: isolated to the basic course. */
+.basic-bag-progress-line{display:flex;align-items:center;gap:13px;margin:12px 0}
+.basic-bag-progress-line .basic-bag-progress{flex:1;height:16px}
+.basic-bag-percentage{display:inline-flex;align-items:center;justify-content:center;min-width:70px;min-height:43px;background:#dcf3e6;border:1px solid #a5d8b9;color:#09563b;border-radius:12px;font-size:22px;font-weight:950;font-variant-numeric:tabular-nums}
+.basic-bag-preview-btn{border-color:#a4a3e5!important;background:#eeecff!important;color:#49388d!important}
+.basic-bag-preview-index{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px;margin:18px 0}
+.basic-bag-preview-index-chip{display:flex;align-items:center;justify-content:center;border:1px dashed #cbd3d0;border-radius:9px;min-height:34px;background:#f3f6f5;color:#728078;font-weight:700}
+.basic-bag-preview-index-chip.is-confirmed{background:#e8faf1;border:1px solid #44a67b;color:#106442}
+.basic-bag-preview .basic-bag-question{margin:18px 0}
+.basic-bag-preview>button:disabled{opacity:.65;cursor:not-allowed}
+@media(max-width:700px){.basic-bag-preview-index{grid-template-columns:repeat(5,minmax(0,1fr))}.basic-bag-progress-line{gap:6px}.basic-bag-percentage{font-size:19px;min-width:60px}}
