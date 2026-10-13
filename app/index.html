@@ -6208,31 +6208,8 @@ async function initRagwanFiles(){
  * Approved assessment questions are NOT fabricated from answer keys.
  */
 function basicTrainingPage(){
-  const approved=[
-    {no:1,title:'التعريف بشركة DXN العالمية',video:'78HTmcWYqN4'},
-    {no:2,title:'منتجات DXN – فوائدها واستخداماتها',video:null},
-    {no:3,title:'نظام DXN للبيع المباشر والتسويق متعدد المستويات',video:'7BBYsbPgX1M'},
-    {no:4,title:'خطة DXN المالية وكيف تحقق دخلًا عاليًا بوقت مثالي',video:'ArJSiW2E4TM'}
-  ];
-  const cards=approved.map(item=>{
-    const vid=item.video;
-    const action=vid
-      ?`<a class="name-list-btn name-list-primary" href="https://youtu.be/${vid}" target="_blank" rel="noopener noreferrer">▶ مشاهدة المحاضرة</a>`
-      :'<span class="basic-bag-missing">⏳ رابط الفيديو الثاني غير مؤكد بعد</span>';
-    return `<article class="basic-bag-lesson">
-      <div class="basic-bag-number">التدريب الأساسي ${item.no}</div>
-      <h3>${esc(item.title)}</h3>
-      <div class="basic-bag-status">✅ اختبار معتمد: 20 سؤالًا / 3 خيارات — لم يُنشر إلكترونيًا بعد</div>
-      <div class="basic-bag-actions">${action}</div>
-    </article>`;
-  }).join('');
-  return `<section id="trainingBasicBagStart" class="card basic-bag-page">
-    <div class="title">📘 التدريبات الأساسية — حقيبة المهندس محمود المصري</div>
-    <p class="muted">الحقيبة الأساسية الجديدة المعتمدة: 4 محاضرات و4 اختبارات، كل اختبار 20 سؤالًا. المحتوى مستقل بالكامل عن التدريبات الثمانية القديمة، التي تبقى بياناتها ونتائج أعضائها محفوظة.</p>
-    <div class="basic-bag-count">4 فيديوهات معتمدة المحتوى · 80 سؤالًا معتمدًا · لا توجد اختبارات منشورة في هذا القسم بعد</div>
-    <div class="basic-bag-grid">${cards}</div>
-    <p class="basic-bag-notice">ملاحظة: رابط فيديو المنتجات (التدريب الثاني) يحتاج استرجاعًا من المصدر المعتمد. عرض الاختبارات للتدريب يتطلب إدخال نصوص الأسئلة وخياراتها المعتمدة حرفيًا، ولا يمكن الاعتماد على مفاتيح الإجابات وحدها.</p>
-  </section>`;
+  if(typeof window.basicTrainingCourseHtml==='function')return window.basicTrainingCourseHtml();
+  return '<div class="card">جارٍ تحميل الحقيبة التدريبية الأساسية…</div>';
 }
 
 function professionalTrainingPage(){
@@ -8552,7 +8529,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 .training-professional-assessment p{margin:5px 0 0;color:#435f52}
 @media(max-width:799px){.training-kind-tabs{grid-template-columns:1fr}.training-kind-tabs .training-feature-card{min-height:128px}}
 </style>
-<link rel="stylesheet" href="../training-name-list.css?v=1">
+<link rel="stylesheet" href="../basic-training.css?v=1">\n<script src="../basic-training.js?v=1"></script>\n<link rel="stylesheet" href="../training-name-list.css?v=1">
 <script src="../training-name-list.js?v=1"></script>
 <script src="../training-assessment.js"></script><script src="../external-training-assessment-profile.js?v=5"></script>
 <script src="../training-assessment-buttons.js"></script>
