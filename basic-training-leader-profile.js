@@ -22,21 +22,16 @@
     return Number.isNaN(d.getTime())?'':d.toLocaleDateString('ar-IQ');
   }
   function insertBeforeActions(modal,element){
-    // Prefer immediately after the existing detailed training history, keeping it intact.
-    var nodes=Array.from(modal.querySelectorAll('.card,.title,h2,h3,b'));
-    var history=nodes.find(function(node){
-      return (node.textContent||'').trim()==='سجل التدريبات التفصيلي' ||
-        (node.textContent||'').trim()==='📚 سجل التدريبات التفصيلي';
-    });
-    if(history){
-      var section=history.closest('.card')||history.parentElement;
-      if(section&&section.parentElement&&section!==modal){
-        section.insertAdjacentElement('afterend',element);return;
-      }
-    }
+    // The leader sees this summary at the very end of the member record,
+    // immediately below the external bag exam history and before actions.
+    // A single deterministic anchor avoids accidentally matching other training sections.
     var anchor=modal.querySelector('.command-actions');
-    if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(element,anchor);
-    else modal.querySelector('.evidence-modal')?.appendChild(element);
+    if(anchor&&anchor.parentElement){
+      anchor.insertAdjacentElement('beforebegin',element);
+    } else {
+      var panel=modal.querySelector('.evidence-modal');
+      if(panel)panel.appendChild(element);
+    }
   }
   function renderResult(root,data){
     var list=Array.isArray(data.lessons)?data.lessons:[];
