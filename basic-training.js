@@ -254,12 +254,12 @@
    const modal=createModal('اختبار التدريب الأساسي '+(isSecond?'الثاني':'الأول')+' — الأسئلة العشرون');
    document.addEventListener('keydown',escapeClose);
    const body=modal.querySelector('#basicBagModalBody');
-   body.innerHTML='<p class="basic-bag-notice">'+(isSecond?'معاينة الأسئلة العشرين للتدريب الثاني كما أرسلتها، دون حفظ أو تصحيح قبل اعتماد مفتاح الإجابات.':'نسخة تجريبية مطابقة لأسئلة النموذج الأصلي، مع التعديل المعتمد للسؤال الثامن. توجد أسئلة صح/خطأ وأسئلة باختيارات متعددة. التصحيح تجريبي داخل المتصفح فقط، ولا تُحفظ الإجابات أو النتائج.')+'</p><p id="basicQuizLoad">جارٍ تحميل الأسئلة الأصلية…</p>';
+   body.innerHTML='<p class="basic-bag-notice">'+(isSecond?'معاينة الأسئلة العشرين للتدريب الثاني، وتصحيح آلي تجريبي وفق مفتاح الإجابات المعتمد. لا تُحفظ النتائج.':'نسخة تجريبية مطابقة لأسئلة النموذج الأصلي، مع التعديل المعتمد للسؤال الثامن. توجد أسئلة صح/خطأ وأسئلة باختيارات متعددة. التصحيح تجريبي داخل المتصفح فقط، ولا تُحفظ الإجابات أو النتائج.')+'</p><p id="basicQuizLoad">جارٍ تحميل الأسئلة الأصلية…</p>';
    try{
       const response=await fetch(isSecond?'../basic-training-02-quiz.json':'../basic-training-01-quiz.json',{cache:'no-store'});
       if(!response.ok)throw Error('ملف الأسئلة غير متاح');
       const qs=await response.json();
-      if(!Array.isArray(qs)||qs.length!==20||qs.some(q=>!q.question||!Array.isArray(q.options)||q.options.length<2||(q.answer!==null&&(!Number.isInteger(q.answer)||(q.answer!==null&&(!Number.isInteger(q.answer)||q.answer<0||q.answer>=q.options.length))))))throw Error('الأسئلة العشرون غير مكتملة');
+      if(!Array.isArray(qs)||qs.length!==20||qs.some(q=>!q.question||!Array.isArray(q.options)||q.options.length<2||(q.answer!==null&&(!Number.isInteger(q.answer)||q.answer<0||q.answer>=q.options.length)))))throw Error('الأسئلة العشرون غير مكتملة');
       if(!modal||!modal.isConnected)return;
       const loading=body.querySelector('#basicQuizLoad');if(loading)loading.remove();
       const form=document.createElement('form');form.className='basic-bag-exam';
@@ -270,7 +270,7 @@
          const legend=document.createElement('legend');legend.textContent=(i+1)+'. '+q.question;section.append(legend);
          q.options.forEach((opt,j)=>{
            const label=document.createElement('label'),radio=document.createElement('input');
-           radio.type='radio';radio.name='basic_one_'+i;radio.value=String(j);
+           radio.type='radio';radio.name='basic_'+number+'_'+i;radio.value=String(j);
            radio.addEventListener('change',()=>{answers[i]=j;counter.textContent='الإجابات: '+answers.filter(v=>v!==null).length+' / 20';});
            label.append(radio,document.createTextNode(' '+(q.options.length===2&&q.options[0]==='صح'?'':(['أ','ب','ج','د'][j]||String(j+1))+'. ')+opt));
            section.append(label);
@@ -281,12 +281,12 @@
       form.addEventListener('submit',e=>{
         e.preventDefault();
         if(answers.includes(null)){alert('أجب عن جميع الأسئلة العشرين أولًا');return;}
-        if(isSecond){const result=document.createElement('div');result.className='basic-bag-result';result.textContent='اكتملت معاينة الأسئلة العشرين. التصحيح ينتظر اعتماد مفتاح إجابات التدريب الثاني، ولم تُحفظ بيانات أو نتيجة.';form.replaceWith(result);return;}
+        
         const approved=qs.filter(q=>Number.isInteger(q.answer));
         const score=qs.reduce((total,q,i)=>total+(Number.isInteger(q.answer)&&answers[i]===q.answer?1:0),0);
         const result=document.createElement('div');result.className='basic-bag-result';
         const h=document.createElement('h2');h.textContent='نتيجتك التجريبية: '+score+' / '+approved.length;result.append(h);
-        const hint=document.createElement('p');hint.textContent='هذه نتيجة للمراجعة فقط، لم تُحفظ ولم تؤثر على فتح التدريب التالي. السؤالان 14 و16 مستبعدان من التصحيح لحين اعتماد بديلين.';result.append(hint);
+        const hint=document.createElement('p');hint.textContent=isSecond?'هذه نتيجة اختبار التدريب الثاني التجريبية من 20 درجة. لم تُحفظ الإجابات أو النتيجة ولم تفتح التدريب الثالث.':'هذه نتيجة للمراجعة فقط، لم تُحفظ ولم تؤثر على فتح التدريب التالي. السؤالان 14 و16 مستبعدان من التصحيح لحين اعتماد بديلين.';result.append(hint);
         const wrong=qs.map((q,i)=>Number.isInteger(q.answer)&&answers[i]!==q.answer?{i,answer:q.options[q.answer]}:null).filter(Boolean);
         const text=document.createElement('p');text.textContent=wrong.length?'أسئلة تحتاج مراجعة: '+wrong.map(v=>v.i+1).join('، '):'جميع الإجابات صحيحة';result.append(text);
         wrong.forEach(v=>{const row=document.createElement('p');row.textContent='س'+(v.i+1)+' — الإجابة الصحيحة وفق المفتاح المعتمد: '+v.answer;result.append(row);});
