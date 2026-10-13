@@ -16,7 +16,7 @@
   {no:7,title:'تفعيل العضوية وتسجيل أعضاء الفريق',video:'kYJjJu2JQFI'},
   {no:8,title:'أساسيات النجاح التسعة مع DXN',video:'v4gYSL-KuHQ'}
  ];
- let loaded=false,backendReady=false,loading=false,progress=[],published=[],scores=[],movie=null,exam=null;
+ let loaded=false,backendReady=false,loading=false,progress=[],published=[],scores=[],movie=null,exam=null,viewerRole='';
  let previewWatchedPercent=0;
  let previewWatchedPercent2=0;
  let previewWatchedPercent3=0;
@@ -30,9 +30,8 @@
  const currentLesson=n=>lessons.find(x=>x.no===Number(n));
  const statusOf=n=>progress.find(x=>x.training_no===n)||{watched:0,duration:0,completed:false};
  // Successful completion of the previous training means video + submitted exam.
- function lessonUnlock(no){if(no===1)return true;return !!statusOf(no-1).completed&&scores.some(x=>Number(x.training_no)===no-1);}
- // Preview in the draft branch only; not a graded attempt.
- const previewOnly=true;
+ function lessonUnlock(no){if(no===1)return true;return !!statusOf(no-1).completed&&scores.some(x=>Number(x.training_no)===no-1&&x.passed===true);}
+ // Approved tests can still be previewed without saving; live attempts require RPC.
  function safeToast(s){if(typeof window.toast==='function')window.toast(s);else console.info(s);}
  function authToken(){return String(localStorage.getItem('dxn_session')||'').trim();}
  async function rpc(fn,args={}){
@@ -48,6 +47,29 @@
  }
  function refreshCards(){
  const host=document.getElementById('basicBagCards');if(!host)return;
+ if(backendReady){
+  const canPreview=viewerRole==='leader'&&window.innerWidth>=900;
+  host.innerHTML=lessons.map(item=>{
+    const p=statusOf(item.no),unlocked=lessonUnlock(item.no);
+    const watched=Math.min(100,Math.max(0,Math.round(100*fmt(p.watched)/(fmt(p.duration)||1))));
+    const passed=!!p.passed,watchReady=!!p.completed;
+    const score=(p.best_score===null||p.best_score===undefined)?'':' | أفضل درجة: '+p.best_score+' / 20';
+    const status=passed?'✅ اجتاز التدريب':watchReady?'✅ اكتملت المشاهدة — الاختبار متاح':unlocked?'▶ متابعة المشاهدة حتى 90%':'🔒 أكمل التدريب السابق واجتز اختباره أولًا';
+    return '<article class="basic-bag-lesson basic-two-stage"><div class="basic-bag-lesson-main">'+
+      '<div class="basic-bag-number">التدريب الأساسي '+item.no+'</div><h3>'+esc(item.title)+'</h3>'+
+      '<p class="basic-bag-description">المدرب: المهندس محمود المصري</p>'+
+      '<div class="basic-bag-status">'+status+esc(score)+'</div>'+
+      '<div class="basic-bag-progress-line"><strong class="basic-bag-percentage">'+watched+'%</strong>'+
+      '<div class="basic-bag-progress" role="progressbar" aria-label="المشاهدة المحفوظة" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+watched+'"><div style="width:'+watched+'%"></div></div></div>'+
+      '<p class="basic-bag-description">شرط اجتياز التدريب: مشاهدة 90% والحصول على 16/20 على الأقل. يمكن إعادة الاختبار عند الرسوب.</p></div>'+
+      '<div class="basic-bag-actions">'+
+      '<button type="button" class="name-list-btn name-list-primary" onclick="basicBagStartVideo('+item.no+')" '+(!unlocked?'disabled':'')+'>▶ '+(watchReady?'إعادة المشاهدة':'بدء / متابعة المشاهدة')+'</button>'+
+      '<button type="button" class="name-list-btn" onclick="basicBagStartQuiz('+item.no+')" '+(!unlocked||!watchReady?'disabled':'')+'>🧠 '+(passed?'إعادة الاختبار':'الاختبار المعتمد — 20 سؤالًا')+'</button>'+
+      (canPreview?'<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewFirstQuiz('+item.no+')">👁 معاينة الاختبار (غير محفوظة)</button>':'')+
+      '</div></article>';
+   }).join('');
+   return;
+ }
  const pct=movie&&movie.duration?Math.min(100,Math.floor(100*movie.max/movie.duration)):Math.min(100,Math.floor(previewWatchedPercent));
  const later=[];
  host.innerHTML='<article class="basic-bag-lesson basic-one-stage"><div class="basic-bag-lesson-main">'+
@@ -144,17 +166,17 @@
   try {
    const r=await rpc('basic_training_overview');
    if(!Array.isArray(r.progress)||!Array.isArray(r.published_quizzes)||!Array.isArray(r.scores))throw Error('تنسيق الاستجابة غير صحيح');
-   progress=r.progress; published=r.published_quizzes;scores=r.scores;
+   progress=r.progress; published=r.published_quizzes;scores=r.scores;viewerRole=String(r.role||'');
    loaded=true;backendReady=true;
    const n=document.getElementById('basicBagNotice');
-   if(n)n.textContent='يُحفظ تقدم المشاهدة ونتيجة الاختبار داخل حساب العضو فقط.';
+   if(n)n.textContent='✅ حفظ التقدم والنتائج مفعل. شرط الاجتياز: مشاهدة 90% و16 إجابة صحيحة من 20. لا يمكن فتح التدريب التالي قبل الاجتياز.';
   }catch(e){
    const n=document.getElementById('basicBagNotice');
    if(n)n.textContent='المعاينة متاحة؛ لكن حفظ التقدم والاختبارات يحتاج تفعيل ترحيل Supabase المراجع. '+(e.message||'');
    loaded=true;backendReady=false;
   }finally{loading=false;refreshCards();}
  }
- function maybeLoad(){if(loaded){setTimeout(refreshCards,0);}return courseHtml();}
+ function maybeLoad(){if(!loaded&&!loading&&authToken()){loading=true;setTimeout(loadOverview,0);}return courseHtml();}
  async function ytApi(){
   if(window.YT&&window.YT.Player)return;
   if(typeof window.loadYouTubeAPI==='function'){await window.loadYouTubeAPI();return;}
@@ -232,6 +254,7 @@
   if(state===window.YT.PlayerState.PLAYING&&moving&&current>m.max){
     m.max=Math.min(duration,current);if(m.no===8)previewWatchedPercent8=Math.floor(100*m.max/duration);else if(m.no===7)previewWatchedPercent7=Math.floor(100*m.max/duration);else if(m.no===6)previewWatchedPercent6=Math.floor(100*m.max/duration);else if(m.no===5)previewWatchedPercent5=Math.floor(100*m.max/duration);else if(m.no===4)previewWatchedPercent4=Math.floor(100*m.max/duration);else if(m.no===3)previewWatchedPercent3=Math.floor(100*m.max/duration);else if(m.no===2)previewWatchedPercent2=Math.floor(100*m.max/duration);else previewWatchedPercent=Math.floor(100*m.max/duration);watchPct();
   }
+  if(state===window.YT.PlayerState.PLAYING&&backendReady&&m.max>m.confirmed)heartbeat(false);
   if(current>=duration-3.5 && m.max>=duration-4.5){heartbeat(true);}
  }
  window.basicBagStartVideo=async function(no){
@@ -293,7 +316,10 @@
     const graded=await rpc('basic_training_submit_quiz',{p_training_no:e.no,p_answers:e.answers});
     body.replaceChildren();const result=document.createElement('div');result.className='basic-bag-result';
     const h=document.createElement('h2');h.textContent='نتيجتك: '+graded.score+' / '+graded.out_of;result.appendChild(h);
-    const explain=document.createElement('p');explain.textContent='تم تصحيح الاختبار آليًا وحفظ النتيجة في حسابك.';result.appendChild(explain);
+    const explain=document.createElement('p');explain.textContent=graded.passed?
+      '✅ اجتزت الاختبار! حفظنا درجتك ويمكنك الانتقال إلى التدريب التالي.':
+      'لم تجتز الاختبار بعد. تحتاج إلى 16 إجابة صحيحة من 20؛ يمكنك مراجعة المحاضرة وإعادة المحاولة.';
+    result.appendChild(explain);
     if(Array.isArray(graded.details)){
       const wrong=graded.details.filter(d=>d.chosen!==d.correct);
       const p=document.createElement('p');p.textContent=wrong.length?'الأسئلة التي تحتاج مراجعة: '+wrong.map(x=>x.no).join('، '):'أجبت عن جميع الأسئلة بصورة صحيحة.';
@@ -318,6 +344,7 @@
 
  window.basicBagPreviewFirstQuiz=async function(number=1){
    if(number!==1&&number!==2&&number!==3&&number!==4&&number!==5&&number!==6&&number!==7&&number!==8)return;
+   if(backendReady&&(viewerRole!=='leader'||window.innerWidth<900))return safeToast('المعاينة متاحة للقائد على الحاسوب فقط');
    const isSecond=number===2;
    const isThird=number===3;
    const isFourth=number===4;
@@ -385,5 +412,5 @@
  window.basicBagPreviewSeventhVideo=async()=>{window.__basicVideoSevenPreview=true;try{await window.basicBagStartVideo(7);}finally{window.__basicVideoSevenPreview=false;}};
  window.basicBagPreviewEighthQuiz=()=>window.basicBagPreviewFirstQuiz(8);
  window.basicBagPreviewEighthVideo=async()=>{window.__basicVideoEightPreview=true;try{await window.basicBagStartVideo(8);}finally{window.__basicVideoEightPreview=false;}};
- window.basicTrainingCourseHtml=courseHtml;
+ window.basicTrainingCourseHtml=maybeLoad;
 })();
