@@ -14,6 +14,7 @@
  ];
  let loaded=false,backendReady=false,loading=false,progress=[],published=[],scores=[],movie=null,exam=null;
  let previewWatchedPercent=0;
+ let previewWatchedPercent2=0;
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const fmt=n=>Number.isFinite(n)?Math.max(0,Math.floor(n)):0;
  const currentLesson=n=>lessons.find(x=>x.no===Number(n));
@@ -57,10 +58,11 @@
  '<div class="basic-bag-number">التدريب الأساسي 2</div><h3>منتجات DXN – فوائدها واستخداماتها</h3>'+
  '<p class="basic-bag-description">المدرب: المهندس محمود المصري</p>'+
  '<div class="basic-bag-status">🔒 المشاهدة النظامية مغلقة حتى إكمال التدريب الأول واختباره</div>'+
- '<div class="basic-bag-progress-line"><strong class="basic-bag-percentage">0%</strong>'+
+ '<div class="basic-bag-progress-line"><strong class="basic-bag-percentage">'+previewWatchedPercent2+'%</strong>'+
  '<div class="basic-bag-progress" role="progressbar" aria-label="نسبة مشاهدة التدريب الثاني" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div style="width:0%"></div></div></div>'+
  '<p class="basic-bag-description">رابط الفيديو الثاني مسجل من مرجع المحادثة؛ يحتاج اختبار التشغيل في المعاينة.</p></div>'+
- '<div class="basic-bag-actions"><button type="button" class="name-list-btn" disabled>🔒 بدء التدريب بعد إكمال الأول</button>'+
+ '<div class="basic-bag-actions"><button type="button" class="name-list-btn" disabled>🔒 بدء التدريب بعد إكمال الأول</button>'+ 
+ '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewSecondVideo()">👁 معاينة الفيديو الثاني</button>'+
  '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewSecondQuiz()">🧠 معاينة اختبار التدريب الثاني — 20 سؤالًا</button></div></article>'+
  later.map((name,i)=>'<article class="basic-bag-lesson basic-one-locked" aria-label="التدريب '+(i+3)+' مغلق"><div class="basic-bag-lesson-main"><div class="basic-bag-number">التدريب الأساسي '+(i+3)+'</div><h3>🔒 '+name+'</h3><p class="basic-bag-description">سنعمل عليه بعد الانتهاء من التدريب السابق واعتماده.</p></div><div class="basic-bag-actions"><button class="name-list-btn" type="button" disabled>🔒 التدريب مغلق</button></div></article>').join('');
 }
@@ -161,13 +163,13 @@
   const previousTime=m.previousTime; m.previousTime=current;m.previousWall=now;
   const moving=current>=previousTime-0.2&&current-previousTime<=elapsed+1.0;
   if(state===window.YT.PlayerState.PLAYING&&moving&&current>m.max){
-    m.max=Math.min(duration,current);previewWatchedPercent=Math.floor(100*m.max/duration);watchPct();
+    m.max=Math.min(duration,current);if(m.no===2)previewWatchedPercent2=Math.floor(100*m.max/duration);else previewWatchedPercent=Math.floor(100*m.max/duration);watchPct();
   }
   if(current>=duration-3.5 && m.max>=duration-4.5){heartbeat(true);}
  }
  window.basicBagStartVideo=async function(no){
   const item=currentLesson(no);if(!item||!item.video)return safeToast('رابط الفيديو غير متوفر');
-  if(!lessonUnlock(Number(no)))return safeToast('التدريب مغلق: أكمل مشاهدة التدريب السابق واختباره');
+  if(!lessonUnlock(Number(no))&&!(no===2&&window.__basicVideoTwoPreview))return safeToast('التدريب مغلق: أكمل مشاهدة التدريب السابق واختباره');
   close();const c=createModal(item.title);document.addEventListener('keydown',escapeClose);
   const body=c.querySelector('#basicBagModalBody');
   body.innerHTML='<div class="basic-bag-player"><div id="basicBagYT"></div></div>'+
@@ -297,5 +299,6 @@
  };
 
  window.basicBagPreviewSecondQuiz=()=>window.basicBagPreviewFirstQuiz(2);
+ window.basicBagPreviewSecondVideo=async()=>{window.__basicVideoTwoPreview=true;try{await window.basicBagStartVideo(2);}finally{window.__basicVideoTwoPreview=false;}};
  window.basicTrainingCourseHtml=courseHtml;
 })();
