@@ -69,3 +69,21 @@ test('one-time private importer is restricted to service role and contains no pu
  assert.match(client,/SUPABASE_TEST_SERVICE_ROLE_KEY/);
  assert.match(read('.gitignore'),/\.private\//);
 });
+
+test('every submitted exam is bound to the exact published revision',()=>{
+ const quiz=extract(base,'basic_training_get_quiz');
+ const submit=extract(base,'basic_training_submit_quiz');
+ const member=read('basic-training.js');
+ assert.match(quiz,/FOR SHARE/);
+ assert.match(quiz,/'revision',v_revision,'questions',v_out/);
+ assert.match(submit,/p_answers jsonb,p_revision integer/);
+ assert.match(submit,/p_revision IS DISTINCT FROM v_revision/);
+ assert.match(submit,/FOR SHARE/);
+ assert.match(submit,/INSERT INTO public\\.basic_training_attempts\\(user_id,training_no,answers,score,passed,revision\\)/);
+ assert.match(member,/p_revision:e\\.revision/);
+ assert.match(member,/questions:list,answers:Array\\(20\\)/);
+});
+test('publishing revised videos cannot silently change member watch progress',()=>{
+ assert.match(adminSql,/v_rev\\.video_id<>v_l\\.video_id[\\s\\S]*?OR v_rev\\.expected_duration_seconds<>v_l\\.expected_duration_seconds/);
+ assert.doesNotMatch(adminSql,/CREATE TRIGGER basic_training_stamp_revision/);
+});
