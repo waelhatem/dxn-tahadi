@@ -249,7 +249,7 @@
       const response=await fetch('../basic-training-01-quiz.json',{cache:'no-store'});
       if(!response.ok)throw Error('ملف الأسئلة غير متاح');
       const qs=await response.json();
-      if(!Array.isArray(qs)||qs.length!==20||qs.some(q=>!q.question||!Array.isArray(q.options)||q.options.length<2||q.answer<0||q.answer>=q.options.length))throw Error('الأسئلة العشرون غير مكتملة');
+      if(!Array.isArray(qs)||qs.length!==20||qs.some(q=>!q.question||!Array.isArray(q.options)||q.options.length<2||(q.answer!==null&&(!Number.isInteger(q.answer)||q.answer<0||q.answer>=q.options.length))))throw Error('الأسئلة العشرون غير مكتملة');
       if(!modal||!modal.isConnected)return;
       const loading=body.querySelector('#basicQuizLoad');if(loading)loading.remove();
       const form=document.createElement('form');form.className='basic-bag-exam';
@@ -271,11 +271,12 @@
       form.addEventListener('submit',e=>{
         e.preventDefault();
         if(answers.includes(null)){alert('أجب عن جميع الأسئلة العشرين أولًا');return;}
-        const score=qs.reduce((total,q,i)=>total+(answers[i]===q.answer?1:0),0);
+        const approved=qs.filter(q=>Number.isInteger(q.answer));
+        const score=qs.reduce((total,q,i)=>total+(Number.isInteger(q.answer)&&answers[i]===q.answer?1:0),0);
         const result=document.createElement('div');result.className='basic-bag-result';
-        const h=document.createElement('h2');h.textContent='نتيجتك التجريبية: '+score+' / 20';result.append(h);
-        const hint=document.createElement('p');hint.textContent='هذه نتيجة للمراجعة فقط، لم تُحفظ ولم تؤثر على فتح التدريب التالي.';result.append(hint);
-        const wrong=qs.map((q,i)=>answers[i]!==q.answer?{i,answer:q.options[q.answer]}:null).filter(Boolean);
+        const h=document.createElement('h2');h.textContent='نتيجتك التجريبية: '+score+' / '+approved.length;result.append(h);
+        const hint=document.createElement('p');hint.textContent='هذه نتيجة للمراجعة فقط، لم تُحفظ ولم تؤثر على فتح التدريب التالي. السؤالان 14 و16 مستبعدان من التصحيح لحين اعتماد بديلين.';result.append(hint);
+        const wrong=qs.map((q,i)=>Number.isInteger(q.answer)&&answers[i]!==q.answer?{i,answer:q.options[q.answer]}:null).filter(Boolean);
         const text=document.createElement('p');text.textContent=wrong.length?'أسئلة تحتاج مراجعة: '+wrong.map(v=>v.i+1).join('، '):'جميع الإجابات صحيحة';result.append(text);
         wrong.forEach(v=>{const row=document.createElement('p');row.textContent='س'+(v.i+1)+' — الإجابة الصحيحة وفق المفتاح المعتمد: '+v.answer;result.append(row);});
         form.replaceWith(result);
