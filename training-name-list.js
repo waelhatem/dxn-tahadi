@@ -84,7 +84,6 @@
     const d = new Date();
     return String(d.getFullYear()) + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
-  function textBox(message, cls) { return add(el('div', 'name-list-' + (cls || 'empty')), 'p', '', message).parentNode; }
   function showStatus(message, isError) {
     const x = root && root.querySelector('.name-list-status');
     if (!x) return;
@@ -160,6 +159,8 @@
     const cols = add(form, 'div', 'name-list-form-grid');
     cols.appendChild(field('الاسم *', 'full_name', x.full_name || '', 'text', true, 140));
     cols.appendChild(field('الهاتف (اختياري)', 'phone', x.phone || '', 'tel', false, 45));
+    cols.appendChild(field('المكان (الدولة والمدينة)', 'location', x.location || '', 'text', false, 160));
+    cols.appendChild(field('أقرب فرع DXN', 'nearest_branch', x.nearest_branch || '', 'text', false, 160));
     cols.appendChild(selectField('مصدر المعرفة', 'source', sources, x.source || 'other'));
     cols.appendChild(selectField('مرحلة التواصل', 'stage', stages, x.stage || 'new'));
     const flags = add(form, 'fieldset', 'name-list-flags');
@@ -188,14 +189,13 @@
     const filter = add(sec, 'div', 'name-list-filter');
     const search = el('input'); search.type = 'search'; search.dataset.filter = 'query';
     search.placeholder = 'ابحث بالاسم أو الهاتف'; search.value = query; filter.appendChild(search);
-    const s = el('select'); s.dataset.filter = 'source';
     optionList(filter, 'sourceFilter', [['', 'جميع فئات المعارف']].concat(sources), sourceFilter);
     filter.querySelector('select').dataset.filter = 'source';
     const grid = add(sec, 'div', 'name-list-scroll');
     const table = add(grid, 'table', 'name-list-table');
     const head = add(table, 'thead');
     const trh = add(head, 'tr');
-    for (const n of ['الاسم', 'الهاتف', 'المصدر', 'المرحلة', 'الإجراءات']) add(trh, 'th', '', n);
+    for (const n of ['الاسم', 'الهاتف', 'المكان', 'أقرب فرع', 'المصدر', 'المرحلة', 'الإجراءات']) add(trh, 'th', '', n);
     const body = add(table, 'tbody');
     const filtered = contacts.filter(x =>
       (!query || (x.full_name + ' ' + x.phone).toLocaleLowerCase().includes(query.toLocaleLowerCase())) &&
@@ -204,6 +204,8 @@
       const tr = add(body, 'tr');
       add(tr, 'td', '', c.full_name);
       add(tr, 'td', '', c.phone || '—');
+      add(tr, 'td', '', c.location || '—');
+      add(tr, 'td', '', c.nearest_branch || '—');
       add(tr, 'td', '', (sources.find(s => s[0] === c.source) || ['', 'أخرى'])[1]);
       add(tr, 'td', '', stageOf(c.stage));
       const actions = add(tr, 'td', 'name-list-row-actions');
@@ -211,7 +213,7 @@
       actions.appendChild(button('تعديل', 'edit-contact', c.id));
       actions.appendChild(button('حذف', 'delete-contact', c.id, 'name-list-danger'));
     }
-    if (!filtered.length) { const tr = add(body, 'tr'); const td = add(tr, 'td', '', 'لا توجد أسماء مطابقة'); td.colSpan = 5; }
+    if (!filtered.length) { const tr = add(body, 'tr'); const td = add(tr, 'td', '', 'لا توجد أسماء مطابقة'); td.colSpan = 7; }
     return sec;
   }
   function followupsForm() {
