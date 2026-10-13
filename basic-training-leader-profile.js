@@ -22,6 +22,18 @@
     return Number.isNaN(d.getTime())?'':d.toLocaleDateString('ar-IQ');
   }
   function insertBeforeActions(modal,element){
+    // Prefer immediately after the existing detailed training history, keeping it intact.
+    var nodes=Array.from(modal.querySelectorAll('.card,.title,h2,h3,b'));
+    var history=nodes.find(function(node){
+      return (node.textContent||'').trim()==='سجل التدريبات التفصيلي' ||
+        (node.textContent||'').trim()==='📚 سجل التدريبات التفصيلي';
+    });
+    if(history){
+      var section=history.closest('.card')||history.parentElement;
+      if(section&&section.parentElement&&section!==modal){
+        section.insertAdjacentElement('afterend',element);return;
+      }
+    }
     var anchor=modal.querySelector('.command-actions');
     if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(element,anchor);
     else modal.querySelector('.evidence-modal')?.appendChild(element);
@@ -43,11 +55,11 @@
       '<div class="mini-grid" style="margin-bottom:12px">'+
       '<div><b>✅ تدريبات اجتازها</b><div style="font-size:22px;font-weight:900">'+success+' / 8</div></div>'+
       '<div><b>📊 متوسط المشاهدة</b><div style="font-size:22px;font-weight:900">'+average+'%</div></div>'+
-      '<div><b>🎯 شرط الاجتياز</b><div style="font-size:15px;font-weight:700">90% مشاهدة و80/100 درجة</div></div>'+
+      '<div><b>🎯 شرط الاجتياز</b><div style="font-size:15px;font-weight:700">90% مشاهدة و16/20 درجة</div></div>'+
       '</div>';
     list.forEach(function(item){
       var pct=safePercent(item.watch_percent);
-      var grade=item.grade==null?'لم يؤدِّ الاختبار':safePercent(item.grade)+' من 100';
+      var grade=item.best_score==null?'لم يؤدِّ الاختبار':Math.max(0,Math.min(20,Number(item.best_score)))+' / 20';
       var passed=Boolean(item.passed);
       var watchComplete=Boolean(item.watch_completed);
       var status=passed?'✅ مجتاز':watchComplete?'📝 بانتظار اجتياز الاختبار':pct>0?'▶️ قيد المشاهدة':'⏳ لم يبدأ';
