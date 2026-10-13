@@ -6203,6 +6203,38 @@ async function initRagwanFiles(){
   if(input&&!input.__ragwanBound){input.__ragwanBound=true;input.addEventListener('change',()=>ragwanUploadFiles(input.files));}
   ragwanLoadFiles();
 }
+/* Newly approved basic training bag, kept separate from legacy 8 lessons and their
+ * historical completion/score data. Do not reuse the old training lesson IDs.
+ * Approved assessment questions are NOT fabricated from answer keys.
+ */
+function basicTrainingPage(){
+  const approved=[
+    {no:1,title:'التعريف بشركة DXN العالمية',video:'78HTmcWYqN4'},
+    {no:2,title:'منتجات DXN – فوائدها واستخداماتها',video:null},
+    {no:3,title:'نظام DXN للبيع المباشر والتسويق متعدد المستويات',video:'7BBYsbPgX1M'},
+    {no:4,title:'خطة DXN المالية وكيف تحقق دخلًا عاليًا بوقت مثالي',video:'ArJSiW2E4TM'}
+  ];
+  const cards=approved.map(item=>{
+    const vid=item.video;
+    const action=vid
+      ?`<a class="name-list-btn name-list-primary" href="https://youtu.be/${vid}" target="_blank" rel="noopener noreferrer">▶ مشاهدة المحاضرة</a>`
+      :'<span class="basic-bag-missing">⏳ رابط الفيديو الثاني غير مؤكد بعد</span>';
+    return `<article class="basic-bag-lesson">
+      <div class="basic-bag-number">التدريب الأساسي ${item.no}</div>
+      <h3>${esc(item.title)}</h3>
+      <div class="basic-bag-status">✅ اختبار معتمد: 20 سؤالًا / 3 خيارات — لم يُنشر إلكترونيًا بعد</div>
+      <div class="basic-bag-actions">${action}</div>
+    </article>`;
+  }).join('');
+  return `<section id="trainingBasicBagStart" class="card basic-bag-page">
+    <div class="title">📘 التدريبات الأساسية — حقيبة المهندس محمود المصري</div>
+    <p class="muted">الحقيبة الأساسية الجديدة المعتمدة: 4 محاضرات و4 اختبارات، كل اختبار 20 سؤالًا. المحتوى مستقل بالكامل عن التدريبات الثمانية القديمة، التي تبقى بياناتها ونتائج أعضائها محفوظة.</p>
+    <div class="basic-bag-count">4 فيديوهات معتمدة المحتوى · 80 سؤالًا معتمدًا · لا توجد اختبارات منشورة في هذا القسم بعد</div>
+    <div class="basic-bag-grid">${cards}</div>
+    <p class="basic-bag-notice">ملاحظة: رابط فيديو المنتجات (التدريب الثاني) يحتاج استرجاعًا من المصدر المعتمد. عرض الاختبارات للتدريب يتطلب إدخال نصوص الأسئلة وخياراتها المعتمدة حرفيًا، ولا يمكن الاعتماد على مفاتيح الإجابات وحدها.</p>
+  </section>`;
+}
+
 function professionalTrainingPage(){
   return `<div id="trainingProfessionalStart" class="card training-professional-page">
     <div class="title">🎓 التدريبات الاحترافية</div>
@@ -6285,7 +6317,7 @@ function trainings(){
         <span class="training-feature-shine"></span>
         <span class="training-feature-badge">📘 المسار الأساسي</span>
         <span class="training-feature-icon">📚</span>
-        <span class="training-feature-copy"><strong>التدريبات الأساسية</strong><small>التدريبات والشروحات الموجودة سابقًا</small></span>
+        <span class="training-feature-copy"><strong>التدريبات الأساسية</strong><small>حقيبة المهندس محمود المصري — فيديوهات واختبارات معتمدة</small></span>
         <span class="training-feature-arrow">›</span>
       </button>
       <button type="button" class="training-feature-card training-feature-professional" onclick="switchTrainingSubtab('professional')">
@@ -6311,6 +6343,10 @@ function trainings(){
 
   if(trainingSubtab==='lessons'){
     return backChoice+trainingTypeChoices;
+  }
+
+  if(trainingSubtab==='basic'){
+    return backToTrainingTypes+basicTrainingPage();
   }
 
   if(trainingSubtab==='professional'){
@@ -8484,6 +8520,20 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 })();
 </script>
 
+<style id="training-basic-bag-style">
+.basic-bag-page{color:#173d30}
+.basic-bag-page .basic-bag-count{display:inline-flex;max-width:100%;padding:9px 13px;background:#eaf5ef;color:#145841;font-size:13px;font-weight:850;border-radius:9px;margin:12px 0}
+.basic-bag-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin:14px 0}
+.basic-bag-lesson{border:1px solid #d2e3dc;background:#fff;padding:18px;border-radius:15px}
+.basic-bag-lesson h3{font-size:19px;color:#154d39;margin:9px 0 12px;line-height:1.55}
+.basic-bag-number{font-size:12px;font-weight:900;color:#17674c}
+.basic-bag-status{font-size:13px;font-weight:800;color:#1a7051;background:#eef8f2;border-radius:8px;padding:9px;margin-bottom:12px}
+.basic-bag-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.basic-bag-actions a{display:inline-flex;text-decoration:none;align-items:center;justify-content:center}
+.basic-bag-missing,.basic-bag-notice{font-size:13px;line-height:1.8;color:#865f26}
+.basic-bag-notice{background:#fff6e7;border-radius:10px;padding:12px}
+@media(max-width:700px){.basic-bag-grid{grid-template-columns:1fr}}
+</style>
 <style id="training-professional-page-style">
 .training-kind-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}
 .training-kind-tabs .training-feature-card{min-width:0}
