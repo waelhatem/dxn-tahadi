@@ -85,3 +85,25 @@ test('basic bag shows only the four approved Mahmoud Al-Masri lessons, not the e
   assert.doesNotMatch(basic, /trainingData|startTrainingLesson|openTrainingAssessment/);
   assert.match(page, /const lessons=\(trainingData.lessons\|\|\[\]\)/, 'legacy lessons remain in place, without migration or deletion');
 });
+
+test('legacy 8-lesson assessments do not overlay basic/professional training choice', () => {
+  const legacy = read('training-assessment.js');
+  const host = legacy.split('function lessonsHost(){')[1].split('function anchorForMember(')[0];
+  assert.match(host, /trainingSubtab!=='legacy'/);
+  assert.doesNotMatch(host, /trainingSubtab!=='lessons'/);
+  assert.match(page, /if\(trainingSubtab==='lessons'\)\{\s*return backChoice\+trainingTypeChoices;/);
+  assert.match(page, /if\(trainingSubtab==='basic'\)\{/);
+  assert.match(page, /if\(trainingSubtab==='professional'\)\{/);
+  assert.match(page, /trainingKindChoices/);
+  assert.match(page, /التدريبات الأساسية/);
+  assert.match(page, /التدريبات الاحترافية/);
+});
+
+test('new basic videos and questions are independent of 8 historical lessons', () => {
+  const basic = read('basic-training.js');
+  assert.match(basic, /basicTrainingCourseHtml/);
+  assert.match(basic, /basic_training_get_quiz/);
+  assert.match(basic, /basic_training_submit_quiz/);
+  assert.match(basic, /basic_training_watch_update/);
+  assert.doesNotMatch(basic, /training_assessment_bootstrap/);
+});
