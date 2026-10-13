@@ -74,3 +74,14 @@ test('responsive CSS is isolated from other training tabs', () => {
   assert.ok(selectors.length>10);
   assert.doesNotMatch(css, /(?:^|\})\s*(?:body|#app|\.card|\.tabs)\s*\{/);
 });
+
+test('basic bag shows only the four approved Mahmoud Al-Masri lessons, not the eight legacy lessons', () => {
+  assert.match(page, /function basicTrainingPage\(\)/);
+  assert.match(page, /if\(trainingSubtab==='basic'\)\{\s*return backToTrainingTypes\+basicTrainingPage\(\);/);
+  const basic = page.split('function basicTrainingPage(){')[1].split('function professionalTrainingPage(){')[0];
+  for (const video of ['78HTmcWYqN4','7BBYsbPgX1M','ArJSiW2E4TM']) assert.ok(basic.includes(video), video);
+  assert.ok(basic.includes('video:null'), 'second video link should remain unavailable until verified');
+  assert.ok(basic.includes('4 محاضرات و4 اختبارات'));
+  assert.doesNotMatch(basic, /trainingData|startTrainingLesson|openTrainingAssessment/);
+  assert.match(page, /const lessons=\(trainingData.lessons\|\|\[\]\)/, 'legacy lessons remain in place, without migration or deletion');
+});
