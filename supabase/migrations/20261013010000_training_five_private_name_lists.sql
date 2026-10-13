@@ -6,6 +6,8 @@ create table if not exists public.training_name_list_contacts (
  owner_user_id uuid not null references public.app_users(id) on delete cascade,
  full_name text not null check (char_length(btrim(full_name)) between 1 and 140),
  phone text not null default '' check (char_length(phone) <= 45),
+ location text not null default '' check (char_length(location) <= 160),
+ nearest_branch text not null default '' check (char_length(nearest_branch) <= 160),
  source text not null default 'other'
    check (source in ('family','neighbors','study','work','community','professions','online','other')),
  tags integer[] not null default '{}'::integer[]
@@ -91,6 +93,8 @@ declare
  record_id uuid;
  n text;
  phone_value text;
+ location_value text;
+ branch_value text;
  src text;
  state_value text;
  note_value text;
@@ -111,10 +115,12 @@ begin
    cid := nullif(p_data->>'id','')::uuid;
    n := btrim(coalesce(p_data->>'full_name',''));
    phone_value := btrim(coalesce(p_data->>'phone',''));
+   location_value := btrim(coalesce(p_data->>'location',''));
+   branch_value := btrim(coalesce(p_data->>'nearest_branch',''));
    src := coalesce(nullif(p_data->>'source',''),'other');
    state_value := coalesce(nullif(p_data->>'stage',''),'new');
    note_value := btrim(coalesce(p_data->>'notes',''));
-   if char_length(n) not between 1 and 140 or char_length(phone_value)>45 or char_length(note_value)>1200 then
+   if char_length(n) not between 1 and 140 or char_length(phone_value)>45 or char_length(location_value)>160 or char_length(branch_value)>160 or char_length(note_value)>1200 then
      raise exception 'تحقق من الاسم والهاتف والملاحظات';
    end if;
    if jsonb_typeof(coalesce(p_data->'tags','[]'::jsonb)) <> 'array' then
@@ -129,10 +135,10 @@ begin
      or state_value not in ('new','contacted','followup_48h','followup_2','followup_3','trial','consumer','investor','declined')
    then raise exception 'نوع التصنيف أو المرحلة غير صالح'; end if;
    if cid is null then
-     insert into public.training_name_list_contacts(owner_user_id,full_name,phone,source,tags,stage,notes)
-     values(uid,n,phone_value,src,tags_value,state_value,note_value) returning id into record_id;
+     insert into public.training_name_list_contacts(owner_user_id,full_name,phone,location,nearest_branch,source,tags,stage,notes)
+     values(uid,n,phone_value,location_value,branch_value,src,tags_value,state_value,note_value) returning id into record_id;
    else
-     update public.training_name_list_contacts set full_name=n,phone=phone_value,source=src,tags=tags_value,
+     update public.training_name_list_contacts set full_name=n,phone=phone_value,location=location_value,nearest_branch=branch_value,source=src,tags=tags_value,
        stage=state_value,notes=note_value,updated_at=now()
      where id=cid and owner_user_id=uid returning id into record_id;
      if record_id is null then raise exception 'الاسم غير موجود في قائمتك'; end if;
