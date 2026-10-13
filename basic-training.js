@@ -10,12 +10,13 @@
   {no:1,title:'التعريف بمشروع DXN ومنتجاتها ونظامها التسويقي',video:'lxhnkUov9sE'},
   {no:2,title:'التعريف بشركة DXN ومنتجاتها ونظامها التسويقي والأرباح',video:'K_N80xZlxXw'},
   {no:3,title:'منتجات DXN وأصنافها وطرق تسويقها',video:'n7W9LoCMdPo'},
-  {no:4,title:'المحاضرة الرابعة — بانتظار التفريغ والاعتماد',video:'AMKtcQt8ltc'}
+  {no:4,title:'نظام البيع المباشر في DXN',video:'AMKtcQt8ltc'}
  ];
  let loaded=false,backendReady=false,loading=false,progress=[],published=[],scores=[],movie=null,exam=null;
  let previewWatchedPercent=0;
  let previewWatchedPercent2=0;
  let previewWatchedPercent3=0;
+ let previewWatchedPercent4=0;
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const fmt=n=>Number.isFinite(n)?Math.max(0,Math.floor(n)):0;
  const currentLesson=n=>lessons.find(x=>x.no===Number(n));
@@ -40,9 +41,7 @@
  function refreshCards(){
  const host=document.getElementById('basicBagCards');if(!host)return;
  const pct=movie&&movie.duration?Math.min(100,Math.floor(100*movie.max/movie.duration)):Math.min(100,Math.floor(previewWatchedPercent));
- const later=[
-   'المحاضرة الرابعة — بانتظار التفريغ والاعتماد'
- ];
+ const later=[];
  host.innerHTML='<article class="basic-bag-lesson basic-one-stage"><div class="basic-bag-lesson-main">'+
  '<div class="basic-bag-number">التدريب الأساسي 1</div><h3>التعريف بمشروع DXN ومنتجاتها ونظامها التسويقي</h3>'+
  '<p class="basic-bag-description">المدرب: المهندس محمود المصري</p>'+
@@ -74,12 +73,22 @@
  '<div class="basic-bag-actions"><button type="button" class="name-list-btn" disabled>🔒 بدء التدريب بعد إكمال الثاني</button>'+
  '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewThirdVideo()">👁 معاينة الفيديو الثالث</button>'+
  '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewThirdQuiz()">🧠 اختبار التدريب الثالث — 20 سؤالًا</button></div></article>'+
+ '<article class="basic-bag-lesson basic-two-stage"><div class="basic-bag-lesson-main">'+
+ '<div class="basic-bag-number">التدريب الأساسي 4</div><h3>نظام البيع المباشر في DXN</h3>'+
+ '<p class="basic-bag-description">المدرب: المهندس محمود المصري</p>'+
+ '<div class="basic-bag-status">🔒 التدريب التسلسلي مغلق حتى إكمال السابق — المعاينة متاحة</div>'+
+ '<div class="basic-bag-progress-line"><strong class="basic-bag-percentage">'+previewWatchedPercent4+'%</strong>'+
+ '<div class="basic-bag-progress" role="progressbar" aria-label="نسبة مشاهدة التدريب الرابع التجريبية" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+previewWatchedPercent4+'"><div style="width:'+previewWatchedPercent4+'%"></div></div></div>'+
+ '<p class="basic-bag-description">الفيديو والاختبار الرابع معتمدان؛ لا تُحفظ النتائج أو المشاهدة في المعاينة.</p></div>'+
+ '<div class="basic-bag-actions"><button type="button" class="name-list-btn" disabled>🔒 بدء التدريب بعد إكمال الثالث</button>'+
+ '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewFourthVideo()">👁 معاينة الفيديو الرابع</button>'+
+ '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewFourthQuiz()">🧠 الاختبار الرابع — 20 سؤالًا</button></div></article>'+
  later.map((name,i)=>'<article class="basic-bag-lesson basic-one-locked" aria-label="التدريب '+(i+4)+' مغلق"><div class="basic-bag-lesson-main"><div class="basic-bag-number">التدريب الأساسي '+(i+4)+'</div><h3>🔒 '+name+'</h3><p class="basic-bag-description">سنعمل عليه بعد الانتهاء من التدريب السابق واعتماده.</p></div><div class="basic-bag-actions"><button class="name-list-btn" type="button" disabled>🔒 التدريب مغلق</button></div></article>').join('');
 }
  function courseHtml(){
   setTimeout(refreshCards,0);
   return '<section id="trainingBasicBagStart" class="card basic-bag-page"><div class="title">📘 التدريبات الأساسية — حقيبة المهندس محمود المصري</div>'+
-   '<p class="muted">التدريبات الثلاثة الأولى لها اختبارات معتمدة ومتاحة للمعاينة فقط؛ التسلسل الفعلي لا يزال مقفلًا.</p>'+
+   '<p class="muted">التدريبات الأساسية الأربعة الأولى لها اختبارات معتمدة ومتاحة للمعاينة فقط؛ التسلسل الفعلي لا يزال مقفلًا.</p>'+
    '<p id="basicBagNotice" class="basic-bag-notice">معاينة المحتوى والتصميم فقط. لا يوجد حفظ للدرجات أو المشاهدة ولا ربط جديد بقاعدة البيانات.</p>'+
    '<div id="basicBagCards" class="basic-bag-cards"></div></section>';
  }
@@ -173,13 +182,13 @@
   const previousTime=m.previousTime; m.previousTime=current;m.previousWall=now;
   const moving=current>=previousTime-0.2&&current-previousTime<=elapsed+1.0;
   if(state===window.YT.PlayerState.PLAYING&&moving&&current>m.max){
-    m.max=Math.min(duration,current);if(m.no===3)previewWatchedPercent3=Math.floor(100*m.max/duration);else if(m.no===2)previewWatchedPercent2=Math.floor(100*m.max/duration);else previewWatchedPercent=Math.floor(100*m.max/duration);watchPct();
+    m.max=Math.min(duration,current);if(m.no===4)previewWatchedPercent4=Math.floor(100*m.max/duration);else if(m.no===3)previewWatchedPercent3=Math.floor(100*m.max/duration);else if(m.no===2)previewWatchedPercent2=Math.floor(100*m.max/duration);else previewWatchedPercent=Math.floor(100*m.max/duration);watchPct();
   }
   if(current>=duration-3.5 && m.max>=duration-4.5){heartbeat(true);}
  }
  window.basicBagStartVideo=async function(no){
   const item=currentLesson(no);if(!item||!item.video)return safeToast('رابط الفيديو غير متوفر');
-  if(!lessonUnlock(Number(no))&&!((no===2&&window.__basicVideoTwoPreview)||(no===3&&window.__basicVideoThreePreview)))return safeToast('التدريب مغلق: أكمل مشاهدة التدريب السابق واختباره');
+  if(!lessonUnlock(Number(no))&&!((no===2&&window.__basicVideoTwoPreview)||(no===3&&window.__basicVideoThreePreview)||(no===4&&window.__basicVideoFourPreview)))return safeToast('التدريب مغلق: أكمل مشاهدة التدريب السابق واختباره');
   close();const c=createModal(item.title);document.addEventListener('keydown',escapeClose);
   const body=c.querySelector('#basicBagModalBody');
   body.innerHTML='<div class="basic-bag-player"><div id="basicBagYT"></div></div>'+
@@ -260,16 +269,17 @@
  }
 
  window.basicBagPreviewFirstQuiz=async function(number=1){
-   if(number!==1&&number!==2&&number!==3)return;
+   if(number!==1&&number!==2&&number!==3&&number!==4)return;
    const isSecond=number===2;
    const isThird=number===3;
+   const isFourth=number===4;
    close();
-   const modal=createModal('اختبار التدريب الأساسي '+(isThird?'الثالث':isSecond?'الثاني':'الأول')+' — الأسئلة العشرون');
+   const modal=createModal('اختبار التدريب الأساسي '+(isFourth?'الرابع':isThird?'الثالث':isSecond?'الثاني':'الأول')+' — الأسئلة العشرون');
    document.addEventListener('keydown',escapeClose);
    const body=modal.querySelector('#basicBagModalBody');
-   body.innerHTML='<p class="basic-bag-notice">'+(isThird?'الأسئلة العشرون المعتمدة للمحاضرة الثالثة مع تصحيح تجريبي. لا تُحفظ الإجابات أو النتائج. التوصيفات الصحية هي مما ذكره المحاضر ولا تثبت فعالية علاجية.':isSecond?'الأسئلة العشرون الجديدة المعتمدة للتدريب الثاني، وتصحيح آلي تجريبي وفق مفتاح الإجابات المعتمد. الأرقام والحوافز من وقت تسجيل المحاضرة ولا تضمن دخلًا. لا تُحفظ النتائج.':'اختبار المحاضرة الجديدة المعتمد: 20 سؤالًا، والتصحيح تجريبي داخل المتصفح فقط. الأرقام والمزايا تعكس كلام المحاضر وقت التسجيل ولا تمثل تحققًا مستقلًا أو ضمانًا للنتائج.')+'</p><p id="basicQuizLoad">جارٍ تحميل الأسئلة الأصلية…</p>';
+   body.innerHTML='<p class="basic-bag-notice">'+(isFourth?'الأسئلة العشرون المعتمدة للمحاضرة الرابعة مع التصحيح التجريبي. الإحصاءات التاريخية والأقوال المنسوبة تعرض كما وردت في المحاضرة؛ لا حفظ للنتائج.':isThird?'الأسئلة العشرون المعتمدة للمحاضرة الثالثة مع تصحيح تجريبي. لا تُحفظ الإجابات أو النتائج. التوصيفات الصحية هي مما ذكره المحاضر ولا تثبت فعالية علاجية.':isSecond?'الأسئلة العشرون الجديدة المعتمدة للتدريب الثاني، وتصحيح آلي تجريبي وفق مفتاح الإجابات المعتمد. الأرقام والحوافز من وقت تسجيل المحاضرة ولا تضمن دخلًا. لا تُحفظ النتائج.':'اختبار المحاضرة الجديدة المعتمد: 20 سؤالًا، والتصحيح تجريبي داخل المتصفح فقط. الأرقام والمزايا تعكس كلام المحاضر وقت التسجيل ولا تمثل تحققًا مستقلًا أو ضمانًا للنتائج.')+'</p><p id="basicQuizLoad">جارٍ تحميل الأسئلة الأصلية…</p>';
    try{
-      const response=await fetch(isThird?'../basic-training-03-new-quiz.json':isSecond?'../basic-training-02-new-quiz.json':'../basic-training-01-new-quiz.json',{cache:'no-store'});
+      const response=await fetch(isFourth?'../basic-training-04-new-quiz.json':isThird?'../basic-training-03-new-quiz.json':isSecond?'../basic-training-02-new-quiz.json':'../basic-training-01-new-quiz.json',{cache:'no-store'});
       if(!response.ok)throw Error('ملف الأسئلة غير متاح');
       const qs=await response.json();
       if(!Array.isArray(qs)||qs.length!==20||qs.some(q=>!q.question||!Array.isArray(q.options)||q.options.length<2||(q.answer!==null&&(!Number.isInteger(q.answer)||q.answer<0||q.answer>=q.options.length))))throw Error('الأسئلة العشرون غير مكتملة');
@@ -299,7 +309,7 @@
         const score=qs.reduce((total,q,i)=>total+(Number.isInteger(q.answer)&&answers[i]===q.answer?1:0),0);
         const result=document.createElement('div');result.className='basic-bag-result';
         const h=document.createElement('h2');h.textContent='نتيجتك التجريبية: '+score+' / '+approved.length;result.append(h);
-        const hint=document.createElement('p');hint.textContent=isThird?'هذه نتيجة اختبار التدريب الثالث التجريبية من 20 درجة. لم تُحفظ الإجابات أو النتيجة ولم تفتح التدريب الرابع.':isSecond?'هذه نتيجة اختبار التدريب الثاني التجريبية من 20 درجة. لم تُحفظ الإجابات أو النتيجة ولم تفتح التدريب الثالث.':'هذه نتيجة للمراجعة فقط، لم تُحفظ ولم تؤثر على فتح التدريب التالي. جميع الأسئلة العشرين معتمدة ضمن هذا الاختبار الجديد.';result.append(hint);
+        const hint=document.createElement('p');hint.textContent=isFourth?'هذه نتيجة اختبار التدريب الرابع التجريبية من 20 درجة، ولا تُحفظ الإجابات أو النتيجة.':isThird?'هذه نتيجة اختبار التدريب الثالث التجريبية من 20 درجة. لم تُحفظ الإجابات أو النتيجة ولم تفتح التدريب الرابع.':isSecond?'هذه نتيجة اختبار التدريب الثاني التجريبية من 20 درجة. لم تُحفظ الإجابات أو النتيجة ولم تفتح التدريب الثالث.':'هذه نتيجة للمراجعة فقط، لم تُحفظ ولم تؤثر على فتح التدريب التالي. جميع الأسئلة العشرين معتمدة ضمن هذا الاختبار الجديد.';result.append(hint);
         const wrong=qs.map((q,i)=>Number.isInteger(q.answer)&&answers[i]!==q.answer?{i,answer:q.options[q.answer]}:null).filter(Boolean);
         const text=document.createElement('p');text.textContent=wrong.length?'أسئلة تحتاج مراجعة: '+wrong.map(v=>v.i+1).join('، '):'جميع الإجابات صحيحة';result.append(text);
         wrong.forEach(v=>{const row=document.createElement('p');row.textContent='س'+(v.i+1)+' — الإجابة الصحيحة وفق المفتاح المعتمد: '+v.answer;result.append(row);});
@@ -313,5 +323,7 @@
  window.basicBagPreviewSecondVideo=async()=>{window.__basicVideoTwoPreview=true;try{await window.basicBagStartVideo(2);}finally{window.__basicVideoTwoPreview=false;}};
  window.basicBagPreviewThirdQuiz=()=>window.basicBagPreviewFirstQuiz(3);
  window.basicBagPreviewThirdVideo=async()=>{window.__basicVideoThreePreview=true;try{await window.basicBagStartVideo(3);}finally{window.__basicVideoThreePreview=false;}};
+ window.basicBagPreviewFourthQuiz=()=>window.basicBagPreviewFirstQuiz(4);
+ window.basicBagPreviewFourthVideo=async()=>{window.__basicVideoFourPreview=true;try{await window.basicBagStartVideo(4);}finally{window.__basicVideoFourPreview=false;}};
  window.basicTrainingCourseHtml=courseHtml;
 })();
