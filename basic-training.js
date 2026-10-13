@@ -7,7 +7,7 @@
  if(window.__DXN_BASIC_BAG__)return;
  window.__DXN_BASIC_BAG__=true;
  const lessons=[
-  {no:1,title:'التعريف بشركة DXN العالمية',video:'78HTmcWYqN4'},
+  {no:1,title:'التعريف بمشروع DXN ومنتجاتها ونظامها التسويقي',video:'lxhnkUov9sE'},
   {no:2,title:'منتجات DXN – فوائدها واستخداماتها',video:'yls_hzHQN-M'},
   {no:3,title:'نظام DXN للبيع المباشر والتسويق متعدد المستويات',video:'7BBYsbPgX1M'},
   {no:4,title:'خطة DXN المالية وكيف تحقق دخلًا عاليًا بوقت مثالي',video:'ArJSiW2E4TM'}
@@ -44,7 +44,7 @@
    'خطة DXN المالية وكيف تحقق دخلًا عاليًا بوقت مثالي'
  ];
  host.innerHTML='<article class="basic-bag-lesson basic-one-stage"><div class="basic-bag-lesson-main">'+
- '<div class="basic-bag-number">التدريب الأساسي 1</div><h3>التعريف بشركة DXN العالمية</h3>'+
+ '<div class="basic-bag-number">التدريب الأساسي 1</div><h3>التعريف بمشروع DXN ومنتجاتها ونظامها التسويقي</h3>'+
  '<p class="basic-bag-description">المدرب: المهندس محمود المصري</p>'+
  '<div class="basic-bag-status">▶️ الفيديو متاح والاختبار معروض للمعاينة</div>'+
  '<div class="basic-bag-progress-line"><strong class="basic-bag-percentage">'+pct+'%</strong>'+
@@ -52,7 +52,7 @@
  '<p class="basic-bag-description">نسبة مشاهدة تجريبية أثناء هذه الجلسة — غير محفوظة.</p></div>'+
  '<div class="basic-bag-actions">'+
  '<button type="button" class="name-list-btn name-list-primary" onclick="basicBagStartVideo(1)">▶ بدء التدريب / إعادة المشاهدة</button>'+
- '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewFirstQuiz()">🧠 اختبار التدريب الأول — معاينة الأسئلة العشرين</button>'+
+ '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewFirstQuiz()">🧠 اختبار التدريب الأول الجديد — 20 سؤالًا</button>'+
  '</div></article>'+
  '<article class="basic-bag-lesson basic-two-stage"><div class="basic-bag-lesson-main">'+
  '<div class="basic-bag-number">التدريب الأساسي 2</div><h3>منتجات DXN – فوائدها واستخداماتها</h3>'+
@@ -256,9 +256,9 @@
    const modal=createModal('اختبار التدريب الأساسي '+(isSecond?'الثاني':'الأول')+' — الأسئلة العشرون');
    document.addEventListener('keydown',escapeClose);
    const body=modal.querySelector('#basicBagModalBody');
-   body.innerHTML='<p class="basic-bag-notice">'+(isSecond?'معاينة الأسئلة العشرين للتدريب الثاني، وتصحيح آلي تجريبي وفق مفتاح الإجابات المعتمد. لا تُحفظ النتائج.':'نسخة تجريبية مطابقة لأسئلة النموذج الأصلي، مع التعديل المعتمد للسؤال الثامن. توجد أسئلة صح/خطأ وأسئلة باختيارات متعددة. التصحيح تجريبي داخل المتصفح فقط، ولا تُحفظ الإجابات أو النتائج.')+'</p><p id="basicQuizLoad">جارٍ تحميل الأسئلة الأصلية…</p>';
+   body.innerHTML='<p class="basic-bag-notice">'+(isSecond?'معاينة الأسئلة العشرين للتدريب الثاني، وتصحيح آلي تجريبي وفق مفتاح الإجابات المعتمد. لا تُحفظ النتائج.':'اختبار المحاضرة الجديدة المعتمد: 20 سؤالًا، والتصحيح تجريبي داخل المتصفح فقط. الأرقام والمزايا تعكس كلام المحاضر وقت التسجيل ولا تمثل تحققًا مستقلًا أو ضمانًا للنتائج.')+'</p><p id="basicQuizLoad">جارٍ تحميل الأسئلة الأصلية…</p>';
    try{
-      const response=await fetch(isSecond?'../basic-training-02-quiz.json':'../basic-training-01-quiz.json',{cache:'no-store'});
+      const response=await fetch(isSecond?'../basic-training-02-quiz.json':'../basic-training-01-new-quiz.json',{cache:'no-store'});
       if(!response.ok)throw Error('ملف الأسئلة غير متاح');
       const qs=await response.json();
       if(!Array.isArray(qs)||qs.length!==20||qs.some(q=>!q.question||!Array.isArray(q.options)||q.options.length<2||(q.answer!==null&&(!Number.isInteger(q.answer)||q.answer<0||q.answer>=q.options.length))))throw Error('الأسئلة العشرون غير مكتملة');
@@ -288,7 +288,7 @@
         const score=qs.reduce((total,q,i)=>total+(Number.isInteger(q.answer)&&answers[i]===q.answer?1:0),0);
         const result=document.createElement('div');result.className='basic-bag-result';
         const h=document.createElement('h2');h.textContent='نتيجتك التجريبية: '+score+' / '+approved.length;result.append(h);
-        const hint=document.createElement('p');hint.textContent=isSecond?'هذه نتيجة اختبار التدريب الثاني التجريبية من 20 درجة. لم تُحفظ الإجابات أو النتيجة ولم تفتح التدريب الثالث.':'هذه نتيجة للمراجعة فقط، لم تُحفظ ولم تؤثر على فتح التدريب التالي. السؤالان 14 و16 مستبعدان من التصحيح لحين اعتماد بديلين.';result.append(hint);
+        const hint=document.createElement('p');hint.textContent=isSecond?'هذه نتيجة اختبار التدريب الثاني التجريبية من 20 درجة. لم تُحفظ الإجابات أو النتيجة ولم تفتح التدريب الثالث.':'هذه نتيجة للمراجعة فقط، لم تُحفظ ولم تؤثر على فتح التدريب التالي. جميع الأسئلة العشرين معتمدة ضمن هذا الاختبار الجديد.';result.append(hint);
         const wrong=qs.map((q,i)=>Number.isInteger(q.answer)&&answers[i]!==q.answer?{i,answer:q.options[q.answer]}:null).filter(Boolean);
         const text=document.createElement('p');text.textContent=wrong.length?'أسئلة تحتاج مراجعة: '+wrong.map(v=>v.i+1).join('، '):'جميع الإجابات صحيحة';result.append(text);
         wrong.forEach(v=>{const row=document.createElement('p');row.textContent='س'+(v.i+1)+' — الإجابة الصحيحة وفق المفتاح المعتمد: '+v.answer;result.append(row);});
