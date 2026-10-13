@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS public.basic_training_lessons (
  min_watch_percent integer NOT NULL DEFAULT 90 CHECK (min_watch_percent BETWEEN 1 AND 100),
  pass_score integer NOT NULL DEFAULT 16 CHECK (pass_score BETWEEN 1 AND 20),
  active boolean NOT NULL DEFAULT true,
+ active_revision integer NOT NULL DEFAULT 1 CHECK (active_revision>=1),
  updated_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -47,6 +48,7 @@ CREATE TABLE IF NOT EXISTS public.basic_training_attempts (
  answers jsonb NOT NULL CHECK (jsonb_typeof(answers)='array' AND jsonb_array_length(answers)=20),
  score integer NOT NULL CHECK (score BETWEEN 0 AND 20),
  passed boolean NOT NULL DEFAULT false,
+ revision integer NOT NULL DEFAULT 1 CHECK (revision>=1),
  submitted_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS basic_training_attempts_user_history
@@ -146,13 +148,13 @@ END $fn$;
 
 CREATE OR REPLACE FUNCTION public.basic_training_get_quiz(p_token uuid,p_training_no integer)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $fn$
-DECLARE v_user uuid; v_count integer; v_out jsonb;
+DECLARE v_user uuid; v_count integer; v_out jsonb; v_revision integer;
 BEGIN
  v_user:=public.app_current_user_id(p_token);
  IF v_user IS NULL THEN RAISE EXCEPTION 'انتهت الجلسة'; END IF;
- IF NOT EXISTS (SELECT 1 FROM public.basic_training_lessons
-                WHERE training_no=p_training_no AND active)
- THEN RAISE EXCEPTION 'التدريب غير موجود'; END IF;
+ SELECT l.active_revision INTO v_revision FROM public.basic_training_lessons l
+ WHERE l.training_no=p_training_no AND l.active FOR SHARE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'التدريب غير موجود'; END IF;
  IF NOT EXISTS (SELECT 1 FROM public.basic_training_progress
      WHERE user_id=v_user AND training_no=p_training_no AND watch_completed)
  THEN RAISE EXCEPTION 'أكمل مشاهدة 90%% من الفيديو أولًا'; END IF;
@@ -164,21 +166,25 @@ BEGIN
    'question',q.question,'options',q.options) ORDER BY q.question_no)
  INTO v_count,v_out FROM public.basic_training_questions q WHERE q.training_no=p_training_no;
  IF v_count<>20 THEN RAISE EXCEPTION 'أسئلة التدريب غير مكتملة'; END IF;
- RETURN v_out;
+ RETURN jsonb_build_object('revision',v_revision,'questions',v_out);
 END $fn$;
 
 CREATE OR REPLACE FUNCTION public.basic_training_submit_quiz(
- p_token uuid,p_training_no integer,p_answers jsonb)
+ p_token uuid,p_training_no integer,p_answers jsonb,p_revision integer)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $fn$
 DECLARE v_user uuid; v_p public.basic_training_progress%rowtype;
         v_req integer; v_count integer; v_score integer; v_pass boolean;
-        v_i integer; v_best integer; v_attempt_count integer;
+        v_i integer; v_best integer; v_attempt_count integer; v_revision integer;
 BEGIN
  v_user:=public.app_current_user_id(p_token);
  IF v_user IS NULL THEN RAISE EXCEPTION 'انتهت الجلسة'; END IF;
- SELECT pass_score INTO v_req FROM public.basic_training_lessons
- WHERE training_no=p_training_no AND active;
+ SELECT l.pass_score,l.active_revision INTO v_req,v_revision
+ FROM public.basic_training_lessons l
+ WHERE l.training_no=p_training_no AND l.active FOR SHARE;
  IF NOT FOUND THEN RAISE EXCEPTION 'التدريب غير موجود'; END IF;
+ IF p_revision IS DISTINCT FROM v_revision THEN
+   RAISE EXCEPTION 'تم تحديث الاختبار أثناء الإجابة؛ أعد فتح الاختبار للحصول على النسخة الجديدة';
+ END IF;
  IF p_training_no>1 AND NOT EXISTS (
     SELECT 1 FROM public.basic_training_progress WHERE user_id=v_user
      AND training_no=p_training_no-1 AND passed AND watch_completed)
@@ -208,8 +214,8 @@ BEGIN
  WHERE q.training_no=p_training_no;
  IF v_count<>20 THEN RAISE EXCEPTION 'أسئلة التدريب غير مكتملة'; END IF;
  v_pass:=v_score>=v_req;
- INSERT INTO public.basic_training_attempts(user_id,training_no,answers,score,passed)
- VALUES(v_user,p_training_no,p_answers,v_score,v_pass);
+ INSERT INTO public.basic_training_attempts(user_id,training_no,answers,score,passed,revision)
+ VALUES(v_user,p_training_no,p_answers,v_score,v_pass,v_revision);
  v_best:=GREATEST(COALESCE(v_p.best_score,0),v_score);
  UPDATE public.basic_training_progress SET
   best_score=v_best,passed=passed OR v_pass,
@@ -219,19 +225,19 @@ BEGIN
  -- Only aggregate scores and pass status are returned to members.
  -- Never disclose correct_index, per-question correctness, or answer arrays.
  RETURN jsonb_build_object('score',v_score,'out_of',20,'passed',v_pass,
-     'best_score',v_best,'required',v_req);
+     'best_score',v_best,'required',v_req,'revision',v_revision);
 END $fn$;
 
 -- Revoke default EXECUTE from PUBLIC, then grant only session-bound RPC access.
 REVOKE ALL ON FUNCTION public.basic_training_overview(uuid),
  public.basic_training_watch_update(uuid,integer,integer,integer),
  public.basic_training_get_quiz(uuid,integer),
- public.basic_training_submit_quiz(uuid,integer,jsonb)
+ public.basic_training_submit_quiz(uuid,integer,jsonb,integer)
  FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.basic_training_overview(uuid),
  public.basic_training_watch_update(uuid,integer,integer,integer),
  public.basic_training_get_quiz(uuid,integer),
- public.basic_training_submit_quiz(uuid,integer,jsonb)
+ public.basic_training_submit_quiz(uuid,integer,jsonb,integer)
  TO anon, authenticated, service_role;
 
 COMMIT;
