@@ -123,7 +123,8 @@ window.DXN_BASIC_QUIZ_ONE = {
         "صح",
         "خطأ"
       ],
-      "answer": 0
+      "answer": null,
+      "review_status": "غير صالح للاعتماد حاليًا"
     },
     {
       "question": "فلسفة الشركة قائمة على ضمان تكرار الشراء",
@@ -139,7 +140,8 @@ window.DXN_BASIC_QUIZ_ONE = {
         "صح",
         "خطأ"
       ],
-      "answer": 0
+      "answer": null,
+      "review_status": "غير صالح للاعتماد حاليًا"
     },
     {
       "question": "الأساس في العمل مع شركة DXN الماليزية العالمية",
