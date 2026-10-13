@@ -107,3 +107,16 @@ test('new basic videos and questions are independent of 8 historical lessons', (
   assert.match(basic, /basic_training_watch_update/);
   assert.doesNotMatch(basic, /training_assessment_bootstrap/);
 });
+
+test('basic learning path locks later videos until prior watch and submitted test', () => {
+ const js = read('basic-training.js');
+ const sql = read('supabase/migrations/20261013020000_basic_training_track_and_assessment.sql');
+ assert.match(js, /function lessonUnlock\(no\)/);
+ assert.match(js, /!!statusOf\(no-1\)\.completed/);
+ assert.match(js, /scores\.some\(/);
+ assert.match(js, /!unlocked\?'disabled'/);
+ assert.match(js, /window\.basicBagPreviewFirstQuiz=function\(\)/);
+ assert.match(js, /السؤال 8 — أي العبارات التالية تصف انتشار شركة DXN العالمي بصورة صحيحة/);
+ assert.match(js, /basic-bag-percentage/);
+ assert.equal((sql.match(/أكمل مشاهدة واختبار التدريب السابق أولًا/g)||[]).length,3);
+});
