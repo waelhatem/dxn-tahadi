@@ -65,8 +65,8 @@ BEGIN
           WHERE jsonb_typeof(o)<>'string' OR length(btrim(o #>> '{}'))<1) THEN
         RAISE EXCEPTION 'الخيارات أو مفتاح التصحيح غير صالح';
       END IF;
-      INSERT INTO public.basic_training_questions(training_no,question_no,question,options,correct_index)
-      VALUES(v_i+1,v_j+1,v_q->>'question',v_q->'options',v_index);
+      INSERT INTO public.basic_training_questions(training_no,question_no,question,options,correct_index,source_time)
+      VALUES(v_i+1,v_j+1,v_q->>'question',v_q->'options',v_index,COALESCE(v_q->>'source_time',''));
     END LOOP;
   END LOOP;
   RETURN jsonb_build_object('lessons',8,'questions',160);
