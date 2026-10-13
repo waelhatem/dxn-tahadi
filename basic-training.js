@@ -13,6 +13,7 @@
   {no:4,title:'خطة DXN المالية وكيف تحقق دخلًا عاليًا بوقت مثالي',video:'ArJSiW2E4TM'}
  ];
  let loaded=false,backendReady=false,loading=false,progress=[],published=[],scores=[],movie=null,exam=null;
+ let previewWatchedPercent=0;
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const fmt=n=>Number.isFinite(n)?Math.max(0,Math.floor(n)):0;
  const currentLesson=n=>lessons.find(x=>x.no===Number(n));
@@ -35,38 +36,31 @@
   return j;
  }
  function refreshCards(){
-  const host=document.getElementById('basicBagCards');
-  if(!host)return;
-  host.innerHTML=lessons.map(item=>{
-   const p=statusOf(item.no);
-   const pct=p.duration?Math.min(100,Math.round(100*p.watched/p.duration)):0;
-   const unlocked=lessonUnlock(item.no);
-   const quizOn=published.includes(item.no);
-   const testLabel=quizOn?'🧠 اختبار التدريب': '🧠 اختبار التدريب — لم يُنشر بعد';
-   const watchLabel=!unlocked?'🔒 التدريب مغلق':p.completed?'🔁 إعادة المشاهدة':p.watched>0?'▶ متابعة المشاهدة':'▶ بدء التدريب';
-   const score=scores.find(s=>s.training_no===item.no);
-   return '<article class="basic-bag-lesson"><div class="basic-bag-lesson-main">'+
-    '<div class="basic-bag-number">التدريب الأساسي '+item.no+'</div><h3>'+esc(item.title)+'</h3>'+
-    '<div class="basic-bag-description">المدرب: المهندس محمود المصري</div>'+
-    '<div class="basic-bag-status">'+(!unlocked?'🔒 أكمل مشاهدة التدريب السابق واختباره أولًا':p.completed?'✅ تمت مشاهدة الفيديو كاملاً':p.watched?'⏳ مشاهدة غير مكتملة':'▶️ لم تبدأ المشاهدة')+'</div>'+
-    '<div class="basic-bag-progress-line"><strong class="basic-bag-percentage">'+pct+'%</strong>'+
-    '<div class="basic-bag-progress" role="progressbar" aria-label="نسبة مشاهدة التدريب" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'"><div style="width:'+pct+'%"></div></div></div>'+
-    '<div class="basic-bag-description">نسبة المشاهدة: '+pct+'%'+(!backendReady?' — غير محفوظة في هذه المعاينة':'')+
-    (score?' | آخر نتيجة: <strong>'+score.score+'/20</strong>':'')+'</div></div>'+
-    '<div class="basic-bag-actions">'+
-      (item.video?'<button type="button" class="name-list-btn name-list-primary" onclick="basicBagStartVideo('+item.no+')" '+(!unlocked?'disabled':'')+'>'+watchLabel+'</button>':
-       '<button type="button" disabled class="name-list-btn">⏳ رابط الفيديو الثاني قيد الاسترجاع</button>')+
-      '<button type="button" class="name-list-btn" onclick="basicBagStartQuiz('+item.no+')" '+
-      (!unlocked||!backendReady||!p.completed||!quizOn?'disabled':'')+'>'+testLabel+'</button>'+
-      (previewOnly&&item.no===1?'<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewFirstQuiz()">👁 معاينة تصميم الاختبار الأول</button>':'')+
-      '</div></article>';
-  }).join('');
- }
+ const host=document.getElementById('basicBagCards');if(!host)return;
+ const pct=movie&&movie.duration?Math.min(100,Math.floor(100*movie.max/movie.duration)):Math.min(100,Math.floor(previewWatchedPercent));
+ const later=[
+   'منتجات DXN – فوائدها واستخداماتها',
+   'نظام DXN للبيع المباشر والتسويق متعدد المستويات',
+   'خطة DXN المالية وكيف تحقق دخلًا عاليًا بوقت مثالي'
+ ];
+ host.innerHTML='<article class="basic-bag-lesson basic-one-stage"><div class="basic-bag-lesson-main">'+
+ '<div class="basic-bag-number">التدريب الأساسي 1</div><h3>التعريف بشركة DXN العالمية</h3>'+
+ '<p class="basic-bag-description">المدرب: المهندس محمود المصري</p>'+
+ '<div class="basic-bag-status">▶️ الفيديو متاح والاختبار معروض للمعاينة</div>'+
+ '<div class="basic-bag-progress-line"><strong class="basic-bag-percentage">'+pct+'%</strong>'+
+ '<div class="basic-bag-progress" role="progressbar" aria-label="نسبة المشاهدة التجريبية" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'"><div style="width:'+pct+'%"></div></div></div>'+
+ '<p class="basic-bag-description">نسبة مشاهدة تجريبية أثناء هذه الجلسة — غير محفوظة.</p></div>'+
+ '<div class="basic-bag-actions">'+
+ '<button type="button" class="name-list-btn name-list-primary" onclick="basicBagStartVideo(1)">▶ بدء التدريب / إعادة المشاهدة</button>'+
+ '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewFirstQuiz()">🧠 اختبار التدريب الأول — معاينة الأسئلة العشرين</button>'+
+ '</div></article>'+
+ later.map((name,i)=>'<article class="basic-bag-lesson basic-one-locked" aria-label="التدريب '+(i+2)+' مغلق"><div class="basic-bag-lesson-main"><div class="basic-bag-number">التدريب الأساسي '+(i+2)+'</div><h3>🔒 '+name+'</h3><p class="basic-bag-description">سنعمل عليه بعد الانتهاء من التدريب السابق واعتماده.</p></div><div class="basic-bag-actions"><button class="name-list-btn" type="button" disabled>🔒 التدريب مغلق</button></div></article>').join('');
+}
  function courseHtml(){
-  if(!loading&&!loaded){loading=true;setTimeout(loadOverview,0);}
+  setTimeout(refreshCards,0);
   return '<section id="trainingBasicBagStart" class="card basic-bag-page"><div class="title">📘 التدريبات الأساسية — حقيبة المهندس محمود المصري</div>'+
-   '<p class="muted">كل تدريب يُفتح بعد مشاهدة التدريب السابق كاملًا وإكمال اختباره. يمكنك الرجوع داخل الفيديو دون تخطي أجزاء لم تُشاهد.</p>'+
-   '<p id="basicBagNotice" class="basic-bag-notice">لم يتغير سجل التدريبات القديمة أو اختبارات الأعضاء الحالية.</p>'+
+   '<p class="muted">نبدأ بالتدريب الأول فقط: الفيديو ثم الاختبار المعتمد. التدريبات الأخرى مغلقة حاليًا.</p>'+
+   '<p id="basicBagNotice" class="basic-bag-notice">معاينة المحتوى والتصميم فقط. لا يوجد حفظ للدرجات أو المشاهدة ولا ربط جديد بقاعدة البيانات.</p>'+
    '<div id="basicBagCards" class="basic-bag-cards"></div></section>';
  }
  async function loadOverview(){
@@ -159,7 +153,7 @@
   const previousTime=m.previousTime; m.previousTime=current;m.previousWall=now;
   const moving=current>=previousTime-0.2&&current-previousTime<=elapsed+1.0;
   if(state===window.YT.PlayerState.PLAYING&&moving&&current>m.max){
-    m.max=Math.min(duration,current);watchPct();heartbeat(false);
+    m.max=Math.min(duration,current);previewWatchedPercent=Math.floor(100*m.max/duration);watchPct();
   }
   if(current>=duration-3.5 && m.max>=duration-4.5){heartbeat(true);}
  }
@@ -245,45 +239,50 @@
   submit.textContent='إنهاء الاختبار وتصحيح الإجابات';f.appendChild(submit);body.appendChild(f);
  }
 
- window.basicBagPreviewFirstQuiz=function(){
-   if(!previewOnly)return;
+ window.basicBagPreviewFirstQuiz=async function(){
    close();
-   const modal=createModal('معاينة تصميم الاختبار الأساسي الأول');
+   const modal=createModal('اختبار التدريب الأساسي الأول — الأسئلة العشرون');
    document.addEventListener('keydown',escapeClose);
    const body=modal.querySelector('#basicBagModalBody');
-   body.classList.add('basic-bag-preview');
-   const info=document.createElement('p');info.className='basic-bag-notice';
-   info.textContent='معاينة مؤقتة للشكل فقط: السؤال الثامن هو النص المعتمد المتاح، والأسئلة التسعة عشر الأخرى تنتظر ملفاتها الأصلية. لا يُحفظ أي جواب أو نتيجة.';
-   body.appendChild(info);
-   const navigator=document.createElement('div');navigator.className='basic-bag-preview-index';
-   for(let n=1;n<=20;n++){
-     const chip=document.createElement('span');chip.className='basic-bag-preview-index-chip'+(n===8?' is-confirmed':'');
-     chip.textContent=String(n);chip.title=n===8?'السؤال المسترجع بالنص المعتمد':'بانتظار استرجاع النص الأصلي';
-     navigator.appendChild(chip);
-   }
-   body.appendChild(navigator);
-   const section=document.createElement('fieldset');section.className='basic-bag-question';
-   const legend=document.createElement('legend');legend.textContent='السؤال 8 — أي العبارات التالية تصف انتشار شركة DXN العالمي بصورة صحيحة؟';
-   section.appendChild(legend);
-   const options=[
-     'لديها أعضاء وموزعون في أكثر من 180 دولة، وتخضع تراخيص نشاطها للأنظمة المحلية في كل دولة.',
-     'تمتلك ترخيصًا موحدًا يسمح لها بممارسة جميع أنشطتها في 180 دولة دون تراخيص محلية.',
-     'لديها 180 فرعًا رسميًا، وجميع منتجاتها مرخصة تلقائيًا في كل دولة.'
-   ];
-   options.forEach((answer,i)=>{
-     const line=document.createElement('label'),radio=document.createElement('input');
-     radio.type='radio';radio.name='preview_basic_1_q8';radio.value=String(i);
-     line.append(radio,document.createTextNode(['أ','ب','ج'][i]+'. '+answer));section.appendChild(line);
-   });
-   body.appendChild(section);
-   const notice=document.createElement('p');notice.className='basic-bag-notice';
-   notice.textContent='عند إدراج الأسئلة الأصلية كاملة، ستظهر عشرون فقرة متتابعة وزر إنهاء الاختبار، ثم النتيجة المصححة آليًا. هذه المعاينة لا تحتسب محاولة.';
-   body.appendChild(notice);
-   const disabled=document.createElement('button');disabled.type='button';
-   disabled.className='name-list-btn name-list-primary';disabled.disabled=true;
-   disabled.textContent='إنهاء الاختبار وتصحيح الإجابات — معطّل في المعاينة';
-   body.appendChild(disabled);
+   body.innerHTML='<p class="basic-bag-notice">نسخة تجريبية مطابقة لأسئلة النموذج الأصلي، مع التعديل المعتمد للسؤال الثامن. توجد أسئلة صح/خطأ وأسئلة باختيارات متعددة. التصحيح تجريبي داخل المتصفح فقط، ولا تُحفظ الإجابات أو النتائج.</p><p id="basicQuizLoad">جارٍ تحميل الأسئلة الأصلية…</p>';
+   try{
+      const response=await fetch('../basic-training-01-quiz.json',{cache:'no-store'});
+      if(!response.ok)throw Error('ملف الأسئلة غير متاح');
+      const qs=await response.json();
+      if(!Array.isArray(qs)||qs.length!==20||qs.some(q=>!q.question||!Array.isArray(q.options)||q.options.length<2||q.answer<0||q.answer>=q.options.length))throw Error('الأسئلة العشرون غير مكتملة');
+      if(!modal||!modal.isConnected)return;
+      const loading=body.querySelector('#basicQuizLoad');if(loading)loading.remove();
+      const form=document.createElement('form');form.className='basic-bag-exam';
+      const counter=document.createElement('p');counter.className='basic-bag-status';counter.textContent='الإجابات: 0 / 20';form.append(counter);
+      const answers=Array(20).fill(null);
+      qs.forEach((q,i)=>{
+         const section=document.createElement('fieldset');section.className='basic-bag-question';
+         const legend=document.createElement('legend');legend.textContent=(i+1)+'. '+q.question;section.append(legend);
+         q.options.forEach((opt,j)=>{
+           const label=document.createElement('label'),radio=document.createElement('input');
+           radio.type='radio';radio.name='basic_one_'+i;radio.value=String(j);
+           radio.addEventListener('change',()=>{answers[i]=j;counter.textContent='الإجابات: '+answers.filter(v=>v!==null).length+' / 20';});
+           label.append(radio,document.createTextNode(' '+(q.options.length===2&&q.options[0]==='صح'?'':(['أ','ب','ج','د'][j]||String(j+1))+'. ')+opt));
+           section.append(label);
+         });
+         form.append(section);
+      });
+      const submit=document.createElement('button');submit.type='submit';submit.className='name-list-btn name-list-primary';submit.textContent='إنهاء الاختبار والتصحيح التجريبي';form.append(submit);
+      form.addEventListener('submit',e=>{
+        e.preventDefault();
+        if(answers.includes(null)){alert('أجب عن جميع الأسئلة العشرين أولًا');return;}
+        const score=qs.reduce((total,q,i)=>total+(answers[i]===q.answer?1:0),0);
+        const result=document.createElement('div');result.className='basic-bag-result';
+        const h=document.createElement('h2');h.textContent='نتيجتك التجريبية: '+score+' / 20';result.append(h);
+        const hint=document.createElement('p');hint.textContent='هذه نتيجة للمراجعة فقط، لم تُحفظ ولم تؤثر على فتح التدريب التالي.';result.append(hint);
+        const wrong=qs.map((q,i)=>answers[i]!==q.answer?{i,answer:q.options[q.answer]}:null).filter(Boolean);
+        const text=document.createElement('p');text.textContent=wrong.length?'أسئلة تحتاج مراجعة: '+wrong.map(v=>v.i+1).join('، '):'جميع الإجابات صحيحة';result.append(text);
+        wrong.forEach(v=>{const row=document.createElement('p');row.textContent='س'+(v.i+1)+' — الإجابة الصحيحة وفق المفتاح المعتمد: '+v.answer;result.append(row);});
+        form.replaceWith(result);
+      });
+      body.append(form);
+   }catch(e){const loading=body.querySelector('#basicQuizLoad');if(loading)loading.textContent='تعذر تحميل الأسئلة: '+(e.message||e);}
  };
 
- window.basicTrainingCourseHtml=maybeLoad;
+ window.basicTrainingCourseHtml=courseHtml;
 })();
