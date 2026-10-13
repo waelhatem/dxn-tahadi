@@ -35,20 +35,9 @@ FROM public.basic_training_lessons l
 WHERE (SELECT count(*) FROM public.basic_training_questions q WHERE q.training_no=l.training_no)=20
 ON CONFLICT(training_no,revision) DO NOTHING;
 
--- Historical attempts keep their revision; new attempts inherit the active revision.
-CREATE OR REPLACE FUNCTION public.basic_training_stamp_attempt_revision()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $fn$
-BEGIN
- SELECT active_revision INTO NEW.revision
- FROM public.basic_training_lessons WHERE training_no=NEW.training_no;
- RETURN NEW;
-END $fn$;
-DROP TRIGGER IF EXISTS basic_training_stamp_revision ON public.basic_training_attempts;
-CREATE TRIGGER basic_training_stamp_revision
-BEFORE INSERT ON public.basic_training_attempts
-FOR EACH ROW EXECUTE FUNCTION public.basic_training_stamp_attempt_revision();
-REVOKE ALL ON FUNCTION public.basic_training_stamp_attempt_revision() FROM PUBLIC,anon,authenticated;
-
+-- Historical attempts remain revision 1. New submissions store the checked
+-- revision explicitly after locking the published lesson; no trigger may
+-- overwrite the revision accepted when the candidate opened the quiz.
 CREATE OR REPLACE FUNCTION public.basic_training_admin_revision(
  p_token uuid,p_training_no integer,p_action text,p_payload jsonb DEFAULT NULL
 ) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $fn$
@@ -118,10 +107,12 @@ BEGIN
    SELECT * INTO v_rev FROM public.basic_training_revisions
    WHERE training_no=p_training_no AND status='draft' ORDER BY revision DESC LIMIT 1;
    IF NOT FOUND THEN RAISE EXCEPTION 'لا توجد مسودة للنشر';END IF;
-   IF v_rev.video_id<>v_l.video_id AND EXISTS(
-     SELECT 1 FROM public.basic_training_progress WHERE training_no=p_training_no
-   ) THEN
-     RAISE EXCEPTION 'تغيير الفيديو مع وجود تقدم محفوظ يحتاج سياسة ترحيل مستقلة؛ لم يُنشر';
+   IF (v_rev.video_id<>v_l.video_id
+       OR v_rev.expected_duration_seconds<>v_l.expected_duration_seconds)
+      AND EXISTS(
+        SELECT 1 FROM public.basic_training_progress WHERE training_no=p_training_no
+      ) THEN
+     RAISE EXCEPTION 'تغيير الفيديو أو مدته مع وجود تقدم محفوظ يحتاج سياسة ترحيل مستقلة؛ لم يُنشر';
    END IF;
    DELETE FROM public.basic_training_questions WHERE training_no=p_training_no;
    INSERT INTO public.basic_training_questions(training_no,question_no,question,options,correct_index)
