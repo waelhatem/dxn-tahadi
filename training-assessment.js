@@ -41,10 +41,13 @@
     return '<span style="font-weight:900;color:#8a5300">🤖 جارٍ التقييم التلقائي</span>';
   }
   function lessonsHost(){
-    // تبويب «التدريبات» + المسار الداخلي «الشروحات والتدريبات» (trainingSubtab === 'lessons').
+    // V2026-10-13: "lessons" now means *choose basic/professional training*.
+    // Never insert legacy 8-lesson assessment cards into that landing screen
+    // or either new curriculum. Keep old assessment data, leader review and
+    // functions intact for archival compatibility; there is no public legacy route.
     try{
       if(typeof tab!=='undefined'&&tab!=='training')return null;
-      if(typeof trainingSubtab==='undefined'||trainingSubtab!=='lessons')return null;
+      if(typeof trainingSubtab==='undefined'||trainingSubtab!=='legacy')return null;
     }catch(e){return null}
     return document.getElementById('section-training');
   }
