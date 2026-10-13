@@ -79,11 +79,11 @@ test('every submitted exam is bound to the exact published revision',()=>{
  assert.match(submit,/p_answers jsonb,p_revision integer/);
  assert.match(submit,/p_revision IS DISTINCT FROM v_revision/);
  assert.match(submit,/FOR SHARE/);
- assert.match(submit,/INSERT INTO public\\.basic_training_attempts\\(user_id,training_no,answers,score,passed,revision\\)/);
- assert.match(member,/p_revision:e\\.revision/);
- assert.match(member,/questions:list,answers:Array\\(20\\)/);
+ assert.match(submit,/INSERT INTO public\.basic_training_attempts\(user_id,training_no,answers,score,passed,revision\)/);
+ assert.match(member,/p_revision:e\.revision/);
+ assert.match(member,/questions:list,answers:Array\(20\)/);
 });
 test('publishing revised videos cannot silently change member watch progress',()=>{
- assert.match(adminSql,/v_rev\\.video_id<>v_l\\.video_id[\\s\\S]*?OR v_rev\\.expected_duration_seconds<>v_l\\.expected_duration_seconds/);
+ assert.match(adminSql,/v_rev\.video_id<>v_l\.video_id[\s\S]*?OR v_rev\.expected_duration_seconds<>v_l\.expected_duration_seconds/);
  assert.doesNotMatch(adminSql,/CREATE TRIGGER basic_training_stamp_revision/);
 });
