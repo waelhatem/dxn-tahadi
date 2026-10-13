@@ -1,0 +1,62 @@
+/* Basic training bag – scoped so old lessons, profile and Ragwan are untouched */
+.basic-bag-page{max-width:1200px;margin:0 auto;direction:rtl}
+.basic-bag-notice{background:#f0f7fb;color:#31536b;border-right:4px solid #4c9aca;padding:12px 14px;border-radius:9px;line-height:1.8;font-size:14px}
+.basic-bag-cards{display:grid;gap:15px;margin-top:17px}
+.basic-bag-lesson{display:flex;gap:18px;align-items:center;justify-content:space-between;border:1px solid #d4e4dc;background:rgba(255,255,255,.88);border-radius:19px;padding:24px;min-height:190px}
+.basic-bag-lesson-main{min-width:0;flex:1}
+.basic-bag-lesson h3{font-size:clamp(21px,2.1vw,28px);color:#143e34;margin:12px 0}
+.basic-bag-number{font-size:14px;font-weight:950;color:#12543c}
+.basic-bag-description{color:#43665a;margin:10px 0;font-size:13px;line-height:1.75}
+.basic-bag-status{font-size:14px;font-weight:850;color:#276f53;margin:8px 0}
+.basic-bag-progress{height:14px;background:#e0eae6;border-radius:999px;overflow:hidden;margin:9px 0}
+.basic-bag-progress>div{height:100%;width:0;background:linear-gradient(90deg,#16a085,#0e654c);transition:width .35s}
+.basic-bag-actions{display:flex;flex-direction:column;gap:10px;min-width:190px;align-items:stretch}
+.basic-bag-actions .name-list-btn{width:100%;min-height:47px}
+.basic-bag-actions button:disabled{background:#dfe5e2!important;color:#7b8781!important;border-color:#d5dcda!important;cursor:not-allowed}
+.basic-bag-overlay{position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(3,25,22,.85);direction:rtl}
+.basic-bag-modal{width:min(1000px,100%);max-height:94dvh;overflow:auto;background:#fff;border-radius:20px;padding:20px;color:#194635;box-shadow:0 16px 80px #0006}
+.basic-bag-modal>header{display:flex;gap:15px;align-items:center;justify-content:space-between;border-bottom:1px solid #d6e5da;padding-bottom:13px;margin-bottom:18px}
+.basic-bag-modal>header strong{font-size:clamp(17px,2vw,24px)}
+.basic-bag-player{position:relative;width:100%;padding-top:56.25%;background:#152b22;border-radius:13px;overflow:hidden}
+.basic-bag-player #basicBagYT,.basic-bag-player iframe{position:absolute;inset:0;width:100%;height:100%}
+.basic-bag-inline-progress{display:flex;gap:12px;align-items:center;margin:14px 0}
+.basic-bag-inline-progress .basic-bag-progress{flex:1}
+.basic-bag-inline-progress strong{width:52px;text-align:center;color:#126046}
+.basic-bag-exam{display:flex;flex-direction:column;gap:16px}
+.basic-bag-question{border:1px solid #d7e3df;padding:13px;border-radius:12px;margin:0}
+.basic-bag-question legend{font-weight:850;line-height:1.8;padding:0 7px}
+.basic-bag-question label{display:flex;align-items:flex-start;gap:9px;border-radius:8px;padding:10px;cursor:pointer;color:#174738}
+.basic-bag-question label:hover{background:#f1f8f4}
+.basic-bag-question input{margin-top:5px;accent-color:#117354}
+.basic-bag-exam button[type=submit]{align-self:center;min-width:280px;margin-top:14px}
+.basic-bag-result{text-align:center;line-height:1.9;padding:20px}
+.basic-bag-result h2{font-size:30px;color:#146c53}
+@media(max-width:700px){
+ .basic-bag-lesson{flex-direction:column;align-items:stretch;padding:15px}
+ .basic-bag-actions{width:100%}
+ .basic-bag-overlay{padding:0;align-items:stretch}
+ .basic-bag-modal{width:100%;max-height:100dvh;border-radius:0;padding:13px}
+ .basic-bag-modal>header{align-items:flex-start}
+ .basic-bag-exam button[type=submit]{min-width:0;width:100%}
+}
+
+/* Visibility/lock/preview additions: isolated to the basic course. */
+.basic-bag-progress-line{display:flex;align-items:center;gap:13px;margin:12px 0}
+.basic-bag-progress-line .basic-bag-progress{flex:1;height:16px}
+.basic-bag-percentage{display:inline-flex;align-items:center;justify-content:center;min-width:70px;min-height:43px;background:#dcf3e6;border:1px solid #a5d8b9;color:#09563b;border-radius:12px;font-size:22px;font-weight:950;font-variant-numeric:tabular-nums}
+.basic-bag-preview-btn{border-color:#a4a3e5!important;background:#eeecff!important;color:#49388d!important}
+.basic-bag-preview-index{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px;margin:18px 0}
+.basic-bag-preview-index-chip{display:flex;align-items:center;justify-content:center;border:1px dashed #cbd3d0;border-radius:9px;min-height:34px;background:#f3f6f5;color:#728078;font-weight:700}
+.basic-bag-preview-index-chip.is-confirmed{background:#e8faf1;border:1px solid #44a67b;color:#106442}
+.basic-bag-preview .basic-bag-question{margin:18px 0}
+.basic-bag-preview>button:disabled{opacity:.65;cursor:not-allowed}
+@media(max-width:700px){.basic-bag-preview-index{grid-template-columns:repeat(5,minmax(0,1fr))}.basic-bag-progress-line{gap:6px}.basic-bag-percentage{font-size:19px;min-width:60px}}
+
+/* RTL exam layout: options and radio must be adjacent, never inherited center/flex-end rules. */
+.basic-bag-modal,.basic-bag-modal #basicBagModalBody,.basic-bag-exam{direction:rtl;text-align:right}
+.basic-bag-exam .basic-bag-question{min-width:0;width:100%;box-sizing:border-box;padding:18px 16px;margin:0;border:1px solid #d7e3df;border-radius:13px;direction:rtl;text-align:right}
+.basic-bag-exam .basic-bag-question legend{float:none;max-width:100%;padding:0 8px;margin:0;font-size:17px;font-weight:850;text-align:right;white-space:normal;line-height:1.9}
+.basic-bag-exam .basic-bag-question label{display:flex!important;flex-direction:row!important;align-items:flex-start!important;justify-content:flex-start!important;gap:12px!important;width:100%!important;min-height:46px;box-sizing:border-box;direction:rtl!important;text-align:right!important;margin:7px 0;padding:12px 14px!important;line-height:1.9;white-space:normal;overflow-wrap:anywhere}
+.basic-bag-exam .basic-bag-question label input[type="radio"]{position:static!important;display:block!important;flex:0 0 19px!important;width:19px!important;height:19px!important;min-width:19px!important;margin:6px 0 0!important;transform:none!important;appearance:auto!important;accent-color:#117354}
+.basic-bag-exam .basic-bag-question label:has(input:checked){background:#edf8f1!important;outline:1px solid #9bcdb0}
+@media(max-width:700px){.basic-bag-exam .basic-bag-question{padding:14px 10px}.basic-bag-exam .basic-bag-question label{gap:9px!important;padding:10px!important;font-size:14px}.basic-bag-exam .basic-bag-question legend{font-size:15px}}
