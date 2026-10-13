@@ -27,7 +27,7 @@ assert.match(ddl,/FOR UPDATE/);
 assert.match(ddl,/basic_training_get_quiz/);
 assert.match(ddl,/basic_training_submit_quiz/);
 assert.match(ddl,/REVOKE ALL ON public.basic_training_lessons/);
-assert.doesNotMatch(source,/basic-training-\\d\\d-new-quiz\\.json/);
+assert.ok(!source.includes('-new-quiz.json'),'frontend must not load public answer files');
 assert.match(source,/basic_training_admin_revision/);
 assert.match(source,/const isEighth=number===8/);
 assert.match(source,/basicBagPreviewEighthQuiz/);
