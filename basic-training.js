@@ -8,7 +8,7 @@
  window.__DXN_BASIC_BAG__=true;
  const lessons=[
   {no:1,title:'التعريف بشركة DXN العالمية',video:'78HTmcWYqN4'},
-  {no:2,title:'منتجات DXN – فوائدها واستخداماتها',video:null},
+  {no:2,title:'منتجات DXN – فوائدها واستخداماتها',video:'yls_hzHQN-M'},
   {no:3,title:'نظام DXN للبيع المباشر والتسويق متعدد المستويات',video:'7BBYsbPgX1M'},
   {no:4,title:'خطة DXN المالية وكيف تحقق دخلًا عاليًا بوقت مثالي',video:'ArJSiW2E4TM'}
  ];
@@ -39,7 +39,6 @@
  const host=document.getElementById('basicBagCards');if(!host)return;
  const pct=movie&&movie.duration?Math.min(100,Math.floor(100*movie.max/movie.duration)):Math.min(100,Math.floor(previewWatchedPercent));
  const later=[
-   'منتجات DXN – فوائدها واستخداماتها',
    'نظام DXN للبيع المباشر والتسويق متعدد المستويات',
    'خطة DXN المالية وكيف تحقق دخلًا عاليًا بوقت مثالي'
  ];
@@ -54,12 +53,21 @@
  '<button type="button" class="name-list-btn name-list-primary" onclick="basicBagStartVideo(1)">▶ بدء التدريب / إعادة المشاهدة</button>'+
  '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewFirstQuiz()">🧠 اختبار التدريب الأول — معاينة الأسئلة العشرين</button>'+
  '</div></article>'+
- later.map((name,i)=>'<article class="basic-bag-lesson basic-one-locked" aria-label="التدريب '+(i+2)+' مغلق"><div class="basic-bag-lesson-main"><div class="basic-bag-number">التدريب الأساسي '+(i+2)+'</div><h3>🔒 '+name+'</h3><p class="basic-bag-description">سنعمل عليه بعد الانتهاء من التدريب السابق واعتماده.</p></div><div class="basic-bag-actions"><button class="name-list-btn" type="button" disabled>🔒 التدريب مغلق</button></div></article>').join('');
+ '<article class="basic-bag-lesson basic-two-stage"><div class="basic-bag-lesson-main">'+
+ '<div class="basic-bag-number">التدريب الأساسي 2</div><h3>منتجات DXN – فوائدها واستخداماتها</h3>'+
+ '<p class="basic-bag-description">المدرب: المهندس محمود المصري</p>'+
+ '<div class="basic-bag-status">🔒 المشاهدة النظامية مغلقة حتى إكمال التدريب الأول واختباره</div>'+
+ '<div class="basic-bag-progress-line"><strong class="basic-bag-percentage">0%</strong>'+
+ '<div class="basic-bag-progress" role="progressbar" aria-label="نسبة مشاهدة التدريب الثاني" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div style="width:0%"></div></div></div>'+
+ '<p class="basic-bag-description">رابط الفيديو الثاني مسجل من مرجع المحادثة؛ يحتاج اختبار التشغيل في المعاينة.</p></div>'+
+ '<div class="basic-bag-actions"><button type="button" class="name-list-btn" disabled>🔒 بدء التدريب بعد إكمال الأول</button>'+
+ '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewSecondQuiz()">🧠 معاينة اختبار التدريب الثاني — 20 سؤالًا</button></div></article>'+
+ later.map((name,i)=>'<article class="basic-bag-lesson basic-one-locked" aria-label="التدريب '+(i+3)+' مغلق"><div class="basic-bag-lesson-main"><div class="basic-bag-number">التدريب الأساسي '+(i+3)+'</div><h3>🔒 '+name+'</h3><p class="basic-bag-description">سنعمل عليه بعد الانتهاء من التدريب السابق واعتماده.</p></div><div class="basic-bag-actions"><button class="name-list-btn" type="button" disabled>🔒 التدريب مغلق</button></div></article>').join('');
 }
  function courseHtml(){
   setTimeout(refreshCards,0);
   return '<section id="trainingBasicBagStart" class="card basic-bag-page"><div class="title">📘 التدريبات الأساسية — حقيبة المهندس محمود المصري</div>'+
-   '<p class="muted">نبدأ بالتدريب الأول فقط: الفيديو ثم الاختبار المعتمد. التدريبات الأخرى مغلقة حاليًا.</p>'+
+   '<p class="muted">التدريب الأول متاح، والتدريب الثاني أُضيف باختباره للمعاينة. الترتيب الفعلي للتدريبات يظل تسلسليًا.</p>'+
    '<p id="basicBagNotice" class="basic-bag-notice">معاينة المحتوى والتصميم فقط. لا يوجد حفظ للدرجات أو المشاهدة ولا ربط جديد بقاعدة البيانات.</p>'+
    '<div id="basicBagCards" class="basic-bag-cards"></div></section>';
  }
@@ -239,17 +247,19 @@
   submit.textContent='إنهاء الاختبار وتصحيح الإجابات';f.appendChild(submit);body.appendChild(f);
  }
 
- window.basicBagPreviewFirstQuiz=async function(){
+ window.basicBagPreviewFirstQuiz=async function(number=1){
+   if(number!==1&&number!==2)return;
+   const isSecond=number===2;
    close();
-   const modal=createModal('اختبار التدريب الأساسي الأول — الأسئلة العشرون');
+   const modal=createModal('اختبار التدريب الأساسي '+(isSecond?'الثاني':'الأول')+' — الأسئلة العشرون');
    document.addEventListener('keydown',escapeClose);
    const body=modal.querySelector('#basicBagModalBody');
-   body.innerHTML='<p class="basic-bag-notice">نسخة تجريبية مطابقة لأسئلة النموذج الأصلي، مع التعديل المعتمد للسؤال الثامن. توجد أسئلة صح/خطأ وأسئلة باختيارات متعددة. التصحيح تجريبي داخل المتصفح فقط، ولا تُحفظ الإجابات أو النتائج.</p><p id="basicQuizLoad">جارٍ تحميل الأسئلة الأصلية…</p>';
+   body.innerHTML='<p class="basic-bag-notice">'+(isSecond?'معاينة الأسئلة العشرين للتدريب الثاني كما أرسلتها، دون حفظ أو تصحيح قبل اعتماد مفتاح الإجابات.':'نسخة تجريبية مطابقة لأسئلة النموذج الأصلي، مع التعديل المعتمد للسؤال الثامن. توجد أسئلة صح/خطأ وأسئلة باختيارات متعددة. التصحيح تجريبي داخل المتصفح فقط، ولا تُحفظ الإجابات أو النتائج.')+'</p><p id="basicQuizLoad">جارٍ تحميل الأسئلة الأصلية…</p>';
    try{
-      const response=await fetch('../basic-training-01-quiz.json',{cache:'no-store'});
+      const response=await fetch(isSecond?'../basic-training-02-quiz.json':'../basic-training-01-quiz.json',{cache:'no-store'});
       if(!response.ok)throw Error('ملف الأسئلة غير متاح');
       const qs=await response.json();
-      if(!Array.isArray(qs)||qs.length!==20||qs.some(q=>!q.question||!Array.isArray(q.options)||q.options.length<2||(q.answer!==null&&(!Number.isInteger(q.answer)||q.answer<0||q.answer>=q.options.length))))throw Error('الأسئلة العشرون غير مكتملة');
+      if(!Array.isArray(qs)||qs.length!==20||qs.some(q=>!q.question||!Array.isArray(q.options)||q.options.length<2||(q.answer!==null&&(!Number.isInteger(q.answer)||(q.answer!==null&&(!Number.isInteger(q.answer)||q.answer<0||q.answer>=q.options.length))))))throw Error('الأسئلة العشرون غير مكتملة');
       if(!modal||!modal.isConnected)return;
       const loading=body.querySelector('#basicQuizLoad');if(loading)loading.remove();
       const form=document.createElement('form');form.className='basic-bag-exam';
@@ -271,6 +281,7 @@
       form.addEventListener('submit',e=>{
         e.preventDefault();
         if(answers.includes(null)){alert('أجب عن جميع الأسئلة العشرين أولًا');return;}
+        if(isSecond){const result=document.createElement('div');result.className='basic-bag-result';result.textContent='اكتملت معاينة الأسئلة العشرين. التصحيح ينتظر اعتماد مفتاح إجابات التدريب الثاني، ولم تُحفظ بيانات أو نتيجة.';form.replaceWith(result);return;}
         const approved=qs.filter(q=>Number.isInteger(q.answer));
         const score=qs.reduce((total,q,i)=>total+(Number.isInteger(q.answer)&&answers[i]===q.answer?1:0),0);
         const result=document.createElement('div');result.className='basic-bag-result';
@@ -285,5 +296,6 @@
    }catch(e){const loading=body.querySelector('#basicQuizLoad');if(loading)loading.textContent='تعذر تحميل الأسئلة: '+(e.message||e);}
  };
 
+ window.basicBagPreviewSecondQuiz=()=>window.basicBagPreviewFirstQuiz(2);
  window.basicTrainingCourseHtml=courseHtml;
 })();
