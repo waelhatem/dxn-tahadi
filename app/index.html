@@ -1790,7 +1790,7 @@ function renderInAppNav(){
   el.innerHTML=`<button type="button" class="dxn-nav-btn dxn-nav-back" ${dxnNav.back.length?'':'disabled'} onclick="event.preventDefault();this.blur();dxnNavGoBack()" aria-label="الرجوع للصفحة السابقة" title="الرجوع للصفحة السابقة"><span class="dxn-nav-ico" aria-hidden="true">◀️</span> <span>رجوع</span></button><button type="button" class="dxn-nav-btn dxn-nav-forward" ${dxnNav.forward.length?'':'disabled'} onclick="event.preventDefault();this.blur();dxnNavGoForward()" aria-label="التقدم إلى الصفحة التالية" title="التقدم إلى الصفحة التالية"><span>تقدم</span> <span class="dxn-nav-ico" aria-hidden="true">▶️</span></button>`;
 }
 function scrollToTabContent(){return;}
-function switchTab(next){if(next==='training'&&!canAccessTraining())return;if(next==='training')trainingSubtab='home';tab=next;saveDxnUiState({tab:next,trainingSubtab});try{render();dxnNavPush(`tab:${next}`);recordSiteVisit(role||'visitor',next)}catch(e){console.error(e);toast('تعذر فتح القسم: '+(e.message||e))}}
+function switchTab(next){if(next==='training'&&!canAccessTraining())return;if(next==='training')trainingSubtab='home';tab=next;saveDxnUiState({tab:next,trainingSubtab});try{render();if(next==='basic_training_profile')setTimeout(()=>window.basicTrainingLoadMemberPage?.(),0);dxnNavPush(`tab:${next}`);recordSiteVisit(role||'visitor',next)}catch(e){console.error(e);toast('تعذر فتح القسم: '+(e.message||e))}}
 function openMemberProgress(){if(role!=='member'||!me){toast('هذه الصفحة متاحة للأعضاء فقط.');return;}tab='progress';try{render()}catch(e){console.error(e);toast('تعذر فتح صفحة تقدّمي: '+(e.message||e))}}
 
 function memberNextStep(){
