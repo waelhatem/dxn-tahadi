@@ -27,6 +27,25 @@ test('training number five exposes its own electronic form, never alters exam an
   assert.match(page, /function professionalTrainingPage\(\)/);
 });
 
+test('top-level training screen keeps exactly two original cards', () => {
+  const home = page.split('const subTabs=`')[1].split('const backChoice=`')[0];
+  assert.equal((home.match(/<button type="button" class="training-feature-card/g) || []).length, 2);
+  assert.match(home, /الشروحات والتدريبات/);
+  assert.match(home, /الخطة الاحترافية/);
+  assert.doesNotMatch(home, /training-feature-professional/);
+});
+
+test('inside lessons there are exactly two choices: basic and professional', () => {
+  const typeChoice = page.split('const trainingTypeChoices=`')[1].split('if(trainingSubtab===\'home\')')[0];
+  assert.equal((typeChoice.match(/<button type="button" class="training-feature-card/g) || []).length, 2);
+  assert.match(typeChoice, /التدريبات الأساسية/);
+  assert.match(typeChoice, /التدريبات الاحترافية/);
+  assert.match(page, /if\(trainingSubtab==='lessons'\)\{\s*return backChoice\+trainingTypeChoices;/);
+  assert.match(page, /if\(trainingSubtab==='professional'\)\{\s*return backToTrainingTypes\+professionalTrainingPage\(\);/);
+  assert.match(page, /\['home','lessons','basic','professional','ragwan_success_plan'\]/);
+  assert.doesNotMatch(page, /const nameListButton=n===5/);
+});
+
 test('three original form types are supported', () => {
   for (const name of ['قائمة الأسماء','نتائج الاستقطاب','متابعة المستهلكين']) assert.ok(script.includes(name));
   for (const action of ['save_contact','delete_contact','save_followup','delete_followup','save_consumption','delete_consumption'])
