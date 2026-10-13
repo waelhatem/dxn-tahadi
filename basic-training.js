@@ -349,7 +349,7 @@
 
  window.basicBagPreviewFirstQuiz=async function(number=1){
    if(number!==1&&number!==2&&number!==3&&number!==4&&number!==5&&number!==6&&number!==7&&number!==8)return;
-   if(backendReady&&(viewerRole!=='leader'||window.innerWidth<900))return safeToast('المعاينة متاحة للقائد على الحاسوب فقط');
+   if(!backendReady||viewerRole!=='leader'||window.innerWidth<900)return safeToast('معاينة الإجابات متاحة للقائد على الحاسوب بعد تفعيل خدمة قاعدة البيانات الآمنة فقط');
    const isSecond=number===2;
    const isThird=number===3;
    const isFourth=number===4;
@@ -363,10 +363,11 @@
    const body=modal.querySelector('#basicBagModalBody');
    body.innerHTML='<p class="basic-bag-notice">'+(isEighth?'الأسئلة العشرون المعتمدة للتدريب الثامن حول أساسيات النجاح التسعة مع التصحيح التجريبي، ولا تُحفظ النتائج.':isSeventh?'الأسئلة العشرون المعتمدة للتدريب السابع مع التصحيح التجريبي، ولا تُحفظ النتائج. استعمل بريدًا دائمًا للعضوية الفعلية وراجع شروط التسجيل السارية.':isSixth?'الأسئلة العشرون المعتمدة للتدريب السادس. خطة الأشهر الستة مثال افتراضي وليست ضمانًا للدخل، ولا تُحفظ النتائج.':isFifth?'اختبار المحاضرة الخامسة: 20 سؤالًا معتمدًا وتصحيح تجريبي. الأرقام والعمولات وفق شرح المحاضر وقت التسجيل، دون ضمان عوائد مالية أو حفظ نتائج.':isFourth?'الأسئلة العشرون المعتمدة للمحاضرة الرابعة مع التصحيح التجريبي. الإحصاءات التاريخية والأقوال المنسوبة تعرض كما وردت في المحاضرة؛ لا حفظ للنتائج.':isThird?'الأسئلة العشرون المعتمدة للمحاضرة الثالثة مع تصحيح تجريبي. لا تُحفظ الإجابات أو النتائج. التوصيفات الصحية هي مما ذكره المحاضر ولا تثبت فعالية علاجية.':isSecond?'الأسئلة العشرون الجديدة المعتمدة للتدريب الثاني، وتصحيح آلي تجريبي وفق مفتاح الإجابات المعتمد. الأرقام والحوافز من وقت تسجيل المحاضرة ولا تضمن دخلًا. لا تُحفظ النتائج.':'اختبار المحاضرة الجديدة المعتمد: 20 سؤالًا، والتصحيح تجريبي داخل المتصفح فقط. الأرقام والمزايا تعكس كلام المحاضر وقت التسجيل ولا تمثل تحققًا مستقلًا أو ضمانًا للنتائج.')+'</p><p id="basicQuizLoad">جارٍ تحميل الأسئلة الأصلية…</p>';
    try{
-      const response=await fetch(isEighth?'../basic-training-08-new-quiz.json':isSeventh?'../basic-training-07-new-quiz.json':isSixth?'../basic-training-06-new-quiz.json':isFifth?'../basic-training-05-new-quiz.json':isFourth?'../basic-training-04-new-quiz.json':isThird?'../basic-training-03-new-quiz.json':isSecond?'../basic-training-02-new-quiz.json':'../basic-training-01-new-quiz.json',{cache:'no-store'});
-      if(!response.ok)throw Error('ملف الأسئلة غير متاح');
-      const qs=await response.json();
-      if(!Array.isArray(qs)||qs.length!==20||qs.some(q=>!q.question||!Array.isArray(q.options)||q.options.length<2||(q.answer!==null&&(!Number.isInteger(q.answer)||q.answer<0||q.answer>=q.options.length))))throw Error('الأسئلة العشرون غير مكتملة');
+      const secured=await rpc('basic_training_admin_revision',{p_training_no:number,p_action:'get',p_payload:null});
+      const qs=Array.isArray(secured.questions)?secured.questions.map(q=>({
+        question:q.question,options:q.options,answer:q.correct_index
+      })):[];
+      if(qs.length!==20||qs.some(q=>!q.question||!Array.isArray(q.options)||q.options.length!==3||!Number.isInteger(q.answer)||q.answer<0||q.answer>2))throw Error('أسئلة المعاينة غير متاحة');
       if(!modal||!modal.isConnected)return;
       const loading=body.querySelector('#basicQuizLoad');if(loading)loading.remove();
       const form=document.createElement('form');form.className='basic-bag-exam';
