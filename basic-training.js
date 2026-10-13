@@ -41,7 +41,7 @@
  const host=document.getElementById('basicBagCards');if(!host)return;
  const pct=movie&&movie.duration?Math.min(100,Math.floor(100*movie.max/movie.duration)):Math.min(100,Math.floor(previewWatchedPercent));
  const later=[
-   'خطة DXN المالية وكيف تحقق دخلًا عاليًا بوقت مثالي'
+   'المحاضرة الرابعة — بانتظار التفريغ والاعتماد'
  ];
  host.innerHTML='<article class="basic-bag-lesson basic-one-stage"><div class="basic-bag-lesson-main">'+
  '<div class="basic-bag-number">التدريب الأساسي 1</div><h3>التعريف بمشروع DXN ومنتجاتها ونظامها التسويقي</h3>'+
