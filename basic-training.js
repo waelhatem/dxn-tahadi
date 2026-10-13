@@ -8,7 +8,7 @@
  window.__DXN_BASIC_BAG__=true;
  const lessons=[
   {no:1,title:'التعريف بمشروع DXN ومنتجاتها ونظامها التسويقي',video:'lxhnkUov9sE'},
-  {no:2,title:'منتجات DXN – فوائدها واستخداماتها',video:'yls_hzHQN-M'},
+  {no:2,title:'التعريف بشركة DXN ومنتجاتها ونظامها التسويقي والأرباح',video:'K_N80xZlxXw'},
   {no:3,title:'نظام DXN للبيع المباشر والتسويق متعدد المستويات',video:'7BBYsbPgX1M'},
   {no:4,title:'خطة DXN المالية وكيف تحقق دخلًا عاليًا بوقت مثالي',video:'ArJSiW2E4TM'}
  ];
@@ -55,15 +55,15 @@
  '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewFirstQuiz()">🧠 اختبار التدريب الأول الجديد — 20 سؤالًا</button>'+
  '</div></article>'+
  '<article class="basic-bag-lesson basic-two-stage"><div class="basic-bag-lesson-main">'+
- '<div class="basic-bag-number">التدريب الأساسي 2</div><h3>منتجات DXN – فوائدها واستخداماتها</h3>'+
+ '<div class="basic-bag-number">التدريب الأساسي 2</div><h3>التعريف بشركة DXN ومنتجاتها ونظامها التسويقي والأرباح</h3>'+
  '<p class="basic-bag-description">المدرب: المهندس محمود المصري</p>'+
  '<div class="basic-bag-status">🔒 المشاهدة النظامية مغلقة حتى إكمال التدريب الأول واختباره</div>'+
  '<div class="basic-bag-progress-line"><strong class="basic-bag-percentage">'+previewWatchedPercent2+'%</strong>'+
  '<div class="basic-bag-progress" role="progressbar" aria-label="نسبة مشاهدة التدريب الثاني" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div style="width:0%"></div></div></div>'+
- '<p class="basic-bag-description">رابط الفيديو الثاني مسجل من مرجع المحادثة؛ يحتاج اختبار التشغيل في المعاينة.</p></div>'+
+ '<p class="basic-bag-description">الفيديو والاختبار الثاني الجديدان معتمدان للمراجعة؛ التقدم والدرجات تجريبية وغير محفوظة.</p></div>'+
  '<div class="basic-bag-actions"><button type="button" class="name-list-btn" disabled>🔒 بدء التدريب بعد إكمال الأول</button>'+ 
  '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewSecondVideo()">👁 معاينة الفيديو الثاني</button>'+
- '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewSecondQuiz()">🧠 معاينة اختبار التدريب الثاني — 20 سؤالًا</button></div></article>'+
+ '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewSecondQuiz()">🧠 الاختبار الثاني الجديد — 20 سؤالًا</button></div></article>'+
  later.map((name,i)=>'<article class="basic-bag-lesson basic-one-locked" aria-label="التدريب '+(i+3)+' مغلق"><div class="basic-bag-lesson-main"><div class="basic-bag-number">التدريب الأساسي '+(i+3)+'</div><h3>🔒 '+name+'</h3><p class="basic-bag-description">سنعمل عليه بعد الانتهاء من التدريب السابق واعتماده.</p></div><div class="basic-bag-actions"><button class="name-list-btn" type="button" disabled>🔒 التدريب مغلق</button></div></article>').join('');
 }
  function courseHtml(){
@@ -256,9 +256,9 @@
    const modal=createModal('اختبار التدريب الأساسي '+(isSecond?'الثاني':'الأول')+' — الأسئلة العشرون');
    document.addEventListener('keydown',escapeClose);
    const body=modal.querySelector('#basicBagModalBody');
-   body.innerHTML='<p class="basic-bag-notice">'+(isSecond?'معاينة الأسئلة العشرين للتدريب الثاني، وتصحيح آلي تجريبي وفق مفتاح الإجابات المعتمد. لا تُحفظ النتائج.':'اختبار المحاضرة الجديدة المعتمد: 20 سؤالًا، والتصحيح تجريبي داخل المتصفح فقط. الأرقام والمزايا تعكس كلام المحاضر وقت التسجيل ولا تمثل تحققًا مستقلًا أو ضمانًا للنتائج.')+'</p><p id="basicQuizLoad">جارٍ تحميل الأسئلة الأصلية…</p>';
+   body.innerHTML='<p class="basic-bag-notice">'+(isSecond?'الأسئلة العشرون الجديدة المعتمدة للتدريب الثاني، وتصحيح آلي تجريبي وفق مفتاح الإجابات المعتمد. الأرقام والحوافز من وقت تسجيل المحاضرة ولا تضمن دخلًا. لا تُحفظ النتائج.':'اختبار المحاضرة الجديدة المعتمد: 20 سؤالًا، والتصحيح تجريبي داخل المتصفح فقط. الأرقام والمزايا تعكس كلام المحاضر وقت التسجيل ولا تمثل تحققًا مستقلًا أو ضمانًا للنتائج.')+'</p><p id="basicQuizLoad">جارٍ تحميل الأسئلة الأصلية…</p>';
    try{
-      const response=await fetch(isSecond?'../basic-training-02-quiz.json':'../basic-training-01-new-quiz.json',{cache:'no-store'});
+      const response=await fetch(isSecond?'../basic-training-02-new-quiz.json':'../basic-training-01-new-quiz.json',{cache:'no-store'});
       if(!response.ok)throw Error('ملف الأسئلة غير متاح');
       const qs=await response.json();
       if(!Array.isArray(qs)||qs.length!==20||qs.some(q=>!q.question||!Array.isArray(q.options)||q.options.length<2||(q.answer!==null&&(!Number.isInteger(q.answer)||q.answer<0||q.answer>=q.options.length))))throw Error('الأسئلة العشرون غير مكتملة');
