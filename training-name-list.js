@@ -27,7 +27,7 @@
   const followupStages = stages.slice(2);
   let root = null, contacts = [], followups = [], consumption = [];
   let tab = 'contacts', selectedContact = '', contactEdit = '', followupEdit = '', consumptionEdit = '';
-  let query = '', sourceFilter = '', busy = false;
+  let query = '', sourceFilter = '', busy = false, backendReady = false;
 
   function el(tag, cls, text) {
     const x = document.createElement(tag);
@@ -94,7 +94,7 @@
     if (root) { root.remove(); root = null; }
     contacts = []; followups = []; consumption = [];
     tab = 'contacts'; selectedContact = ''; contactEdit = ''; followupEdit = ''; consumptionEdit = '';
-    query = ''; sourceFilter = ''; busy = false;
+    query = ''; sourceFilter = ''; busy = false; backendReady = false;
     document.removeEventListener('keydown', onEscape);
   }
   function onEscape(e) { if (e.key === 'Escape' && root) close(); }
@@ -124,6 +124,7 @@
   }
   async function write(action, payload) {
     if (busy) return;
+    if (!backendReady) { showStatus('الحفظ غير متاح حتى تفعيل قاعدة بيانات التدريب', true); return; }
     busy = true;
     showStatus('جارٍ حفظ البيانات…');
     try {
@@ -179,7 +180,7 @@
     form.appendChild(field('ملاحظات العمل (بدون بيانات صحية أو ديون)', 'notes', x.notes || '', 'textarea', false, 1200));
     const actions = add(form, 'div', 'name-list-actions');
     const save = el('button', 'name-list-btn name-list-primary', contactEdit ? 'حفظ التعديلات' : 'إضافة الاسم');
-    save.type = 'submit'; actions.appendChild(save);
+    save.type = 'submit'; save.disabled = !backendReady; actions.appendChild(save);
     if (contactEdit) actions.appendChild(button('إلغاء التعديل', 'reset-contact'));
     return form;
   }
@@ -230,7 +231,7 @@
     form.appendChild(field('ملاحظات المتابعة', 'notes', item.notes || '', 'textarea', false, 1200));
     const acts = add(form, 'div', 'name-list-actions');
     const save = el('button', 'name-list-btn name-list-primary', followupEdit ? 'حفظ التعديل' : 'تسجيل المتابعة');
-    save.type = 'submit'; acts.appendChild(save);
+    save.type = 'submit'; save.disabled = !backendReady; acts.appendChild(save);
     if (followupEdit) acts.appendChild(button('إلغاء التعديل', 'reset-followup'));
     return form;
   }
@@ -247,7 +248,7 @@
     form.appendChild(field('ملاحظات الاستهلاك (دون ادعاءات علاجية)', 'notes', item.notes || '', 'textarea', false, 1200));
     const acts = add(form, 'div', 'name-list-actions');
     const save = el('button', 'name-list-btn name-list-primary', consumptionEdit ? 'حفظ التعديل' : 'حفظ الاستهلاك');
-    save.type = 'submit'; acts.appendChild(save);
+    save.type = 'submit'; save.disabled = !backendReady; acts.appendChild(save);
     if (consumptionEdit) acts.appendChild(button('إلغاء التعديل', 'reset-consumption'));
     return form;
   }
@@ -389,8 +390,9 @@
     root.addEventListener('change', filter);
     document.addEventListener('keydown', onEscape);
     showStatus('جارٍ جلب قائمتك من حسابك…');
-    try { await load(); if (root) { render(); showStatus(''); } }
-    catch (error) { if (root) showStatus(error.message || String(error), true); }
+    render();
+    try { await load(); if (root) { backendReady = true; render(); showStatus(''); } }
+    catch (error) { if (root) showStatus('معاينة واجهة النماذج فقط — يلزم تفعيل قاعدة البيانات قبل إدخال أسماء حقيقية. ' + (error.message || String(error)), true); }
     const closeButton = root && root.querySelector('[data-act="close"]');
     if (closeButton) closeButton.focus();
   };
