@@ -53,7 +53,7 @@
     const p=statusOf(item.no),unlocked=lessonUnlock(item.no);
     const watched=Math.min(100,Math.max(0,Math.round(100*fmt(p.watched)/(fmt(p.duration)||1))));
     const passed=!!p.passed,watchReady=!!p.completed;
-    const score=(p.best_score===null||p.best_score===undefined)?'':' | أفضل درجة: '+p.best_score+' / 20';
+    const score=(p.best_score===null||p.best_score===undefined)?'':' | أفضل درجة اختبار: '+(p.best_score*5)+' من 100';
     const status=passed?'✅ اجتاز التدريب':watchReady?'✅ اكتملت المشاهدة — الاختبار متاح':unlocked?'▶ متابعة المشاهدة حتى 90%':'🔒 أكمل التدريب السابق واجتز اختباره أولًا';
     return '<article class="basic-bag-lesson basic-two-stage"><div class="basic-bag-lesson-main">'+
       '<div class="basic-bag-number">التدريب الأساسي '+item.no+'</div><h3>'+esc(item.title)+'</h3>'+
@@ -315,7 +315,12 @@
    try{
     const graded=await rpc('basic_training_submit_quiz',{p_training_no:e.no,p_answers:e.answers});
     body.replaceChildren();const result=document.createElement('div');result.className='basic-bag-result';
-    const h=document.createElement('h2');h.textContent='نتيجتك: '+graded.score+' / '+graded.out_of;result.appendChild(h);
+    const h=document.createElement('h2');
+    h.textContent='درجة الاختبار: '+(Number(graded.score)*5)+' من 100';
+    result.appendChild(h);
+    const breakdown=document.createElement('p');
+    breakdown.textContent='الإجابات الصحيحة: '+graded.score+' من '+graded.out_of+' | درجة النجاح: 80 من 100';
+    result.appendChild(breakdown);
     const explain=document.createElement('p');explain.textContent=graded.passed?
       '✅ اجتزت الاختبار! حفظنا درجتك ويمكنك الانتقال إلى التدريب التالي.':
       'لم تجتز الاختبار بعد. تحتاج إلى 16 إجابة صحيحة من 20؛ يمكنك مراجعة المحاضرة وإعادة المحاولة.';
@@ -387,8 +392,14 @@
         const approved=qs.filter(q=>Number.isInteger(q.answer));
         const score=qs.reduce((total,q,i)=>total+(Number.isInteger(q.answer)&&answers[i]===q.answer?1:0),0);
         const result=document.createElement('div');result.className='basic-bag-result';
-        const h=document.createElement('h2');h.textContent='نتيجتك التجريبية: '+score+' / '+approved.length;result.append(h);
-        const hint=document.createElement('p');hint.textContent=isEighth?'هذه نتيجة اختبار التدريب الثامن التجريبية من 20 درجة، ولا تُحفظ الإجابات أو النتيجة.':isSeventh?'هذه نتيجة اختبار التدريب السابع التجريبية من 20 درجة، ولا تُحفظ الإجابات أو النتيجة.':isSixth?'هذه نتيجة اختبار التدريب السادس التجريبية من 20 درجة، ولا تُحفظ الإجابات أو النتيجة.':isFifth?'هذه نتيجة اختبار التدريب الخامس التجريبية من 20 درجة، ولا تُحفظ الإجابات أو النتيجة.':isFourth?'هذه نتيجة اختبار التدريب الرابع التجريبية من 20 درجة، ولا تُحفظ الإجابات أو النتيجة.':isThird?'هذه نتيجة اختبار التدريب الثالث التجريبية من 20 درجة. لم تُحفظ الإجابات أو النتيجة ولم تفتح التدريب الرابع.':isSecond?'هذه نتيجة اختبار التدريب الثاني التجريبية من 20 درجة. لم تُحفظ الإجابات أو النتيجة ولم تفتح التدريب الثالث.':'هذه نتيجة للمراجعة فقط، لم تُحفظ ولم تؤثر على فتح التدريب التالي. جميع الأسئلة العشرين معتمدة ضمن هذا الاختبار الجديد.';result.append(hint);
+        const h=document.createElement('h2');
+        h.textContent='درجة الاختبار: '+(score*5)+' من 100';
+        result.append(h);
+        const breakdown=document.createElement('p');
+        breakdown.textContent='الإجابات الصحيحة: '+score+' من '+approved.length+' | درجة النجاح: 80 من 100';
+        result.append(breakdown);
+        const hint=document.createElement('p');
+        hint.textContent='هذه درجة اختبار تجريبية للمراجعة فقط، لا تُحفظ في حساب العضو ولا تفتح التدريب التالي.';result.append(hint);
         const wrong=qs.map((q,i)=>Number.isInteger(q.answer)&&answers[i]!==q.answer?{i,answer:q.options[q.answer]}:null).filter(Boolean);
         const text=document.createElement('p');text.textContent=wrong.length?'أسئلة تحتاج مراجعة: '+wrong.map(v=>v.i+1).join('، '):'جميع الإجابات صحيحة';result.append(text);
         wrong.forEach(v=>{const row=document.createElement('p');row.textContent='س'+(v.i+1)+' — الإجابة الصحيحة وفق المفتاح المعتمد: '+v.answer;result.append(row);});
