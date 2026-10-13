@@ -9,20 +9,16 @@ const root=path.join(__dirname,'..');
 const source=fs.readFileSync(path.join(root,'basic-training.js'),'utf8');
 const videos=['lxhnkUov9sE','K_N80xZlxXw','n7W9LoCMdPo','AMKtcQt8ltc',
  'Wa_Kp2U7x0E','G09ztpXOBBM','kYJjJu2JQFI','v4gYSL-KuHQ'];
+// Public repository must contain only metadata, never the approved answers.
 for(let i=1;i<=8;i++){
- const bank=JSON.parse(fs.readFileSync(path.join(root,'basic-training-'+String(i).padStart(2,'0')+'-new-quiz.json'),'utf8'));
- assert.equal(bank.length,20,'bank '+i);
- for(const [index,q] of bank.entries()){
-   assert.equal(typeof q.question,'string');
-   assert.ok(q.question.length>=10,'training '+i+' q '+(index+1));
-   assert.equal(q.options.length,3,'options '+i+' q '+(index+1));
-   assert.ok(Number.isInteger(q.answer)&&q.answer>=0&&q.answer<3);
- }
+ const file=path.join(root,'basic-training-'+String(i).padStart(2,'0')+'-new-quiz.json');
+ assert.ok(!fs.existsSync(file),'public answer key unexpectedly present for '+i);
  assert.ok(source.includes(videos[i-1]),'video '+i+' mapped');
 }
 const migrations=path.join(root,'supabase','migrations');
 const ddl=fs.readFileSync(path.join(migrations,'20261013_basic_training_persistence_90_80.sql'),'utf8');
-const seed=fs.readFileSync(path.join(migrations,'20261013_basic_training_approved_160_questions.sql'),'utf8');
+assert.ok(!fs.existsSync(path.join(migrations,'20261013_basic_training_approved_160_questions.sql')),
+  'approved private seed must not be in public migrations');
 assert.match(ddl,/min_watch_percent integer NOT NULL DEFAULT 90/);
 assert.match(ddl,/pass_score integer NOT NULL DEFAULT 16/);
 assert.match(ddl,/basic_training_attempts/);
@@ -31,10 +27,8 @@ assert.match(ddl,/FOR UPDATE/);
 assert.match(ddl,/basic_training_get_quiz/);
 assert.match(ddl,/basic_training_submit_quiz/);
 assert.match(ddl,/REVOKE ALL ON public.basic_training_lessons/);
-for(let i=1;i<=8;i++){
- const bank=JSON.parse(fs.readFileSync(path.join(root,'basic-training-'+String(i).padStart(2,'0')+'-new-quiz.json'),'utf8'));
- for(const question of bank) assert.ok(seed.includes(JSON.stringify(question.question)),'question missing from seed '+i);
-}
+assert.doesNotMatch(source,/basic-training-\\d\\d-new-quiz\\.json/);
+assert.match(source,/basic_training_admin_revision/);
 assert.match(source,/const isEighth=number===8/);
 assert.match(source,/basicBagPreviewEighthQuiz/);
 assert.match(source,/basic_training_overview/);
@@ -69,5 +63,5 @@ async function scenario(){
  assert.ok(!ui.innerHTML.includes('معاينة الاختبار (غير محفوظة)'),'preview hidden for members');
  assert.ok(notice.textContent.includes('90%'));
 }
-scenario().then(()=>console.log('OK: eight approved quizzes, isolated migration, member progression contract'))
+scenario().then(()=>console.log('OK: eight training routes, private answers, and member progression contract'))
  .catch(e=>{console.error(e);process.exitCode=1;});
