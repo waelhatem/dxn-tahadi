@@ -172,7 +172,7 @@ CREATE OR REPLACE FUNCTION public.basic_training_submit_quiz(
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $fn$
 DECLARE v_user uuid; v_p public.basic_training_progress%rowtype;
         v_req integer; v_count integer; v_score integer; v_pass boolean;
-        v_i integer; v_details jsonb; v_best integer;
+        v_i integer; v_best integer; v_attempt_count integer;
 BEGIN
  v_user:=public.app_current_user_id(p_token);
  IF v_user IS NULL THEN RAISE EXCEPTION 'انتهت الجلسة'; END IF;
@@ -187,6 +187,13 @@ BEGIN
  WHERE user_id=v_user AND training_no=p_training_no FOR UPDATE;
  IF NOT FOUND OR NOT v_p.watch_completed THEN
    RAISE EXCEPTION 'أكمل مشاهدة 90%% من الفيديو قبل الاختبار'; END IF;
+ -- Bound score-oracle guessing without preventing legitimate exam retakes.
+ -- Existing row lock on basic_training_progress serializes submissions.
+ SELECT count(*) INTO v_attempt_count FROM public.basic_training_attempts a
+ WHERE a.user_id=v_user AND a.training_no=p_training_no
+   AND a.submitted_at > now() - interval '1 hour';
+ IF v_attempt_count>=6 THEN
+   RAISE EXCEPTION 'وصلت إلى الحد المؤقت للمحاولات (6 خلال ساعة). حاول لاحقًا'; END IF;
  IF p_answers IS NULL OR jsonb_typeof(p_answers)<>'array'
     OR jsonb_array_length(p_answers)<>20 THEN
     RAISE EXCEPTION 'يجب إجابة جميع الأسئلة العشرين'; END IF;
@@ -209,12 +216,10 @@ BEGIN
   passed_at=CASE WHEN v_pass AND passed_at IS NULL THEN now() ELSE passed_at END,
   updated_at=now()
  WHERE user_id=v_user AND training_no=p_training_no;
- SELECT jsonb_agg(jsonb_build_object('no',q.question_no,
-  'chosen',(p_answers->>(q.question_no-1))::integer,'correct',q.correct_index)
-  ORDER BY q.question_no)
- INTO v_details FROM public.basic_training_questions q WHERE q.training_no=p_training_no;
+ -- Only aggregate scores and pass status are returned to members.
+ -- Never disclose correct_index, per-question correctness, or answer arrays.
  RETURN jsonb_build_object('score',v_score,'out_of',20,'passed',v_pass,
-     'best_score',v_best,'required',v_req,'details',v_details);
+     'best_score',v_best,'required',v_req);
 END $fn$;
 
 -- Revoke default EXECUTE from PUBLIC, then grant only session-bound RPC access.
