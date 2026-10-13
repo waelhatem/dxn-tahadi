@@ -259,7 +259,7 @@
       const response=await fetch(isSecond?'../basic-training-02-quiz.json':'../basic-training-01-quiz.json',{cache:'no-store'});
       if(!response.ok)throw Error('ملف الأسئلة غير متاح');
       const qs=await response.json();
-      if(!Array.isArray(qs)||qs.length!==20||qs.some(q=>!q.question||!Array.isArray(q.options)||q.options.length<2||(q.answer!==null&&(!Number.isInteger(q.answer)||q.answer<0||q.answer>=q.options.length)))))throw Error('الأسئلة العشرون غير مكتملة');
+      if(!Array.isArray(qs)||qs.length!==20||qs.some(q=>!q.question||!Array.isArray(q.options)||q.options.length<2||(q.answer!==null&&(!Number.isInteger(q.answer)||q.answer<0||q.answer>=q.options.length))))throw Error('الأسئلة العشرون غير مكتملة');
       if(!modal||!modal.isConnected)return;
       const loading=body.querySelector('#basicQuizLoad');if(loading)loading.remove();
       const form=document.createElement('form');form.className='basic-bag-exam';
