@@ -325,10 +325,11 @@
       '✅ اجتزت الاختبار! حفظنا درجتك ويمكنك الانتقال إلى التدريب التالي.':
       'لم تجتز الاختبار بعد. تحتاج إلى 16 إجابة صحيحة من 20؛ يمكنك مراجعة المحاضرة وإعادة المحاولة.';
     result.appendChild(explain);
-    if(Array.isArray(graded.details)){
-      const wrong=graded.details.filter(d=>d.chosen!==d.correct);
-      const p=document.createElement('p');p.textContent=wrong.length?'الأسئلة التي تحتاج مراجعة: '+wrong.map(x=>x.no).join('، '):'أجبت عن جميع الأسئلة بصورة صحيحة.';
-      result.appendChild(p);
+    // The server returns only the score; correct answers are intentionally private.
+    if(!graded.passed){
+      const note=document.createElement('p');
+      note.textContent='راجع محتوى التدريب، ثم أعد المحاولة لاحقًا. لا تُعرض مفاتيح الإجابات النظامية.';
+      result.appendChild(note);
     }
     body.appendChild(result);await loadOverview();
    }catch(err){safeToast(err.message||'تعذر التصحيح');submit.disabled=false;submit.textContent='إنهاء الاختبار وتصحيح الإجابات';e.busy=false;}
