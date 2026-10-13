@@ -68,7 +68,7 @@ end; $$;
 create or replace function public.basic_training_watch_update(
  p_token uuid,p_training_no integer,p_current integer,p_duration integer)
 returns jsonb language plpgsql security definer set search_path=public as $$
-declare uid uuid; old_seconds integer; new_seconds integer; old_duration integer; completed_time timestamptz;
+declare uid uuid; old_seconds integer; new_seconds integer; old_duration integer; completed_time timestamptz; prev_heartbeat timestamptz; max_growth integer;
 begin
  uid := public.app_current_user_id(p_token);
  if uid is null or not exists(select 1 from public.app_users where id=uid and active) then raise exception 'انتهت الجلسة';end if;
@@ -77,11 +77,13 @@ begin
  insert into public.basic_training_progress(owner_user_id,training_no,max_watched_seconds,video_duration_seconds)
   values(uid,p_training_no,0,p_duration)
  on conflict(owner_user_id,training_no) do nothing;
- select max_watched_seconds,video_duration_seconds,completed_at into old_seconds,old_duration,completed_time
+ select max_watched_seconds,video_duration_seconds,completed_at,last_heartbeat_at into old_seconds,old_duration,completed_time,prev_heartbeat
  from public.basic_training_progress where owner_user_id=uid and training_no=p_training_no for update;
  if old_duration>0 and abs(old_duration-p_duration)>15 then raise exception 'تغير طول الفيديو بصورة غير متوقعة';end if;
- -- Accept a small chronological step only; rewinds do not erase the maximum.
- new_seconds := case when p_current <= old_seconds+12
+ -- Enforce a chronological server-side time budget in addition to bounded increments.
+ -- Paused sessions or huge seeks may not gain more than 12 seconds per heartbeat.
+ max_growth := least(12,greatest(2,ceil(extract(epoch from (now()-coalesce(prev_heartbeat,now()))))::integer+2));
+ new_seconds := case when p_current <= old_seconds+max_growth
   then greatest(old_seconds,p_current) else old_seconds end;
  update public.basic_training_progress
  set max_watched_seconds=new_seconds,video_duration_seconds=p_duration,
