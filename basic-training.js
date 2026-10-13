@@ -296,10 +296,13 @@
   const body=modal.querySelector('#basicBagModalBody');
   body.textContent='جارٍ تحميل الاختبار المعتمد…';
   try{
-   const list=await rpc('basic_training_get_quiz',{p_training_no:item.no});
-   if(!Array.isArray(list)||list.length!==20||list.some(q=>!Array.isArray(q.options)||q.options.length!==3))
+   const payload=await rpc('basic_training_get_quiz',{p_training_no:item.no});
+   const list=payload&&payload.questions;
+   const revision=Number(payload&&payload.revision);
+   if(!Number.isInteger(revision)||revision<1||!Array.isArray(list)||list.length!==20||
+      list.some(q=>!Array.isArray(q.options)||q.options.length!==3))
      throw Error('الأسئلة المعتمدة غير مكتملة');
-   exam={no:item.no,questions:list,answers:Array(20).fill(-1),busy:false};
+   exam={no:item.no,revision,questions:list,answers:Array(20).fill(-1),busy:false};
    renderExam();
   }catch(e){body.textContent=e.message||'تعذر تحميل الأسئلة';}
  };
@@ -313,7 +316,7 @@
    if(e.answers.includes(-1)){safeToast('أجب عن جميع الأسئلة العشرين');return;}
    e.busy=true;const submit=f.querySelector('[type=submit]');submit.disabled=true;submit.textContent='جارٍ التصحيح الآلي…';
    try{
-    const graded=await rpc('basic_training_submit_quiz',{p_training_no:e.no,p_answers:e.answers});
+    const graded=await rpc('basic_training_submit_quiz',{p_training_no:e.no,p_answers:e.answers,p_revision:e.revision});
     body.replaceChildren();const result=document.createElement('div');result.className='basic-bag-result';
     const h=document.createElement('h2');
     h.textContent='درجة الاختبار: '+(Number(graded.score)*5)+' من 100';
