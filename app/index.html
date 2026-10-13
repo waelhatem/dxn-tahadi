@@ -6257,9 +6257,11 @@ function trainings(){
   }));
   const pct=Math.round((completedNo.size/lessons.length)*100);
 
+  const nameListExtra='<div class="name-list-training-entry"><div><h3>📋 التدريب الخامس — جداول قائمة الأسماء</h3><p>مسودة المعارف، متابعة الاستقطاب، ومتابعة المستهلكين — خاصة بحسابك.</p></div><button type="button" class="name-list-btn" onclick="nameListOpen()">فتح قوائم الأسماء الإلكترونية</button></div>';
   const cards=lessons.map(l=>{
     const n=Number(l.lesson_no), p=progress.find(x=>String(x.lesson_id)===String(l.id));
     const done=!!p?.completed;
+    const nameListButton=n===5?'<button type="button" class="name-list-btn" onclick="nameListOpen()">📋 قائمة الأسماء الإلكترونية</button>':'';
     const previousDone = n===1 || completedNo.has(n-1);
     const locked = !done && !previousDone && role==='member';
     return `<div id="${n===1?'trainingLessonsStart':''}" class="card" style="${locked?'opacity:.58;background:#f6f8f7':''}">
@@ -6274,6 +6276,7 @@ function trainings(){
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;min-width:180px;align-items:stretch">
           <button class="primary" ${locked?'disabled':''} onclick="startTrainingLesson('${l.id}')">${done?'🔁 إعادة المشاهدة':locked?'🔒 مغلق':'▶️ بدء التدريب'}</button>
+          ${nameListButton}
           ${role==='member'?`<button type="button" data-training-assessment-button="${n}" ${locked?'disabled':''} onclick="openTrainingAssessment(${n})" style="width:100%;border:1px solid ${locked?'#d8dee0':'#cfe4da'};background:${locked?'#eef1f1':'#eef8f2'};color:${locked?'#7b8790':'#0f513f'};font-weight:950;min-height:44px">${locked?'🔒 اختبار التدريب — مغلق حتى يفتح التدريب':'🧠 اختبار التدريب'}</button>`:''}
           ${role==='leader'?`<button type="button" class="dxn-training-manage-btn" onclick="window.__DXN_OPEN_TRAINING_QUESTION_MANAGER__(${n})" style="width:100%;min-height:44px">⚙️ إدارة اسئلة التدريبات</button>`:''}
         </div>
@@ -6287,7 +6290,7 @@ function trainings(){
     <div style="background:#eef3f1;border-radius:999px;height:14px;overflow:hidden;margin:15px 0"><div style="width:${pct}%;height:100%;background:#0f513f"></div></div>
     <div style="text-align:center;font-weight:900">نسبة إكمالك: ${pct}% — ${completedNo.size} من ${lessons.length}</div>
     <div class="muted" style="text-align:center;margin-top:8px">⭐ أكمل التدريب كاملًا لتحصل على مكافأة النجوم مرة واحدة.</div>
-  </div>${cards}`;
+  </div>${lessons.some(l=>Number(l.lesson_no)===5)?'':nameListExtra}${cards}`;
 }
 
 function youtubeEmbed(url){
@@ -8415,6 +8418,8 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
   }catch(e){}
 })();
 </script>
+<link rel="stylesheet" href="../training-name-list.css?v=1">
+<script src="../training-name-list.js?v=1"></script>
 <script src="../training-assessment.js"></script><script src="../external-training-assessment-profile.js?v=5"></script>
 <script src="../training-assessment-buttons.js"></script>
 <script src="../training-assessment-layout.js"></script>
