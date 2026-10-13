@@ -23,8 +23,8 @@ test('name list script parses, is inert before button click and stays globally i
 test('training number five exposes its own electronic form, never alters exam answers', () => {
   assert.equal((page.match(/training-name-list\.js\?v=1/g)||[]).length, 1);
   assert.equal((page.match(/training-name-list\.css\?v=1/g)||[]).length, 1);
-  assert.match(page, /const nameListButton=n===5\?/);
-  assert.match(page, /\$\{nameListButton\}/);
+  assert.match(page, /trainingSubtab==='professional'/);
+  assert.match(page, /function professionalTrainingPage\(\)/);
 });
 
 test('three original form types are supported', () => {
