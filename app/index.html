@@ -2945,7 +2945,7 @@ function ideaTrustVideos(){
   renderViewSwitch();
 }
 function switchTrainingSubtab(next){
-  if(next!=='home'&&next!=='lessons'&&next!=='basic'&&next!=='professional'&&next!=='ragwan_success_plan')return;
+  if(next!=='home'&&next!=='lessons'&&next!=='basic'&&next!=='professional'&&next!=='advanced_training'&&next!=='ragwan_success_plan')return;
   trainingSubtab=next;
   saveDxnUiState({tab,trainingSubtab:next});
   try{
@@ -2957,6 +2957,8 @@ function switchTrainingSubtab(next){
           ? document.getElementById('trainingProfessionalStart')
           : next==='lessons'
             ? document.getElementById('trainingKindChoices')
+            : next==='advanced_training'
+              ? document.getElementById('trainingAdvancedStart')
             : next==='basic'
               ? document.getElementById('trainingBasicBagStart')
               : document.getElementById('trainingLessonsStart');
@@ -6294,6 +6296,13 @@ function trainings(){
         <span class="training-feature-copy"><strong>التدريبات الاحترافية</strong><small>المحاضرات والتطبيقات والاختبارات المعتمدة</small></span>
         <span class="training-feature-arrow">›</span>
       </button>
+      <button type="button" class="training-feature-card training-feature-professional" onclick="switchTrainingSubtab('advanced_training')">
+        <span class="training-feature-shine"></span>
+        <span class="training-feature-badge">🚀 المسار المتقدم</span>
+        <span class="training-feature-icon">🚀</span>
+        <span class="training-feature-copy"><strong>التدريب المتقدم</strong><small>مسار مستقل — سيتم إضافة الدروس والاختبارات لاحقًا</small></span>
+        <span class="training-feature-arrow">›</span>
+      </button>
     </div>
   </section>`;
 
@@ -6313,6 +6322,10 @@ function trainings(){
     return backToTrainingTypes+professionalTrainingPage();
   }
 
+  if(trainingSubtab==='advanced_training'){
+    return backToTrainingTypes+'<section id="trainingAdvancedStart" class="card training-professional-page"><div class="title">🚀 التدريب المتقدم</div><p class="muted">هذا مسار تدريبي مستقل؛ سنضيف الفيديوهات والاختبارات بعد اعتماد محتواها.</p></section>';
+  }
+
   if(trainingSubtab==='ragwan_success_plan'){
     return `<div class="card">
       <div class="title">📘 الخطة الاحترافية لرجوان نجاح</div>
@@ -6322,7 +6335,7 @@ function trainings(){
 
   // The prior 8-lesson training track remains stored and managed separately.
   // Never fall through into its old progress/cards when the current route is
-  // missing, stale or unexpected; show the approved 2-option chooser instead.
+  // missing, stale or unexpected; show the training-type chooser instead.
   return backChoice+trainingTypeChoices;
 }
 
