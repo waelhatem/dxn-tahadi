@@ -220,16 +220,23 @@
   bar.querySelector('div').style.width=p+'%';
   const out=document.getElementById('basicWatchPct');if(out)out.textContent=p+'%';
  }
+ // Server counts only reporting gaps >= 3 seconds. Every send, including
+ // "force" and YouTube ended, must obey a longer interval.
+ const HEARTBEAT_INTERVAL_MS=5200;
  async function heartbeat(force){
-  const m=movie;if(!m||m.saving||!m.duration)return;
-  if(!backendReady){watchMessage('معاينة فقط: يلزم تفعيل قاعدة البيانات لحفظ المشاهدة.');return;}
-  if(!force&&Date.now()-m.lastSent<5000)return;
+  const m=movie;if(!m||m.saving||!m.duration||m.completed)return;
+  if(!backendReady){watchMessage('تعذر حفظ المشاهدة حاليًا؛ حاول بعد تسجيل الدخول مجددًا.');return;}
+  // Avoid repeated reports when YouTube pauses at its end or after the
+  // server already caught up with the locally watched point.
+  if(m.lastSent && Date.now()-m.lastSent<HEARTBEAT_INTERVAL_MS)return;
+  if(m.lastSent && Math.floor(m.max)<=m.confirmed)return;
   m.lastSent=Date.now();m.saving=true;
   try{
    const r=await rpc('basic_training_watch_update',{
        p_training_no:m.no,p_current:Math.floor(m.max),p_duration:Math.floor(m.duration)});
    if(movie!==m)return;
    m.confirmed=Math.max(m.confirmed||0,fmt(r.watched));
+   m.completed=!!r.completed;
    const previous=progress.find(x=>x.training_no===m.no);
    if(previous)Object.assign(previous,{watched:r.watched,duration:m.duration,completed:!!r.completed});
    else progress.push({training_no:m.no,watched:r.watched,duration:m.duration,completed:!!r.completed});
@@ -247,6 +254,15 @@
   if(!Number.isFinite(current)||!Number.isFinite(duration)||duration<=0)return;
   m.duration=duration;
   // Enforce chronology; backward seeking is always allowed.
+  // The server credits normal-time viewing only. If YouTube provides a
+  // playback-rate API, keep playback at 1x to avoid false completion.
+  try{
+   if(typeof m.player.getPlaybackRate==='function'&&
+      m.player.getPlaybackRate()>1.01){
+    m.player.setPlaybackRate(1);
+    watchMessage('سرعة المشاهدة المعتمدة هي 1x حتى تُحتسب مدة الفيديو.');
+   }
+  }catch(_){}
   if(current>m.max+2.4){m.player.seekTo(Math.max(0,m.max),true);watchMessage('التقديم اليدوي غير متاح؛ يمكنك الرجوع إلى الأجزاء السابقة.');return;}
   const now=performance.now(),elapsed=Math.max(0,Math.min((now-m.previousWall)/1000,2.0));
   const previousTime=m.previousTime; m.previousTime=current;m.previousWall=now;
@@ -255,7 +271,10 @@
     m.max=Math.min(duration,current);if(m.no===8)previewWatchedPercent8=Math.floor(100*m.max/duration);else if(m.no===7)previewWatchedPercent7=Math.floor(100*m.max/duration);else if(m.no===6)previewWatchedPercent6=Math.floor(100*m.max/duration);else if(m.no===5)previewWatchedPercent5=Math.floor(100*m.max/duration);else if(m.no===4)previewWatchedPercent4=Math.floor(100*m.max/duration);else if(m.no===3)previewWatchedPercent3=Math.floor(100*m.max/duration);else if(m.no===2)previewWatchedPercent2=Math.floor(100*m.max/duration);else previewWatchedPercent=Math.floor(100*m.max/duration);watchPct();
   }
   if(state===window.YT.PlayerState.PLAYING&&backendReady&&m.max>m.confirmed)heartbeat(false);
-  if(current>=duration-3.5 && m.max>=duration-4.5){heartbeat(true);}
+  // Near the end the YouTube player can stay paused/ENDED. Retrying is
+  // allowed but only at the shared server-safe interval, never each tick.
+  if(!m.completed&&current>=duration-3.5&&m.max>=duration-4.5
+      &&Math.floor(m.max)>m.confirmed){heartbeat(true);}
  }
  window.basicBagStartVideo=async function(no){
   const item=currentLesson(no);if(!item||!item.video)return safeToast('رابط الفيديو غير متوفر');
@@ -267,7 +286,8 @@
    '<strong id="basicWatchPct">0%</strong></div><p id="basicWatchInfo" class="basic-bag-notice">جارٍ تحميل المشغل…</p>'+
    '<p class="basic-bag-description">يسمح بإعادة المشاهدة والرجوع إلى الخلف؛ لا يسمح بالقفز إلى أجزاء لم تُشاهد.</p>';
   const saved=statusOf(item.no);movie={no:item.no,max:fmt(saved.watched),confirmed:fmt(saved.watched),duration:fmt(saved.duration),
-    previousWall:performance.now(),previousTime:0,player:null,ready:false,timer:null,lastSent:0,saving:false};
+    completed:!!saved.completed,previousWall:performance.now(),previousTime:0,
+    player:null,ready:false,timer:null,lastSent:0,saving:false};
   try{
    await ytApi();if(!movie||movie.no!==item.no)return;
    const m=movie;m.player=new window.YT.Player('basicBagYT',{
@@ -275,12 +295,19 @@
      events:{onReady:function(){
         if(movie!==m)return;m.ready=true;m.duration=m.player.getDuration();
         if(m.max>0)m.player.seekTo(Math.min(m.max,m.duration),true);
+        try{m.player.setPlaybackRate(1);}catch(_){}
         m.previousTime=m.player.getCurrentTime();m.previousWall=performance.now();
         watchPct();watchMessage('مسموح بالمشاهدة حتى '+Math.round(m.max)+' ثانية من بداية الفيديو.');
         m.timer=setInterval(tick,600);
       },onStateChange:function(e){
         if(movie!==m)return;
         if(e.data===window.YT.PlayerState.ENDED){tick();heartbeat(true);}
+      },onPlaybackRateChange:function(e){
+        if(movie!==m)return;
+        if(Number(e.data)>1.01)try{
+         m.player.setPlaybackRate(1);
+         watchMessage('يجب تشغيل الفيديو بسرعة 1x لاحتساب المشاهدة.');
+        }catch(_){}
       }}
    });
   }catch(e){watchMessage(e.message||'تعذر تحميل الفيديو');}
