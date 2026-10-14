@@ -48,15 +48,20 @@
     // Use each training's stored best raw 0..20 grade. Display only (/100);
     // preserve original database values, including all attempt history.
     var tested=list.filter(function(x){return x.best_score!=null&&Number.isFinite(Number(x.best_score));});
-    var testedCount=tested.length;
-    var overall=testedCount?tested.reduce(function(n,x){return n+Number(x.best_score)*5;},0)/testedCount:null;
-    var overallLabel=overall==null?'— / 100':(Number.isInteger(overall)?String(overall):overall.toFixed(1))+' / 100';
-    var isFinal=testedCount===8;
-    var overallHtml='<section class="basic-training-average-card" aria-label="المعدل العام لاختبارات العضو">'+
-      '<div class="basic-training-average-title">'+(isFinal?'🏆 الدرجة النهائية لمعدل الاختبارات':'📊 معدل درجات الاختبارات الحالي')+'</div>'+
-      '<div class="basic-training-average-score" dir="ltr">'+escapeHtml(overallLabel)+'</div>'+
-      '<div class="basic-training-average-note">'+(isFinal?'✅ احتُسب معدل الاختبارات الثمانية.':
-       'المعدل الحالي من '+testedCount+' من 8 اختبارات؛ لا تُحسب الاختبارات غير المؤداة صفرًا.')+'</div></section>';
+    // Reveal this prominent summary only when all eight training tracks
+    // are fully passed; unpassed/unfinished tests never yield a final grade.
+    var allPassed=tested.length===8&&list.every(function(item){
+      return item.passed===true&&item.watch_completed===true&&item.best_score!=null;
+    });
+    var overallHtml='';
+    if(allPassed){
+      var overall=tested.reduce(function(n,x){return n+Number(x.best_score)*5;},0)/8;
+      var overallLabel=(Number.isInteger(overall)?String(overall):overall.toFixed(1))+' / 100';
+      overallHtml='<section class="basic-training-average-card" aria-label="الدرجة النهائية لمعدل اختبارات العضو">'+
+        '<div class="basic-training-average-title">🏆 الدرجة النهائية لمعدل الاختبارات</div>'+
+        '<div class="basic-training-average-score" dir="ltr">'+escapeHtml(overallLabel)+'</div>'+
+        '<div class="basic-training-average-note">✅ اكتملت التدريبات الثمانية واجتُزيت اختباراتُها.</div></section>';
+    }
     var html='<div class="title">📘 التدريبات الأساسية — سجل العضو</div>'+
       '<p class="muted" style="margin:5px 0 12px">هذه البيانات محفوظة في قاعدة البيانات وتتحدث عند إعادة فتح ملف العضو. درجات المعاينة التجريبية لا تُحتسب.</p>'+
       '<div class="mini-grid" style="margin-bottom:12px">'+
