@@ -6213,7 +6213,9 @@ function basicTrainingPage(){
     : '<div class="card">جارٍ تحميل التدريبات الأساسية…</div>';
 }
 function professionalTrainingPage(){
+  const trainingOne = window.professionalTraining01Page?.() || '<p class="muted">تعذر تحميل أسئلة التدريب الأول.</p>';
   return `<section id="trainingProfessionalStart" class="card training-professional-page">
+    ${trainingOne}
     <div class="title">🎓 التدريبات الاحترافية</div>
     <p class="muted">مسار احترافي مستقل عن التدريبات الأساسية وخطة رجوان للنجاح.</p>
     <article class="training-professional-lesson">
@@ -8477,6 +8479,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 @media(max-width:799px){.training-kind-tabs{grid-template-columns:1fr}.training-kind-tabs .training-feature-card{min-height:128px}}
 </style>
 <link rel="stylesheet" href="../basic-training.css?v=20261014-scores100">
+<script src="../professional-training-01.js?v=20261014-preview"></script>
 <script src="../basic-training.js?v=20261014-uistate"></script>
 <script src="../basic-training-leader-profile.js?v=20261014-scores100"></script>
 <script src="../basic-training-member-profile.js?v=20261014-uistate"></script>
