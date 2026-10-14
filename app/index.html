@@ -6255,6 +6255,50 @@ function advancedProfitSelectVideo(i){
   caption.textContent='الدرس '+(Number(i)+1)+' من 10 — '+entry[1];
   document.querySelectorAll('#advancedProfitLessonList button').forEach((b,j)=>{b.setAttribute('aria-pressed',String(j===Number(i)));});
 }
+/* Camps are grouped into independent collections so future camps/trips can be added alongside them. */
+const academyCampsVideos=[
+ ['7OI3JtlrOKY','مخيم أكاديمية الثراء الشامل الأول 2017 — ماليزيا'],
+ ['fmig0y3CoQo','مخيم أكاديمية الثراء الشامل الخامس 2019 — تركيا'],
+ ['RzA8e-p8djA','مخيم أكاديمية الثراء الشامل الرابع 2019 — ماليزيا'],
+ ['PPR1m38u7TQ','مخيم أكاديمية الثراء الشامل الثالث 2018 — ماليزيا'],
+ ['6vcoJzIxUbY','مخيم أكاديمية الثراء الشامل الثاني 2018 — ماليزيا'],
+ ['F6LTtB1HKKU','زيارة مزارع ومصانع شركة DXN ماليزيا — المخيم الثاني'],
+ ['VzGbXgPRkTk','تكريمات رائعة في المخيم الثاني 2018 — ماليزيا']
+];
+function academyCampsSelectVideo(i){
+ const n=Number(i),entry=academyCampsVideos[n];if(!entry)return;
+ const frame=document.getElementById('academyCampsVideoFrame');
+ const link=document.getElementById('academyCampsYoutubeLink');
+ const title=document.getElementById('academyCampsVideoTitle');
+ if(!frame||!link||!title)return;
+ frame.src='https://www.youtube-nocookie.com/embed/'+entry[0]+'?rel=0';
+ frame.title=entry[1];
+ link.href='https://youtu.be/'+entry[0];
+ title.textContent='الفيديو '+(n+1)+' من 7 — '+entry[1];
+ document.querySelectorAll('#academyCampsVideoList button').forEach((b,j)=>b.setAttribute('aria-pressed',String(j===n)));
+}
+function trainingCampsPage(){
+ const items=academyCampsVideos.map((v,i)=>`<button type="button" class="advanced-profit-lesson" aria-pressed="${i===0?'true':'false'}" onclick="academyCampsSelectVideo(${i})"><span class="advanced-profit-index">${i+1}</span><span>${esc(v[1])}</span><span aria-hidden="true">▶</span></button>`).join('');
+ return `<section id="trainingCampsStart" class="card training-professional-page">
+  <div class="title">🏕️ مخيمات ورحلات تدريبية وترفيهية</div>
+  <p class="muted">مجموعات مستقلة لمخيمات أكاديمية الثراء الشامل والرحلات والأنشطة التدريبية والترفيهية.</p>
+  <details class="advanced-profit-course">
+   <summary><span class="advanced-profit-course-emoji">🏕️</span><span class="advanced-profit-course-copy"><strong>مخيمات أكاديمية الثراء الشامل</strong><small>7 فيديوهات — بالترتيب المعتمد من قائمة تشغيل المهندس محمود المصري</small></span><span class="advanced-profit-pill">7 فيديوهات</span></summary>
+   <div class="advanced-profit-content">
+    <p class="muted">اختر فيديو من القائمة لعرضه هنا. ترتيب الفيديوهات هو ترتيب قائمة التشغيل الأصلية، وليس الترتيب الزمني للمخيمات.</p>
+    <div class="advanced-profit-grid">
+     <div id="academyCampsVideoList" class="advanced-profit-list" aria-label="فيديوهات مخيمات أكاديمية الثراء الشامل">${items}</div>
+     <div class="advanced-profit-viewer">
+      <strong id="academyCampsVideoTitle">الفيديو 1 من 7 — ${esc(academyCampsVideos[0][1])}</strong>
+      <div class="training-professional-video"><iframe id="academyCampsVideoFrame" src="https://www.youtube-nocookie.com/embed/${academyCampsVideos[0][0]}?rel=0" title="مخيم أكاديمية الثراء الشامل الأول 2017 — ماليزيا" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
+      <a id="academyCampsYoutubeLink" class="name-list-btn" href="https://youtu.be/${academyCampsVideos[0][0]}" target="_blank" rel="noopener noreferrer">▶ مشاهدة الفيديو على YouTube</a>
+     </div>
+    </div>
+   </div>
+  </details>
+  <p class="muted" style="margin-top:16px">يمكن إضافة مجموعات مستقلة لمخيمات ورحلات أخرى لاحقًا.</p>
+ </section>`;
+}
 function advancedTrainingPage(){
   const lessons=advancedProfitVideos.map((video,i)=>`<button type="button" class="advanced-profit-lesson" aria-pressed="${i===0?'true':'false'}" onclick="advancedProfitSelectVideo(${i})"><span class="advanced-profit-index">${i+1}</span><span>الدرس ${i+1}: ${esc(video[1])}</span><span aria-hidden="true">▶</span></button>`).join('');
   return `<section id="trainingAdvancedStart" class="card training-professional-page">
@@ -6383,7 +6427,7 @@ function trainings(){
   }
 
   if(trainingSubtab==='training_camps'){
-    return backToTrainingTypes+'<section id="trainingCampsStart" class="card training-professional-page"><div class="title">🏕️ مخيمات ورحلات تدريبية وترفيهية</div><p class="muted">هذا قسم مستقل للمخيمات التدريبية والرحلات والفعاليات الترفيهية. ستُضاف تفاصيل الأنشطة ومواعيدها بعد اعتمادها.</p></section>';
+    return backToTrainingTypes+trainingCampsPage();
   }
 
   if(trainingSubtab==='ragwan_success_plan'){
