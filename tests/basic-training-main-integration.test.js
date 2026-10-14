@@ -44,10 +44,11 @@ test('basic training is independent of existing Ragwan and old lessons',()=>{
     'Only tutorials and Ragwan are top-level choices');
  assert.doesNotMatch(mainMenu,/switchTrainingSubtab\('basic'\)/);
  const typeChooser=page.split('const trainingTypeChoices=').at(-1).split("if(trainingSubtab==='home')")[0];
- assert.equal((typeChooser.match(/onclick="switchTrainingSubtab/g)||[]).length,2,
-    'Exactly basic and professional training under tutorials');
+ assert.equal((typeChooser.match(/onclick="switchTrainingSubtab/g)||[]).length,3,
+    'Exactly basic, professional and advanced training under tutorials');
  assert.match(typeChooser,/switchTrainingSubtab\('basic'\)/);
  assert.match(typeChooser,/switchTrainingSubtab\('professional'\)/);
+ assert.match(typeChooser,/switchTrainingSubtab\('advanced_training'\)/);
  assert.match(page,/if\(trainingSubtab==='lessons'\)\s*\{\s*return backChoice\+trainingTypeChoices/);
  assert.match(page,/if\(trainingSubtab==='basic'\)\s*\{\s*return backToTrainingTypes\+basicTrainingPage\(\)/);
  assert.match(page,/if\(trainingSubtab==='professional'\)\s*\{\s*return backToTrainingTypes\+professionalTrainingPage\(\)/);
