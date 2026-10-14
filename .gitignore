@@ -1,3 +1,14 @@
 node_modules/
 *.exe
 .env
+
+# Private basic-training question bank and database backups
+.private/
+secrets/
+backups/
+*.dump
+*.backup
+**/*.private.json
+**/*.private.sql
+basic-training-??-new-quiz.json
+supabase/migrations/*basic_training_approved_160_questions.sql
