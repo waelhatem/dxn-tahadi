@@ -45,16 +45,28 @@
     }
     var success=Math.max(0,Math.min(8,Number(data.passed)||0));
     var average=safePercent(data.average_watch_percent);
+    // Use each training's stored best raw 0..20 grade. Display only (/100);
+    // preserve original database values, including all attempt history.
+    var tested=list.filter(function(x){return x.best_score!=null&&Number.isFinite(Number(x.best_score));});
+    var testedCount=tested.length;
+    var overall=testedCount?tested.reduce(function(n,x){return n+Number(x.best_score)*5;},0)/testedCount:null;
+    var overallLabel=overall==null?'— / 100':(Number.isInteger(overall)?String(overall):overall.toFixed(1))+' / 100';
+    var isFinal=testedCount===8;
+    var overallHtml='<section class="basic-training-average-card" aria-label="المعدل العام لاختبارات العضو">'+
+      '<div class="basic-training-average-title">'+(isFinal?'🏆 الدرجة النهائية لمعدل الاختبارات':'📊 معدل درجات الاختبارات الحالي')+'</div>'+
+      '<div class="basic-training-average-score" dir="ltr">'+escapeHtml(overallLabel)+'</div>'+
+      '<div class="basic-training-average-note">'+(isFinal?'✅ احتُسب معدل الاختبارات الثمانية.':
+       'المعدل الحالي من '+testedCount+' من 8 اختبارات؛ لا تُحسب الاختبارات غير المؤداة صفرًا.')+'</div></section>';
     var html='<div class="title">📘 التدريبات الأساسية — سجل العضو</div>'+
       '<p class="muted" style="margin:5px 0 12px">هذه البيانات محفوظة في قاعدة البيانات وتتحدث عند إعادة فتح ملف العضو. درجات المعاينة التجريبية لا تُحتسب.</p>'+
       '<div class="mini-grid" style="margin-bottom:12px">'+
       '<div><b>✅ تدريبات اجتازها</b><div style="font-size:22px;font-weight:900">'+success+' / 8</div></div>'+
       '<div><b>📊 متوسط المشاهدة</b><div style="font-size:22px;font-weight:900">'+average+'%</div></div>'+
-      '<div><b>🎯 شرط الاجتياز</b><div style="font-size:15px;font-weight:700">90% مشاهدة و16/20 درجة</div></div>'+
-      '</div>';
+      '<div><b>🎯 شرط الاجتياز</b><div style="font-size:15px;font-weight:700">90% مشاهدة و80 / 100 درجة</div></div>'+
+      '</div>'+overallHtml;
     list.forEach(function(item){
       var pct=safePercent(item.watch_percent);
-      var grade=item.best_score==null?'لم يؤدِّ الاختبار':Math.max(0,Math.min(20,Number(item.best_score)))+' / 20';
+      var grade=item.best_score==null?'لم يؤدِّ الاختبار':Math.round(Math.max(0,Math.min(20,Number(item.best_score)))*5)+' / 100';
       var passed=Boolean(item.passed);
       var watchComplete=Boolean(item.watch_completed);
       var status=passed?'✅ مجتاز':watchComplete?'📝 بانتظار اجتياز الاختبار':pct>0?'▶️ قيد المشاهدة':'⏳ لم يبدأ';
