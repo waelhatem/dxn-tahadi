@@ -6213,23 +6213,16 @@ function basicTrainingPage(){
     : '<div class="card">جارٍ تحميل التدريبات الأساسية…</div>';
 }
 function professionalTrainingPage(){
+  const trainingOne = window.professionalTraining01Page?.() || '<p class="muted">تعذر تحميل أسئلة التدريب الأول.</p>';
+  const trainingTwo = window.professionalTraining02Page?.() || '<p class="muted">تعذر تحميل أسئلة التدريب الثاني.</p>';
   return `<section id="trainingProfessionalStart" class="card training-professional-page">
     <div class="title">🎓 التدريبات الاحترافية</div>
     <p class="muted">مسار احترافي مستقل عن التدريبات الأساسية وخطة رجوان للنجاح.</p>
-    <article class="training-professional-lesson">
-      <div class="training-professional-number">التدريب الاحترافي الخامس</div>
-      <h2>إعداد قائمة الأسماء الاحترافية</h2>
-      <p class="muted">المحاضر: الأستاذ أحمد العتيبي — مدة المحاضرة نحو 90 دقيقة.</p>
-      <div class="training-professional-video">
-        <iframe src="https://www.youtube.com/embed/HxID9tMHoVw?rel=0" title="محاضرة إعداد قائمة الأسماء الاحترافية — أحمد العتيبي" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-      </div>
-      <div class="training-professional-actions">
-        <a href="https://youtu.be/HxID9tMHoVw" target="_blank" rel="noopener noreferrer" class="name-list-btn">▶ مشاهدة الفيديو على YouTube</a>
-      </div>
-      <div class="training-professional-assessment"><strong>🧠 اختبار التدريب الخامس</strong>
-        <p>الأسئلة العشرون معتمدة ومحفوظة منفصلة، ولم تُنشر بعد في نظام الاختبارات الاحترافية.</p>
-      </div>
-    </article>
+    ${trainingOne}
+    ${trainingTwo}
+    ${window.professionalTraining03Page?.() || '<p class="muted">تعذر تحميل أسئلة التدريب الثالث.</p>'}
+    ${window.professionalTraining04Page?.() || '<p class="muted">تعذر تحميل اختبار التدريب الرابع.</p>'}
+    ${window.professionalTraining05Page?.() || '<p class="muted">تعذر تحميل اختبار التدريب الخامس.</p>'}
   </section>`;
 }
 
@@ -8477,6 +8470,11 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 @media(max-width:799px){.training-kind-tabs{grid-template-columns:1fr}.training-kind-tabs .training-feature-card{min-height:128px}}
 </style>
 <link rel="stylesheet" href="../basic-training.css?v=20261014-scores100">
+<script src="../professional-training-01.js?v=20261014-preview"></script>
+<script src="../professional-training-02.js?v=20261014-preview"></script>
+<script src="../professional-training-03.js?v=20261014-preview"></script>
+<script src="../professional-training-04.js?v=20261014-draft"></script>
+<script src="../professional-training-05.js?v=20261014-approved"></script>
 <script src="../basic-training.js?v=20261014-uistate"></script>
 <script src="../basic-training-leader-profile.js?v=20261014-scores100"></script>
 <script src="../basic-training-member-profile.js?v=20261014-uistate"></script>
