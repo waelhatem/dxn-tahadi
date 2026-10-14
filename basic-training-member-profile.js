@@ -8,7 +8,10 @@
  const titles=['التعريف بمشروع DXN ومنتجاتها ونظامها التسويقي','التعريف بشركة DXN ومنتجاتها ونظامها التسويقي والأرباح','منتجات DXN وأصنافها وطرق تسويقها','نظام البيع المباشر في DXN','خطة الأرباح والحوافز لشركة DXN','التطبيق العملي لخطة الأرباح خلال ستة أشهر','تفعيل العضوية وتسجيل أعضاء الفريق','أساسيات النجاح التسعة مع DXN'];
  const percent=p=>Math.min(100,Math.max(0,Math.round(100*(Number(p.watched)||0)/(Number(p.duration)||1))));
  window.basicTrainingMemberPage=function(){
-   return '<section class="card" id="basicTrainingMemberProfile" dir="rtl" style="max-width:960px;margin:14px auto;padding:20px;text-align:right"><h2>📘 ملفي التدريبي — التدريبات الأساسية</h2><p class="muted">درجات الاختبارات ونسب المشاهدة المحفوظة في حسابك.</p><div id="basicTrainingMemberBody" role="status">اضغط «عرض سجلي» لتحميل نتائجك.</div><button type="button" class="primary" onclick="basicTrainingLoadMemberPage()" style="margin-top:12px">🔄 عرض سجلي / تحديث</button></section>';
+   // Load on every build of the page (also a tab restored after reload);
+   // basicTrainingLoadMemberPage ignores a second call while one is running.
+   setTimeout(()=>window.basicTrainingLoadMemberPage(),0);
+   return '<section class="card" id="basicTrainingMemberProfile" dir="rtl" style="max-width:960px;margin:14px auto;padding:20px;text-align:right"><h2>📘 ملفي التدريبي — التدريبات الأساسية</h2><p class="muted">درجات الاختبارات ونسب المشاهدة المحفوظة في حسابك.</p><div id="basicTrainingMemberBody" role="status">جارٍ قراءة السجل المحفوظ...</div><button type="button" class="primary" onclick="basicTrainingLoadMemberPage()" style="margin-top:12px">🔄 عرض سجلي / تحديث</button></section>';
  };
  window.basicTrainingLoadMemberPage=async function(){
    const root=document.getElementById('basicTrainingMemberBody');

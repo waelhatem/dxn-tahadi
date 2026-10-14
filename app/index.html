@@ -2957,7 +2957,9 @@ function switchTrainingSubtab(next){
           ? document.getElementById('trainingProfessionalStart')
           : next==='lessons'
             ? document.getElementById('trainingKindChoices')
-            : document.getElementById('trainingLessonsStart');
+            : next==='basic'
+              ? document.getElementById('trainingBasicBagStart')
+              : document.getElementById('trainingLessonsStart');
       if(!target)return false;
       const sticky=document.querySelector('body.desktop-mode .tabs, body.mobile-mode .tabs');
       const offset=(sticky?sticky.getBoundingClientRect().height:0)+12;
@@ -8475,10 +8477,10 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 @media(max-width:799px){.training-kind-tabs{grid-template-columns:1fr}.training-kind-tabs .training-feature-card{min-height:128px}}
 </style>
 <link rel="stylesheet" href="../basic-training.css?v=20261014-scores100">
-<script src="../basic-training.js?v=20261014-scores100"></script>
+<script src="../basic-training.js?v=20261014-uistate"></script>
 <script src="../basic-training-leader-profile.js?v=20261014-scores100"></script>
-<script src="../basic-training-member-profile.js?v=20261014-scores100"></script>
-<script src="../basic-training-admin.js?v=1"></script>
+<script src="../basic-training-member-profile.js?v=20261014-uistate"></script>
+<script src="../basic-training-admin.js?v=20261014-uistate"></script>
 <script src="../training-assessment.js?v=20261014-chooser-guard"></script><script src="../external-training-assessment-profile.js?v=5"></script>
 <script src="../training-assessment-buttons.js"></script>
 <script src="../training-assessment-layout.js"></script>

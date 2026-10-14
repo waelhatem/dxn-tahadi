@@ -3,7 +3,7 @@
 'use strict';
 if(window.basicTrainingAdminPage)return;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state={training:1,data:null,busy:false};
+const state={training:1,data:null,busy:false,loadingTraining:0};
 async function call(action,payload){
  const token=String(localStorage.getItem('dxn_session')||'').trim();
  if(!token)throw Error('سجل الدخول أولاً');
@@ -38,17 +38,37 @@ function collect(){
  options:[0,1,2].map(j=>document.querySelector('[data-bta-opt="'+i+'-'+j+'"]').value.trim()),
  correct_index:Number(document.querySelector('[data-bta-answer="'+i+'"]').value)}))};
 }
-window.basicTrainingAdminPage=()=>'<section class="card" dir="rtl" style="max-width:980px;margin:16px auto;padding:20px;text-align:right">'+
+// The page is rebuilt by every render(), including a tab restored after reload,
+// so it shows the already loaded training or loads the selected one itself.
+window.basicTrainingAdminPage=()=>{
+ setTimeout(()=>{
+  if(!document.getElementById('basicTrainingAdminBody'))return;
+  if(state.data&&state.data.training_no===state.training)renderEditor();
+  else window.basicTrainingAdminLoad(state.training);
+ },0);
+ return '<section class="card" dir="rtl" style="max-width:980px;margin:16px auto;padding:20px;text-align:right">'+
  '<h2>⚙️ إدارة التدريبات الأساسية — حساب القائد</h2><p class="muted">تعديل الفيديو والاختبارات مع حفظ إصدارات منفصلة وحماية نتائج الأعضاء السابقة.</p>'+
- '<label>اختر التدريب <select id="btaTraining" onchange="basicTrainingAdminLoad(this.value)">'+Array.from({length:8},(_,i)=>'<option value="'+(i+1)+'">التدريب الأساسي '+(i+1)+'</option>').join('')+'</select></label>'+
- '<div id="basicTrainingAdminBody" style="margin-top:14px">اختر التدريب لتحميل إعداداته.</div></section>';
+ '<label>اختر التدريب <select id="btaTraining" onchange="basicTrainingAdminLoad(this.value)">'+Array.from({length:8},(_,i)=>'<option value="'+(i+1)+'"'+(i+1===state.training?' selected':'')+'>التدريب الأساسي '+(i+1)+'</option>').join('')+'</select></label>'+
+ '<div id="basicTrainingAdminBody" style="margin-top:14px">جارٍ تحميل النسخة الحالية...</div></section>';
+};
 window.basicTrainingAdminLoad=async n=>{
  if(typeof role==='undefined'||role!=='leader')return;
- state.training=Number(n)||1;state.data=null;
+ const training=Number(n)||1;
+ // switchTab and the page itself may both request the same training.
+ if(state.loadingTraining===training)return;
+ state.training=training;state.data=null;
  const root=document.getElementById('basicTrainingAdminBody');if(!root)return;
+ state.loadingTraining=training;
  root.textContent='جارٍ تحميل النسخة الحالية...';
- try{state.data=await call('get');renderEditor();}
- catch(e){root.textContent='تعذر تحميل محرر التدريبات: '+(e.message||e);}
+ try{
+  const data=await call('get');
+  // Ignore a late answer for a training the leader has already left.
+  if(state.training!==training)return;
+  state.data=data;renderEditor();
+ }catch(e){
+  const current=document.getElementById('basicTrainingAdminBody');
+  if(current&&state.training===training)current.textContent='تعذر تحميل محرر التدريبات: '+(e.message||e);
+ }finally{if(state.loadingTraining===training)state.loadingTraining=0;}
 };
 window.basicTrainingAdminSave=async()=>{
  if(state.busy||!state.data)return;state.busy=true;

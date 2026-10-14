@@ -17,6 +17,7 @@
   {no:8,title:'أساسيات النجاح التسعة مع DXN',video:'v4gYSL-KuHQ'}
  ];
  let loaded=false,backendReady=false,loading=false,progress=[],published=[],scores=[],movie=null,exam=null,viewerRole='';
+ let overviewError='';
  let previewWatchedPercent=0;
  let previewWatchedPercent2=0;
  let previewWatchedPercent3=0;
@@ -155,11 +156,18 @@
  '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewEighthQuiz()">🧠 الاختبار الثامن — 20 سؤالًا</button></div></article>'+
  later.map((name,i)=>'<article class="basic-bag-lesson basic-one-locked" aria-label="التدريب '+(i+4)+' مغلق"><div class="basic-bag-lesson-main"><div class="basic-bag-number">التدريب الأساسي '+(i+4)+'</div><h3>🔒 '+name+'</h3><p class="basic-bag-description">سنعمل عليه بعد الانتهاء من التدريب السابق واعتماده.</p></div><div class="basic-bag-actions"><button class="name-list-btn" type="button" disabled>🔒 التدريب مغلق</button></div></article>').join('');
 }
+ // The notice is rebuilt on every render, so it must follow the saved-progress
+ // state instead of a one-time text set after the first load.
+ function noticeText(){
+  if(!loaded)return authToken()?'جارٍ التحقق من حفظ التقدم والنتائج…':'سجّل الدخول لحفظ التقدم والنتائج.';
+  if(backendReady)return '✅ حفظ التقدم والنتائج مفعل. شرط الاجتياز: مشاهدة 90% ودرجة اختبار 80 / 100. الاختبار يتكون من 20 سؤالًا.';
+  return 'المعاينة متاحة؛ لكن حفظ التقدم والاختبارات يحتاج تفعيل ترحيل Supabase المراجع. '+overviewError;
+ }
  function courseHtml(){
   setTimeout(refreshCards,0);
   return '<section id="trainingBasicBagStart" class="card basic-bag-page"><div class="title">📘 التدريبات الأساسية — حقيبة المهندس محمود المصري</div>'+
-   '<p class="muted">التدريبات الأساسية الثمانية لها اختبارات معتمدة ومتاحة للمعاينة فقط؛ التسلسل الفعلي لا يزال مقفلًا.</p>'+
-   '<p id="basicBagNotice" class="basic-bag-notice">معاينة المحتوى والتصميم فقط. لا يوجد حفظ للدرجات أو المشاهدة ولا ربط جديد بقاعدة البيانات.</p>'+
+   '<p class="muted">ثمانية تدريبات بالترتيب؛ لكل تدريب فيديو واختبار معتمد من 20 سؤالًا، ولا يُفتح التدريب التالي قبل اجتياز السابق.</p>'+
+   '<p id="basicBagNotice" class="basic-bag-notice">'+esc(noticeText())+'</p>'+
    '<div id="basicBagCards" class="basic-bag-cards"></div></section>';
  }
  async function loadOverview(){
@@ -168,13 +176,15 @@
    if(!Array.isArray(r.progress)||!Array.isArray(r.published_quizzes)||!Array.isArray(r.scores))throw Error('تنسيق الاستجابة غير صحيح');
    progress=r.progress; published=r.published_quizzes;scores=r.scores;viewerRole=String(r.role||'');
    loaded=true;backendReady=true;
-   const n=document.getElementById('basicBagNotice');
-   if(n)n.textContent='✅ حفظ التقدم والنتائج مفعل. شرط الاجتياز: مشاهدة 90% ودرجة اختبار 80 / 100. الاختبار يتكون من 20 سؤالًا.';
   }catch(e){
-   const n=document.getElementById('basicBagNotice');
-   if(n)n.textContent='المعاينة متاحة؛ لكن حفظ التقدم والاختبارات يحتاج تفعيل ترحيل Supabase المراجع. '+(e.message||'');
+   overviewError=String(e.message||'');
    loaded=true;backendReady=false;
-  }finally{loading=false;refreshCards();}
+  }finally{
+   loading=false;
+   const n=document.getElementById('basicBagNotice');
+   if(n)n.textContent=noticeText();
+   refreshCards();
+  }
  }
  function maybeLoad(){if(!loaded&&!loading&&authToken()){loading=true;setTimeout(loadOverview,0);}return courseHtml();}
  async function ytApi(){
@@ -401,6 +411,12 @@
       if(qs.length!==20||qs.some(q=>!q.question||!Array.isArray(q.options)||q.options.length!==3||!Number.isInteger(q.answer)||q.answer<0||q.answer>2))throw Error('أسئلة المعاينة غير متاحة');
       if(!modal||!modal.isConnected)return;
       const loading=body.querySelector('#basicQuizLoad');if(loading)loading.remove();
+      // The editor returns the newest unpublished draft first; members still get the published revision.
+      if(secured.status==='draft'){
+        const draftNote=document.createElement('p');draftNote.className='basic-bag-notice';
+        draftNote.textContent='⚠️ هذه مسودة غير منشورة (الإصدار '+Number(secured.revision)+'). الأعضاء يختبرون حاليًا بالإصدار المنشور '+Number(secured.active_revision)+'.';
+        body.append(draftNote);
+      }
       const form=document.createElement('form');form.className='basic-bag-exam';
       const counter=document.createElement('p');counter.className='basic-bag-status';counter.textContent='الإجابات: 0 / 20';form.append(counter);
       const answers=Array(20).fill(null);
