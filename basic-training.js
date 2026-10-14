@@ -343,15 +343,62 @@
    renderExam();
   }catch(e){body.textContent=e.message||'تعذر تحميل الأسئلة';}
  };
+ // One question at a time, as in the professional quizzes: all twenty fieldsets stay in the
+ // form so chosen answers survive navigation; only the current one is shown. Nothing is sent
+ // until the finish button on the last question, and grading stays with the caller.
+ function pageQuestions(form,sections,opts){
+  let current=0;
+  const total=sections.length;
+  const warning=document.createElement('div');warning.className='basic-bag-unanswered';warning.hidden=true;
+  const footer=document.createElement('div');footer.className='basic-bag-pager';
+  const status=document.createElement('strong');status.className='basic-bag-pager-status';status.setAttribute('aria-live','polite');
+  const back=document.createElement('button');back.type='button';back.className='name-list-btn';back.textContent='→ السابق';
+  const next=document.createElement('button');next.type='button';next.className='name-list-btn name-list-primary';next.textContent='التالي ←';
+  const finish=document.createElement('button');finish.type='button';finish.className='name-list-btn name-list-primary basic-bag-finish';finish.textContent=opts.finishLabel;
+  footer.append(status,back,next,finish);
+  form.append(warning,footer);
+  sections.forEach(s=>{const legend=s.querySelector('legend');if(legend)legend.tabIndex=-1;});
+  function update(){
+   sections.forEach((s,i)=>{s.hidden=i!==current;});
+   const answered=sections.filter((_,i)=>opts.isAnswered(i)).length;
+   status.textContent='السؤال '+(current+1)+' من '+total+' — تمت الإجابة عن '+answered+' من '+total;
+   back.disabled=current===0;
+   next.hidden=current===total-1;
+   finish.hidden=current!==total-1;
+  }
+  function goTo(i){
+   current=Math.max(0,Math.min(total-1,i));
+   warning.hidden=true;update();
+   try{sections[current].scrollIntoView({block:'nearest'});sections[current].querySelector('legend')?.focus({preventScroll:true});}catch(_){}
+  }
+  back.addEventListener('click',()=>goTo(current-1));
+  next.addEventListener('click',()=>goTo(current+1));
+  finish.addEventListener('click',()=>{
+   const missing=sections.map((_,i)=>i).filter(i=>!opts.isAnswered(i));
+   if(!missing.length){warning.hidden=true;opts.onFinish();return;}
+   // The server grades complete answer sheets only, so the member is sent back to finish them.
+   const text=document.createElement('p');
+   text.textContent='لم تُجب عن '+missing.length+' من الأسئلة (رقم '+missing.map(i=>i+1).join('، ')+'). يجب الإجابة عن الأسئلة العشرين قبل إرسال الاختبار.';
+   const goBack=document.createElement('button');goBack.type='button';goBack.className='name-list-btn name-list-primary';
+   goBack.textContent='الرجوع إلى السؤال '+(missing[0]+1);goBack.addEventListener('click',()=>goTo(missing[0]));
+   const stay=document.createElement('button');stay.type='button';stay.className='name-list-btn';
+   stay.textContent='البقاء في هذا السؤال';stay.addEventListener('click',()=>{warning.hidden=true;});
+   warning.replaceChildren(text,goBack,stay);warning.hidden=false;
+  });
+  form.addEventListener('submit',ev=>ev.preventDefault());
+  update();
+  return {update,finish,back,next};
+ }
+ const BASIC_FINISH_LABEL='إنهاء الاختبار وإرسال الإجابات';
  function renderExam(){
   const e=exam;if(!e)return;
   const body=document.getElementById('basicBagModalBody');if(!body)return;
   body.replaceChildren();
   const f=document.createElement('form');f.className='basic-bag-exam';
-  f.addEventListener('submit',async ev=>{
-   ev.preventDefault();if(e.busy)return;
-   if(e.answers.includes(-1)){safeToast('أجب عن جميع الأسئلة العشرين');return;}
-   e.busy=true;const submit=f.querySelector('[type=submit]');submit.disabled=true;submit.textContent='جارٍ التصحيح الآلي…';
+  let pager=null;
+  async function submitExam(){
+   if(e.busy||e.answers.includes(-1))return;
+   e.busy=true;const submit=pager.finish;submit.disabled=true;pager.back.disabled=true;submit.textContent='جارٍ التصحيح الآلي…';
    try{
     const graded=await rpc('basic_training_submit_quiz',{p_training_no:e.no,p_answers:e.answers,p_revision:e.revision});
     body.replaceChildren();const result=document.createElement('div');result.className='basic-bag-result';
@@ -372,20 +419,21 @@
       result.appendChild(note);
     }
     body.appendChild(result);await loadOverview();
-   }catch(err){safeToast(err.message||'تعذر التصحيح');submit.disabled=false;submit.textContent='إنهاء الاختبار وتصحيح الإجابات';e.busy=false;}
-  });
-  e.questions.forEach((q,i)=>{
+   }catch(err){safeToast(err.message||'تعذر التصحيح');submit.disabled=false;submit.textContent=BASIC_FINISH_LABEL;pager.update();e.busy=false;}
+  }
+  const sections=e.questions.map((q,i)=>{
    const sec=document.createElement('fieldset');sec.className='basic-bag-question';
    const legend=document.createElement('legend');legend.textContent='السؤال '+(i+1)+' — '+q.question;sec.appendChild(legend);
    q.options.forEach((opt,k)=>{
     const lbl=document.createElement('label');const radio=document.createElement('input');
     radio.type='radio';radio.name='basic_q_'+i;radio.value=String(k);
-    radio.checked=e.answers[i]===k;radio.addEventListener('change',()=>e.answers[i]=k);
+    radio.checked=e.answers[i]===k;radio.addEventListener('change',()=>{e.answers[i]=k;pager.update();});
     lbl.append(radio,document.createTextNode(['أ','ب','ج'][k]+'. '+opt));sec.appendChild(lbl);
    });f.appendChild(sec);
+   return sec;
   });
-  const submit=document.createElement('button');submit.type='submit';submit.className='name-list-btn name-list-primary';
-  submit.textContent='إنهاء الاختبار وتصحيح الإجابات';f.appendChild(submit);body.appendChild(f);
+  pager=pageQuestions(f,sections,{finishLabel:BASIC_FINISH_LABEL,isAnswered:i=>e.answers[i]!==-1,onFinish:submitExam});
+  body.appendChild(f);
  }
 
  window.basicBagPreviewFirstQuiz=async function(number=1){
@@ -418,25 +466,22 @@
         body.append(draftNote);
       }
       const form=document.createElement('form');form.className='basic-bag-exam';
-      const counter=document.createElement('p');counter.className='basic-bag-status';counter.textContent='الإجابات: 0 / 20';form.append(counter);
       const answers=Array(20).fill(null);
-      qs.forEach((q,i)=>{
+      let pager=null;
+      const sections=qs.map((q,i)=>{
          const section=document.createElement('fieldset');section.className='basic-bag-question';
-         const legend=document.createElement('legend');legend.textContent=(i+1)+'. '+q.question;section.append(legend);
+         const legend=document.createElement('legend');legend.textContent='السؤال '+(i+1)+' — '+q.question;section.append(legend);
          q.options.forEach((opt,j)=>{
            const label=document.createElement('label'),radio=document.createElement('input');
            radio.type='radio';radio.name='basic_'+number+'_'+i;radio.value=String(j);
-           radio.addEventListener('change',()=>{answers[i]=j;counter.textContent='الإجابات: '+answers.filter(v=>v!==null).length+' / 20';});
+           radio.addEventListener('change',()=>{answers[i]=j;pager.update();});
            label.append(radio,document.createTextNode(' '+(q.options.length===2&&q.options[0]==='صح'?'':(['أ','ب','ج','د'][j]||String(j+1))+'. ')+opt));
            section.append(label);
          });
          form.append(section);
+         return section;
       });
-      const submit=document.createElement('button');submit.type='submit';submit.className='name-list-btn name-list-primary';submit.textContent='إنهاء الاختبار والتصحيح التجريبي';form.append(submit);
-      form.addEventListener('submit',e=>{
-        e.preventDefault();
-        if(answers.includes(null)){alert('أجب عن جميع الأسئلة العشرين أولًا');return;}
-        
+      pager=pageQuestions(form,sections,{finishLabel:'إنهاء الاختبار والتصحيح التجريبي',isAnswered:i=>answers[i]!==null,onFinish:()=>{
         const approved=qs.filter(q=>Number.isInteger(q.answer));
         const score=qs.reduce((total,q,i)=>total+(Number.isInteger(q.answer)&&answers[i]===q.answer?1:0),0);
         const result=document.createElement('div');result.className='basic-bag-result';
@@ -452,7 +497,7 @@
         const text=document.createElement('p');text.textContent=wrong.length?'أسئلة تحتاج مراجعة: '+wrong.map(v=>v.i+1).join('، '):'جميع الإجابات صحيحة';result.append(text);
         wrong.forEach(v=>{const row=document.createElement('p');row.textContent='س'+(v.i+1)+' — الإجابة الصحيحة وفق المفتاح المعتمد: '+v.answer;result.append(row);});
         form.replaceWith(result);
-      });
+      }});
       body.append(form);
    }catch(e){const loading=body.querySelector('#basicQuizLoad');if(loading)loading.textContent='تعذر تحميل الأسئلة: '+(e.message||e);}
  };

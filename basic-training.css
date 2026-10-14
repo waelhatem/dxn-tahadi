@@ -72,3 +72,13 @@
 .basic-training-average-note{font-size:14px;line-height:1.75;color:#e4fff4;max-width:720px;margin:3px auto 0}
 @media(max-width:600px){.basic-training-average-card{padding:17px 12px;border-radius:16px}
   .basic-training-average-note{font-size:12px}}
+
+/* One question at a time with previous/next, as in the professional quizzes.
+   .name-list-btn sets display, so hidden must be enforced explicitly. */
+.basic-bag-exam .basic-bag-question[hidden],.basic-bag-pager [hidden],.basic-bag-unanswered[hidden]{display:none!important}
+.basic-bag-pager{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;margin:4px 0}
+.basic-bag-pager-status{flex:1 0 100%;text-align:center;color:#174738;line-height:1.8}
+.basic-bag-pager .name-list-btn{min-width:160px;min-height:46px}
+.basic-bag-unanswered{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:12px;border:1px solid #f0c36d;border-radius:12px;background:#fff8e6}
+.basic-bag-unanswered p{flex:1 0 100%;margin:0;text-align:center;color:#6b4a00;line-height:1.8}
+@media(max-width:700px){.basic-bag-pager .name-list-btn,.basic-bag-unanswered .name-list-btn{flex:1 1 40%;min-width:0}}
