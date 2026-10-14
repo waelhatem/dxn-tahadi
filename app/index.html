@@ -2945,7 +2945,7 @@ function ideaTrustVideos(){
   renderViewSwitch();
 }
 function switchTrainingSubtab(next){
-  if(next!=='home'&&next!=='lessons'&&next!=='basic'&&next!=='ragwan_success_plan')return;
+  if(next!=='home'&&next!=='lessons'&&next!=='basic'&&next!=='professional'&&next!=='ragwan_success_plan')return;
   trainingSubtab=next;
   saveDxnUiState({tab,trainingSubtab:next});
   try{
@@ -2953,7 +2953,11 @@ function switchTrainingSubtab(next){
     const scrollToTrainingTarget=()=>{
       const target=next==='ragwan_success_plan'
         ? document.getElementById('ragwanIntroVideo')
-        : document.getElementById('trainingLessonsStart');
+        : next==='professional'
+          ? document.getElementById('trainingProfessionalStart')
+          : next==='lessons'
+            ? document.getElementById('trainingKindChoices')
+            : document.getElementById('trainingLessonsStart');
       if(!target)return false;
       const sticky=document.querySelector('body.desktop-mode .tabs, body.mobile-mode .tabs');
       const offset=(sticky?sticky.getBoundingClientRect().height:0)+12;
@@ -6206,6 +6210,27 @@ function basicTrainingPage(){
     ? window.basicTrainingCourseHtml()
     : '<div class="card">جارٍ تحميل التدريبات الأساسية…</div>';
 }
+function professionalTrainingPage(){
+  return `<section id="trainingProfessionalStart" class="card training-professional-page">
+    <div class="title">🎓 التدريبات الاحترافية</div>
+    <p class="muted">مسار احترافي مستقل عن التدريبات الأساسية وخطة رجوان للنجاح.</p>
+    <article class="training-professional-lesson">
+      <div class="training-professional-number">التدريب الاحترافي الخامس</div>
+      <h2>إعداد قائمة الأسماء الاحترافية</h2>
+      <p class="muted">المحاضر: الأستاذ أحمد العتيبي — مدة المحاضرة نحو 90 دقيقة.</p>
+      <div class="training-professional-video">
+        <iframe src="https://www.youtube.com/embed/HxID9tMHoVw?rel=0" title="محاضرة إعداد قائمة الأسماء الاحترافية — أحمد العتيبي" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+      </div>
+      <div class="training-professional-actions">
+        <a href="https://youtu.be/HxID9tMHoVw" target="_blank" rel="noopener noreferrer" class="name-list-btn">▶ مشاهدة الفيديو على YouTube</a>
+      </div>
+      <div class="training-professional-assessment"><strong>🧠 اختبار التدريب الخامس</strong>
+        <p>الأسئلة العشرون معتمدة ومحفوظة منفصلة، ولم تُنشر بعد في نظام الاختبارات الاحترافية.</p>
+      </div>
+    </article>
+  </section>`;
+}
+
 function trainings(){
   const lessons=(trainingData.lessons||[]).sort((a,b)=>Number(a.lesson_no)-Number(b.lesson_no));
   const progress=trainingData.my_progress||[];
@@ -6223,13 +6248,6 @@ function trainings(){
       <span class="training-feature-badge">طريقك للنجاح 📈</span>
       <span class="training-feature-icon">📊</span>
       <span class="training-feature-copy"><strong>الخطة الاحترافية</strong><em>لرجوان نجاح</em><small>خطوات بسيطة ... تصنع نجاحات كبيرة</small></span>
-      <span class="training-feature-arrow">›</span>
-    </button>
-    <button type="button" class="training-feature-card training-feature-lessons ${trainingSubtab==='basic'?'is-active':''}" onclick="switchTrainingSubtab('basic')">
-      <span class="training-feature-shine"></span>
-      <span class="training-feature-badge">مسار 8 تدريبات 📘</span>
-      <span class="training-feature-icon">📘</span>
-      <span class="training-feature-copy"><strong>التدريبات الأساسية</strong><small>شاهد 90% ثم اجتز اختبار 16 من 20</small></span>
       <span class="training-feature-arrow">›</span>
     </button>
   </div>`;
@@ -6252,12 +6270,52 @@ function trainings(){
     </button>
   </div>`;
 
+  const backToTrainingTypes=`<div class="training-back-to-lessons" style="margin:0 0 14px">
+    <button type="button" class="training-feature-card training-feature-lessons training-back-feature" onclick="switchTrainingSubtab('lessons')" aria-label="العودة إلى اختيار نوع التدريب">
+      <span class="training-feature-shine"></span>
+      <span class="training-feature-badge">↩️ رجوع</span>
+      <span class="training-feature-icon">📚</span>
+      <span class="training-feature-copy"><strong>اختيار نوع التدريب</strong><small>العودة إلى التدريبات الأساسية والاحترافية</small></span>
+      <span class="training-feature-arrow">›</span>
+    </button>
+  </div>`;
+  const trainingTypeChoices=`<section id="trainingKindChoices" class="training-kinds-screen">
+    <div class="card training-kinds-header">
+      <div class="title">📚 الشروحات والتدريبات</div>
+      <p class="muted">اختر نوع التدريب الذي تريد الدخول إليه.</p>
+    </div>
+    <div class="training-feature-tabs training-kind-tabs" aria-label="أنواع التدريبات">
+      <button type="button" class="training-feature-card training-feature-lessons" onclick="switchTrainingSubtab('basic')">
+        <span class="training-feature-shine"></span>
+        <span class="training-feature-badge">📘 المسار الأساسي</span>
+        <span class="training-feature-icon">📚</span>
+        <span class="training-feature-copy"><strong>التدريبات الأساسية</strong><small>حقيبة المهندس محمود المصري — فيديوهات واختبارات معتمدة</small></span>
+        <span class="training-feature-arrow">›</span>
+      </button>
+      <button type="button" class="training-feature-card training-feature-professional" onclick="switchTrainingSubtab('professional')">
+        <span class="training-feature-shine"></span>
+        <span class="training-feature-badge">🎓 المسار الاحترافي</span>
+        <span class="training-feature-icon">🏆</span>
+        <span class="training-feature-copy"><strong>التدريبات الاحترافية</strong><small>المحاضرات والتطبيقات والاختبارات المعتمدة</small></span>
+        <span class="training-feature-arrow">›</span>
+      </button>
+    </div>
+  </section>`;
+
   if(trainingSubtab==='home'){
     return subTabs;
   }
 
+  if(trainingSubtab==='lessons'){
+    return backChoice+trainingTypeChoices;
+  }
+
   if(trainingSubtab==='basic'){
-    return backChoice+basicTrainingPage();
+    return backToTrainingTypes+basicTrainingPage();
+  }
+
+  if(trainingSubtab==='professional'){
+    return backToTrainingTypes+professionalTrainingPage();
   }
 
   if(trainingSubtab==='ragwan_success_plan'){
@@ -6267,7 +6325,7 @@ function trainings(){
     </div>`;
   }
 
-  if(!canAccessTraining())return backChoice+`<div class="card"><div class="title">🔒 التدريب للأعضاء والقائد</div><p class="muted">هذا القسم متاح للعضو صاحب رقم عضوية DXN وللقائد.</p></div>`;
+  if(!canAccessTraining())return backToTrainingTypes+`<div class="card"><div class="title">🔒 التدريب للأعضاء والقائد</div><p class="muted">هذا القسم متاح للعضو صاحب رقم عضوية DXN وللقائد.</p></div>`;
   if(!lessons.length)return backChoice+`<div class="card"><div class="title">📚 الشروحات والتدريبات</div><p class="muted">لم تتم إضافة تدريبات بعد. يمكن للقائد إضافة روابط YouTube من مركز القيادة.</p>${role==='leader'?`<button class="primary" onclick="openTrainingManager()">➕ إضافة أول تدريب</button>`:''}</div>`;
 
   const completedNo=new Set(progress.filter(p=>p.completed).map(p=>{
@@ -8433,6 +8491,24 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
   }catch(e){}
 })();
 </script>
+<style id="training-professional-page-style">
+.training-kind-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}
+.training-kind-tabs .training-feature-card{min-width:0}
+.training-kinds-header{margin-bottom:8px}
+.training-feature-professional{background:linear-gradient(135deg,#663d99,#8851bb 55%,#ae80d9);color:#fff;box-shadow:0 10px 26px rgba(80,38,116,.20)}
+.training-professional-page{color:#173d30}
+.training-professional-lesson{background:#f9fbfa;border:1px solid #d9e7e0;padding:18px;border-radius:18px;margin-top:15px}
+.training-professional-lesson h2{margin:9px 0;font-size:clamp(20px,2.5vw,28px);color:#184936}
+.training-professional-number{display:inline-flex;border-radius:999px;background:#eee6f6;padding:7px 12px;font-size:12px;font-weight:900;color:#65398a}
+.training-professional-video{position:relative;width:100%;padding-top:56.25%;border-radius:13px;overflow:hidden;background:#102c24;margin:14px 0}
+.training-professional-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.training-professional-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:15px 0}
+.training-professional-actions a.name-list-btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.training-professional-helper{font-size:13px;line-height:1.9;color:#426457}
+.training-professional-assessment{margin-top:16px;padding:14px;background:#f2f6f3;border:1px solid #d9e5dd;border-radius:12px;font-size:14px;line-height:1.8}
+.training-professional-assessment p{margin:5px 0 0;color:#435f52}
+@media(max-width:799px){.training-kind-tabs{grid-template-columns:1fr}.training-kind-tabs .training-feature-card{min-height:128px}}
+</style>
 <link rel="stylesheet" href="../basic-training.css?v=1">
 <script src="../basic-training.js?v=1"></script>
 <script src="../basic-training-leader-profile.js?v=1"></script>
