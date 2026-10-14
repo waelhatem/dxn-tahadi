@@ -37,7 +37,19 @@ test('basic training is independent of existing Ragwan and old lessons',()=>{
  assert.match(page,/window\.loadBasicTrainingLeaderMemberProfile\(id\)/);
  assert.match(page,/src="\.\.\/training-assessment\.js"/);
  assert.doesNotMatch(page,/training-name-list\.js/);
- assert.doesNotMatch(page,/function professionalTrainingPage\(\)/);
+ assert.match(page,/function professionalTrainingPage\(\)/);
+ const mainMenu=page.split('const subTabs=').at(-1).split('const backChoice=')[0];
+ assert.equal((mainMenu.match(/onclick="switchTrainingSubtab/g)||[]).length,2,
+    'Only tutorials and Ragwan are top-level choices');
+ assert.doesNotMatch(mainMenu,/switchTrainingSubtab\('basic'\)/);
+ const typeChooser=page.split('const trainingTypeChoices=').at(-1).split("if(trainingSubtab==='home')")[0];
+ assert.equal((typeChooser.match(/onclick="switchTrainingSubtab/g)||[]).length,2,
+    'Exactly basic and professional training under tutorials');
+ assert.match(typeChooser,/switchTrainingSubtab\('basic'\)/);
+ assert.match(typeChooser,/switchTrainingSubtab\('professional'\)/);
+ assert.match(page,/if\(trainingSubtab==='lessons'\)\s*\{\s*return backChoice\+trainingTypeChoices/);
+ assert.match(page,/if\(trainingSubtab==='basic'\)\s*\{\s*return backToTrainingTypes\+basicTrainingPage\(\)/);
+ assert.match(page,/if\(trainingSubtab==='professional'\)\s*\{\s*return backToTrainingTypes\+professionalTrainingPage\(\)/);
 });
 test('no previous direct public answer-key resources appear in clean branch',()=>{
  assert.equal(fs.existsSync(path.join(root,'basic-training-quiz1.js')),false);
