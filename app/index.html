@@ -6325,45 +6325,10 @@ function trainings(){
     </div>`;
   }
 
-  if(!canAccessTraining())return backToTrainingTypes+`<div class="card"><div class="title">🔒 التدريب للأعضاء والقائد</div><p class="muted">هذا القسم متاح للعضو صاحب رقم عضوية DXN وللقائد.</p></div>`;
-  if(!lessons.length)return backChoice+`<div class="card"><div class="title">📚 الشروحات والتدريبات</div><p class="muted">لم تتم إضافة تدريبات بعد. يمكن للقائد إضافة روابط YouTube من مركز القيادة.</p>${role==='leader'?`<button class="primary" onclick="openTrainingManager()">➕ إضافة أول تدريب</button>`:''}</div>`;
-
-  const completedNo=new Set(progress.filter(p=>p.completed).map(p=>{
-    const l=lessons.find(x=>String(x.id)===String(p.lesson_id)); return l?Number(l.lesson_no):0;
-  }));
-  const pct=Math.round((completedNo.size/lessons.length)*100);
-
-  const cards=lessons.map(l=>{
-    const n=Number(l.lesson_no), p=progress.find(x=>String(x.lesson_id)===String(l.id));
-    const done=!!p?.completed;
-    const previousDone = n===1 || completedNo.has(n-1);
-    const locked = !done && !previousDone && role==='member';
-    return `<div id="${n===1?'trainingLessonsStart':''}" class="card" style="${locked?'opacity:.58;background:#f6f8f7':''}">
-      <div class="row">
-        <div style="flex:1">
-          <div style="font-size:28px">📚</div>
-          <h3 style="margin:5px 0">التدريب ${n} — ${esc(l.title)}</h3>
-          <p>${esc(l.description||'')}</p>
-          <div class="muted">🎁 مكافأة الإكمال: <b>⭐${Number(l.reward_stars||0)}</b></div>
-          <div class="muted">${done?'✅ مكتمل':locked?'🔒 مغلق — أكمل التدريب السابق أولاً':'▶️ متاح الآن'}</div>
-          ${p?`<div class="muted">📊 نسبة المشاهدة: ${Number(p.watch_percent||0).toFixed(0)}%</div>`:''}
-        </div>
-        <div style="display:flex;flex-direction:column;gap:8px;min-width:180px;align-items:stretch">
-          <button class="primary" ${locked?'disabled':''} onclick="startTrainingLesson('${l.id}')">${done?'🔁 إعادة المشاهدة':locked?'🔒 مغلق':'▶️ بدء التدريب'}</button>
-          ${role==='member'?`<button type="button" data-training-assessment-button="${n}" ${locked?'disabled':''} onclick="openTrainingAssessment(${n})" style="width:100%;border:1px solid ${locked?'#d8dee0':'#cfe4da'};background:${locked?'#eef1f1':'#eef8f2'};color:${locked?'#7b8790':'#0f513f'};font-weight:950;min-height:44px">${locked?'🔒 اختبار التدريب — مغلق حتى يفتح التدريب':'🧠 اختبار التدريب'}</button>`:''}
-          ${role==='leader'?`<button type="button" class="dxn-training-manage-btn" onclick="window.__DXN_OPEN_TRAINING_QUESTION_MANAGER__(${n})" style="width:100%;min-height:44px">⚙️ إدارة اسئلة التدريبات</button>`:''}
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-
-  return backChoice+`<div class="card">
-    <div class="title">📚 الشروحات والتدريبات</div>
-    <p class="muted">شاهد التدريبات بالترتيب. لا يفتح التدريب التالي إلا بعد إكمال التدريب السابق، ويمكنك إعادة مشاهدة أي تدريب أكملته في أي وقت.</p>
-    <div style="background:#eef3f1;border-radius:999px;height:14px;overflow:hidden;margin:15px 0"><div style="width:${pct}%;height:100%;background:#0f513f"></div></div>
-    <div style="text-align:center;font-weight:900">نسبة إكمالك: ${pct}% — ${completedNo.size} من ${lessons.length}</div>
-    <div class="muted" style="text-align:center;margin-top:8px">⭐ أكمل التدريب كاملًا لتحصل على مكافأة النجوم مرة واحدة.</div>
-  </div>${cards}`;
+  // The prior 8-lesson training track remains stored and managed separately.
+  // Never fall through into its old progress/cards when the current route is
+  // missing, stale or unexpected; show the approved 2-option chooser instead.
+  return backChoice+trainingTypeChoices;
 }
 
 function youtubeEmbed(url){
