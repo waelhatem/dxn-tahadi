@@ -6222,7 +6222,7 @@ function professionalTrainingPage(){
     ${trainingTwo}
     ${window.professionalTraining03Page?.() || '<p class="muted">تعذر تحميل أسئلة التدريب الثالث.</p>'}
     ${window.professionalTraining04Page?.() || '<p class="muted">تعذر تحميل اختبار التدريب الرابع.</p>'}
-    <article class="basic-bag-lesson professional-lesson-card" id="professionalTraining05"><div class="basic-bag-lesson-main"><div class="basic-bag-number">التدريب الاحترافي الخامس</div><h3>إعداد قائمة الأسماء الاحترافية</h3><p class="basic-bag-description">المحاضر: الأستاذ أحمد العتيبي — مدة المحاضرة نحو 90 دقيقة.</p><p class="basic-bag-status">الاختبار معتمد مسبقًا؛ جارٍ استرجاع النص الأصلي للأسئلة العشرين دون تعديل.</p></div><div class="basic-bag-actions"><button type="button" class="name-list-btn" onclick="professionalTraining05OpenVideo()">▶ مشاهدة الفيديو</button><button type="button" class="name-list-btn" disabled title="بانتظار إدراج النص الأصلي المعتمد">📝 اختبار التدريب الخامس — بانتظار الإدراج</button></div></article>
+    ${window.professionalTraining05Page?.() || '<p class="muted">تعذر تحميل اختبار التدريب الخامس.</p>'}
   </section>`;
 }
 
@@ -8474,7 +8474,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 <script src="../professional-training-02.js?v=20261014-preview"></script>
 <script src="../professional-training-03.js?v=20261014-preview"></script>
 <script src="../professional-training-04.js?v=20261014-draft"></script>
-<script src="../professional-training-05.js?v=20261014-video"></script>
+<script src="../professional-training-05.js?v=20261014-approved"></script>
 <script src="../basic-training.js?v=20261014-uistate"></script>
 <script src="../basic-training-leader-profile.js?v=20261014-scores100"></script>
 <script src="../basic-training-member-profile.js?v=20261014-uistate"></script>
