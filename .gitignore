@@ -1,3 +1,11 @@
 node_modules/
 *.exe
 .env
+
+# Never commit private basic-training answer banks or approved secret seeds
+.private/
+secrets/
+**/*.private.json
+**/*.private.sql
+basic-training-??-new-quiz.json
+supabase/migrations/*basic_training_approved_160_questions.sql

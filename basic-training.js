@@ -16,7 +16,7 @@
   {no:7,title:'تفعيل العضوية وتسجيل أعضاء الفريق',video:'kYJjJu2JQFI'},
   {no:8,title:'أساسيات النجاح التسعة مع DXN',video:'v4gYSL-KuHQ'}
  ];
- let loaded=false,backendReady=false,loading=false,progress=[],published=[],scores=[],movie=null,exam=null;
+ let loaded=false,backendReady=false,loading=false,progress=[],published=[],scores=[],movie=null,exam=null,viewerRole='';
  let previewWatchedPercent=0;
  let previewWatchedPercent2=0;
  let previewWatchedPercent3=0;
@@ -30,9 +30,8 @@
  const currentLesson=n=>lessons.find(x=>x.no===Number(n));
  const statusOf=n=>progress.find(x=>x.training_no===n)||{watched:0,duration:0,completed:false};
  // Successful completion of the previous training means video + submitted exam.
- function lessonUnlock(no){if(no===1)return true;return !!statusOf(no-1).completed&&scores.some(x=>Number(x.training_no)===no-1);}
- // Preview in the draft branch only; not a graded attempt.
- const previewOnly=true;
+ function lessonUnlock(no){if(no===1)return true;return !!statusOf(no-1).completed&&scores.some(x=>Number(x.training_no)===no-1&&x.passed===true);}
+ // Approved tests can still be previewed without saving; live attempts require RPC.
  function safeToast(s){if(typeof window.toast==='function')window.toast(s);else console.info(s);}
  function authToken(){return String(localStorage.getItem('dxn_session')||'').trim();}
  async function rpc(fn,args={}){
@@ -48,6 +47,29 @@
  }
  function refreshCards(){
  const host=document.getElementById('basicBagCards');if(!host)return;
+ if(backendReady){
+  const canPreview=viewerRole==='leader'&&window.innerWidth>=900;
+  host.innerHTML=lessons.map(item=>{
+    const p=statusOf(item.no),unlocked=lessonUnlock(item.no);
+    const watched=Math.min(100,Math.max(0,Math.round(100*fmt(p.watched)/(fmt(p.duration)||1))));
+    const passed=!!p.passed,watchReady=!!p.completed;
+    const score=(p.best_score===null||p.best_score===undefined)?'':' | أفضل درجة اختبار: '+p.best_score+' من 20';
+    const status=passed?'✅ اجتاز التدريب':watchReady?'✅ اكتملت المشاهدة — الاختبار متاح':unlocked?'▶ متابعة المشاهدة حتى 90%':'🔒 أكمل التدريب السابق واجتز اختباره أولًا';
+    return '<article class="basic-bag-lesson basic-two-stage"><div class="basic-bag-lesson-main">'+
+      '<div class="basic-bag-number">التدريب الأساسي '+item.no+'</div><h3>'+esc(item.title)+'</h3>'+
+      '<p class="basic-bag-description">المدرب: المهندس محمود المصري</p>'+
+      '<div class="basic-bag-status">'+status+esc(score)+'</div>'+
+      '<div class="basic-bag-progress-line"><strong class="basic-bag-percentage">'+watched+'%</strong>'+
+      '<div class="basic-bag-progress" role="progressbar" aria-label="المشاهدة المحفوظة" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+watched+'"><div style="width:'+watched+'%"></div></div></div>'+
+      '<p class="basic-bag-description">شرط اجتياز التدريب: مشاهدة 90% والحصول على 16/20 على الأقل. يمكن إعادة الاختبار عند الرسوب.</p></div>'+
+      '<div class="basic-bag-actions">'+
+      '<button type="button" class="name-list-btn name-list-primary" onclick="basicBagStartVideo('+item.no+')" '+(!unlocked?'disabled':'')+'>▶ '+(watchReady?'إعادة المشاهدة':'بدء / متابعة المشاهدة')+'</button>'+
+      '<button type="button" class="name-list-btn" onclick="basicBagStartQuiz('+item.no+')" '+(!unlocked||!watchReady?'disabled':'')+'>🧠 '+(passed?'إعادة الاختبار':'الاختبار المعتمد — 20 سؤالًا')+'</button>'+
+      (canPreview?'<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewFirstQuiz('+item.no+')">👁 معاينة الاختبار (غير محفوظة)</button>':'')+
+      '</div></article>';
+   }).join('');
+   return;
+ }
  const pct=movie&&movie.duration?Math.min(100,Math.floor(100*movie.max/movie.duration)):Math.min(100,Math.floor(previewWatchedPercent));
  const later=[];
  host.innerHTML='<article class="basic-bag-lesson basic-one-stage"><div class="basic-bag-lesson-main">'+
@@ -144,17 +166,17 @@
   try {
    const r=await rpc('basic_training_overview');
    if(!Array.isArray(r.progress)||!Array.isArray(r.published_quizzes)||!Array.isArray(r.scores))throw Error('تنسيق الاستجابة غير صحيح');
-   progress=r.progress; published=r.published_quizzes;scores=r.scores;
+   progress=r.progress; published=r.published_quizzes;scores=r.scores;viewerRole=String(r.role||'');
    loaded=true;backendReady=true;
    const n=document.getElementById('basicBagNotice');
-   if(n)n.textContent='يُحفظ تقدم المشاهدة ونتيجة الاختبار داخل حساب العضو فقط.';
+   if(n)n.textContent='✅ حفظ التقدم والنتائج مفعل. شرط الاجتياز: مشاهدة 90% و16 إجابة صحيحة من 20. لا يمكن فتح التدريب التالي قبل الاجتياز.';
   }catch(e){
    const n=document.getElementById('basicBagNotice');
    if(n)n.textContent='المعاينة متاحة؛ لكن حفظ التقدم والاختبارات يحتاج تفعيل ترحيل Supabase المراجع. '+(e.message||'');
    loaded=true;backendReady=false;
   }finally{loading=false;refreshCards();}
  }
- function maybeLoad(){if(loaded){setTimeout(refreshCards,0);}return courseHtml();}
+ function maybeLoad(){if(!loaded&&!loading&&authToken()){loading=true;setTimeout(loadOverview,0);}return courseHtml();}
  async function ytApi(){
   if(window.YT&&window.YT.Player)return;
   if(typeof window.loadYouTubeAPI==='function'){await window.loadYouTubeAPI();return;}
@@ -232,6 +254,7 @@
   if(state===window.YT.PlayerState.PLAYING&&moving&&current>m.max){
     m.max=Math.min(duration,current);if(m.no===8)previewWatchedPercent8=Math.floor(100*m.max/duration);else if(m.no===7)previewWatchedPercent7=Math.floor(100*m.max/duration);else if(m.no===6)previewWatchedPercent6=Math.floor(100*m.max/duration);else if(m.no===5)previewWatchedPercent5=Math.floor(100*m.max/duration);else if(m.no===4)previewWatchedPercent4=Math.floor(100*m.max/duration);else if(m.no===3)previewWatchedPercent3=Math.floor(100*m.max/duration);else if(m.no===2)previewWatchedPercent2=Math.floor(100*m.max/duration);else previewWatchedPercent=Math.floor(100*m.max/duration);watchPct();
   }
+  if(state===window.YT.PlayerState.PLAYING&&backendReady&&m.max>m.confirmed)heartbeat(false);
   if(current>=duration-3.5 && m.max>=duration-4.5){heartbeat(true);}
  }
  window.basicBagStartVideo=async function(no){
@@ -273,10 +296,13 @@
   const body=modal.querySelector('#basicBagModalBody');
   body.textContent='جارٍ تحميل الاختبار المعتمد…';
   try{
-   const list=await rpc('basic_training_get_quiz',{p_training_no:item.no});
-   if(!Array.isArray(list)||list.length!==20||list.some(q=>!Array.isArray(q.options)||q.options.length!==3))
+   const payload=await rpc('basic_training_get_quiz',{p_training_no:item.no});
+   const list=payload&&payload.questions;
+   const revision=Number(payload&&payload.revision);
+   if(!Number.isInteger(revision)||revision<1||!Array.isArray(list)||list.length!==20||
+      list.some(q=>!Array.isArray(q.options)||q.options.length!==3))
      throw Error('الأسئلة المعتمدة غير مكتملة');
-   exam={no:item.no,questions:list,answers:Array(20).fill(-1),busy:false};
+   exam={no:item.no,revision,questions:list,answers:Array(20).fill(-1),busy:false};
    renderExam();
   }catch(e){body.textContent=e.message||'تعذر تحميل الأسئلة';}
  };
@@ -290,14 +316,23 @@
    if(e.answers.includes(-1)){safeToast('أجب عن جميع الأسئلة العشرين');return;}
    e.busy=true;const submit=f.querySelector('[type=submit]');submit.disabled=true;submit.textContent='جارٍ التصحيح الآلي…';
    try{
-    const graded=await rpc('basic_training_submit_quiz',{p_training_no:e.no,p_answers:e.answers});
+    const graded=await rpc('basic_training_submit_quiz',{p_training_no:e.no,p_answers:e.answers,p_revision:e.revision});
     body.replaceChildren();const result=document.createElement('div');result.className='basic-bag-result';
-    const h=document.createElement('h2');h.textContent='نتيجتك: '+graded.score+' / '+graded.out_of;result.appendChild(h);
-    const explain=document.createElement('p');explain.textContent='تم تصحيح الاختبار آليًا وحفظ النتيجة في حسابك.';result.appendChild(explain);
-    if(Array.isArray(graded.details)){
-      const wrong=graded.details.filter(d=>d.chosen!==d.correct);
-      const p=document.createElement('p');p.textContent=wrong.length?'الأسئلة التي تحتاج مراجعة: '+wrong.map(x=>x.no).join('، '):'أجبت عن جميع الأسئلة بصورة صحيحة.';
-      result.appendChild(p);
+    const h=document.createElement('h2');
+    h.textContent='درجة الاختبار: '+graded.score+' من '+graded.out_of;
+    result.appendChild(h);
+    const breakdown=document.createElement('p');
+    breakdown.textContent='الإجابات الصحيحة: '+graded.score+' من '+graded.out_of+' | درجة النجاح: 16 من 20';
+    result.appendChild(breakdown);
+    const explain=document.createElement('p');explain.textContent=graded.passed?
+      '✅ اجتزت الاختبار! حفظنا درجتك ويمكنك الانتقال إلى التدريب التالي.':
+      'لم تجتز الاختبار بعد. تحتاج إلى 16 إجابة صحيحة من 20؛ يمكنك مراجعة المحاضرة وإعادة المحاولة.';
+    result.appendChild(explain);
+    // The server returns only the score; correct answers are intentionally private.
+    if(!graded.passed){
+      const note=document.createElement('p');
+      note.textContent='راجع محتوى التدريب، ثم أعد المحاولة لاحقًا. لا تُعرض مفاتيح الإجابات النظامية.';
+      result.appendChild(note);
     }
     body.appendChild(result);await loadOverview();
    }catch(err){safeToast(err.message||'تعذر التصحيح');submit.disabled=false;submit.textContent='إنهاء الاختبار وتصحيح الإجابات';e.busy=false;}
@@ -318,6 +353,7 @@
 
  window.basicBagPreviewFirstQuiz=async function(number=1){
    if(number!==1&&number!==2&&number!==3&&number!==4&&number!==5&&number!==6&&number!==7&&number!==8)return;
+   if(!backendReady||viewerRole!=='leader'||window.innerWidth<900)return safeToast('معاينة الإجابات متاحة للقائد على الحاسوب بعد تفعيل خدمة قاعدة البيانات الآمنة فقط');
    const isSecond=number===2;
    const isThird=number===3;
    const isFourth=number===4;
@@ -331,10 +367,11 @@
    const body=modal.querySelector('#basicBagModalBody');
    body.innerHTML='<p class="basic-bag-notice">'+(isEighth?'الأسئلة العشرون المعتمدة للتدريب الثامن حول أساسيات النجاح التسعة مع التصحيح التجريبي، ولا تُحفظ النتائج.':isSeventh?'الأسئلة العشرون المعتمدة للتدريب السابع مع التصحيح التجريبي، ولا تُحفظ النتائج. استعمل بريدًا دائمًا للعضوية الفعلية وراجع شروط التسجيل السارية.':isSixth?'الأسئلة العشرون المعتمدة للتدريب السادس. خطة الأشهر الستة مثال افتراضي وليست ضمانًا للدخل، ولا تُحفظ النتائج.':isFifth?'اختبار المحاضرة الخامسة: 20 سؤالًا معتمدًا وتصحيح تجريبي. الأرقام والعمولات وفق شرح المحاضر وقت التسجيل، دون ضمان عوائد مالية أو حفظ نتائج.':isFourth?'الأسئلة العشرون المعتمدة للمحاضرة الرابعة مع التصحيح التجريبي. الإحصاءات التاريخية والأقوال المنسوبة تعرض كما وردت في المحاضرة؛ لا حفظ للنتائج.':isThird?'الأسئلة العشرون المعتمدة للمحاضرة الثالثة مع تصحيح تجريبي. لا تُحفظ الإجابات أو النتائج. التوصيفات الصحية هي مما ذكره المحاضر ولا تثبت فعالية علاجية.':isSecond?'الأسئلة العشرون الجديدة المعتمدة للتدريب الثاني، وتصحيح آلي تجريبي وفق مفتاح الإجابات المعتمد. الأرقام والحوافز من وقت تسجيل المحاضرة ولا تضمن دخلًا. لا تُحفظ النتائج.':'اختبار المحاضرة الجديدة المعتمد: 20 سؤالًا، والتصحيح تجريبي داخل المتصفح فقط. الأرقام والمزايا تعكس كلام المحاضر وقت التسجيل ولا تمثل تحققًا مستقلًا أو ضمانًا للنتائج.')+'</p><p id="basicQuizLoad">جارٍ تحميل الأسئلة الأصلية…</p>';
    try{
-      const response=await fetch(isEighth?'../basic-training-08-new-quiz.json':isSeventh?'../basic-training-07-new-quiz.json':isSixth?'../basic-training-06-new-quiz.json':isFifth?'../basic-training-05-new-quiz.json':isFourth?'../basic-training-04-new-quiz.json':isThird?'../basic-training-03-new-quiz.json':isSecond?'../basic-training-02-new-quiz.json':'../basic-training-01-new-quiz.json',{cache:'no-store'});
-      if(!response.ok)throw Error('ملف الأسئلة غير متاح');
-      const qs=await response.json();
-      if(!Array.isArray(qs)||qs.length!==20||qs.some(q=>!q.question||!Array.isArray(q.options)||q.options.length<2||(q.answer!==null&&(!Number.isInteger(q.answer)||q.answer<0||q.answer>=q.options.length))))throw Error('الأسئلة العشرون غير مكتملة');
+      const secured=await rpc('basic_training_admin_revision',{p_training_no:number,p_action:'get',p_payload:null});
+      const qs=Array.isArray(secured.questions)?secured.questions.map(q=>({
+        question:q.question,options:q.options,answer:q.correct_index
+      })):[];
+      if(qs.length!==20||qs.some(q=>!q.question||!Array.isArray(q.options)||q.options.length!==3||!Number.isInteger(q.answer)||q.answer<0||q.answer>2))throw Error('أسئلة المعاينة غير متاحة');
       if(!modal||!modal.isConnected)return;
       const loading=body.querySelector('#basicQuizLoad');if(loading)loading.remove();
       const form=document.createElement('form');form.className='basic-bag-exam';
@@ -360,8 +397,14 @@
         const approved=qs.filter(q=>Number.isInteger(q.answer));
         const score=qs.reduce((total,q,i)=>total+(Number.isInteger(q.answer)&&answers[i]===q.answer?1:0),0);
         const result=document.createElement('div');result.className='basic-bag-result';
-        const h=document.createElement('h2');h.textContent='نتيجتك التجريبية: '+score+' / '+approved.length;result.append(h);
-        const hint=document.createElement('p');hint.textContent=isEighth?'هذه نتيجة اختبار التدريب الثامن التجريبية من 20 درجة، ولا تُحفظ الإجابات أو النتيجة.':isSeventh?'هذه نتيجة اختبار التدريب السابع التجريبية من 20 درجة، ولا تُحفظ الإجابات أو النتيجة.':isSixth?'هذه نتيجة اختبار التدريب السادس التجريبية من 20 درجة، ولا تُحفظ الإجابات أو النتيجة.':isFifth?'هذه نتيجة اختبار التدريب الخامس التجريبية من 20 درجة، ولا تُحفظ الإجابات أو النتيجة.':isFourth?'هذه نتيجة اختبار التدريب الرابع التجريبية من 20 درجة، ولا تُحفظ الإجابات أو النتيجة.':isThird?'هذه نتيجة اختبار التدريب الثالث التجريبية من 20 درجة. لم تُحفظ الإجابات أو النتيجة ولم تفتح التدريب الرابع.':isSecond?'هذه نتيجة اختبار التدريب الثاني التجريبية من 20 درجة. لم تُحفظ الإجابات أو النتيجة ولم تفتح التدريب الثالث.':'هذه نتيجة للمراجعة فقط، لم تُحفظ ولم تؤثر على فتح التدريب التالي. جميع الأسئلة العشرين معتمدة ضمن هذا الاختبار الجديد.';result.append(hint);
+        const h=document.createElement('h2');
+        h.textContent='درجة الاختبار: '+score+' من 20';
+        result.append(h);
+        const breakdown=document.createElement('p');
+        breakdown.textContent='الإجابات الصحيحة: '+score+' من '+approved.length+' | درجة النجاح: 16 من 20';
+        result.append(breakdown);
+        const hint=document.createElement('p');
+        hint.textContent='هذه درجة اختبار تجريبية للمراجعة فقط، لا تُحفظ في حساب العضو ولا تفتح التدريب التالي.';result.append(hint);
         const wrong=qs.map((q,i)=>Number.isInteger(q.answer)&&answers[i]!==q.answer?{i,answer:q.options[q.answer]}:null).filter(Boolean);
         const text=document.createElement('p');text.textContent=wrong.length?'أسئلة تحتاج مراجعة: '+wrong.map(v=>v.i+1).join('، '):'جميع الإجابات صحيحة';result.append(text);
         wrong.forEach(v=>{const row=document.createElement('p');row.textContent='س'+(v.i+1)+' — الإجابة الصحيحة وفق المفتاح المعتمد: '+v.answer;result.append(row);});
@@ -385,5 +428,5 @@
  window.basicBagPreviewSeventhVideo=async()=>{window.__basicVideoSevenPreview=true;try{await window.basicBagStartVideo(7);}finally{window.__basicVideoSevenPreview=false;}};
  window.basicBagPreviewEighthQuiz=()=>window.basicBagPreviewFirstQuiz(8);
  window.basicBagPreviewEighthVideo=async()=>{window.__basicVideoEightPreview=true;try{await window.basicBagStartVideo(8);}finally{window.__basicVideoEightPreview=false;}};
- window.basicTrainingCourseHtml=courseHtml;
+ window.basicTrainingCourseHtml=maybeLoad;
 })();
