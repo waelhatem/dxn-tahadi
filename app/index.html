@@ -6228,6 +6228,53 @@ function professionalTrainingPage(){
   </section>`;
 }
 
+/* Advanced training is a catalogue of courses. Each course may contain multiple video lessons. */
+const advancedProfitVideos=[
+ ['ANiPxicO7lM','مدخل لفهم الخطة المالية ومصادر الدخل'],
+ ['1ez8B2OtGlE','المصطلحات وهيكلية الخطة المالية'],
+ ['t2ypbjuOD30','أرباح بيع التجزئة وعلاوة المجموعة'],
+ ['-zs_p5ckUfM','علاوة المجموعة النجمية وعلاوة التطوير'],
+ ['JweCoZ2xmMY','علاوة القيادة والحجب'],
+ ['fRTu_VcaQnQ','أمثلة عملية على علاوة القيادة والحجب'],
+ ['3lLvcHgOA2Q','نظام التسليف النقطي'],
+ ['8tedEnY4DvA','الحوافز النقدية والرحلات ومشاركة الأرباح الدولية'],
+ ['nVYy_qF8IxU','التأهل الشهري لجميع الرتب'],
+ ['tGrnJ2yQJg0','خلاصة خطة الأرباح في DXN']
+];
+function advancedProfitSelectVideo(i){
+  const entry=advancedProfitVideos[Number(i)];if(!entry)return;
+  const frame=document.getElementById('advancedProfitVideoFrame');
+  const link=document.getElementById('advancedProfitYoutubeLink');
+  const caption=document.getElementById('advancedProfitVideoTitle');
+  if(!frame||!link||!caption)return;
+  frame.src='https://www.youtube-nocookie.com/embed/'+entry[0]+'?rel=0';
+  frame.title='الدرس '+(Number(i)+1)+' — '+entry[1];
+  link.href='https://youtu.be/'+entry[0];
+  caption.textContent='الدرس '+(Number(i)+1)+' من 10 — '+entry[1];
+  document.querySelectorAll('#advancedProfitLessonList button').forEach((b,j)=>{b.setAttribute('aria-pressed',String(j===Number(i)));});
+}
+function advancedTrainingPage(){
+  const lessons=advancedProfitVideos.map((video,i)=>`<button type="button" class="advanced-profit-lesson" aria-pressed="${i===0?'true':'false'}" onclick="advancedProfitSelectVideo(${i})"><span class="advanced-profit-index">${i+1}</span><span>الدرس ${i+1}: ${esc(video[1])}</span><span aria-hidden="true">▶</span></button>`).join('');
+  return `<section id="trainingAdvancedStart" class="card training-professional-page">
+    <div class="title">🚀 التدريب المتقدم</div>
+    <p class="muted">مسارات تدريبية مستقلة؛ كل تدريب متقدم قد يضم عدة دروس مترابطة.</p>
+    <details class="advanced-profit-course">
+      <summary><span class="advanced-profit-course-emoji">📈</span><span class="advanced-profit-course-copy"><strong>التدريب المتقدم الأول: خطة أرباح DXN المالية</strong><small>المهندس محمود المصري — دورة واحدة تحتوي على 10 دروس فيديو متسلسلة</small></span><span class="advanced-profit-pill">10 دروس</span></summary>
+      <div class="advanced-profit-content">
+        <p class="muted">اختر أي درس من القائمة لمشاهدته داخل الدورة. الفيديو العاشر خلاصة للدروس السابقة.</p>
+        <div class="advanced-profit-grid">
+          <div id="advancedProfitLessonList" class="advanced-profit-list" aria-label="دروس خطة أرباح DXN">${lessons}</div>
+          <div class="advanced-profit-viewer">
+            <strong id="advancedProfitVideoTitle">الدرس 1 من 10 — ${esc(advancedProfitVideos[0][1])}</strong>
+            <div class="training-professional-video"><iframe id="advancedProfitVideoFrame" src="https://www.youtube-nocookie.com/embed/${advancedProfitVideos[0][0]}?rel=0" title="الدرس 1 — خطة أرباح DXN" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
+            <a id="advancedProfitYoutubeLink" class="name-list-btn" target="_blank" rel="noopener noreferrer" href="https://youtu.be/${advancedProfitVideos[0][0]}">▶ مشاهدة الدرس على YouTube</a>
+          </div>
+        </div>
+      </div>
+    </details>
+    <p class="muted" style="margin-top:16px">يمكن إضافة التدريب المتقدم الثاني والثالث لاحقًا كدورات مستقلة بجانب هذه الدورة.</p>
+  </section>`;
+}
 function trainings(){
   const lessons=(trainingData.lessons||[]).sort((a,b)=>Number(a.lesson_no)-Number(b.lesson_no));
   const progress=trainingData.my_progress||[];
@@ -6323,7 +6370,7 @@ function trainings(){
   }
 
   if(trainingSubtab==='advanced_training'){
-    return backToTrainingTypes+'<section id="trainingAdvancedStart" class="card training-professional-page"><div class="title">🚀 التدريب المتقدم</div><p class="muted">هذا مسار تدريبي مستقل؛ سنضيف الفيديوهات والاختبارات بعد اعتماد محتواها.</p></section>';
+    return backToTrainingTypes+advancedTrainingPage();
   }
 
   if(trainingSubtab==='ragwan_success_plan'){
@@ -9673,6 +9720,26 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 .dxn-global-announcement-panel .ga-body{white-space:pre-wrap;line-height:1.9;color:#34443e}
 .dxn-global-announcement-panel .ga-footer{display:flex;justify-content:flex-start;gap:8px;flex-wrap:wrap;margin-top:18px}
 @media(max-width:650px){.dxn-global-announcement-panel{padding:18px;border-radius:20px;width:96vw}.dxn-global-announcement-card .ga-actions button{flex:1;min-width:150px}}
+
+/* Advanced course catalogue: one course, ten nested lessons. */
+.training-kind-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
+.advanced-profit-course{margin-top:16px;border:1px solid #cbded6;border-radius:18px;overflow:hidden;background:#f7fbf9}
+.advanced-profit-course>summary{cursor:pointer;display:flex;align-items:center;gap:12px;padding:18px;list-style:none}
+.advanced-profit-course>summary::-webkit-details-marker{display:none}
+.advanced-profit-course-emoji{font-size:34px}
+.advanced-profit-course-copy{display:grid;gap:6px;flex:1;min-width:0}
+.advanced-profit-course-copy strong{font-size:19px;color:#194b3a}
+.advanced-profit-course-copy small{font-size:13px;color:#526e62;line-height:1.6}
+.advanced-profit-pill{padding:7px 12px;border-radius:30px;background:#dfefe7;color:#155941;font-weight:800;white-space:nowrap}
+.advanced-profit-content{padding:16px;border-top:1px solid #d2e5d9}
+.advanced-profit-grid{display:grid;grid-template-columns:minmax(240px,0.8fr) minmax(0,1.4fr);gap:18px}
+.advanced-profit-list{display:grid;align-content:start;gap:8px}
+.advanced-profit-lesson{width:100%;display:flex;align-items:center;gap:9px;padding:12px;border:1px solid #d5e2db;border-radius:12px;background:#fff;color:#234e3d;text-align:start;cursor:pointer;line-height:1.6}
+.advanced-profit-lesson[aria-pressed="true"]{background:#e1f1e9;border-color:#4c9776;font-weight:800}
+.advanced-profit-index{display:grid;place-items:center;flex:0 0 27px;height:27px;border-radius:50%;background:#245d43;color:white}
+.advanced-profit-viewer{min-width:0}
+.advanced-profit-viewer>a{display:inline-flex;text-decoration:none}
+@media(max-width:850px){.training-kind-tabs{grid-template-columns:1fr}.advanced-profit-grid{grid-template-columns:1fr}.advanced-profit-course>summary{flex-wrap:wrap}}
 </style>
 <script id="dxn-global-announcements-v1-script">
 (function(){
