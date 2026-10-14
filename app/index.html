@@ -7441,6 +7441,19 @@ function dxnMemberSearchKeydown(event){
   }
 }
 
+async function deleteDxnManualRecord(memberNo, memberName){
+ if(role!=='leader')return toast('هذه العملية للقائد فقط.');
+ const answer=prompt('حذف السجل اليدوي: '+memberName+' ('+memberNo+')\nاكتب رقم العضوية لتأكيد الحذف:');
+ if(answer===null)return;
+ if(String(answer).trim()!==String(memberNo))return toast('التأكيد غير مطابق، لم يتم الحذف.');
+ try{
+  const response=await fetch('/api/leader-dxn-member-delete',{method:'POST',headers:{'Content-Type':'application/json','X-DXN-Session':String(token||'').trim()},body:JSON.stringify({member_no:memberNo,confirm_member_no:answer}),cache:'no-store'});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok||!data.ok)throw new Error(data.error||'تعذر الحذف');
+  toast('✅ تم حذف السجل اليدوي '+memberNo);
+  await searchDxnMemberRecord();
+ }catch(e){toast('❌ '+(e.message||'تعذر الحذف'))}
+}
 async function searchDxnMemberRecord(){
   if(role!=='leader')return toast('هذه العملية للقائد فقط.');
 
@@ -7524,6 +7537,9 @@ async function searchDxnMemberRecord(){
     }
 
     const rowsHtml=rows.map(function(row){
+      const action=String(row.source||'').toLowerCase()==='manual'
+        ? '<button type="button" class="dxn-delete-manual" data-member-no="'+esc(String(row.member_no||''))+'" data-member-name="'+esc(String(row.member_name||''))+'">🗑️ حذف السجل</button>'
+        : '—';
       return '<tr>'+
         '<td><b>'+esc(dxnMemberSearchValue(row.member_no))+'</b></td>'+
         '<td><b>'+esc(dxnMemberSearchValue(row.member_name))+'</b></td>'+
@@ -7544,6 +7560,7 @@ async function searchDxnMemberRecord(){
         '<td>'+esc(dxnMemberSearchValue(row.source_updated_at))+'</td>'+
         '<td>'+esc(dxnMemberSearchValue(row.created_at))+'</td>'+
         '<td>'+esc(dxnMemberSearchValue(row.updated_at))+'</td>'+
+        '<td>'+action+'</td>'+
       '</tr>';
     }).join('');
 
@@ -7570,11 +7587,15 @@ async function searchDxnMemberRecord(){
             '<th>آخر تحديث للمصدر</th>'+
             '<th>تاريخ الإنشاء</th>'+
             '<th>آخر تحديث</th>'+
+            '<th>حذف السجل اليدوي</th>'+
           '</tr></thead>'+
           '<tbody>'+rowsHtml+'</tbody>'+
         '</table>'+
       '</div>'+
       '<div class="muted" style="margin-top:8px">عرض '+rows.length+' نتيجة. القيم المقنّعة في تقرير DXN تظهر كما هي بالشكل <b>***</b>.</div>';
+    result.querySelectorAll('.dxn-delete-manual').forEach(btn=>{
+      btn.addEventListener('click',()=>deleteDxnManualRecord(btn.dataset.memberNo,btn.dataset.memberName));
+    });
 
   }catch(error){
     if(status){
