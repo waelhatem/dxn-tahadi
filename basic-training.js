@@ -53,7 +53,7 @@
     const p=statusOf(item.no),unlocked=lessonUnlock(item.no);
     const watched=Math.min(100,Math.max(0,Math.round(100*fmt(p.watched)/(fmt(p.duration)||1))));
     const passed=!!p.passed,watchReady=!!p.completed;
-    const score=(p.best_score===null||p.best_score===undefined)?'':' | أفضل درجة اختبار: '+p.best_score+' من 20';
+    const score=(p.best_score===null||p.best_score===undefined)?'':' | أفضل درجة اختبار: '+Math.round(Number(p.best_score)*5)+' / 100';
     const status=passed?'✅ اجتاز التدريب':watchReady?'✅ اكتملت المشاهدة — الاختبار متاح':unlocked?'▶ متابعة المشاهدة حتى 90%':'🔒 أكمل التدريب السابق واجتز اختباره أولًا';
     return '<article class="basic-bag-lesson basic-two-stage"><div class="basic-bag-lesson-main">'+
       '<div class="basic-bag-number">التدريب الأساسي '+item.no+'</div><h3>'+esc(item.title)+'</h3>'+
@@ -61,7 +61,7 @@
       '<div class="basic-bag-status">'+status+esc(score)+'</div>'+
       '<div class="basic-bag-progress-line"><strong class="basic-bag-percentage">'+watched+'%</strong>'+
       '<div class="basic-bag-progress" role="progressbar" aria-label="المشاهدة المحفوظة" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+watched+'"><div style="width:'+watched+'%"></div></div></div>'+
-      '<p class="basic-bag-description">شرط اجتياز التدريب: مشاهدة 90% والحصول على 16/20 على الأقل. يمكن إعادة الاختبار عند الرسوب.</p></div>'+
+      '<p class="basic-bag-description">شرط اجتياز التدريب: مشاهدة 90% والحصول على 80 / 100 على الأقل. يمكن إعادة الاختبار عند الرسوب.</p></div>'+
       '<div class="basic-bag-actions">'+
       '<button type="button" class="name-list-btn name-list-primary" onclick="basicBagStartVideo('+item.no+')" '+(!unlocked?'disabled':'')+'>▶ '+(watchReady?'إعادة المشاهدة':'بدء / متابعة المشاهدة')+'</button>'+
       '<button type="button" class="name-list-btn" onclick="basicBagStartQuiz('+item.no+')" '+(!unlocked||!watchReady?'disabled':'')+'>🧠 '+(passed?'إعادة الاختبار':'الاختبار المعتمد — 20 سؤالًا')+'</button>'+
@@ -169,7 +169,7 @@
    progress=r.progress; published=r.published_quizzes;scores=r.scores;viewerRole=String(r.role||'');
    loaded=true;backendReady=true;
    const n=document.getElementById('basicBagNotice');
-   if(n)n.textContent='✅ حفظ التقدم والنتائج مفعل. شرط الاجتياز: مشاهدة 90% و16 إجابة صحيحة من 20. لا يمكن فتح التدريب التالي قبل الاجتياز.';
+   if(n)n.textContent='✅ حفظ التقدم والنتائج مفعل. شرط الاجتياز: مشاهدة 90% ودرجة اختبار 80 / 100. الاختبار يتكون من 20 سؤالًا.';
   }catch(e){
    const n=document.getElementById('basicBagNotice');
    if(n)n.textContent='المعاينة متاحة؛ لكن حفظ التقدم والاختبارات يحتاج تفعيل ترحيل Supabase المراجع. '+(e.message||'');
@@ -346,14 +346,14 @@
     const graded=await rpc('basic_training_submit_quiz',{p_training_no:e.no,p_answers:e.answers,p_revision:e.revision});
     body.replaceChildren();const result=document.createElement('div');result.className='basic-bag-result';
     const h=document.createElement('h2');
-    h.textContent='درجة الاختبار: '+graded.score+' من '+graded.out_of;
+    h.textContent='درجة الاختبار: '+Math.round(100*Number(graded.score||0)/(Number(graded.out_of)||20))+' / 100';
     result.appendChild(h);
     const breakdown=document.createElement('p');
-    breakdown.textContent='الإجابات الصحيحة: '+graded.score+' من '+graded.out_of+' | درجة النجاح: 16 من 20';
+    breakdown.textContent='النتيجة: '+(graded.passed?'ناجح ✅':'لم يجتز الاختبار')+' | درجة النجاح: 80 / 100';
     result.appendChild(breakdown);
     const explain=document.createElement('p');explain.textContent=graded.passed?
       '✅ اجتزت الاختبار! حفظنا درجتك ويمكنك الانتقال إلى التدريب التالي.':
-      'لم تجتز الاختبار بعد. تحتاج إلى 16 إجابة صحيحة من 20؛ يمكنك مراجعة المحاضرة وإعادة المحاولة.';
+      'لم تجتز الاختبار بعد. تحتاج إلى 80 / 100 على الأقل؛ يمكنك مراجعة المحاضرة وإعادة المحاولة.';
     result.appendChild(explain);
     // The server returns only the score; correct answers are intentionally private.
     if(!graded.passed){
@@ -425,10 +425,10 @@
         const score=qs.reduce((total,q,i)=>total+(Number.isInteger(q.answer)&&answers[i]===q.answer?1:0),0);
         const result=document.createElement('div');result.className='basic-bag-result';
         const h=document.createElement('h2');
-        h.textContent='درجة الاختبار: '+score+' من 20';
+        h.textContent='درجة الاختبار: '+Math.round(score*5)+' / 100';
         result.append(h);
         const breakdown=document.createElement('p');
-        breakdown.textContent='الإجابات الصحيحة: '+score+' من '+approved.length+' | درجة النجاح: 16 من 20';
+        breakdown.textContent='درجة النجاح: 80 / 100 | أسئلة الاختبار: 20';
         result.append(breakdown);
         const hint=document.createElement('p');
         hint.textContent='هذه درجة اختبار تجريبية للمراجعة فقط، لا تُحفظ في حساب العضو ولا تفتح التدريب التالي.';result.append(hint);
