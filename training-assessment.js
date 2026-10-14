@@ -46,7 +46,13 @@
       if(typeof tab!=='undefined'&&tab!=='training')return null;
       if(typeof trainingSubtab==='undefined'||trainingSubtab!=='lessons')return null;
     }catch(e){return null}
-    return document.getElementById('section-training');
+    var host=document.getElementById('section-training');
+    // Never mount the legacy AI-graded assessment in the newly approved
+    // two-choice training selector. The old assessment remains available
+    // only alongside an actual legacy lesson list; no saved grades are touched.
+    if(!host || host.querySelector('#trainingKindChoices') ||
+       !host.querySelector('#trainingLessonsStart')) return null;
+    return host;
   }
   function anchorForMember(host){
     var cards=host.querySelectorAll('.card');
