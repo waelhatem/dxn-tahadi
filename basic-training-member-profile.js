@@ -25,20 +25,22 @@
      if(!root.isConnected)return;
      const progress=payload.progress;
      const completed=progress.filter(p=>p.passed===true).length;
-     // Average the best saved score for each distinct training. Untaken tests
-     // are NOT zero: the final 8-test average appears only after all are taken.
+     // Never show a provisional average: reveal the final score ONLY after
+     // the member passed all eight trainings (90% watch + >=16/20 quiz).
      const tested=Array.from({length:8},(_,i)=>progress.find(p=>Number(p.training_no)===i+1))
        .filter(p=>p&&p.best_score!=null&&Number.isFinite(Number(p.best_score)));
      const testedCount=tested.length;
-     const avg=testedCount?tested.reduce((sum,p)=>sum+Number(p.best_score)*5,0)/testedCount:null;
-     const avgLabel=avg==null?'— / 100':(Number.isInteger(avg)?String(avg):avg.toFixed(1))+' / 100';
-     const averageFinal=testedCount===8;
-     let html='<section class="basic-training-average-card" aria-label="معدل درجات الاختبارات">'+
-       '<div class="basic-training-average-title">'+(averageFinal?'🏆 الدرجة النهائية لمعدل الاختبارات':'📊 معدل درجات الاختبارات الحالي')+'</div>'+
-       '<div class="basic-training-average-score" dir="ltr">'+esc(avgLabel)+'</div>'+
-       '<div class="basic-training-average-note">'+(averageFinal?
-         '✅ اكتمل احتساب معدل الاختبارات الثمانية.':
-         'احتُسب من '+testedCount+' من 8 اختبارات. المعدل النهائي يظهر بعد أداء الاختبارات الثمانية، ولا تُحسب الاختبارات غير المؤداة صفرًا.')+'</div></section>';
+     const allPassed=Array.from({length:8},(_,i)=>progress.find(p=>Number(p.training_no)===i+1))
+       .every(p=>p&&p.passed===true&&p.completed===true&&p.best_score!=null);
+     let html='';
+     if(allPassed){
+       const avg=tested.reduce((sum,p)=>sum+Number(p.best_score)*5,0)/8;
+       const avgLabel=(Number.isInteger(avg)?String(avg):avg.toFixed(1))+' / 100';
+       html='<section class="basic-training-average-card" aria-label="الدرجة النهائية لمعدل الاختبارات">'+
+         '<div class="basic-training-average-title">🏆 الدرجة النهائية لمعدل الاختبارات</div>'+
+         '<div class="basic-training-average-score" dir="ltr">'+esc(avgLabel)+'</div>'+
+         '<div class="basic-training-average-note">✅ اكتملت التدريبات الثمانية واجتُزيت اختباراتُها.</div></section>';
+     }
      html+='<div class="mini-grid" style="margin:12px 0"><div><b>📚 التدريبات</b><h3>8</h3></div><div><b>✅ المكتملة</b><h3>'+completed+'</h3></div><div><b>📝 الاختبارات المؤداة</b><h3>'+testedCount+'/8</h3></div></div>';
      for(let i=1;i<=8;i++){
        const p=progress.find(x=>Number(x.training_no)===i)||{},pct=percent(p),score=p.best_score==null?'لم يُختبر':Math.round(Number(p.best_score)*5)+' / 100';
