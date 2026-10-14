@@ -60,3 +60,15 @@
 .basic-bag-exam .basic-bag-question label input[type="radio"]{position:static!important;display:block!important;flex:0 0 19px!important;width:19px!important;height:19px!important;min-width:19px!important;margin:6px 0 0!important;transform:none!important;appearance:auto!important;accent-color:#117354}
 .basic-bag-exam .basic-bag-question label:has(input:checked){background:#edf8f1!important;outline:1px solid #9bcdb0}
 @media(max-width:700px){.basic-bag-exam .basic-bag-question{padding:14px 10px}.basic-bag-exam .basic-bag-question label{gap:9px!important;padding:10px!important;font-size:14px}.basic-bag-exam .basic-bag-question legend{font-size:15px}}
+
+
+/* Unified 100-point exam report for member and leader. */
+.basic-training-average-card{margin:16px 0 18px;padding:22px 18px;border-radius:20px;
+  background:linear-gradient(125deg,#075b4b,#0e8464);color:#fff;text-align:center;
+  border:1px solid #167f69;box-shadow:0 7px 22px rgba(8,88,66,.17)}
+.basic-training-average-title{font-size:clamp(16px,1.7vw,20px);font-weight:900;line-height:1.6}
+.basic-training-average-score{font-size:clamp(34px,4.2vw,52px);font-weight:950;
+  letter-spacing:.5px;line-height:1.3;unicode-bidi:isolate}
+.basic-training-average-note{font-size:14px;line-height:1.75;color:#e4fff4;max-width:720px;margin:3px auto 0}
+@media(max-width:600px){.basic-training-average-card{padding:17px 12px;border-radius:16px}
+  .basic-training-average-note{font-size:12px}}
