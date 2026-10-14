@@ -14,8 +14,8 @@ test('all inline scripts in the actual app HTML parse successfully',()=>{
  scripts.forEach((code,i)=>assert.doesNotThrow(()=>new vm.Script(code,{filename:'app-inline-'+i+'.js'})));
 });
 test('main-targeted basic training scripts are loaded once',()=>{
- const deps=['../basic-training.css?v=1','../basic-training.js?v=1',
-  '../basic-training-member-profile.js?v=1','../basic-training-leader-profile.js?v=1',
+ const deps=['../basic-training.css?v=20261014-scores100','../basic-training.js?v=20261014-scores100',
+  '../basic-training-member-profile.js?v=20261014-scores100','../basic-training-leader-profile.js?v=20261014-scores100',
   '../basic-training-admin.js?v=1'];
  deps.forEach(src=>assert.equal(page.split(src).length-1,1,src));
  assert.doesNotMatch(page,/<script[^>]+src=["'][^"']*training-name-list\.js/);
