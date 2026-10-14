@@ -58,3 +58,32 @@ test('no previous direct public answer-key resources appear in clean branch',()=
  assert.match(read('.gitignore'),/\*\.dump/);
  assert.match(read('.gitignore'),/backups\//);
 });
+
+test('training navigation never falls through to the legacy lesson cards',()=>{
+ const start=page.indexOf('function trainings(){');
+ const end=page.indexOf('\n}\n\nfunction youtubeEmbed',start);
+ assert.ok(start>=0&&end>start,'training section not found');
+ const source=page.slice(start,end+2);
+ const evaluate=new Function('trainingData','trainingSubtab','role','basicTrainingPage','professionalTrainingPage','ragwanSuccessIntro','canAccessTraining','esc',
+   source+'\nreturn trainings();');
+ const history={lessons:[{id:123,lesson_no:1,title:'LEGACY_MARKER_DO_NOT_RENDER',reward_stars:10}],my_progress:[]};
+ const exec=state=>evaluate(history,state,'member',()=>'<h1>BASIC_TRACK</h1>',()=>'<h1>PROF_TRACK</h1>',()=>'<h1>RAGWAN_TRACK</h1>',()=>true,x=>x);
+ const root=exec('home');
+ assert.match(root,/switchTrainingSubtab\('lessons'\)/);
+ assert.match(root,/switchTrainingSubtab\('ragwan_success_plan'\)/);
+ assert.doesNotMatch(root,/switchTrainingSubtab\('basic'\)/);
+ const menu=exec('lessons');
+ assert.match(menu,/switchTrainingSubtab\('basic'\)/);
+ assert.match(menu,/switchTrainingSubtab\('professional'\)/);
+ assert.match(exec('basic'),/BASIC_TRACK/);
+ assert.match(exec('professional'),/PROF_TRACK/);
+ assert.match(exec('ragwan_success_plan'),/RAGWAN_TRACK/);
+ for(const state of ['home','lessons','basic','professional','old','legacy','unexpected']){
+  const result=exec(state);
+  assert.doesNotMatch(result,/LEGACY_MARKER_DO_NOT_RENDER/,state);
+  if(['old','legacy','unexpected'].includes(state)){
+   assert.match(result,/switchTrainingSubtab\('basic'\)/);
+   assert.match(result,/switchTrainingSubtab\('professional'\)/);
+  }
+ }
+});
