@@ -1158,10 +1158,10 @@ function saveDxnUiState(extra={}){
 function loadDxnUiState(){
   try{
     const x=JSON.parse(localStorage.getItem(dxnUiStateKey())||'{}');
-    if(x.tab && ['home','notifications','ch','teams','path','progress','training','community','advanced','academy','leader'].includes(x.tab)){
-      if(x.tab!=='training'||canAccessTraining())tab=x.tab;
+    if(x.tab && ['home','notifications','ch','teams','path','progress','basic_training_profile','basic_training_admin','training','community','advanced','academy','leader'].includes(x.tab)){
+      if((x.tab!=='training'||canAccessTraining()) && (x.tab!=='basic_training_profile'||(role==='member'&&me)) && (x.tab!=='basic_training_admin'||role==='leader')) tab=x.tab;
     }
-    trainingSubtab=(tab==='training'&&['home','lessons','ragwan_success_plan'].includes(x.trainingSubtab))
+    trainingSubtab=(tab==='training'&&['home','lessons','basic','ragwan_success_plan'].includes(x.trainingSubtab))
       ? x.trainingSubtab : 'home';
     return Math.max(0,Number(x.scrollY||0));
   }catch(e){return 0}
