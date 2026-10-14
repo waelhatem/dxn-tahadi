@@ -35,7 +35,7 @@ test('basic training is independent of existing Ragwan and old lessons',()=>{
  assert.match(page,/trainingSubtab==='ragwan_success_plan'/);
  assert.match(page,/loadMemberRagwanCompletions\(id\)/);
  assert.match(page,/window\.loadBasicTrainingLeaderMemberProfile\(id\)/);
- assert.match(page,/src="\.\.\/training-assessment\.js"/);
+ assert.match(page,/src="\.\.\/training-assessment\.js\?v=20261014-chooser-guard"/);
  assert.doesNotMatch(page,/training-name-list\.js/);
  assert.match(page,/function professionalTrainingPage\(\)/);
  const mainMenu=page.split('const subTabs=').at(-1).split('const backChoice=')[0];
@@ -86,4 +86,34 @@ test('training navigation never falls through to the legacy lesson cards',()=>{
    assert.match(result,/switchTrainingSubtab\('professional'\)/);
   }
  }
+});
+
+
+test('old 80-question assessment must never inject into the approved training chooser',()=>{
+ const legacy=read('training-assessment.js');
+ const start=legacy.indexOf('  function lessonsHost(){');
+ const end=legacy.indexOf('  function anchorForMember(host){',start);
+ assert.ok(start>=0&&end>start,'legacy host resolution found');
+ const source=legacy.slice(start,end);
+ const getHost=new Function('tab','trainingSubtab','document',source+'\nreturn lessonsHost();');
+ const chooser={
+   querySelector(selector){
+      if(selector==='#trainingKindChoices')return {};
+      if(selector==='#trainingLessonsStart')return null;
+      return null;
+   }
+ };
+ const oldCards={querySelector(selector){
+   if(selector==='#trainingKindChoices')return null;
+   if(selector==='#trainingLessonsStart')return {};
+   return null;
+ }};
+ const doc=host=>({getElementById(id){return id==='section-training'?host:null;}});
+ assert.equal(getHost('training','lessons',doc(chooser)),null,'new chooser must remain free of old 80-question assessment');
+ assert.equal(getHost('training','basic',doc(oldCards)),null,'official basic exams only');
+ assert.equal(getHost('training','professional',doc(oldCards)),null,'professional exams only');
+ assert.equal(getHost('training','lessons',doc({querySelector:()=>null})),null,'no fallback when old cards absent');
+ assert.equal(getHost('home','lessons',doc(oldCards)),null,'not outside training');
+ assert.equal(getHost('training','lessons',doc(oldCards)),oldCards,'legacy cards remain supported when explicitly present');
+ assert.match(page,/training-assessment\.js\?v=20261014-chooser-guard/,'force a fresh guarded script');
 });
