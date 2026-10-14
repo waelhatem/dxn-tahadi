@@ -25,12 +25,26 @@
      if(!root.isConnected)return;
      const progress=payload.progress;
      const completed=progress.filter(p=>p.passed===true).length;
-     let html='<div class="mini-grid" style="margin:12px 0"><div><b>📚 التدريبات</b><h3>8</h3></div><div><b>✅ المكتملة</b><h3>'+completed+'</h3></div><div><b>⏳ المتبقية</b><h3>'+(8-completed)+'</h3></div></div>';
+     // Average the best saved score for each distinct training. Untaken tests
+     // are NOT zero: the final 8-test average appears only after all are taken.
+     const tested=Array.from({length:8},(_,i)=>progress.find(p=>Number(p.training_no)===i+1))
+       .filter(p=>p&&p.best_score!=null&&Number.isFinite(Number(p.best_score)));
+     const testedCount=tested.length;
+     const avg=testedCount?tested.reduce((sum,p)=>sum+Number(p.best_score)*5,0)/testedCount:null;
+     const avgLabel=avg==null?'— / 100':(Number.isInteger(avg)?String(avg):avg.toFixed(1))+' / 100';
+     const averageFinal=testedCount===8;
+     let html='<section class="basic-training-average-card" aria-label="معدل درجات الاختبارات">'+
+       '<div class="basic-training-average-title">'+(averageFinal?'🏆 الدرجة النهائية لمعدل الاختبارات':'📊 معدل درجات الاختبارات الحالي')+'</div>'+
+       '<div class="basic-training-average-score" dir="ltr">'+esc(avgLabel)+'</div>'+
+       '<div class="basic-training-average-note">'+(averageFinal?
+         '✅ اكتمل احتساب معدل الاختبارات الثمانية.':
+         'احتُسب من '+testedCount+' من 8 اختبارات. المعدل النهائي يظهر بعد أداء الاختبارات الثمانية، ولا تُحسب الاختبارات غير المؤداة صفرًا.')+'</div></section>';
+     html+='<div class="mini-grid" style="margin:12px 0"><div><b>📚 التدريبات</b><h3>8</h3></div><div><b>✅ المكتملة</b><h3>'+completed+'</h3></div><div><b>📝 الاختبارات المؤداة</b><h3>'+testedCount+'/8</h3></div></div>';
      for(let i=1;i<=8;i++){
-       const p=progress.find(x=>Number(x.training_no)===i)||{},pct=percent(p),score=p.best_score==null?'لم يُختبر':Number(p.best_score)+'/20';
+       const p=progress.find(x=>Number(x.training_no)===i)||{},pct=percent(p),score=p.best_score==null?'لم يُختبر':Math.round(Number(p.best_score)*5)+' / 100';
        const state=p.passed?'✅ ناجح':p.best_score!=null?'❌ لم يجتز':p.completed?'📝 جاهز للاختبار':pct?'▶ قيد المشاهدة':'⏳ لم يبدأ';
        const date=p.passed_at?new Date(p.passed_at).toLocaleDateString('ar-IQ'):'';
-       html+='<article class="card" style="margin:10px 0;padding:12px"><b>التدريب الأساسي '+i+' — '+esc(titles[i-1])+'</b><p class="muted">'+state+' · الدرجة: <strong>'+esc(score)+'</strong></p><div class="muted">مشاهدة الفيديو: '+pct+'%</div><div style="height:9px;background:#e5eee9;border-radius:10px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:#168257"></div></div>'+(date?'<p class="muted">تاريخ الاجتياز: '+esc(date)+'</p>':'')+'</article>';
+       html+='<article class="card" style="margin:10px 0;padding:12px"><b>التدريب الأساسي '+i+' — '+esc(titles[i-1])+'</b><p class="muted">'+state+' · درجة الاختبار: <strong dir="ltr">'+esc(score)+'</strong></p><div class="muted">مشاهدة الفيديو: '+pct+'%</div><div style="height:9px;background:#e5eee9;border-radius:10px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:#168257"></div></div>'+(date?'<p class="muted">تاريخ الاجتياز: '+esc(date)+'</p>':'')+'</article>';
      }
      root.innerHTML=html;
    }catch(e){if(root.isConnected)root.textContent='تعذّر تحميل السجل: '+(e.message||'خدمة التدريبات غير متاحة');}
