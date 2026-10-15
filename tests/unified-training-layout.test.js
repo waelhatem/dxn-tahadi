@@ -116,7 +116,7 @@ test('basic page uses the advanced layout: list, viewer, quiz button above the v
   assert.equal(list.id,'basicBagLessonList','list comes first, so it sits on the right in RTL');
   assert.ok(viewer.className.includes('advanced-profit-viewer'));
   const parts=viewer.children.filter(c=>c.tagName);
-  assert.deepEqual(parts.map(c=>c.id),['basicBagViewerHead','basicBagInlineBox','','basicWatchInfo','basicBagViewerInfo'],'title+quiz, video, progress, status, score');
+  assert.deepEqual(parts.map(c=>c.id),['basicBagViewerHead','basicBagInlineBox','','basicBagResumeSaved','basicWatchInfo','basicBagViewerInfo'],'title+quiz, video, progress, status, score');
   assert.ok(parts[2].className.includes('basic-bag-inline-progress'));
   assert.equal(listButtons(env).length,8);
   assert.deepEqual(listButtons(env).map(b=>b.disabled),[false,false,true,true,true,true,true,true],'lock rule unchanged');
