@@ -67,3 +67,9 @@ test('Inline course player is the tracked player; quiz unlocks after confirmed c
  assert.doesNotMatch(js,/advancedProfitVideoFrame/);
  assert.doesNotMatch(js,/async function startWatch\(/);
 });
+
+test('YouTube onReady survives replacement of placeholder with iframe',()=>{
+ assert.match(js,/onReady:\(\)=>\{\s*if\(!document\.getElementById\('advancedFinancialInlineBox'\)/);
+ assert.doesNotMatch(js,/onReady:\(\)=>\{\s*if\(!target\.isConnected/);
+ assert.match(js,/w\.timer=setInterval\(tick,600\)/);
+});
