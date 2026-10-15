@@ -44,7 +44,8 @@
       return;
     }
     var success=Math.max(0,Math.min(8,Number(data.passed)||0));
-    var average=safePercent(data.average_watch_percent);
+    // V86.90 — Unified training engine: watching counts per session, so the record shows completed watches.
+    var average=Math.round(100*list.filter(function(x){return Boolean(x.watch_completed);}).length/8);
     // Use each training's stored best raw 0..20 grade. Display only (/100);
     // preserve original database values, including all attempt history.
     var tested=list.filter(function(x){return x.best_score!=null&&Number.isFinite(Number(x.best_score));});
@@ -66,21 +67,22 @@
       '<p class="muted" style="margin:5px 0 12px">هذه البيانات محفوظة في قاعدة البيانات وتتحدث عند إعادة فتح ملف العضو. درجات المعاينة التجريبية لا تُحتسب.</p>'+
       '<div class="mini-grid" style="margin-bottom:12px">'+
       '<div><b>✅ تدريبات اجتازها</b><div style="font-size:22px;font-weight:900">'+success+' / 8</div></div>'+
-      '<div><b>📊 متوسط المشاهدة</b><div style="font-size:22px;font-weight:900">'+average+'%</div></div>'+
+      '<div><b>📊 المشاهدات المكتملة</b><div style="font-size:22px;font-weight:900">'+average+'%</div></div>'+
       '<div><b>🎯 شرط الاجتياز</b><div style="font-size:15px;font-weight:700">90% مشاهدة و80 / 100 درجة</div></div>'+
       '</div>'+overallHtml;
     list.forEach(function(item){
-      var pct=safePercent(item.watch_percent);
+      // V86.81 — Rounded down, as the server rule: 90% shows only when the watch is actually complete.
+      var pct=item.watch_completed?100:0;
       var grade=item.best_score==null?'لم يؤدِّ الاختبار':Math.round(Math.max(0,Math.min(20,Number(item.best_score)))*5)+' / 100';
       var passed=Boolean(item.passed);
       var watchComplete=Boolean(item.watch_completed);
-      var status=passed?'✅ مجتاز':watchComplete?'📝 بانتظار اجتياز الاختبار':pct>0?'▶️ قيد المشاهدة':'⏳ لم يبدأ';
+      var status=passed?'✅ مجتاز':watchComplete?'📝 بانتظار اجتياز الاختبار':'⏳ لم تكتمل المشاهدة';
       var attempts=Math.max(0,Number(item.attempt_count)||0);
       var passAt=dateLabel(item.passed_at);
       html+='<div class="card" style="margin:8px 0;background:#f9fcfb;padding:12px">'+
         '<div class="row" style="margin:0;padding:0;align-items:center"><b>'+Number(item.training_no)+'. '+escapeHtml(item.title)+'</b>'+
         '<span style="font-weight:700">'+status+'</span></div>'+
-        '<div class="muted" style="margin-top:7px">🎬 نسبة المشاهدة: <b>'+pct+'%</b></div>'+
+        '<div class="muted" style="margin-top:7px">🎬 المشاهدة: <b>'+(pct?'مكتملة':'غير مكتملة')+'</b></div>'+
         '<div class="bar" style="margin-top:4px"><span style="width:'+pct+'%"></span></div>'+
         '<div class="muted" style="margin-top:7px">📝 درجة الاختبار: <b>'+grade+'</b>'+
         (attempts?' · عدد المحاولات: '+attempts:'')+'</div>'+
@@ -118,7 +120,7 @@
       if(!response.ok||!data||typeof data!=='object'||Array.isArray(data)){
         throw new Error((data&&data.error)||'تعذر تحميل سجل التدريب');
       }
-      if(!root.isConnected||document.getElementById('memberProfileModal')!==modal)return;
+      if(!root.isConnected||document.getElementById('memberProfileModal')!==modal||String(localStorage.getItem('dxn_session')||'').trim()!==token)return;
       if(String(data.member_id)!==String(memberId))throw new Error('بيانات العضو غير متطابقة');
       renderResult(root,data);
     }catch(error){

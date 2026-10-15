@@ -2102,7 +2102,7 @@ async function markAllNotificationsRead(){
  render();
 }
 function notifications(){return notificationsCard();}
-function render(){updateSiteMeta();if(role==='leader'&&!me)me=null;const notifSummary=notificationSummary();const badge=role==='member'&&me?topBadge():null;let identity=role==='member'&&me?`<div class="member-identity"><div class="member-identity-main">${memberAvatarHtml(me,'sm')}<div class="member-identity-text"><span class="role-label">👤 العضو</span><b>${esc(me.name||'')} ${badge?`<span class="badge-strip"><span class="name-badge" title="${esc(badge.name)}">${badge.icon}</span></span>`:''}</b><span>🪪 ${esc(me.member_no||'')}</span></div></div><button class="logout-top" onclick="logout()">🚪 تسجيل الخروج</button></div>`:`<div class="member-identity"><span class="role-label">👑 القائد</span><b>${esc(localStorage.getItem('dxn_login_no')||'LEADER')}</b><button class="logout-top" onclick="logout()">🚪 تسجيل الخروج</button></div>`;let mobileIdentity=identity.replace("member-identity","mobile-member-identity");let html=`<div class="view-switch" id="viewSwitch"></div><div class="top login-header-top">${identity}</div>${mobileIdentity}`;html+=`<div class="tabs"><button class="tab ${tab==='home'?'active':''}" onclick="switchTab('home')">الرئيسية 📊</button><button class="tab notif-tab ${tab==='notifications'?'active':''}" onclick="switchTab('notifications')">🔔 الإشعارات ${notifSummary.unread.length?`<span class="notif-count">${notifSummary.unread.length}</span>`:''}</button><button class="tab ${tab==='ch'?'active':''}" onclick="switchTab('ch')">التحديات 🎯</button><button class="tab ${tab==='teams'?'active':''}" onclick="switchTab('teams')">الأعضاء والفرق 👥</button><button class="tab team-member-tab ${tab==='team'?'active':''}" type="button" onclick="window.__DXN_OPEN_TEAM_MEMBER_V4__&&window.__DXN_OPEN_TEAM_MEMBER_V4__()">🌳 فريقي</button>${role==='member'&&me?`<button class="tab ${tab==='basic_training_profile'?'active':''}" onclick="switchTab('basic_training_profile')">📘 ملفي التدريبي</button>`:''}${role==='member'&&me?`<button class="tab ${tab==='progress'?'active':''}" onclick="switchTab('progress')">📊 تقدّمي</button>`:''}${canAccessTraining()?`<button class="tab ${tab==='training'?'active':''}" onclick="switchTab('training')">📚 الشروحات والتدريبات</button>`:''}${role==='leader'?`<button class="tab ${tab==='basic_training_admin'?'active':''}" onclick="switchTab('basic_training_admin')">⚙️ إدارة التدريبات الأساسية</button>`:''}${role==='leader'?`<button class="tab ${tab==='leader'?'active':''}" onclick="switchTab('leader')">إدارة القائد 👑</button>`:''}<button class="tab ${tab==='advanced'?'active':''}" onclick="switchTab('advanced')">🚀 المركز الذكي</button><button class="tab academy-tab ${tab==='academy'?'active':''}" onclick="switchTab('academy')">🎓 أكاديمية المجتمع</button><button class="tab community-tab ${tab==='community'?'active':''}" onclick="switchTab('community')">🌐 المجتمع</button></div>`;html+=tab==='home'?home():tab==='notifications'?notificationsCard(notifSummary):tab==='ch'?challenges():tab==='teams'?teams():tab==='path'&&role==='member'&&me?memberPathMap():tab==='progress'&&role==='member'&&me?progressPage():tab==='basic_training_profile'&&role==='member'&&me?(window.basicTrainingMemberPage?.()||''):tab==='basic_training_admin'&&role==='leader'?(window.basicTrainingAdminPage?.()||''):tab==='training'&&canAccessTraining()?'<div id="section-training">'+trainings()+'</div>':tab==='community'?community():tab==='advanced'?advancedCenter():tab==='team'?'<div id="teamMemberPageHost" class="team-member-page-host"></div>':tab==='academy'?(typeof academyPage==='function'?academyPage():''):leader();html+=nav();$('app').innerHTML=html;renderOnlinePresence();document.querySelectorAll('.login-header-top .logo,.login-header-top h1,.login-header-top p,.login-header-top img').forEach(el=>el.remove());renderViewSwitch();maybeShowLevelUp()}
+function render(){updateSiteMeta();if(role==='leader'&&!me)me=null;const notifSummary=notificationSummary();const badge=role==='member'&&me?topBadge():null;let identity=role==='member'&&me?`<div class="member-identity"><div class="member-identity-main">${memberAvatarHtml(me,'sm')}<div class="member-identity-text"><span class="role-label">👤 العضو</span><b>${esc(me.name||'')} ${badge?`<span class="badge-strip"><span class="name-badge" title="${esc(badge.name)}">${badge.icon}</span></span>`:''}</b><span>🪪 ${esc(me.member_no||'')}</span></div></div><button class="logout-top" onclick="logout()">🚪 تسجيل الخروج</button></div>`:`<div class="member-identity"><span class="role-label">👑 القائد</span><b>${esc(localStorage.getItem('dxn_login_no')||'LEADER')}</b><button class="logout-top" onclick="logout()">🚪 تسجيل الخروج</button></div>`;let mobileIdentity=identity.replace("member-identity","mobile-member-identity");let html=`<div class="view-switch" id="viewSwitch"></div><div class="top login-header-top">${identity}</div>${mobileIdentity}`;html+=`<div class="tabs"><button class="tab ${tab==='home'?'active':''}" onclick="switchTab('home')">الرئيسية 📊</button><button class="tab notif-tab ${tab==='notifications'?'active':''}" onclick="switchTab('notifications')">🔔 الإشعارات ${notifSummary.unread.length?`<span class="notif-count">${notifSummary.unread.length}</span>`:''}</button><button class="tab ${tab==='ch'?'active':''}" onclick="switchTab('ch')">التحديات 🎯</button><button class="tab ${tab==='teams'?'active':''}" onclick="switchTab('teams')">الأعضاء والفرق 👥</button><button class="tab team-member-tab ${tab==='team'?'active':''}" type="button" onclick="window.__DXN_OPEN_TEAM_MEMBER_V4__&&window.__DXN_OPEN_TEAM_MEMBER_V4__()">🌳 فريقي</button>${role==='member'&&me?`<button class="tab ${tab==='basic_training_profile'?'active':''}" onclick="switchTab('basic_training_profile')">📘 ملفي التدريبي</button>`:''}${role==='member'&&me?`<button class="tab ${tab==='progress'?'active':''}" onclick="switchTab('progress')">📊 تقدّمي</button>`:''}${canAccessTraining()?`<button class="tab ${tab==='training'?'active':''}" onclick="switchTab('training')">📚 الشروحات والتدريبات</button>`:''}${role==='leader'?`<button class="tab ${tab==='basic_training_admin'?'active':''}" onclick="switchTab('basic_training_admin')">⚙️ إدارة التدريبات الأساسية</button>`:''}${role==='leader'?`<button class="tab ${tab==='leader'?'active':''}" onclick="switchTab('leader')">إدارة القائد 👑</button>`:''}<button class="tab ${tab==='advanced'?'active':''}" onclick="switchTab('advanced')">🚀 المركز الذكي</button><button class="tab academy-tab ${tab==='academy'?'active':''}" onclick="switchTab('academy')">🎓 أكاديمية المجتمع</button><button class="tab community-tab ${tab==='community'?'active':''}" onclick="switchTab('community')">🌐 المجتمع</button></div>`;html+=tab==='home'?home():tab==='notifications'?notificationsCard(notifSummary):tab==='ch'?challenges():tab==='teams'?teams():tab==='path'&&role==='member'&&me?memberPathMap():tab==='progress'&&role==='member'&&me?progressPage():tab==='basic_training_profile'&&role==='member'&&me?((window.basicTrainingMemberPage?.()||'')+(window.advancedFinancialMemberProfile?.()||'')):tab==='basic_training_admin'&&role==='leader'?(window.basicTrainingAdminPage?.()||''):tab==='training'&&canAccessTraining()?'<div id="section-training">'+trainings()+'</div>':tab==='community'?community():tab==='advanced'?advancedCenter():tab==='team'?'<div id="teamMemberPageHost" class="team-member-page-host"></div>':tab==='academy'?(typeof academyPage==='function'?academyPage():''):leader();html+=nav();$('app').innerHTML=html;renderOnlinePresence();document.querySelectorAll('.login-header-top .logo,.login-header-top h1,.login-header-top p,.login-header-top img').forEach(el=>el.remove());renderViewSwitch();maybeShowLevelUp()}
 const DXN_LEVELS=[
  {stars:0,icon:'🌱',name:'البداية'},
  {stars:100,icon:'🔥',name:'عضو نشيط'},
@@ -2285,6 +2285,7 @@ function openMemberProfile(id){
  const modal=document.createElement('div');modal.id='memberProfileModal';modal.innerHTML=`<div class="evidence-backdrop" onclick="closeMemberProfile()"></div><div class="evidence-modal card" style="max-width:760px;max-height:90vh;overflow:auto"><div class="row"><div class="member-photo-row">${memberAvatarHtml(m,'sm')}<div><h2 style="margin:0">👤 ${esc(m.name||'عضو')}</h2><div class="muted">🪪 ${esc(m.member_no||'')} · ${esc(m.team_name||'بدون فريق')}</div></div></div><button onclick="closeMemberProfile()">✖️</button></div><div class="command-grid"><div class="command-card"><div class="muted">⭐ النجوم</div><div class="command-big stars">${Number(m.stars||0)}</div><div class="muted">${esc(getLevel(m.stars).current.name)}</div></div><div class="command-card"><div class="muted">🎯 نقاط DXN</div><div class="command-big">${snap._pts}/100</div><div class="bar"><span style="width:${Math.min(100,snap._pts)}%"></span></div><div class="muted">${target?`باقي ${target} نقطة`:'🎉 التارجت محقق'}</div></div><div class="command-card"><div class="muted">📚 التدريب</div><div class="command-big">${done}/${total}</div><div class="bar"><span style="width:${pct}%"></span></div></div><div class="command-card"><div class="muted">🏅 الشارات</div><div class="command-big">${badgeCount}</div><div class="muted">شارات مكتسبة</div></div></div>${memberRatingCard(id,role)}<div id="memberRagwanCompletions_${id}" class="card" style="margin-top:10px"><b>🏆 خطة رجوان للنجاح</b><div class="muted">جارٍ تحميل سجل إكمال الخطة...</div></div><div class="card" style="margin-top:10px"><b>📊 الحالة التشغيلية</b><div class="row"><span>آخر نشاط</span><b>${snap._days===null?'لم يبدأ بعد':snap._days===0?'اليوم':`منذ ${snap._days} أيام`}</b></div><div class="row"><span>⏳ إنجازات معلقة</span><b>${snap._pending}</b></div><div class="row"><span>✅ إنجازات معتمدة</span><b>${approved}</b></div><div class="row"><span>📅 مدة العضوية</span><b>${snap._joinedDays===null?'غير مسجلة':`${snap._joinedDays} يوم`}</b></div></div><div class="command-actions"><button class="primary" onclick="closeMemberProfile();switchTab('teams')">👥 إدارة العضو</button><button onclick="closeMemberProfile();switchTab('leader')">👑 العودة لمركز القيادة</button></div></div>`;document.body.appendChild(modal);
  loadMemberRagwanCompletions(id);
   if(role==='leader'&&typeof window.loadBasicTrainingLeaderMemberProfile==='function')window.loadBasicTrainingLeaderMemberProfile(id);
+ if(role==='leader'&&typeof window.advancedFinancialLeaderProfile==='function')window.advancedFinancialLeaderProfile(id);
 }
 async function loadMemberRagwanCompletions(memberId){
   const box=$('memberRagwanCompletions_'+memberId);if(!box)return;
@@ -2945,7 +2946,7 @@ function ideaTrustVideos(){
   renderViewSwitch();
 }
 function switchTrainingSubtab(next){
-  if(next!=='home'&&next!=='lessons'&&next!=='basic'&&next!=='professional'&&next!=='ragwan_success_plan')return;
+  if(next!=='home'&&next!=='lessons'&&next!=='basic'&&next!=='professional'&&next!=='advanced_training'&&next!=='training_camps'&&next!=='ragwan_success_plan')return;
   trainingSubtab=next;
   saveDxnUiState({tab,trainingSubtab:next});
   try{
@@ -2957,6 +2958,10 @@ function switchTrainingSubtab(next){
           ? document.getElementById('trainingProfessionalStart')
           : next==='lessons'
             ? document.getElementById('trainingKindChoices')
+            : next==='training_camps'
+              ? document.getElementById('trainingCampsStart')
+            : next==='advanced_training'
+              ? document.getElementById('trainingAdvancedStart')
             : next==='basic'
               ? document.getElementById('trainingBasicBagStart')
               : document.getElementById('trainingLessonsStart');
@@ -6212,26 +6217,146 @@ function basicTrainingPage(){
     ? window.basicTrainingCourseHtml()
     : '<div class="card">جارٍ تحميل التدريبات الأساسية…</div>';
 }
+/* V86.80 — Professional trainings in the advanced training's layout: list on the right, video on
+   the left, quiz button above it. Each training keeps its own video and quiz window. */
+let professionalSelected=0;
+function professionalTrainingInfos(){
+  return [1,2,3,4,5].map(n=>{const info=window['professionalTraining0'+n+'Info']?.();return info?{...info,no:n}:null;});
+}
+function professionalViewerHtml(info){
+  return `<strong id="professionalVideoTitle">${esc(info.label)} — ${esc(info.title)}</strong>
+    <div class="unified-training__actions"><span class="muted">${esc(info.instructor)}</span>
+     <button type="button" class="name-list-btn unified-training__quiz-button" onclick="professionalTraining0${info.no}OpenExam()">📝 ابدأ اختبار الدرس</button></div>
+    <div class="training-professional-video unified-training__video"><iframe src="https://www.youtube-nocookie.com/embed/${esc(info.videoId)}?rel=0" title="فيديو ${esc(info.label)}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
+    <p class="basic-bag-status">${info.questionCount} سؤالًا — الدرجة النهائية عند تفعيل التصحيح: 100</p>
+    <p class="basic-bag-description">نسبة المشاهدة لا تُحتسب في التدريبات الاحترافية حاليًا، والاختبار معاينة دون تصحيح أو حفظ. <a href="https://youtu.be/${esc(info.videoId)}" target="_blank" rel="noopener noreferrer">▶ فتح الفيديو على YouTube</a></p>`;
+}
+function professionalLessonListHtml(infos){
+  return infos.map((info,i)=>`<button type="button" class="advanced-profit-lesson" aria-pressed="${i===professionalSelected}" onclick="professionalSelectLesson(${i})"><span class="advanced-profit-index">${info.no}</span><span>${esc(info.label)}: ${esc(info.title)}</span><span aria-hidden="true">▶</span></button>`).join('');
+}
+function professionalSelectLesson(i){
+  const infos=professionalTrainingInfos(),info=infos[Number(i)];
+  const viewer=document.getElementById('professionalViewer'),list=document.getElementById('professionalLessonList');
+  if(!info||!viewer||!list)return;
+  professionalSelected=Number(i);
+  viewer.innerHTML=professionalViewerHtml(info);
+  list.innerHTML=professionalLessonListHtml(infos);
+}
+/* V86.90 — With the unified training engine the page comes from professional-training-course.js. Until the
+   professional server side is installed, it shows this unsaved preview inside the same layout. */
+window.professionalTrainingPreviewHtml=function(){
+  const infos=professionalTrainingInfos();
+  if(!infos.every(Boolean))return '<p class="muted">تعذر تحميل التدريبات الاحترافية.</p>';
+  const selected=infos[professionalSelected]||infos[0];
+  return `<p class="basic-bag-notice">معاينة: نظام المشاهدة والاختبارات للتدريبات الاحترافية بانتظار التفعيل؛ لا تُحتسب المشاهدة ولا تُحفظ الدرجات.</p>
+      <div class="advanced-profit-grid unified-training__layout">
+       <div id="professionalLessonList" class="advanced-profit-list" aria-label="التدريبات الاحترافية">${professionalLessonListHtml(infos)}</div>
+       <div id="professionalViewer" class="advanced-profit-viewer unified-training__viewer">${professionalViewerHtml(selected)}</div>
+      </div>`;
+};
 function professionalTrainingPage(){
+  if(typeof window.professionalTrainingCoursePage==='function')return window.professionalTrainingCoursePage();
+  const infos=professionalTrainingInfos();
+  if(infos.every(Boolean)){
+    const selected=infos[professionalSelected]||infos[0];
+    return `<section id="trainingProfessionalStart" class="card training-professional-page">
+    <div class="title">🎓 التدريبات الاحترافية</div>
+    <p class="muted">مسار احترافي مستقل عن التدريبات الأساسية وخطة رجوان للنجاح.</p>
+    <details class="advanced-profit-course academy-camps-course unified-training">
+     <summary><span class="advanced-profit-course-emoji">🎓</span><span class="advanced-profit-course-copy"><strong>التدريبات الاحترافية</strong><small>${infos.length} تدريبات — فيديو واختبار من 20 سؤالًا لكل تدريب</small></span><span class="academy-camps-open-hint"><span class="academy-camps-hint-closed">▶ اضغط لعرض التدريبات الخمسة</span><span class="academy-camps-hint-open">▲ إغلاق قائمة التدريبات</span></span></summary>
+     <div class="advanced-profit-content">
+      <p class="muted">اختر التدريب من القائمة. لكل تدريب فيديو واختبار مستقلان.</p>
+      <div class="advanced-profit-grid unified-training__layout">
+       <div id="professionalLessonList" class="advanced-profit-list" aria-label="التدريبات الاحترافية">${professionalLessonListHtml(infos)}</div>
+       <div id="professionalViewer" class="advanced-profit-viewer unified-training__viewer">${professionalViewerHtml(selected)}</div>
+      </div>
+     </div>
+    </details>
+  </section>`;
+  }
+  const trainingOne = window.professionalTraining01Page?.() || '<p class="muted">تعذر تحميل أسئلة التدريب الأول.</p>';
+  const trainingTwo = window.professionalTraining02Page?.() || '<p class="muted">تعذر تحميل أسئلة التدريب الثاني.</p>';
   return `<section id="trainingProfessionalStart" class="card training-professional-page">
     <div class="title">🎓 التدريبات الاحترافية</div>
     <p class="muted">مسار احترافي مستقل عن التدريبات الأساسية وخطة رجوان للنجاح.</p>
-    <article class="training-professional-lesson">
-      <div class="training-professional-number">التدريب الاحترافي الخامس</div>
-      <h2>إعداد قائمة الأسماء الاحترافية</h2>
-      <p class="muted">المحاضر: الأستاذ أحمد العتيبي — مدة المحاضرة نحو 90 دقيقة.</p>
-      <div class="training-professional-video">
-        <iframe src="https://www.youtube.com/embed/HxID9tMHoVw?rel=0" title="محاضرة إعداد قائمة الأسماء الاحترافية — أحمد العتيبي" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-      </div>
-      <div class="training-professional-actions">
-        <a href="https://youtu.be/HxID9tMHoVw" target="_blank" rel="noopener noreferrer" class="name-list-btn">▶ مشاهدة الفيديو على YouTube</a>
-      </div>
-      <div class="training-professional-assessment"><strong>🧠 اختبار التدريب الخامس</strong>
-        <p>الأسئلة العشرون معتمدة ومحفوظة منفصلة، ولم تُنشر بعد في نظام الاختبارات الاحترافية.</p>
-      </div>
-    </article>
+    ${trainingOne}
+    ${trainingTwo}
+    ${window.professionalTraining03Page?.() || '<p class="muted">تعذر تحميل أسئلة التدريب الثالث.</p>'}
+    ${window.professionalTraining04Page?.() || '<p class="muted">تعذر تحميل اختبار التدريب الرابع.</p>'}
+    ${window.professionalTraining05Page?.() || '<p class="muted">تعذر تحميل اختبار التدريب الخامس.</p>'}
   </section>`;
 }
+
+/* Advanced training is a catalogue of courses. Each course may contain multiple video lessons. */
+const advancedProfitVideos=[
+ ['ANiPxicO7lM','مدخل لفهم الخطة المالية ومصادر الدخل'],
+ ['1ez8B2OtGlE','المصطلحات وهيكلية الخطة المالية'],
+ ['t2ypbjuOD30','أرباح بيع التجزئة وعلاوة المجموعة'],
+ ['-zs_p5ckUfM','علاوة المجموعة النجمية وعلاوة التطوير'],
+ ['JweCoZ2xmMY','علاوة القيادة والحجب'],
+ ['fRTu_VcaQnQ','أمثلة عملية على علاوة القيادة والحجب'],
+ ['3lLvcHgOA2Q','نظام التسليف النقطي'],
+ ['8tedEnY4DvA','الحوافز النقدية والرحلات ومشاركة الأرباح الدولية'],
+ ['nVYy_qF8IxU','التأهل الشهري لجميع الرتب'],
+ ['tGrnJ2yQJg0','خلاصة خطة الأرباح في DXN']
+];
+function advancedProfitSelectVideo(i){
+  const entry=advancedProfitVideos[Number(i)];if(!entry)return;
+  const frame=document.getElementById('advancedProfitVideoFrame');
+  const link=document.getElementById('advancedProfitYoutubeLink');
+  const caption=document.getElementById('advancedProfitVideoTitle');
+  if(!frame||!link||!caption)return;
+  frame.src='https://www.youtube-nocookie.com/embed/'+entry[0]+'?rel=0';
+  frame.title='الدرس '+(Number(i)+1)+' — '+entry[1];
+  link.href='https://youtu.be/'+entry[0];
+  caption.textContent='الدرس '+(Number(i)+1)+' من 10 — '+entry[1];
+  document.querySelectorAll('#advancedProfitLessonList button').forEach((b,j)=>{b.setAttribute('aria-pressed',String(j===Number(i)));});
+}
+/* Camps are grouped into independent collections so future camps/trips can be added alongside them. */
+const academyCampsVideos=[
+ ['7OI3JtlrOKY','مخيم أكاديمية الثراء الشامل الأول 2017 — ماليزيا'],
+ ['fmig0y3CoQo','مخيم أكاديمية الثراء الشامل الخامس 2019 — تركيا'],
+ ['RzA8e-p8djA','مخيم أكاديمية الثراء الشامل الرابع 2019 — ماليزيا'],
+ ['PPR1m38u7TQ','مخيم أكاديمية الثراء الشامل الثالث 2018 — ماليزيا'],
+ ['6vcoJzIxUbY','مخيم أكاديمية الثراء الشامل الثاني 2018 — ماليزيا'],
+ ['F6LTtB1HKKU','زيارة مزارع ومصانع شركة DXN ماليزيا — المخيم الثاني'],
+ ['VzGbXgPRkTk','تكريمات رائعة في المخيم الثاني 2018 — ماليزيا']
+];
+function academyCampsSelectVideo(i){
+ const n=Number(i),entry=academyCampsVideos[n];if(!entry)return;
+ const frame=document.getElementById('academyCampsVideoFrame');
+ const link=document.getElementById('academyCampsYoutubeLink');
+ const title=document.getElementById('academyCampsVideoTitle');
+ if(!frame||!link||!title)return;
+ frame.src='https://www.youtube-nocookie.com/embed/'+entry[0]+'?rel=0';
+ frame.title=entry[1];
+ link.href='https://youtu.be/'+entry[0];
+ title.textContent='الفيديو '+(n+1)+' من 7 — '+entry[1];
+ document.querySelectorAll('#academyCampsVideoList button').forEach((b,j)=>b.setAttribute('aria-pressed',String(j===n)));
+}
+function trainingCampsPage(){
+ const items=academyCampsVideos.map((v,i)=>`<button type="button" class="advanced-profit-lesson" aria-pressed="${i===0?'true':'false'}" onclick="academyCampsSelectVideo(${i})"><span class="advanced-profit-index">${i+1}</span><span>${esc(v[1])}</span><span aria-hidden="true">▶</span></button>`).join('');
+ return `<section id="trainingCampsStart" class="card training-professional-page">
+  <div class="title">🏕️ مخيمات ورحلات تدريبية وترفيهية</div>
+  <p class="muted">مجموعات مستقلة لمخيمات أكاديمية الثراء الشامل والرحلات والأنشطة التدريبية والترفيهية.</p>
+  <details class="advanced-profit-course academy-camps-course">
+   <summary aria-label="اضغط لعرض فيديوهات مخيمات أكاديمية الثراء الشامل"><span class="advanced-profit-course-emoji">🏕️</span><span class="advanced-profit-course-copy"><strong>مخيمات أكاديمية الثراء الشامل</strong><small>7 فيديوهات — بالترتيب المعتمد من قائمة تشغيل المهندس محمود المصري</small></span><span class="academy-camps-open-hint"><span class="academy-camps-hint-closed">▶ اضغط هنا لعرض الفيديوهات السبعة</span><span class="academy-camps-hint-open">▲ اضغط لإغلاق قائمة الفيديوهات</span></span></summary>
+   <div class="advanced-profit-content">
+    <p class="muted">اختر فيديو من القائمة لعرضه هنا. ترتيب الفيديوهات هو ترتيب قائمة التشغيل الأصلية، وليس الترتيب الزمني للمخيمات.</p>
+    <div class="advanced-profit-grid">
+     <div id="academyCampsVideoList" class="advanced-profit-list" aria-label="فيديوهات مخيمات أكاديمية الثراء الشامل">${items}</div>
+     <div class="advanced-profit-viewer">
+      <strong id="academyCampsVideoTitle">الفيديو 1 من 7 — ${esc(academyCampsVideos[0][1])}</strong>
+      <div class="training-professional-video"><iframe id="academyCampsVideoFrame" src="https://www.youtube-nocookie.com/embed/${academyCampsVideos[0][0]}?rel=0" title="مخيم أكاديمية الثراء الشامل الأول 2017 — ماليزيا" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
+      <a id="academyCampsYoutubeLink" class="name-list-btn" href="https://youtu.be/${academyCampsVideos[0][0]}" target="_blank" rel="noopener noreferrer">▶ مشاهدة الفيديو على YouTube</a>
+     </div>
+    </div>
+   </div>
+  </details>
+  <p class="muted" style="margin-top:16px">يمكن إضافة مجموعات مستقلة لمخيمات ورحلات أخرى لاحقًا.</p>
+ </section>`;
+}
+function advancedTrainingPage(){ return typeof window.advancedFinancialCoursePage==='function'?window.advancedFinancialCoursePage():'<section class="card">جارٍ تحميل التدريب المتقدم...</section>'; }
 
 function trainings(){
   const lessons=(trainingData.lessons||[]).sort((a,b)=>Number(a.lesson_no)-Number(b.lesson_no));
@@ -6301,6 +6426,20 @@ function trainings(){
         <span class="training-feature-copy"><strong>التدريبات الاحترافية</strong><small>المحاضرات والتطبيقات والاختبارات المعتمدة</small></span>
         <span class="training-feature-arrow">›</span>
       </button>
+      <button type="button" class="training-feature-card training-feature-professional" onclick="switchTrainingSubtab('advanced_training')">
+        <span class="training-feature-shine"></span>
+        <span class="training-feature-badge">🚀 المسار المتقدم</span>
+        <span class="training-feature-icon">🚀</span>
+        <span class="training-feature-copy"><strong>التدريب المتقدم</strong><small>مسار مستقل — سيتم إضافة الدروس والاختبارات لاحقًا</small></span>
+        <span class="training-feature-arrow">›</span>
+      </button>
+      <button type="button" class="training-feature-card training-feature-lessons" onclick="switchTrainingSubtab('training_camps')">
+        <span class="training-feature-shine"></span>
+        <span class="training-feature-badge">🏕️ فعاليات وأنشطة</span>
+        <span class="training-feature-icon">🏕️</span>
+        <span class="training-feature-copy"><strong>مخيمات ورحلات تدريبية وترفيهية</strong><small>قسم مستقل للفعاليات والمخيمات والرحلات القادمة</small></span>
+        <span class="training-feature-arrow">›</span>
+      </button>
     </div>
   </section>`;
 
@@ -6320,6 +6459,14 @@ function trainings(){
     return backToTrainingTypes+professionalTrainingPage();
   }
 
+  if(trainingSubtab==='advanced_training'){
+    return backToTrainingTypes+advancedTrainingPage();
+  }
+
+  if(trainingSubtab==='training_camps'){
+    return backToTrainingTypes+trainingCampsPage();
+  }
+
   if(trainingSubtab==='ragwan_success_plan'){
     return `<div class="card">
       <div class="title">📘 الخطة الاحترافية لرجوان نجاح</div>
@@ -6329,7 +6476,7 @@ function trainings(){
 
   // The prior 8-lesson training track remains stored and managed separately.
   // Never fall through into its old progress/cards when the current route is
-  // missing, stale or unexpected; show the approved 2-option chooser instead.
+  // missing, stale or unexpected; show the training-type chooser instead.
   return backChoice+trainingTypeChoices;
 }
 
@@ -7331,6 +7478,19 @@ function dxnMemberSearchKeydown(event){
   }
 }
 
+async function deleteDxnManualRecord(memberNo, memberName){
+ if(role!=='leader')return toast('هذه العملية للقائد فقط.');
+ const answer=prompt('حذف السجل اليدوي: '+memberName+' ('+memberNo+')\nاكتب رقم العضوية لتأكيد الحذف:');
+ if(answer===null)return;
+ if(String(answer).trim()!==String(memberNo))return toast('التأكيد غير مطابق، لم يتم الحذف.');
+ try{
+  const response=await fetch('/api/leader-dxn-member-delete',{method:'POST',headers:{'Content-Type':'application/json','X-DXN-Session':String(token||'').trim()},body:JSON.stringify({member_no:memberNo,confirm_member_no:answer}),cache:'no-store'});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok||!data.ok)throw new Error(data.error||'تعذر الحذف');
+  toast('✅ تم حذف السجل اليدوي '+memberNo);
+  await searchDxnMemberRecord();
+ }catch(e){toast('❌ '+(e.message||'تعذر الحذف'))}
+}
 async function searchDxnMemberRecord(){
   if(role!=='leader')return toast('هذه العملية للقائد فقط.');
 
@@ -7414,6 +7574,9 @@ async function searchDxnMemberRecord(){
     }
 
     const rowsHtml=rows.map(function(row){
+      const action=String(row.source||'').toLowerCase()==='manual'
+        ? '<button type="button" class="dxn-delete-manual" data-member-no="'+esc(String(row.member_no||''))+'" data-member-name="'+esc(String(row.member_name||''))+'">🗑️ حذف السجل</button>'
+        : '—';
       return '<tr>'+
         '<td><b>'+esc(dxnMemberSearchValue(row.member_no))+'</b></td>'+
         '<td><b>'+esc(dxnMemberSearchValue(row.member_name))+'</b></td>'+
@@ -7434,6 +7597,7 @@ async function searchDxnMemberRecord(){
         '<td>'+esc(dxnMemberSearchValue(row.source_updated_at))+'</td>'+
         '<td>'+esc(dxnMemberSearchValue(row.created_at))+'</td>'+
         '<td>'+esc(dxnMemberSearchValue(row.updated_at))+'</td>'+
+        '<td>'+action+'</td>'+
       '</tr>';
     }).join('');
 
@@ -7460,11 +7624,15 @@ async function searchDxnMemberRecord(){
             '<th>آخر تحديث للمصدر</th>'+
             '<th>تاريخ الإنشاء</th>'+
             '<th>آخر تحديث</th>'+
+            '<th>حذف السجل اليدوي</th>'+
           '</tr></thead>'+
           '<tbody>'+rowsHtml+'</tbody>'+
         '</table>'+
       '</div>'+
       '<div class="muted" style="margin-top:8px">عرض '+rows.length+' نتيجة. القيم المقنّعة في تقرير DXN تظهر كما هي بالشكل <b>***</b>.</div>';
+    result.querySelectorAll('.dxn-delete-manual').forEach(btn=>{
+      btn.addEventListener('click',()=>deleteDxnManualRecord(btn.dataset.memberNo,btn.dataset.memberName));
+    });
 
   }catch(error){
     if(status){
@@ -8476,10 +8644,20 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 .training-professional-assessment p{margin:5px 0 0;color:#435f52}
 @media(max-width:799px){.training-kind-tabs{grid-template-columns:1fr}.training-kind-tabs .training-feature-card{min-height:128px}}
 </style>
-<link rel="stylesheet" href="../basic-training.css?v=20261014-scores100">
-<script src="../basic-training.js?v=20261014-uistate"></script>
-<script src="../basic-training-leader-profile.js?v=20261014-scores100"></script>
-<script src="../basic-training-member-profile.js?v=20261014-uistate"></script>
+<link rel="stylesheet" href="../basic-training.css?v=20261014-onequestion">
+<link rel="stylesheet" href="../unified-training-ui.css?v=20261015-unified">
+<script src="../training-engine.js?v=20261015-engine"></script>
+<script src="../professional-training-01.js?v=20261015-unified"></script>
+<script src="../professional-training-02.js?v=20261015-unified"></script>
+<script src="../professional-training-03.js?v=20261015-unified"></script>
+<script src="../professional-training-04.js?v=20261015-unified"></script>
+<script src="../professional-training-05.js?v=20261015-unified"></script>
+<script src="../professional-training-course.js?v=20261015-engine"></script>
+<style id="advanced-financial-css">.advanced-financial-course .advanced-financial-lesson{display:flex;align-items:center;justify-content:space-between;gap:16px;border:1px solid #d7e5de;background:#fff;padding:20px;margin:12px 0;border-radius:16px}.advanced-financial-course .advanced-financial-meta{flex:1;min-width:0}.advanced-financial-course .advanced-financial-num{color:#14664e;font-weight:900}.advanced-financial-course h3{font-size:19px;margin:6px 0 8px}.advanced-financial-course .advanced-financial-actions{display:flex;gap:8px;flex-direction:column;min-width:185px}.advanced-financial-course button:disabled{opacity:.45;cursor:not-allowed}.advanced-financial-exam-header{font-size:17px;font-weight:900;margin-bottom:18px}.advanced-financial-footer{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px}.advanced-financial-footer button{flex:1;min-width:100px}@media(max-width:799px){.advanced-financial-course .advanced-financial-lesson{flex-direction:column;align-items:stretch;padding:14px}.advanced-financial-course .advanced-financial-actions{width:100%}.advanced-financial-course .advanced-financial-meta{order:0}.advanced-financial-course .advanced-financial-actions{order:1}.advanced-financial-footer button{min-width:90px}}</style>
+<script src="../advanced-financial-training.js?v=20261015-engine"></script>
+<script src="../basic-training.js?v=20261015-engine"></script>
+<script src="../basic-training-leader-profile.js?v=20261015-engine"></script>
+<script src="../basic-training-member-profile.js?v=20261015-engine"></script>
 <script src="../basic-training-admin.js?v=20261014-uistate"></script>
 <script src="../training-assessment.js?v=20261014-chooser-guard"></script><script src="../external-training-assessment-profile.js?v=5"></script>
 <script src="../training-assessment-buttons.js"></script>
@@ -9662,6 +9840,46 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 .dxn-global-announcement-panel .ga-body{white-space:pre-wrap;line-height:1.9;color:#34443e}
 .dxn-global-announcement-panel .ga-footer{display:flex;justify-content:flex-start;gap:8px;flex-wrap:wrap;margin-top:18px}
 @media(max-width:650px){.dxn-global-announcement-panel{padding:18px;border-radius:20px;width:96vw}.dxn-global-announcement-card .ga-actions button{flex:1;min-width:150px}}
+
+/* Advanced course catalogue: one course, ten nested lessons. */
+/* Four main training choices: spacious two-column cards rather than four compressed squares. */
+.training-kind-tabs{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.training-kind-tabs .training-feature-card{height:auto;min-height:156px;padding:45px 22px 20px;gap:14px;align-items:center;flex-direction:row;justify-content:flex-start}
+.training-kind-tabs .training-feature-icon{width:65px;height:65px;flex:0 0 65px;font-size:36px;border-radius:18px}
+.training-kind-tabs .training-feature-copy{flex:1;gap:8px;min-width:0}
+.training-kind-tabs .training-feature-copy strong{font-size:clamp(19px,1.65vw,26px);line-height:1.45;overflow-wrap:break-word}
+.training-kind-tabs .training-feature-copy small{font-size:clamp(12px,1vw,14px);line-height:1.55;font-weight:650}
+.training-kind-tabs .training-feature-arrow{width:42px;height:42px;flex:0 0 42px;font-size:32px}
+.training-kind-tabs .training-feature-badge{font-size:12px;padding:7px 12px}
+@media(max-width:800px){.training-kind-tabs{grid-template-columns:1fr;gap:12px}.training-kind-tabs .training-feature-card{min-height:132px;padding:39px 16px 18px}.training-kind-tabs .training-feature-copy strong{font-size:clamp(18px,4.5vw,23px)}.training-kind-tabs .training-feature-arrow{width:38px;height:38px;flex-basis:38px;font-size:28px}.training-kind-tabs .training-feature-icon{width:55px;height:55px;flex-basis:55px;font-size:30px}}
+@media(min-width:801px) and (max-width:1080px){.training-kind-tabs .training-feature-icon{width:54px;height:54px;flex-basis:54px;font-size:29px}.training-kind-tabs .training-feature-arrow{width:36px;height:36px;flex-basis:36px;font-size:27px}}
+
+.training-kind-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
+.advanced-profit-course{margin-top:16px;border:1px solid #cbded6;border-radius:18px;overflow:hidden;background:#f7fbf9}
+.advanced-profit-course>summary{cursor:pointer;display:flex;align-items:center;gap:12px;padding:18px;list-style:none}
+.advanced-profit-course>summary::-webkit-details-marker{display:none}
+.advanced-profit-course-emoji{font-size:34px}
+.advanced-profit-course-copy{display:grid;gap:6px;flex:1;min-width:0}
+.advanced-profit-course-copy strong{font-size:19px;color:#194b3a}
+.advanced-profit-course-copy small{font-size:13px;color:#526e62;line-height:1.6}
+.advanced-profit-pill{padding:7px 12px;border-radius:30px;background:#dfefe7;color:#155941;font-weight:800;white-space:nowrap}
+.advanced-profit-content{padding:16px;border-top:1px solid #d2e5d9}
+.advanced-profit-grid{display:grid;grid-template-columns:minmax(240px,0.8fr) minmax(0,1.4fr);gap:18px}
+.advanced-profit-list{display:grid;align-content:start;gap:8px}
+.advanced-profit-lesson{width:100%;display:flex;align-items:center;gap:9px;padding:12px;border:1px solid #d5e2db;border-radius:12px;background:#fff;color:#234e3d;text-align:start;cursor:pointer;line-height:1.6}
+.advanced-profit-lesson[aria-pressed="true"]{background:#e1f1e9;border-color:#4c9776;font-weight:800}
+.advanced-profit-index{display:grid;place-items:center;flex:0 0 27px;height:27px;border-radius:50%;background:#245d43;color:white}
+.advanced-profit-viewer{min-width:0}
+.advanced-profit-viewer>a{display:inline-flex;text-decoration:none}
+@media(max-width:850px){.training-kind-tabs{grid-template-columns:1fr}.advanced-profit-grid{grid-template-columns:1fr}.advanced-profit-course>summary{flex-wrap:wrap}}
+
+/* Make the camp collection unmistakably interactive. */
+.academy-camps-course>summary{border:2px solid #b7ddcb;background:linear-gradient(110deg,#effaf4,#fff);border-radius:16px;transition:background .2s,border-color .2s,box-shadow .2s;flex-wrap:wrap}
+.academy-camps-course>summary:hover,.academy-camps-course>summary:focus-visible{background:#e4f5eb;border-color:#158054;box-shadow:0 5px 16px rgba(15,90,61,.15);outline-offset:2px}
+.academy-camps-open-hint{display:inline-flex;align-items:center;justify-content:center;max-width:100%;padding:12px 18px;border-radius:999px;background:linear-gradient(135deg,#087b59,#12a679);color:#fff;font-size:15px;font-weight:900;line-height:1.4;text-align:center;box-shadow:0 5px 12px rgba(10,113,75,.20)}
+.academy-camps-course[open] .academy-camps-hint-closed,.academy-camps-course:not([open]) .academy-camps-hint-open{display:none}
+.academy-camps-course[open]>summary{border-radius:16px 16px 0 0;border-color:#158054}
+@media(max-width:720px){.academy-camps-open-hint{width:100%;font-size:14px;padding:12px}.academy-camps-course>summary{gap:10px}}
 </style>
 <script id="dxn-global-announcements-v1-script">
 (function(){

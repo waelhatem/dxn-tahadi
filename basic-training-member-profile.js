@@ -6,7 +6,9 @@
  if(window.basicTrainingMemberPage)return;
  const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const titles=['التعريف بمشروع DXN ومنتجاتها ونظامها التسويقي','التعريف بشركة DXN ومنتجاتها ونظامها التسويقي والأرباح','منتجات DXN وأصنافها وطرق تسويقها','نظام البيع المباشر في DXN','خطة الأرباح والحوافز لشركة DXN','التطبيق العملي لخطة الأرباح خلال ستة أشهر','تفعيل العضوية وتسجيل أعضاء الفريق','أساسيات النجاح التسعة مع DXN'];
- const percent=p=>Math.min(100,Math.max(0,Math.round(100*(Number(p.watched)||0)/(Number(p.duration)||1))));
+ // V86.81 — Rounded down, as the server rule: 90% shows only when the watch is actually complete.
+ // V86.90 — Unified training engine: only a completed watch is kept; partial watching is per session.
+ const percent=p=>p.completed?100:0;
  window.basicTrainingMemberPage=function(){
    // Load on every build of the page (also a tab restored after reload);
    // basicTrainingLoadMemberPage ignores a second call while one is running.
@@ -15,17 +17,19 @@
  };
  window.basicTrainingLoadMemberPage=async function(){
    const root=document.getElementById('basicTrainingMemberBody');
-   if(!root||root.dataset.loading==='1')return;
+   if(!root)return;
+   const currentToken=String(localStorage.getItem('dxn_session')||'').trim();
+   if(root.dataset.loading==='1'&&root.dataset.requestToken===currentToken)return;
    if(typeof role==='undefined'||role!=='member'||!me){root.textContent='هذه الصفحة مخصصة لحساب العضو.';return;}
    const token=String(localStorage.getItem('dxn_session')||'').trim();
    if(!token){root.textContent='يرجى تسجيل الدخول لعرض سجلك.';return;}
-   root.dataset.loading='1';root.textContent='جارٍ قراءة السجل المحفوظ...';
+   root.dataset.loading='1';root.dataset.requestToken=token;root.textContent='جارٍ قراءة السجل المحفوظ...';
    try{
      const response=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({fn:'basic_training_overview',args:{p_token:token}})});
      const payload=await response.json();
      if(!response.ok||!payload||!Array.isArray(payload.progress))throw Error(payload.error||payload.message||'خدمة حفظ التدريبات غير مفعلة بعد');
      if(payload.role!=='member')throw Error('صلاحية الحساب غير متطابقة');
-     if(!root.isConnected)return;
+     if(!root.isConnected||String(localStorage.getItem('dxn_session')||'').trim()!==token||root.dataset.requestToken!==token)return;
      const progress=payload.progress;
      const completed=progress.filter(p=>p.passed===true).length;
      // Never show a provisional average: reveal the final score ONLY after
@@ -47,12 +51,12 @@
      html+='<div class="mini-grid" style="margin:12px 0"><div><b>📚 التدريبات</b><h3>8</h3></div><div><b>✅ المكتملة</b><h3>'+completed+'</h3></div><div><b>📝 الاختبارات المؤداة</b><h3>'+testedCount+'/8</h3></div></div>';
      for(let i=1;i<=8;i++){
        const p=progress.find(x=>Number(x.training_no)===i)||{},pct=percent(p),score=p.best_score==null?'لم يُختبر':Math.round(Number(p.best_score)*5)+' / 100';
-       const state=p.passed?'✅ ناجح':p.best_score!=null?'❌ لم يجتز':p.completed?'📝 جاهز للاختبار':pct?'▶ قيد المشاهدة':'⏳ لم يبدأ';
+       const state=p.passed?'✅ ناجح':p.best_score!=null?'❌ لم يجتز':p.completed?'📝 جاهز للاختبار':'⏳ لم تكتمل المشاهدة';
        const date=p.passed_at?new Date(p.passed_at).toLocaleDateString('ar-IQ'):'';
-       html+='<article class="card" style="margin:10px 0;padding:12px"><b>التدريب الأساسي '+i+' — '+esc(titles[i-1])+'</b><p class="muted">'+state+' · درجة الاختبار: <strong dir="ltr">'+esc(score)+'</strong></p><div class="muted">مشاهدة الفيديو: '+pct+'%</div><div style="height:9px;background:#e5eee9;border-radius:10px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:#168257"></div></div>'+(date?'<p class="muted">تاريخ الاجتياز: '+esc(date)+'</p>':'')+'</article>';
+       html+='<article class="card" style="margin:10px 0;padding:12px"><b>التدريب الأساسي '+i+' — '+esc(titles[i-1])+'</b><p class="muted">'+state+' · درجة الاختبار: <strong dir="ltr">'+esc(score)+'</strong></p><div class="muted">مشاهدة الفيديو: '+(pct?'✅ مكتملة':'غير مكتملة')+'</div><div style="height:9px;background:#e5eee9;border-radius:10px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:#168257"></div></div>'+(date?'<p class="muted">تاريخ الاجتياز: '+esc(date)+'</p>':'')+'</article>';
      }
      root.innerHTML=html;
-   }catch(e){if(root.isConnected)root.textContent='تعذّر تحميل السجل: '+(e.message||'خدمة التدريبات غير متاحة');}
-   finally{root.dataset.loading='0';}
+   }catch(e){if(root.isConnected&&root.dataset.requestToken===token&&String(localStorage.getItem('dxn_session')||'').trim()===token)root.textContent='تعذّر تحميل السجل: '+(e.message||'خدمة التدريبات غير متاحة');}
+   finally{if(root.dataset.requestToken===token){root.dataset.loading='0';delete root.dataset.requestToken;}}
  };
 })();

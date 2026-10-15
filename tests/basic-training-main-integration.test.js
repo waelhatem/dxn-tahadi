@@ -15,8 +15,8 @@ test('all inline scripts in the actual app HTML parse successfully',()=>{
  scripts.forEach((code,i)=>assert.doesNotThrow(()=>new vm.Script(code,{filename:'app-inline-'+i+'.js'})));
 });
 test('main-targeted basic training scripts are loaded once',()=>{
- const deps=['../basic-training.css?v=20261014-scores100','../basic-training.js?v=20261014-uistate',
-  '../basic-training-member-profile.js?v=20261014-uistate','../basic-training-leader-profile.js?v=20261014-scores100',
+ const deps=['../basic-training.css?v=20261014-onequestion','../basic-training.js?v=20261015-engine','../unified-training-ui.css?v=20261015-unified',
+  '../basic-training-member-profile.js?v=20261015-engine','../basic-training-leader-profile.js?v=20261015-engine',
   '../basic-training-admin.js?v=20261014-uistate'];
  deps.forEach(src=>assert.equal(page.split(src).length-1,1,src));
  assert.doesNotMatch(page,/<script[^>]+src=["'][^"']*training-name-list\.js/);
@@ -44,10 +44,12 @@ test('basic training is independent of existing Ragwan and old lessons',()=>{
     'Only tutorials and Ragwan are top-level choices');
  assert.doesNotMatch(mainMenu,/switchTrainingSubtab\('basic'\)/);
  const typeChooser=page.split('const trainingTypeChoices=').at(-1).split("if(trainingSubtab==='home')")[0];
- assert.equal((typeChooser.match(/onclick="switchTrainingSubtab/g)||[]).length,2,
-    'Exactly basic and professional training under tutorials');
+ assert.equal((typeChooser.match(/onclick="switchTrainingSubtab/g)||[]).length,4,
+    'Exactly basic, professional, advanced, and camps training under tutorials');
  assert.match(typeChooser,/switchTrainingSubtab\('basic'\)/);
  assert.match(typeChooser,/switchTrainingSubtab\('professional'\)/);
+ assert.match(typeChooser,/switchTrainingSubtab\('advanced_training'\)/);
+ assert.match(typeChooser,/switchTrainingSubtab\('training_camps'\)/);
  assert.match(page,/if\(trainingSubtab==='lessons'\)\s*\{\s*return backChoice\+trainingTypeChoices/);
  assert.match(page,/if\(trainingSubtab==='basic'\)\s*\{\s*return backToTrainingTypes\+basicTrainingPage\(\)/);
  assert.match(page,/if\(trainingSubtab==='professional'\)\s*\{\s*return backToTrainingTypes\+professionalTrainingPage\(\)/);
