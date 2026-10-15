@@ -173,7 +173,7 @@ async function mountInline(x){
   if(tracked)watch=w;
   w.player=new window.YT.Player(target,{videoId:x.video_id,playerVars:{rel:0,disablekb:tracked?1:0,playsinline:1},
    events:{onReady:()=>{
-    if(!target.isConnected||selectedLesson!==n)return;
+    if(!document.getElementById('advancedFinancialInlineBox')||selectedLesson!==n||watch!==w&&tracked)return;
     w.ready=true;w.duration=w.player.getDuration();
     if(tracked){
      if(w.max>0)w.player.seekTo(Math.min(w.max,w.duration),true);
