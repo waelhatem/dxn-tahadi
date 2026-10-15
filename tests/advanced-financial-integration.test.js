@@ -40,9 +40,12 @@ test('Frontend scripts parse and connect member and leader pages',()=>{
  assert.match(html,/advancedFinancialMemberProfile/);
  assert.match(html,/advancedFinancialLeaderProfile/);
  assert.match(html,/advancedFinancialCoursePage/);
- assert.match(js,/advanced_financial_watch_update/);
+ // V86.90 — watching goes through the unified training engine (training_watch_begin/report).
+ assert.match(js,/DXNTrainingEngine\.createWatch\(\{track:'advanced'/);
+ assert.doesNotMatch(js,/advanced_financial_watch_update/,'no cumulative watch endpoint left in the page');
  assert.match(js,/advanced_financial_submit_quiz/);
  assert.match(js,/watchPct|watchUi/);
+ assert.match(html,/training-engine\.js\?v=/);
 });
 test('Database schema isolates history and grades all four choices on server',()=>{
  assert.match(sql,/create table if not exists public\.advanced_financial_progress/);
@@ -60,16 +63,16 @@ test('Inline course player is the tracked player; quiz unlocks after confirmed c
  assert.match(js,/function mountInline\(x\)/);
  assert.match(js,/mountInline\(chosen\)/);
  assert.match(js,/new window\.YT\.Player\(target/);
- assert.match(js,/w\.timer=setInterval\(tick,600\)/);
- assert.match(js,/advanced_financial_watch_update/);
- assert.match(js,/if\(newlyDone\)/);
+ assert.match(js,/w\.engine=window\.DXNTrainingEngine\.createWatch/);
+ assert.match(js,/onCompleted:\(\)=>\{/,'quiz button opens when the server confirms completion');
+ assert.match(js,/preview:!tracked/,'unpublished lessons play as untracked preview');
  assert.match(js,/data-test/);
  assert.doesNotMatch(js,/advancedProfitVideoFrame/);
  assert.doesNotMatch(js,/async function startWatch\(/);
 });
 
 test('YouTube onReady survives replacement of placeholder with iframe',()=>{
- assert.match(js,/onReady:\(\)=>\{\s*if\(!document\.getElementById\('advancedFinancialInlineBox'\)/);
+ assert.match(js,/onReady:\(\)=>\{if\(watch===w&&document\.getElementById\('advancedFinancialInlineBox'\)/);
  assert.doesNotMatch(js,/onReady:\(\)=>\{\s*if\(!target\.isConnected/);
- assert.match(js,/w\.timer=setInterval\(tick,600\)/);
+ assert.match(js,/w\.engine\.attach\(w\.player\)/);
 });

@@ -39,22 +39,22 @@ const OVERVIEW={role:'member',progress:[],published_quizzes:[1],scores:[]};
 
 test('basic page notice follows the saved-progress state on every re-render',async()=>{
   const env=makeContext({overview:()=>OVERVIEW});
-  vm.runInContext(read('basic-training.js'),env.ctx);
+  vm.runInContext(read('training-engine.js'),env.ctx);vm.runInContext(read('basic-training.js'),env.ctx);
   const first=env.ctx.basicTrainingCourseHtml();
   assert.match(first,/جارٍ التحقق من حفظ التقدم/);
   assert.doesNotMatch(first,/لا يوجد حفظ للدرجات|للمعاينة فقط/);
   env.mount(first);
   await env.runTimers();
-  assert.match(env.elements.basicBagNotice.textContent,/✅ حفظ التقدم والنتائج مفعل/);
+  assert.match(env.elements.basicBagNotice.textContent,/✅ حفظ النتائج مفعل/);
   // Leave and come back: the page is rebuilt without reloading the overview.
   const again=env.ctx.basicTrainingCourseHtml();
-  assert.match(again,/✅ حفظ التقدم والنتائج مفعل/);
+  assert.match(again,/✅ حفظ النتائج مفعل/);
   assert.equal(env.calls.filter(f=>f==='basic_training_overview').length,1);
 });
 
 test('basic page notice explains when saving is unavailable',async()=>{
   const env=makeContext({overview:()=>({__fail:true,error:'خطأ تجريبي'})});
-  vm.runInContext(read('basic-training.js'),env.ctx);
+  vm.runInContext(read('training-engine.js'),env.ctx);vm.runInContext(read('basic-training.js'),env.ctx);
   env.mount(env.ctx.basicTrainingCourseHtml());
   await env.runTimers();
   assert.match(env.ctx.basicTrainingCourseHtml(),/حفظ التقدم والاختبارات يحتاج تفعيل/);

@@ -41,6 +41,7 @@ test('pending production fix uses the same values and only updates rows',()=>{
   }
   const code=sql.replace(/--.*$/gm,'');
   assert.doesNotMatch(code,/^\s*(DELETE|TRUNCATE|DROP|ALTER|GRANT|REVOKE|CREATE\s+(OR\s+REPLACE\s+)?FUNCTION)\b/im);
-  assert.match(code,/watch_completed=p\.watch_completed OR /,'completion can only be granted, never removed');
-  assert.doesNotMatch(code,/SET[^;]*\b(passed|best_score|watch_seconds)\s*=/i,'scores, passes and watch time are not modified');
+  // Unified engine policy: correcting a duration never grants (or removes) a watch completion.
+  assert.doesNotMatch(code,/watch_completed\s*=/i,'no completion granted from earlier watch time');
+  assert.doesNotMatch(code,/SET[^;]*\b(passed|best_score|watch_seconds|watch_completed)\s*=/i,'scores, passes, completions and watch time are not modified');
 });

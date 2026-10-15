@@ -18,14 +18,6 @@
  ];
  let loaded=false,backendReady=false,loading=false,progress=[],published=[],scores=[],movie=null,exam=null,viewerRole='';
  let overviewError='';
- let previewWatchedPercent=0;
- let previewWatchedPercent2=0;
- let previewWatchedPercent3=0;
- let previewWatchedPercent4=0;
- let previewWatchedPercent5=0;
- let previewWatchedPercent6=0;
- let previewWatchedPercent7=0;
- let previewWatchedPercent8=0;
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const fmt=n=>Number.isFinite(n)?Math.max(0,Math.floor(n)):0;
  const currentLesson=n=>lessons.find(x=>x.no===Number(n));
@@ -75,10 +67,7 @@
  // Locked lessons stay unselectable for members, as in the reference; the leader can still open
  // them to reach the unsaved quiz preview that the old cards offered on every training.
  const canSelect=no=>!backendReady||lessonUnlock(no)||canPreviewQuiz();
- function previewPct(no){
-  if(no===1)return movie&&movie.duration?Math.min(100,Math.floor(100*movie.max/movie.duration)):Math.min(100,Math.floor(previewWatchedPercent));
-  return [0,0,previewWatchedPercent2,previewWatchedPercent3,previewWatchedPercent4,previewWatchedPercent5,previewWatchedPercent6,previewWatchedPercent7,previewWatchedPercent8][no]||0;
- }
+ function previewPct(no){return movie&&movie.no===no&&movie.preview?movie.pct||0:0;}
  // Everything the page shows for one lesson; the calls are the ones the old cards used.
  function lessonView(no){
   if(!backendReady){
@@ -87,16 +76,20 @@
     quiz:PREVIEW_QUIZ[no]+'()',quizEnabled:true,quizLabel:'📝 ابدأ اختبار الدرس (معاينة)',preview:'',
     status:PREVIEW_STATUS[no],score:'',note:PREVIEW_NOTE[no]};
   }
+  const E=window.DXNTrainingEngine;
   const p=statusOf(no),unlocked=lessonUnlock(no),passed=!!p.passed,watchReady=!!p.completed;
+  const attempted=p.best_score!==null&&p.best_score!==undefined;
+  const state=E.lessonState({unlocked,watchCompleted:watchReady,passed,attempted,watching:!!(movie&&movie.no===no&&movie.watching)});
   const quizEnabled=unlocked&&watchReady;
-  return {icon:passed?'✅':unlocked?'▶':'🔒',
-   pct:savedPct(fmt(p.watched),fmt(p.duration)),pctLabel:'المشاهدة المحفوظة',
-   play:unlocked?'basicBagStartVideo('+no+')':'',playLabel:unlocked?'▶ '+(watchReady?'إعادة المشاهدة':'بدء / متابعة المشاهدة'):'🔒 أكمل التدريب السابق واجتز اختباره أولًا',
-   quiz:'basicBagStartQuiz('+no+')',quizEnabled,quizLabel:'📝 '+(passed?'إعادة اختبار الدرس':quizEnabled?'ابدأ اختبار الدرس':'اختبار الدرس — غير متاح'),
+  return {icon:passed?'✅':unlocked?'▶':'🔒',state,
+   pct:watchReady?100:0,pctLabel:'مشاهدة الجلسة الحالية',
+   play:unlocked?'basicBagStartVideo('+no+')':'',playLabel:unlocked?(watchReady?'▶ إعادة المشاهدة من البداية':'▶ ابدأ المشاهدة'):'🔒 '+E.STATE_TEXT.locked,
+   quiz:'basicBagStartQuiz('+no+')',quizEnabled,
+   quizLabel:'📝 '+(state==='passed'?'إعادة الاختبار':state==='failed'?'أعد الاختبار':quizEnabled?'ابدأ اختبار الدرس':'الاختبار مغلق حتى تأكيد 90%'),
    preview:canPreviewQuiz()?'<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewFirstQuiz('+no+')">👁 معاينة الاختبار (غير محفوظة)</button>':'',
-   status:passed?'✅ اجتاز التدريب':watchReady?'✅ اكتملت المشاهدة — الاختبار متاح':unlocked?'▶ المشاهدة المحفوظة '+savedPct(fmt(p.watched),fmt(p.duration))+'% — يُفتح الاختبار عند 90%':'🔒 أكمل التدريب السابق واجتز اختباره أولًا',
-   score:'أفضل درجة اختبار: '+((p.best_score===null||p.best_score===undefined)?'لم يُختبر بعد':Math.round(Number(p.best_score)*5)+' / 100'),
-   note:'شرط اجتياز التدريب: مشاهدة 90% والحصول على 80 / 100 على الأقل. يمكن إعادة الاختبار عند الرسوب.'};
+   status:({passed:'✅ ',failed:'❌ ',ready:'✅ ',locked:'🔒 ',watching:'▶ ',start:'▶ '})[state]+E.STATE_TEXT[state],
+   score:'أفضل درجة اختبار: '+(attempted?Math.round(Number(p.best_score)*5)+' / 100':'لم يُختبر بعد'),
+   note:E.POLICY_NOTE};
  }
  // The member lands on the first training still to pass, until they pick one themselves.
  function defaultLesson(){
@@ -126,14 +119,12 @@
    '<div class="training-professional-video unified-training__video" id="basicBagInlineBox" data-no="'+item.no+'">'+poster+'</div>'+
    '<div class="basic-bag-inline-progress unified-training__progress"><div id="basicWatchProgress" class="basic-bag-progress" role="progressbar" aria-label="'+v.pctLabel+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+v.pct+'"><div style="width:'+v.pct+'%"></div></div>'+
    '<strong id="basicWatchPct">'+v.pct+'%</strong></div>'+
-   '<button type="button" id="basicBagResumeSaved" class="name-list-btn unified-training__resume" style="display:none" onclick="basicBagResumeSavedWatch()">▶ استكمال تسجيل المشاهدة من موضع الحفظ</button>'+ 
-   '<p id="basicWatchInfo" class="basic-bag-status">'+esc(v.status)+'</p>'+ 
-   '<p id="basicWatchDurationWarning" class="basic-bag-notice" style="display:none"></p>'+
+   '<p id="basicWatchInfo" class="basic-bag-status">'+esc(v.status)+'</p>'+
    '<div id="basicBagViewerInfo">'+infoHtml(v)+'</div>';
  }
  function stopMovie(){
   if(!movie)return;
-  if(movie.timer)clearInterval(movie.timer);
+  if(movie.session)movie.session.stop();
   try{movie.player?.destroy();}catch(_){}
   movie=null;
  }
@@ -166,7 +157,7 @@
  // state instead of a one-time text set after the first load.
  function noticeText(){
   if(!loaded)return authToken()?'جارٍ التحقق من حفظ التقدم والنتائج…':'سجّل الدخول لحفظ التقدم والنتائج.';
-  if(backendReady)return '✅ حفظ التقدم والنتائج مفعل. شرط الاجتياز: مشاهدة 90% ودرجة اختبار 80 / 100. الاختبار يتكون من 20 سؤالًا.';
+  if(backendReady)return '✅ حفظ النتائج مفعل. شرط الاجتياز: مشاهدة 90% في جلسة مشاهدة واحدة تبدأ من بداية الفيديو، ثم درجة 80 / 100 في اختبار من 20 سؤالًا. المشاهدة غير المكتملة لا تُحفظ بين الجلسات.';
   return 'المعاينة متاحة؛ لكن حفظ التقدم والاختبارات يحتاج تفعيل ترحيل Supabase المراجع. '+overviewError;
  }
  function courseHtml(){
@@ -234,171 +225,54 @@
  function escapeClose(e){if(e.key==='Escape')close();}
  function watchMessage(t){
   const x=document.getElementById('basicWatchInfo');if(x)x.textContent=t;
-  // Inline player: once the server confirms 90%, the quiz button above the video opens at once.
-  if(movie&&movie.inline&&!!statusOf(movie.no).completed!==movie.shownCompleted){movie.shownCompleted=!!statusOf(movie.no).completed;refreshCards();}
  }
- /* V86.81 — Saved percentages are measured against the duration the server counts (the lesson's
-  * stored duration), never the player's own length; the two differ when the stored duration is
-  * wrong. Rounded down, so 90% appears only when the server's 90% rule is actually met. */
- function savedDuration(m){return m.serverDuration||fmt(statusOf(m.no).duration)||m.duration;}
- const savedPct=(seconds,duration)=>duration?Math.min(100,Math.max(0,Math.floor(100*seconds/duration))):0;
- const clock=n=>{n=Math.round(n);return Math.floor(n/60)+':'+String(n%60).padStart(2,'0');};
- function watchPct(){
+ function showProgress(m,p){
+  if(movie!==m)return;m.pct=p.percent;
   const bar=document.getElementById('basicWatchProgress');
-  if(!movie||!bar)return;
-  // The player timeline is not the verified saved progress.
-  const p=backendReady?savedPct(movie.confirmed,savedDuration(movie)):savedPct(movie.max,movie.duration);
-  bar.querySelector('div').style.width=p+'%';
-  bar.setAttribute('aria-valuenow',String(p));
-  const out=document.getElementById('basicWatchPct');if(out)out.textContent=p+'%';
+  if(bar){bar.querySelector('div').style.width=p.percent+'%';bar.setAttribute('aria-valuenow',String(p.percent));}
+  const out=document.getElementById('basicWatchPct');if(out)out.textContent=p.percent+'%';
  }
- function showUncreditedWatch(m){
-  if(movie!==m||!m.inline||!backendReady||!m.duration)return;
-  const button=document.getElementById('basicBagResumeSaved');if(!button)return;
-  let ended=false;try{ended=m.player.getPlayerState()===window.YT.PlayerState.ENDED;}catch(_){}
-  const sd=savedDuration(m);
-  const shortOfThreshold=!m.completed&&m.confirmed*100<sd*90;
-  // The server never credits past the real video, so a video shorter than 90% of the stored
-  // duration can never open the quiz, however often it is replayed.
-  const reachable=Math.floor(m.duration)*100>=sd*90;
-  button.style.display=ended&&shortOfThreshold&&reachable?'inline-flex':'none';
-  if(ended&&shortOfThreshold&&reachable){
-   watchMessage('انتهى الفيديو، لكن الخادم حفظ '+savedPct(m.confirmed,sd)+'% فقط. اضغط «استكمال تسجيل المشاهدة» لإعادة مشاهدة الجزء غير المحفوظ حتى تبلغ 90%.');
-  }else if(ended&&shortOfThreshold){
-   watchMessage('شاهدت الفيديو كاملًا ('+clock(m.duration)+')، لكن المدة المسجلة لهذا التدريب '+clock(sd)+'، فلا يمكن أن تبلغ المشاهدة المحفوظة 90% ('+savedPct(m.confirmed,sd)+'% الآن). الخلل في بيانات التدريب وليس في مشاهدتك؛ مشاهدتك محفوظة، وسيُفتح الاختبار بعد تصحيح المدة من الإدارة.');
-  }
- }
- window.basicBagResumeSavedWatch=function(){
-  const m=movie;if(!m||!m.inline||!m.ready||!backendReady||m.completed||!m.player)return;
-  // Resume from the persisted time, not the unverified 100% local timeline.
-  const resume=Math.max(0,Math.floor(m.confirmed));
-  m.max=resume;m.previousTime=resume;m.previousWall=performance.now();
-  try{
-   m.player.seekTo(resume,true);
-   m.player.playVideo();
-   const button=document.getElementById('basicBagResumeSaved');
-   if(button)button.style.display='none';
-   watchPct();
-   watchMessage('استؤنفت المشاهدة من '+savedPct(m.confirmed,savedDuration(m))+'% المحفوظة؛ سيُفتح الاختبار بعد تأكيد الخادم بلوغ 90%.');
-  }catch(e){watchMessage('تعذّر استئناف الفيديو: '+(e.message||e));}
- };
- function checkVideoDuration(m){
-  if(movie!==m||!m.inline||!backendReady||!m.duration)return;
-  const expected=Number(savedDuration(m)||0),actual=Math.round(m.duration);
-  const element=document.getElementById('basicWatchDurationWarning');
-  if(!element||expected<60||actual<60)return;
-  const mismatch=Math.abs(actual-expected)>Math.max(5,Math.ceil(expected*0.02));
-  const fmtTime=n=>Math.floor(n/60)+':'+String(n%60).padStart(2,'0');
-  element.style.display=mismatch?'block':'none';
-  if(mismatch)element.textContent='⚠️ اختلاف في مدة الفيديو: مدة YouTube '+fmtTime(actual)+'، بينما المدة المسجلة للتدريب '+fmtTime(expected)+'. قد يمنع ذلك فتح الاختبار؛ يحتاج إلى تصحيح واعتماد مدة الفيديو من إدارة التدريب.';
- }
- // Server counts only reporting gaps >= 3 seconds. Every send, including
- // "force" and YouTube ended, must obey a longer interval.
- const HEARTBEAT_INTERVAL_MS=5200;
- async function heartbeat(force){
-  if(authToken()!==trainingSession){ensureTrainingSession();return;}
-  const m=movie;if(!m||m.saving||!m.duration||m.completed)return;
-  if(!backendReady){watchMessage('تعذر حفظ المشاهدة حاليًا؛ حاول بعد تسجيل الدخول مجددًا.');return;}
-  // Avoid repeated reports when YouTube pauses at its end or after the
-  // server already caught up with the locally watched point.
-  if(m.lastSent && Date.now()-m.lastSent<HEARTBEAT_INTERVAL_MS)return;
-  if(m.lastSent && Math.floor(m.max)<=m.confirmed)return;
-  m.lastSent=Date.now();m.saving=true;
-  try{
-   const r=await rpc('basic_training_watch_update',{
-       p_training_no:m.no,p_current:Math.floor(m.max),p_duration:Math.floor(m.duration)});
-   if(movie!==m)return;
-   m.confirmed=Math.max(m.confirmed||0,fmt(r.watched));
-   m.completed=!!r.completed;
-   m.serverDuration=fmt(r.duration)||savedDuration(m);
-   watchPct();
-   const previous=progress.find(x=>x.training_no===m.no);
-   if(previous)Object.assign(previous,{watched:r.watched,duration:m.serverDuration,completed:!!r.completed});
-   else progress.push({training_no:m.no,watched:r.watched,duration:m.serverDuration,completed:!!r.completed});
-   if(!r.completed)watchMessage('نسبة المشاهدة المحفوظة: '+savedPct(m.confirmed,m.serverDuration)+'% — يُفتح الاختبار عند 90%');
-   else{
-     watchMessage('✅ اكتملت مشاهدة التدريب. يمكنك الآن أداء اختباره.');
-    }
-  }catch(e){watchMessage('لم يتم حفظ التقدم: '+e.message);}
-  finally{m.saving=false;showUncreditedWatch(m);}
- }
- function tick(){
-  if(authToken()!==trainingSession){ensureTrainingSession();return;}
-  const m=movie;if(!m||!m.player||!m.ready)return;
-  let current,duration,state;
-  try{current=m.player.getCurrentTime();duration=m.player.getDuration();state=m.player.getPlayerState();}catch(_){return;}
-  if(!Number.isFinite(current)||!Number.isFinite(duration)||duration<=0)return;
-  m.duration=duration;
-  checkVideoDuration(m);
-  // Enforce chronology; backward seeking is always allowed.
-  // The server credits normal-time viewing only. If YouTube provides a
-  // playback-rate API, keep playback at 1x to avoid false completion.
-  try{
-   if(typeof m.player.getPlaybackRate==='function'&&
-      m.player.getPlaybackRate()>1.01){
-    m.player.setPlaybackRate(1);
-    watchMessage('سرعة المشاهدة المعتمدة هي 1x حتى تُحتسب مدة الفيديو.');
-   }
-  }catch(_){}
-  if(current>m.max+2.4){m.player.seekTo(Math.max(0,m.max),true);watchMessage('التقديم اليدوي غير متاح؛ يمكنك الرجوع إلى الأجزاء السابقة.');return;}
-  const now=performance.now(),elapsed=Math.max(0,Math.min((now-m.previousWall)/1000,2.0));
-  const previousTime=m.previousTime; m.previousTime=current;m.previousWall=now;
-  const moving=current>=previousTime-0.2&&current-previousTime<=elapsed+1.0;
-  if(state===window.YT.PlayerState.PLAYING&&moving&&current>m.max){
-    m.max=Math.min(duration,current);if(m.no===8)previewWatchedPercent8=Math.floor(100*m.max/duration);else if(m.no===7)previewWatchedPercent7=Math.floor(100*m.max/duration);else if(m.no===6)previewWatchedPercent6=Math.floor(100*m.max/duration);else if(m.no===5)previewWatchedPercent5=Math.floor(100*m.max/duration);else if(m.no===4)previewWatchedPercent4=Math.floor(100*m.max/duration);else if(m.no===3)previewWatchedPercent3=Math.floor(100*m.max/duration);else if(m.no===2)previewWatchedPercent2=Math.floor(100*m.max/duration);else previewWatchedPercent=Math.floor(100*m.max/duration);watchPct();
-  }
-  if(state===window.YT.PlayerState.PLAYING&&backendReady&&m.max>m.confirmed)heartbeat(false);
-  // Near the end the YouTube player can stay paused/ENDED. Retrying is
-  // allowed but only at the shared server-safe interval, never each tick.
-  if(!m.completed&&current>=duration-3.5&&m.max>=duration-4.5
-      &&Math.floor(m.max)>m.confirmed){heartbeat(true);}
- }
+ /* V86.90 — Watching goes through the unified training engine: one attempt per viewing, from 0 s,
+  * confirmed by the server; the old cumulative heartbeat is gone. Opening rules are unchanged. */
  window.basicBagStartVideo=async function(no){
   if(authToken()!==trainingSession){ensureTrainingSession();refreshCards();return safeToast('تم تغيير الحساب؛ افتح التدريب مجددًا.');}
   const item=currentLesson(no);if(!item||!item.video)return safeToast('رابط الفيديو غير متوفر');
   if(!lessonUnlock(Number(no))&&!((no===2&&window.__basicVideoTwoPreview)||(no===3&&window.__basicVideoThreePreview)||(no===4&&window.__basicVideoFourPreview)||(no===5&&window.__basicVideoFivePreview)||(no===6&&window.__basicVideoSixPreview)||(no===7&&window.__basicVideoSevenPreview)||(no===8&&window.__basicVideoEightPreview)))return safeToast('التدريب مغلق: أكمل مشاهدة التدريب السابق واختباره');
   close();
-  // V86.80 — Same player and settings; it now plays inside the page when this training's
-  // viewer is on screen, and in the original window otherwise.
   const box=document.getElementById('basicBagInlineBox');
   const inline=box&&Number(box.dataset.no)===item.no?box:null;
   if(inline){
    selectedNo=item.no;selectedAuto=false;
    inline.innerHTML='<div id="basicBagYT"></div>';
-   watchMessage('جارٍ تحميل المشغل…');
   }else{
    const c=createModal(item.title);document.addEventListener('keydown',escapeClose);
    const body=c.querySelector('#basicBagModalBody');
    body.innerHTML='<div class="basic-bag-player"><div id="basicBagYT"></div></div>'+
     '<div class="basic-bag-inline-progress"><div id="basicWatchProgress" class="basic-bag-progress"><div></div></div>'+
     '<strong id="basicWatchPct">0%</strong></div><p id="basicWatchInfo" class="basic-bag-notice">جارٍ تحميل المشغل…</p>'+
-    '<p class="basic-bag-description">يسمح بإعادة المشاهدة والرجوع إلى الخلف؛ لا يسمح بالقفز إلى أجزاء لم تُشاهد.</p>';
+    '<p class="basic-bag-description">'+esc(window.DXNTrainingEngine.POLICY_NOTE)+'</p>';
   }
-  const saved=statusOf(item.no);movie={no:item.no,max:fmt(saved.watched),confirmed:fmt(saved.watched),duration:fmt(saved.duration),
-    completed:!!saved.completed,previousWall:performance.now(),previousTime:0,
-    player:null,ready:false,timer:null,lastSent:0,saving:false,
-    inline:!!inline,box:inline,shownCompleted:!!saved.completed,serverDuration:fmt(saved.duration)};
+  const saved=statusOf(item.no);
+  const m={no:item.no,inline:!!inline,box:inline,player:null,session:null,pct:0,preview:!backendReady,watching:false};
+  movie=m;
+  m.session=window.DXNTrainingEngine.createWatch({track:'basic',lessonNo:item.no,watchCompleted:!!saved.completed,preview:m.preview,
+   onMessage:t=>{if(movie===m)watchMessage(t);},
+   onProgress:p=>{showProgress(m,p);if(p.attempt&&!m.watching&&movie===m){m.watching=true;refreshCards();}},
+   onCompleted:()=>{
+    // Confirmed by the server: the quiz button above the video opens at once.
+    const row=progress.find(x=>x.training_no===item.no);
+    if(row)row.completed=true;else progress.push({training_no:item.no,watched:0,duration:0,completed:true,passed:false,best_score:null});
+    if(movie===m)refreshCards();
+   }});
+  showProgress(m,{percent:0});watchMessage('جارٍ تحميل المشغل…');
   try{
-   await ytApi();if(!movie||movie.no!==item.no)return;
-   const m=movie;m.player=new window.YT.Player('basicBagYT',{
-     videoId:item.video,playerVars:{rel:0,disablekb:1,playsinline:1,controls:1,cc_load_policy:1,cc_lang_pref:'ar'},
-     events:{onReady:function(){
-        if(movie!==m)return;m.ready=true;m.duration=m.player.getDuration();checkVideoDuration(m);
-        if(m.max>0)m.player.seekTo(Math.min(m.max,m.duration),true);
-        try{m.player.setPlaybackRate(1);}catch(_){}
-        m.previousTime=m.player.getCurrentTime();m.previousWall=performance.now();
-        watchPct();watchMessage('مسموح بالمشاهدة حتى '+Math.round(m.max)+' ثانية من بداية الفيديو.');
-        m.timer=setInterval(tick,600);
-      },onStateChange:function(e){
-        if(movie!==m)return;
-        if(e.data===window.YT.PlayerState.ENDED){tick();heartbeat(true).then(()=>showUncreditedWatch(m));}
-      },onPlaybackRateChange:function(e){
-        if(movie!==m)return;
-        if(Number(e.data)>1.01)try{
-         m.player.setPlaybackRate(1);
-         watchMessage('يجب تشغيل الفيديو بسرعة 1x لاحتساب المشاهدة.');
-        }catch(_){}
-      }}
+   await ytApi();if(movie!==m)return;
+   m.player=new window.YT.Player('basicBagYT',{
+     videoId:item.video,playerVars:{rel:0,disablekb:1,playsinline:1,controls:1,cc_load_policy:1,cc_lang_pref:'ar',start:0},
+     // The member pressed «ابدأ المشاهدة», so the video starts playing right away.
+     events:{onReady:()=>{if(movie!==m)return;m.session.attach(m.player);try{m.player.playVideo();}catch(_){}},
+      onStateChange:e=>{if(movie===m)m.session.onState(e.data);},
+      onPlaybackRateChange:e=>{if(movie===m)m.session.onRate(e.data);}}
    });
   }catch(e){watchMessage(e.message||'تعذر تحميل الفيديو');}
  };

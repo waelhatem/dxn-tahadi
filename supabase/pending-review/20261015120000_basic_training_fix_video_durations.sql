@@ -10,21 +10,24 @@
 -- What this changes (data only; no table, function, policy or grant changes):
 --   1. basic_training_lessons.expected_duration_seconds for trainings 2, 6, 7 (only if the row still has
 --      the old wrong value and the same video), and the same value in the active revision row.
---   2. basic_training_progress.duration_seconds for those trainings, and watch_completed set to TRUE for
---      members whose saved watch time already reaches 90% of the real duration. It is never set to FALSE.
--- What it does not touch: watch_seconds, passed, best_score, attempts, scores, questions, other trainings.
+--   2. basic_training_progress.duration_seconds for those trainings (display only).
+-- Revised 2026-10-15 for the unified training engine policy: watching counts per attempt only, so this fix
+-- does NOT mark anyone as completed from earlier, cumulative watch time. A member who watched training 2
+-- before must watch it again in one attempt (90% of the corrected 439 s) to open its quiz.
+-- What it does not touch: watch_completed, watch_seconds, passed, best_score, attempts, scores, questions,
+-- other trainings.
 --
--- Step 0 (read-only, run first and keep the output): current values and who would be completed.
+-- Step 0 (read-only, run first and keep the output): current values, and how many partial records exist.
 --   SELECT training_no, video_id, expected_duration_seconds, min_watch_percent, active_revision
 --   FROM public.basic_training_lessons WHERE training_no IN (2,6,7) ORDER BY training_no;
 --   SELECT p.training_no, count(*) AS rows, count(*) FILTER (WHERE p.watch_completed) AS completed_now,
---          count(*) FILTER (WHERE NOT p.watch_completed AND p.watch_seconds*100 >= f.real_seconds*l.min_watch_percent) AS will_complete
+--          count(*) FILTER (WHERE NOT p.watch_completed) AS partial_only
 --   FROM public.basic_training_progress p
 --   JOIN public.basic_training_lessons l USING (training_no)
 --   JOIN (VALUES (2,439),(6,1474),(7,450)) f(training_no,real_seconds) USING (training_no)
 --   GROUP BY p.training_no ORDER BY p.training_no;
 --
--- Rollback (durations only; completions earned by a full watch are legitimate and are kept):
+-- Rollback (durations only):
 --   UPDATE public.basic_training_lessons l SET expected_duration_seconds=o.old_seconds, updated_at=now()
 --   FROM (VALUES (2,503),(6,838),(7,1175)) o(training_no,old_seconds) WHERE l.training_no=o.training_no;
 --   (and the same values in basic_training_revisions for each training's active_revision)
@@ -63,11 +66,9 @@ WHERE r.training_no=f.training_no AND l.training_no=f.training_no
   AND r.revision=l.active_revision AND r.expected_duration_seconds=f.old_seconds;
 
 UPDATE public.basic_training_progress p
-SET duration_seconds=f.real_seconds,
-    watch_completed=p.watch_completed OR p.watch_seconds*100 >= f.real_seconds*l.min_watch_percent,
-    updated_at=now()
-FROM basic_duration_fix f, public.basic_training_lessons l
-WHERE p.training_no=f.training_no AND l.training_no=f.training_no;
+SET duration_seconds=f.real_seconds, updated_at=now()
+FROM basic_duration_fix f
+WHERE p.training_no=f.training_no;
 
 -- Verify before committing: every fixed lesson now has the real duration.
 DO $$

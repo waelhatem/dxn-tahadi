@@ -64,7 +64,7 @@ function setup({role='member',innerWidth=1200}={}){
       return {ok:true,text:async()=>JSON.stringify(out)};
     }};
   ctx.window=ctx;
-  vm.createContext(ctx);vm.runInContext(SRC,ctx);
+  vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(__dirname,'..','training-engine.js'),'utf8'),ctx);vm.runInContext(SRC,ctx);
   const flush=async()=>{for(let i=0;i<5;i++){while(timers.length)await timers.shift()();await new Promise(r=>setImmediate(r));}};
   return {ctx,document,calls,flush};
 }
