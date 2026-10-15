@@ -48,3 +48,15 @@ test('Database schema isolates history and grades all four choices on server',()
  assert.match(sql,/app_current_user_id/);
  assert.match(sql,/advanced_financial_leader_member_profile/);
 });
+
+test('Inline course player is the tracked player; quiz unlocks after confirmed completion',()=>{
+ assert.match(js,/function mountInline\(x\)/);
+ assert.match(js,/mountInline\(chosen\)/);
+ assert.match(js,/new window\.YT\.Player\(target/);
+ assert.match(js,/w\.timer=setInterval\(tick,600\)/);
+ assert.match(js,/advanced_financial_watch_update/);
+ assert.match(js,/if\(newlyDone\)/);
+ assert.match(js,/data-test/);
+ assert.doesNotMatch(js,/advancedProfitVideoFrame/);
+ assert.doesNotMatch(js,/async function startWatch\(/);
+});
