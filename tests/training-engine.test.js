@@ -184,6 +184,24 @@ test('professional page falls back to the current unsaved preview until the serv
 });
 
 // ---- engine behaviour --------------------------------------------------------------------
+
+for(const [track,T] of Object.entries(TRACKS)){
+  test(`${track}: replaying the same YouTube player starts a fresh watch attempt from 0%`,async()=>{
+    const env=setup();await T.mount(env);await T.start(env,1);
+    await env.play(25);
+    const original=lastAttempt(env,track);
+    assert.ok(original.watched>0);
+    const player=env.players.at(-1);
+    player.state=0;player.opts.events.onStateChange({data:0});await env.flush();
+    player.t=0;player.state=1;player.opts.events.onStateChange({data:1});await env.flush();
+    assert.equal(T.pct(env),'0%','the new playback has its own progress');
+    env.advance(600);env.activeTick().f();await env.flush();
+    const replay=lastAttempt(env,track);
+    assert.notEqual(replay.id,original.id,'a distinct authenticated server attempt');
+    assert.equal(replay.watched,0,'no carry-over from the earlier video play');
+  });
+}
+
 test('engine: reports are throttled to one per 5.2 s even with ticks every 600 ms near the end',async()=>{
   const env=setup();await TRACKS.basic.mount(env);await TRACKS.basic.start(env,1);
   await env.play(100);
