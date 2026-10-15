@@ -127,7 +127,8 @@
    '<div class="basic-bag-inline-progress unified-training__progress"><div id="basicWatchProgress" class="basic-bag-progress" role="progressbar" aria-label="'+v.pctLabel+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+v.pct+'"><div style="width:'+v.pct+'%"></div></div>'+
    '<strong id="basicWatchPct">'+v.pct+'%</strong></div>'+
    '<button type="button" id="basicBagResumeSaved" class="name-list-btn unified-training__resume" style="display:none" onclick="basicBagResumeSavedWatch()">▶ استكمال تسجيل المشاهدة من موضع الحفظ</button>'+ 
-   '<p id="basicWatchInfo" class="basic-bag-status">'+esc(v.status)+'</p>'+
+   '<p id="basicWatchInfo" class="basic-bag-status">'+esc(v.status)+'</p>'+ 
+   '<p id="basicWatchDurationWarning" class="basic-bag-notice" style="display:none"></p>'+
    '<div id="basicBagViewerInfo">'+infoHtml(v)+'</div>';
  }
  function stopMovie(){
@@ -270,6 +271,16 @@
    watchMessage('استؤنفت المشاهدة من '+Math.round(100*m.confirmed/m.duration)+'% المحفوظة؛ سيُفتح الاختبار بعد تأكيد الخادم بلوغ 90%.');
   }catch(e){watchMessage('تعذّر استئناف الفيديو: '+(e.message||e));}
  };
+ function checkVideoDuration(m){
+  if(movie!==m||!m.inline||!backendReady||!m.duration)return;
+  const expected=Number(statusOf(m.no).duration||0),actual=Math.round(m.duration);
+  const element=document.getElementById('basicWatchDurationWarning');
+  if(!element||expected<60||actual<60)return;
+  const mismatch=Math.abs(actual-expected)>Math.max(5,Math.ceil(expected*0.02));
+  const fmtTime=n=>Math.floor(n/60)+':'+String(n%60).padStart(2,'0');
+  element.style.display=mismatch?'block':'none';
+  if(mismatch)element.textContent='⚠️ اختلاف في مدة الفيديو: مدة YouTube '+fmtTime(actual)+'، بينما المدة المسجلة للتدريب '+fmtTime(expected)+'. قد يمنع ذلك فتح الاختبار؛ يحتاج إلى تصحيح واعتماد مدة الفيديو من إدارة التدريب.';
+ }
  // Server counts only reporting gaps >= 3 seconds. Every send, including
  // "force" and YouTube ended, must obey a longer interval.
  const HEARTBEAT_INTERVAL_MS=5200;
@@ -306,6 +317,7 @@
   try{current=m.player.getCurrentTime();duration=m.player.getDuration();state=m.player.getPlayerState();}catch(_){return;}
   if(!Number.isFinite(current)||!Number.isFinite(duration)||duration<=0)return;
   m.duration=duration;
+  checkVideoDuration(m);
   // Enforce chronology; backward seeking is always allowed.
   // The server credits normal-time viewing only. If YouTube provides a
   // playback-rate API, keep playback at 1x to avoid false completion.
@@ -359,7 +371,7 @@
    const m=movie;m.player=new window.YT.Player('basicBagYT',{
      videoId:item.video,playerVars:{rel:0,disablekb:1,playsinline:1,controls:1,cc_load_policy:1,cc_lang_pref:'ar'},
      events:{onReady:function(){
-        if(movie!==m)return;m.ready=true;m.duration=m.player.getDuration();
+        if(movie!==m)return;m.ready=true;m.duration=m.player.getDuration();checkVideoDuration(m);
         if(m.max>0)m.player.seekTo(Math.min(m.max,m.duration),true);
         try{m.player.setPlaybackRate(1);}catch(_){}
         m.previousTime=m.player.getCurrentTime();m.previousWall=performance.now();
