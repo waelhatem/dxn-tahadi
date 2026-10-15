@@ -34,6 +34,7 @@ const cards=()=>data.map(x=>{
  '<div class="advanced-financial-actions">'+
  '<button type="button" class="primary" data-watch="'+n+'" '+(ready?'':'disabled')+'>▶ مشاهدة الدرس</button>'+
  '<button type="button" data-test="'+n+'" '+(ready&&x.completed?'':'disabled')+'>📝 اختبار الدرس</button>'+
+ (role==='leader'&&window.innerWidth>=900?'<button type="button" data-preview="'+n+'">👁 معاينة فيديو (للقائد فقط)</button>':'')+
  '</div></article>';
 }).join('');
 function render(){
@@ -43,6 +44,7 @@ function render(){
  host.innerHTML=cards();
  host.querySelectorAll('[data-watch]').forEach(b=>b.onclick=()=>startWatch(+b.dataset.watch));
  host.querySelectorAll('[data-test]').forEach(b=>b.onclick=()=>startQuiz(+b.dataset.test));
+ host.querySelectorAll('[data-preview]').forEach(b=>b.onclick=()=>previewVideo(+b.dataset.preview));
  const p=document.getElementById('advancedFinancialProgress');
  if(p){const passed=data.filter(x=>x.passed&&x.completed).length;p.textContent='الدروس المجتازة: '+passed+' / 10'+(passed===10?' — 🎉 اكتملت دورة خطة DXN المالية':'');}
 }
@@ -106,6 +108,16 @@ function tick(){
  if(state===window.YT.PlayerState.PLAYING&&moving&&current>w.max){w.max=Math.min(duration,current);watchUi();}
  if(state===window.YT.PlayerState.PLAYING&&w.max>w.confirmed)heartbeat();
  if(!w.completed&&current>=duration-3.5&&w.max>=duration-4.5)heartbeat();
+}
+function previewVideo(n){
+ if(role!=='leader'||window.innerWidth<900)return notify('المعاينة للقائد على الحاسوب فقط');
+ const x=data.find(l=>l.lesson_no===n);if(!x)return;
+ const body=modal('معاينة غير محفوظة: الدرس '+n);
+ const frame=document.createElement('iframe');frame.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(x.video_id)+'?rel=0';
+ frame.title='معاينة فيديو التدريب '+n;frame.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+ frame.allowFullscreen=true;frame.style.cssText='width:100%;aspect-ratio:16/9;border:0;border-radius:12px';
+ body.append(frame);const note=document.createElement('p');note.className='muted';
+ note.textContent='معاينة القائد فقط؛ لا تُحتسب مدة المشاهدة ولا تُحفظ درجات.';body.append(note);
 }
 async function startWatch(n){
  const x=data.find(p=>p.lesson_no===n);if(!canStart(x))return notify('التدريب غير متاح بعد');
