@@ -315,3 +315,27 @@ test('89.86% saved (452 of 503 s) shows 89% with the quiz closed, never a mislea
   assert.equal(quiz(env).disabled,true);
   assert.match(info(env),/89% — يُفتح الاختبار عند 90%/);
 });
+
+// PR #123 data fix: stored 503 -> 439 s, and rows already at >= 90% of 439 s become watch_completed.
+// The browser must then show the real saved value and open the quiz without another watch.
+test('after the training 2 duration fix, the earlier 439 s record completes and the quiz opens',async()=>{
+  const before=setup();
+  passLesson1(before);
+  before.server.seed('member-a',2,{watch:439});
+  before.mount();await before.flush();
+  assert.equal(pct(before),'87%','before the fix: 439 of 503 s');
+  assert.equal(quiz(before).disabled,true);
+
+  const after=setup({stored:{1:503,2:439,3:1353,4:706,5:842,6:1474,7:450,8:994}});
+  passLesson1(after);
+  // What the pending SQL does to that row: duration 439, completed because 439*100 >= 439*90.
+  after.server.seed('member-a',2,{watch:439,completed:439*100>=439*90});
+  after.mount();await after.flush();
+  assert.equal(pct(after),'100%');
+  assert.equal(quiz(after).disabled,false,'quiz opens with no extra watching');
+  await after.ctx.basicBagStartQuiz(2);await after.flush();
+  assert.equal(after.byId('basicBagModalBody').querySelectorAll('fieldset').length,20,'server hands out the 20 questions');
+  await playTo(after,await start(after,2),60);
+  assert.equal(watchCalls(after).length,0,'no further watch saves for a completed record');
+  assert.equal(after.byId('basicWatchDurationWarning').style.display,'none','no mismatch warning once durations agree');
+});
