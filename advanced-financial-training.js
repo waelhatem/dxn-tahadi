@@ -40,9 +40,9 @@ const cards=()=>{
  '<div id="advancedProfitLessonList" class="advanced-profit-list" aria-label="دروس خطة أرباح DXN">'+side+'</div>'+
  '<div class="advanced-profit-viewer">'+
  '<strong id="advancedProfitVideoTitle">الدرس '+n+' من 10 — '+esc(selected.title)+'</strong>'+
- '<div class="advanced-financial-inline-actions">'+
- '<span class="muted">'+(ready?'▶ تشغيل الفيديو أدناه يحتسب المشاهدة تلقائيًا':'⏳ هذا الدرس غير منشور بعد، والمشاهدة لا تُحفظ')+'</span>'+
- '<button type="button" class="name-list-btn primary advanced-financial-test-cta" data-test="'+n+'" style="display:inline-flex;justify-content:center;align-items:center;gap:8px;padding:13px 22px;min-width:180px;font-size:1.05rem;font-weight:800;background:'+(ready&&selected.completed?'#087b55':'#d7e6df')+';color:'+(ready&&selected.completed?'#fff':'#224c3f')+';border:2px solid #0b805c;border-radius:12px;cursor:pointer;">📝 '+(ready&&selected.completed?'ابدأ اختبار الدرس':'اختبار الدرس — غير متاح')+'</button>'+
+ '<div class="advanced-financial-inline-actions" style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;width:100%;">'+
+ '<span class="muted" style="margin-inline-end:auto;">'+(ready?'▶ تشغيل الفيديو أدناه يحتسب المشاهدة تلقائيًا':'⏳ هذا الدرس غير منشور بعد، والمشاهدة لا تُحفظ')+'</span>'+
+ '<button type="button" class="name-list-btn primary advanced-financial-test-cta" data-test="'+n+'" style="display:inline-flex;justify-content:center;align-items:center;gap:8px;margin-inline-start:auto;padding:13px 22px;min-width:180px;font-size:1.05rem;font-weight:800;background:'+(ready&&selected.completed?'#087b55':'#d7e6df')+';color:'+(ready&&selected.completed?'#fff':'#224c3f')+';border:2px solid #0b805c;border-radius:12px;cursor:pointer;">📝 '+(ready&&selected.completed?'ابدأ اختبار الدرس':'اختبار الدرس — غير متاح')+'</button>'+
  (role==='leader'&&window.innerWidth>=900?'<button type="button" class="name-list-btn" data-preview="'+n+'">⏱ اعتماد مدة الفيديو</button>':'')+
  '</div>'+
  '<div class="training-professional-video" id="advancedFinancialInlineBox"><div id="advFinancialYT"></div></div>'+
@@ -206,10 +206,18 @@ function renderExam(body){
  const q=e.questions[e.index],index=e.index;
  body.replaceChildren();
  const h=document.createElement('div');h.className='advanced-financial-exam-header';h.textContent='السؤال '+(index+1)+' من 20 — كل سؤال 5 درجات';body.append(h);
- const field=document.createElement('fieldset');field.className='basic-bag-question';const legend=document.createElement('legend');legend.textContent=q.question;field.append(legend);
+ const field=document.createElement('fieldset');field.className='basic-bag-question';field.dir='rtl';field.style.cssText='display:flex;flex-direction:column;gap:10px;width:100%;min-width:0;margin:14px 0;padding:18px;border:1px solid #d4e6de;border-radius:12px;';
+ const legend=document.createElement('legend');legend.textContent=q.question;legend.style.cssText='font-weight:800;padding:0 8px;line-height:1.8;max-width:100%;text-align:right;white-space:normal;';field.append(legend);
  q.options.forEach((o,j)=>{
- const label=document.createElement('label'),input=document.createElement('input');input.type='radio';input.name='ans';input.value=j;input.checked=e.answers[index]===j;
- input.onchange=()=>{e.answers[index]=j;updateFooter()};label.append(input,document.createTextNode(['أ','ب','ج','د'][j]+' — '+o));field.append(label);
+ const label=document.createElement('label'),input=document.createElement('input'),answer=document.createElement('span');
+ input.type='radio';input.name='ans';input.value=j;input.checked=e.answers[index]===j;
+ input.style.cssText='margin:0;flex:0 0 auto;width:18px;height:18px;accent-color:#087b55;';
+ answer.textContent=['أ','ب','ج','د'][j]+' — '+o;answer.style.cssText='display:block;flex:1;min-width:0;white-space:normal;overflow-wrap:anywhere;line-height:1.8;text-align:right;';
+ label.style.cssText='display:flex;flex-direction:row;align-items:center;gap:12px;min-height:48px;width:100%;box-sizing:border-box;padding:10px 14px;border:1px solid #d9e7e1;border-radius:10px;background:#fff;cursor:pointer;text-align:right;';
+ label.append(input,answer);
+ input.onchange=()=>{e.answers[index]=j;field.querySelectorAll('label').forEach((item,k)=>{item.style.background=k===j?'#e0f4ea':'#fff';item.style.borderColor=k===j?'#087b55':'#d9e7e1';});updateFooter()};
+ if(input.checked){label.style.background='#e0f4ea';label.style.borderColor='#087b55';}
+ field.append(label);
  });body.append(field);
  const foot=document.createElement('div');foot.className='advanced-financial-footer';
  const back=document.createElement('button');back.textContent='السابق';back.disabled=index===0;back.onclick=()=>{e.index--;renderExam(body)};
