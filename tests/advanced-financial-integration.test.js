@@ -23,8 +23,15 @@ test('Approved lesson 3-10 banks contain 20 questions and four choices',()=>{
   }
  }
 });
-test('Lesson 1 and 2 exact approved texts must be supplied before publication',()=>{
- for(const lesson of bank.lessons.slice(0,2)) assert.equal(lesson.questions,null);
+test('Lesson 1 approved question bank contains 20 questions and lesson 2 still awaits restoration',()=>{
+ const first=bank.lessons[0];
+ assert.equal(first.questions.length,20);
+ for(const q of first.questions){
+  assert.ok(q.question.length>10);
+  assert.equal(q.options.length,4);
+  assert.ok(Number.isInteger(q.correct_index)&&q.correct_index>=0&&q.correct_index<=3);
+ }
+ assert.equal(bank.lessons[1].questions,null);
  assert.equal(bank.status,'staging-incomplete');
 });
 test('Frontend scripts parse and connect member and leader pages',()=>{
@@ -47,4 +54,22 @@ test('Database schema isolates history and grades all four choices on server',()
  assert.match(sql,/v_new\*100>=v_l\.expected_duration_seconds\*90/);
  assert.match(sql,/app_current_user_id/);
  assert.match(sql,/advanced_financial_leader_member_profile/);
+});
+
+test('Inline course player is the tracked player; quiz unlocks after confirmed completion',()=>{
+ assert.match(js,/function mountInline\(x\)/);
+ assert.match(js,/mountInline\(chosen\)/);
+ assert.match(js,/new window\.YT\.Player\(target/);
+ assert.match(js,/w\.timer=setInterval\(tick,600\)/);
+ assert.match(js,/advanced_financial_watch_update/);
+ assert.match(js,/if\(newlyDone\)/);
+ assert.match(js,/data-test/);
+ assert.doesNotMatch(js,/advancedProfitVideoFrame/);
+ assert.doesNotMatch(js,/async function startWatch\(/);
+});
+
+test('YouTube onReady survives replacement of placeholder with iframe',()=>{
+ assert.match(js,/onReady:\(\)=>\{\s*if\(!document\.getElementById\('advancedFinancialInlineBox'\)/);
+ assert.doesNotMatch(js,/onReady:\(\)=>\{\s*if\(!target\.isConnected/);
+ assert.match(js,/w\.timer=setInterval\(tick,600\)/);
 });
