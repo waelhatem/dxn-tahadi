@@ -74,12 +74,13 @@ CREATE INDEX IF NOT EXISTS professional_training_attempts_user_idx
 
 -- Same lessons, videos and trainers as professional-training-0N.js. Durations read from YouTube on 2026-10-15.
 -- Questions and answer keys are NOT seeded: they are loaded privately with professional_training_import_bank.
-INSERT INTO public.professional_training_lessons(lesson_no,title,instructor,video_id,expected_duration_seconds) VALUES
- (1,'طريقة العمل مع DXN وأساسيات ومهارات هذا البزنس','م. محمود المصري','zO3U8yj0Sig',1164),
- (2,'عشر خطوات للعمل الاحترافي مع DXN','م. محمود المصري','tVim2H5Elck',157),
- (3,'فنون الدعوة ومهارات الاستقطاب مع DXN','م. محمود المصري','HOtDbw8-P3w',2718),
- (4,'معالجة الاعتراضات وأساليب الإقناع في DXN','م. محمود المصري','nzezoIaIRVg',2182),
- (5,'إعداد قائمة الأسماء الاحترافية','الأستاذ أحمد العتيبي','HxID9tMHoVw',5596)
+-- Draft lesson 4 must not start a verified watch until the owner approves its quiz.
+INSERT INTO public.professional_training_lessons(lesson_no,title,instructor,video_id,expected_duration_seconds,active) VALUES
+ (1,'طريقة العمل مع DXN وأساسيات ومهارات هذا البزنس','م. محمود المصري','zO3U8yj0Sig',1164,true),
+ (2,'عشر خطوات للعمل الاحترافي مع DXN','م. محمود المصري','tVim2H5Elck',157,true),
+ (3,'فنون الدعوة ومهارات الاستقطاب مع DXN','م. محمود المصري','HOtDbw8-P3w',2718,true),
+ (4,'معالجة الاعتراضات وأساليب الإقناع في DXN','م. محمود المصري','nzezoIaIRVg',2182,false),
+ (5,'إعداد قائمة الأسماء الاحترافية','الأستاذ أحمد العتيبي','HxID9tMHoVw',5596,true)
 ON CONFLICT (lesson_no) DO NOTHING;
 
 -- ---------------------------------------------------------------- watch attempts (all tracks)
@@ -280,7 +281,8 @@ BEGIN
    ) ORDER BY l.lesson_no),'[]'::jsonb)
    FROM public.professional_training_lessons l
    LEFT JOIN public.professional_training_progress p ON p.user_id=v_user AND p.lesson_no=l.lesson_no
-   WHERE l.active));
+   -- Return inactive lessons too so members see that a lesson awaits owner approval.
+   ));
 END $fn$;
 
 CREATE OR REPLACE FUNCTION public.professional_training_get_quiz(p_token uuid,p_lesson_no integer)
