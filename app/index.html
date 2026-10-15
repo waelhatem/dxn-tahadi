@@ -6217,7 +6217,50 @@ function basicTrainingPage(){
     ? window.basicTrainingCourseHtml()
     : '<div class="card">جارٍ تحميل التدريبات الأساسية…</div>';
 }
+/* V86.80 — Professional trainings in the advanced training's layout: list on the right, video on
+   the left, quiz button above it. Each training keeps its own video and quiz window. */
+let professionalSelected=0;
+function professionalTrainingInfos(){
+  return [1,2,3,4,5].map(n=>{const info=window['professionalTraining0'+n+'Info']?.();return info?{...info,no:n}:null;});
+}
+function professionalViewerHtml(info){
+  return `<strong id="professionalVideoTitle">${esc(info.label)} — ${esc(info.title)}</strong>
+    <div class="unified-training__actions"><span class="muted">${esc(info.instructor)}</span>
+     <button type="button" class="name-list-btn unified-training__quiz-button" onclick="professionalTraining0${info.no}OpenExam()">📝 ابدأ اختبار الدرس</button></div>
+    <div class="training-professional-video unified-training__video"><iframe src="https://www.youtube-nocookie.com/embed/${esc(info.videoId)}?rel=0" title="فيديو ${esc(info.label)}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
+    <p class="basic-bag-status">${info.questionCount} سؤالًا — الدرجة النهائية عند تفعيل التصحيح: 100</p>
+    <p class="basic-bag-description">نسبة المشاهدة لا تُحتسب في التدريبات الاحترافية حاليًا، والاختبار معاينة دون تصحيح أو حفظ. <a href="https://youtu.be/${esc(info.videoId)}" target="_blank" rel="noopener noreferrer">▶ فتح الفيديو على YouTube</a></p>`;
+}
+function professionalLessonListHtml(infos){
+  return infos.map((info,i)=>`<button type="button" class="advanced-profit-lesson" aria-pressed="${i===professionalSelected}" onclick="professionalSelectLesson(${i})"><span class="advanced-profit-index">${info.no}</span><span>${esc(info.label)}: ${esc(info.title)}</span><span aria-hidden="true">▶</span></button>`).join('');
+}
+function professionalSelectLesson(i){
+  const infos=professionalTrainingInfos(),info=infos[Number(i)];
+  const viewer=document.getElementById('professionalViewer'),list=document.getElementById('professionalLessonList');
+  if(!info||!viewer||!list)return;
+  professionalSelected=Number(i);
+  viewer.innerHTML=professionalViewerHtml(info);
+  list.innerHTML=professionalLessonListHtml(infos);
+}
 function professionalTrainingPage(){
+  const infos=professionalTrainingInfos();
+  if(infos.every(Boolean)){
+    const selected=infos[professionalSelected]||infos[0];
+    return `<section id="trainingProfessionalStart" class="card training-professional-page">
+    <div class="title">🎓 التدريبات الاحترافية</div>
+    <p class="muted">مسار احترافي مستقل عن التدريبات الأساسية وخطة رجوان للنجاح.</p>
+    <details class="advanced-profit-course academy-camps-course unified-training">
+     <summary><span class="advanced-profit-course-emoji">🎓</span><span class="advanced-profit-course-copy"><strong>التدريبات الاحترافية</strong><small>${infos.length} تدريبات — فيديو واختبار من 20 سؤالًا لكل تدريب</small></span><span class="academy-camps-open-hint"><span class="academy-camps-hint-closed">▶ اضغط لعرض التدريبات الخمسة</span><span class="academy-camps-hint-open">▲ إغلاق قائمة التدريبات</span></span></summary>
+     <div class="advanced-profit-content">
+      <p class="muted">اختر التدريب من القائمة. لكل تدريب فيديو واختبار مستقلان.</p>
+      <div class="advanced-profit-grid unified-training__layout">
+       <div id="professionalLessonList" class="advanced-profit-list" aria-label="التدريبات الاحترافية">${professionalLessonListHtml(infos)}</div>
+       <div id="professionalViewer" class="advanced-profit-viewer unified-training__viewer">${professionalViewerHtml(selected)}</div>
+      </div>
+     </div>
+    </details>
+  </section>`;
+  }
   const trainingOne = window.professionalTraining01Page?.() || '<p class="muted">تعذر تحميل أسئلة التدريب الأول.</p>';
   const trainingTwo = window.professionalTraining02Page?.() || '<p class="muted">تعذر تحميل أسئلة التدريب الثاني.</p>';
   return `<section id="trainingProfessionalStart" class="card training-professional-page">
@@ -8589,14 +8632,15 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 @media(max-width:799px){.training-kind-tabs{grid-template-columns:1fr}.training-kind-tabs .training-feature-card{min-height:128px}}
 </style>
 <link rel="stylesheet" href="../basic-training.css?v=20261014-onequestion">
-<script src="../professional-training-01.js?v=20261014-preview"></script>
-<script src="../professional-training-02.js?v=20261014-preview"></script>
-<script src="../professional-training-03.js?v=20261014-preview"></script>
-<script src="../professional-training-04.js?v=20261014-draft"></script>
-<script src="../professional-training-05.js?v=20261014-approved"></script>
+<link rel="stylesheet" href="../unified-training-ui.css?v=20261015-unified">
+<script src="../professional-training-01.js?v=20261015-unified"></script>
+<script src="../professional-training-02.js?v=20261015-unified"></script>
+<script src="../professional-training-03.js?v=20261015-unified"></script>
+<script src="../professional-training-04.js?v=20261015-unified"></script>
+<script src="../professional-training-05.js?v=20261015-unified"></script>
 <style id="advanced-financial-css">.advanced-financial-course .advanced-financial-lesson{display:flex;align-items:center;justify-content:space-between;gap:16px;border:1px solid #d7e5de;background:#fff;padding:20px;margin:12px 0;border-radius:16px}.advanced-financial-course .advanced-financial-meta{flex:1;min-width:0}.advanced-financial-course .advanced-financial-num{color:#14664e;font-weight:900}.advanced-financial-course h3{font-size:19px;margin:6px 0 8px}.advanced-financial-course .advanced-financial-actions{display:flex;gap:8px;flex-direction:column;min-width:185px}.advanced-financial-course button:disabled{opacity:.45;cursor:not-allowed}.advanced-financial-exam-header{font-size:17px;font-weight:900;margin-bottom:18px}.advanced-financial-footer{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px}.advanced-financial-footer button{flex:1;min-width:100px}@media(max-width:799px){.advanced-financial-course .advanced-financial-lesson{flex-direction:column;align-items:stretch;padding:14px}.advanced-financial-course .advanced-financial-actions{width:100%}.advanced-financial-course .advanced-financial-meta{order:0}.advanced-financial-course .advanced-financial-actions{order:1}.advanced-financial-footer button{min-width:90px}}</style>
 <script src="../advanced-financial-training.js?v=20261015-2"></script>
-<script src="../basic-training.js?v=20261014-onequestion"></script>
+<script src="../basic-training.js?v=20261015-unified"></script>
 <script src="../basic-training-leader-profile.js?v=20261014-scores100"></script>
 <script src="../basic-training-member-profile.js?v=20261014-uistate"></script>
 <script src="../basic-training-admin.js?v=20261014-uistate"></script>

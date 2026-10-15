@@ -1,0 +1,50 @@
+/* V86.80 — Unified training look, taken from the advanced training (lesson list on the right,
+   player on the left, green quiz button above the video, watch progress below it).
+   The layout itself reuses the advanced-profit-* classes from app/index.html unchanged.
+   Everything here is scoped to .unified-training (basic and professional trainings) or to quiz
+   windows other than the advanced one, so the advanced training and other pages are untouched. */
+
+/* Above the video: trainer on the right, quiz button at the far left. */
+.unified-training__actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;width:100%;margin:10px 0 0}
+.unified-training__actions>.muted{margin-inline-end:auto}
+.unified-training .unified-training__quiz-button{display:inline-flex;justify-content:center;align-items:center;gap:8px;
+  min-width:180px;min-height:48px;padding:13px 22px;font-size:1.05rem;font-weight:800;line-height:1.4;
+  background:#087b55;color:#fff;border:2px solid #0b805c;border-radius:12px;cursor:pointer}
+.unified-training .unified-training__quiz-button:hover:not(:disabled),
+.unified-training .unified-training__quiz-button:focus-visible{background:#066a49}
+.unified-training .unified-training__quiz-button:disabled{background:#d7e6df;color:#224c3f;opacity:1;cursor:not-allowed}
+
+/* Player: the reference 16:9 frame. Until the member presses start, a button covers it, so the
+   video and its watch tracking still begin only on the member's own click. */
+.unified-training .training-professional-video #basicBagYT{position:absolute;inset:0;width:100%;height:100%;border:0}
+.unified-training__play{position:absolute;inset:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  padding:16px;border:0;border-radius:0;background:radial-gradient(circle at 50% 45%,#1f5a45 0,#102c24 70%);color:#fff;
+  font:inherit;font-size:clamp(16px,1.8vw,21px);font-weight:900;line-height:1.7;text-align:center;cursor:pointer}
+.unified-training__play:hover:not(:disabled),.unified-training__play:focus-visible{background:radial-gradient(circle at 50% 45%,#27735a 0,#123328 70%)}
+.unified-training__play:disabled{color:#c9ddd5;cursor:not-allowed}
+
+/* Under the video: saved watch percentage and status. */
+.unified-training__progress{margin:4px 0}
+.unified-training #basicWatchInfo{margin:6px 0}
+.unified-training .advanced-profit-lesson:disabled{opacity:.55;cursor:not-allowed}
+
+/* Phone and tablet: one column — lesson title, quiz button, video, progress, then the list. */
+@media(max-width:850px){
+  .unified-training .unified-training__viewer{order:1}
+  .unified-training .advanced-profit-list{order:2}
+  .unified-training__actions>.muted{flex:1 0 100%}
+  .unified-training .unified-training__quiz-button{width:100%}
+}
+
+/* Basic and professional quiz windows: one option per row, radio next to its letter and text,
+   selected row highlighted, as in the advanced quiz. The advanced window keeps its own styles. */
+.basic-bag-overlay:not(.advanced-financial-overlay) .basic-bag-exam .basic-bag-question label{align-items:center!important;
+  min-height:48px;border:1px solid #d9e7e1;border-radius:10px!important;background:#fff}
+.basic-bag-overlay:not(.advanced-financial-overlay) .basic-bag-exam .basic-bag-question label:hover{background:#f4faf7}
+.basic-bag-overlay:not(.advanced-financial-overlay) .basic-bag-exam .basic-bag-question label:has(input:checked){
+  background:#e0f4ea!important;border-color:#087b55;outline:none}
+.basic-bag-overlay:not(.advanced-financial-overlay) .basic-bag-exam .basic-bag-question label input[type="radio"]{
+  flex:0 0 18px!important;width:18px!important;height:18px!important;min-width:18px!important;margin:0!important;accent-color:#087b55}
+/* Navigation under the options fills the window width, as the advanced quiz footer does. */
+.basic-bag-overlay:not(.advanced-financial-overlay) .basic-bag-exam button.name-list-btn{flex:1 1 0;min-width:100px;min-height:46px}
+.basic-bag-overlay:not(.advanced-financial-overlay) .basic-bag-exam [id$="Count"]{flex:1 0 100%;text-align:center}

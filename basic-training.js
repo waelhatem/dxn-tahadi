@@ -46,116 +46,109 @@
   if(!response.ok)throw Error(j.error||j.message||'خدمة حفظ التدريب غير متاحة');
   return j;
  }
+ /* V86.80 — Unified visual layout, as in the advanced training: lesson list on the right and the
+  * selected lesson's player on the left. Only the rendering layer changed: the same buttons call
+  * the same functions, and watch/quiz/save calls and lock rules are untouched. */
+ let selectedNo=0,selectedAuto=true;
+ const PREVIEW_VIDEO={2:'basicBagPreviewSecondVideo',3:'basicBagPreviewThirdVideo',4:'basicBagPreviewFourthVideo',5:'basicBagPreviewFifthVideo',6:'basicBagPreviewSixthVideo',7:'basicBagPreviewSeventhVideo',8:'basicBagPreviewEighthVideo'};
+ const PREVIEW_QUIZ={1:'basicBagPreviewFirstQuiz',2:'basicBagPreviewSecondQuiz',3:'basicBagPreviewThirdQuiz',4:'basicBagPreviewFourthQuiz',5:'basicBagPreviewFifthQuiz',6:'basicBagPreviewSixthQuiz',7:'basicBagPreviewSeventhQuiz',8:'basicBagPreviewEighthQuiz'};
+ const PREVIEW_STATUS={1:'▶️ الفيديو متاح والاختبار معروض للمعاينة',2:'🔒 المشاهدة النظامية مغلقة حتى إكمال التدريب الأول واختباره',
+  3:'🔒 يبقى التسلسل مقفلًا حتى إكمال التدريبين السابقين — المعاينة مستقلة',4:'🔒 التدريب التسلسلي مغلق حتى إكمال السابق — المعاينة متاحة',
+  5:'🔒 التدريب التسلسلي مغلق حتى إكمال الرابع — المعاينة متاحة',6:'🔒 التدريب التسلسلي مغلق حتى إكمال الخامس — المعاينة متاحة',
+  7:'🔒 التدريب التسلسلي مغلق حتى إكمال السادس — المعاينة متاحة',8:'🔒 التدريب التسلسلي مغلق حتى إكمال السابع — المعاينة متاحة'};
+ const PREVIEW_NOTE={1:'نسبة مشاهدة تجريبية أثناء هذه الجلسة — غير محفوظة.',2:'الفيديو والاختبار الثاني الجديدان معتمدان للمراجعة؛ التقدم والدرجات تجريبية وغير محفوظة.',
+  3:'معاينة الفيديو والاختبار المعتمدين؛ دون حفظ تقدم أو درجات.',4:'الفيديو والاختبار الرابع معتمدان؛ لا تُحفظ النتائج أو المشاهدة في المعاينة.',
+  5:'المحاضرة الخامسة واختبارها المعتمد — معاينة دون حفظ تقدم أو درجات.',6:'الفيديو والاختبار السادس المعتمدان؛ لا يتم حفظ التقدم أو الدرجات في المعاينة.',
+  7:'الفيديو والاختبار السابع المعتمدان؛ لا يتم حفظ التقدم أو الدرجات في المعاينة.',8:'الفيديو والاختبار الثامن المعتمدان؛ لا يتم حفظ التقدم أو الدرجات في المعاينة.'};
+ const canPreviewQuiz=()=>viewerRole==='leader'&&window.innerWidth>=900;
+ // Locked lessons stay unselectable for members, as in the reference; the leader can still open
+ // them to reach the unsaved quiz preview that the old cards offered on every training.
+ const canSelect=no=>!backendReady||lessonUnlock(no)||canPreviewQuiz();
+ function previewPct(no){
+  if(no===1)return movie&&movie.duration?Math.min(100,Math.floor(100*movie.max/movie.duration)):Math.min(100,Math.floor(previewWatchedPercent));
+  return [0,0,previewWatchedPercent2,previewWatchedPercent3,previewWatchedPercent4,previewWatchedPercent5,previewWatchedPercent6,previewWatchedPercent7,previewWatchedPercent8][no]||0;
+ }
+ // Everything the page shows for one lesson; the calls are the ones the old cards used.
+ function lessonView(no){
+  if(!backendReady){
+   return {icon:'▶',pct:previewPct(no),pctLabel:'نسبة المشاهدة التجريبية',
+    play:no===1?'basicBagStartVideo(1)':PREVIEW_VIDEO[no]+'()',playLabel:no===1?'▶ بدء التدريب / إعادة المشاهدة':'👁 معاينة الفيديو',
+    quiz:PREVIEW_QUIZ[no]+'()',quizEnabled:true,quizLabel:'📝 ابدأ اختبار الدرس (معاينة)',preview:'',
+    status:PREVIEW_STATUS[no],score:'',note:PREVIEW_NOTE[no]};
+  }
+  const p=statusOf(no),unlocked=lessonUnlock(no),passed=!!p.passed,watchReady=!!p.completed;
+  const quizEnabled=unlocked&&watchReady;
+  return {icon:passed?'✅':unlocked?'▶':'🔒',
+   pct:Math.min(100,Math.max(0,Math.round(100*fmt(p.watched)/(fmt(p.duration)||1)))),pctLabel:'المشاهدة المحفوظة',
+   play:unlocked?'basicBagStartVideo('+no+')':'',playLabel:unlocked?'▶ '+(watchReady?'إعادة المشاهدة':'بدء / متابعة المشاهدة'):'🔒 أكمل التدريب السابق واجتز اختباره أولًا',
+   quiz:'basicBagStartQuiz('+no+')',quizEnabled,quizLabel:'📝 '+(passed?'إعادة اختبار الدرس':quizEnabled?'ابدأ اختبار الدرس':'اختبار الدرس — غير متاح'),
+   preview:canPreviewQuiz()?'<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewFirstQuiz('+no+')">👁 معاينة الاختبار (غير محفوظة)</button>':'',
+   status:passed?'✅ اجتاز التدريب':watchReady?'✅ اكتملت المشاهدة — الاختبار متاح':unlocked?'▶ متابعة المشاهدة حتى 90%':'🔒 أكمل التدريب السابق واجتز اختباره أولًا',
+   score:'أفضل درجة اختبار: '+((p.best_score===null||p.best_score===undefined)?'لم يُختبر بعد':Math.round(Number(p.best_score)*5)+' / 100'),
+   note:'شرط اجتياز التدريب: مشاهدة 90% والحصول على 80 / 100 على الأقل. يمكن إعادة الاختبار عند الرسوب.'};
+ }
+ // The member lands on the first training still to pass, until they pick one themselves.
+ function defaultLesson(){
+  if(!backendReady)return 1;
+  const open=lessons.filter(l=>lessonUnlock(l.no));
+  const next=open.find(l=>!statusOf(l.no).passed)||open[open.length-1];
+  return next?next.no:1;
+ }
+ function listHtml(){
+  return lessons.map(item=>{
+   const v=lessonView(item.no),active=item.no===selectedNo;
+   return '<button type="button" class="advanced-profit-lesson" onclick="basicBagSelectLesson('+item.no+')" aria-pressed="'+active+'" '+(canSelect(item.no)?'':'disabled')+'>'+
+    '<span class="advanced-profit-index">'+item.no+'</span><span>التدريب '+item.no+': '+esc(item.title)+'</span><span aria-hidden="true">'+v.icon+'</span></button>';
+  }).join('');
+ }
+ function headHtml(item,v){
+  return '<strong id="basicBagVideoTitle">التدريب الأساسي '+item.no+' من 8 — '+esc(item.title)+'</strong>'+
+   '<div class="unified-training__actions"><span class="muted">المدرب: المهندس محمود المصري</span>'+v.preview+
+   '<button type="button" class="name-list-btn unified-training__quiz-button" onclick="'+v.quiz+'" '+(v.quizEnabled?'':'disabled')+'>'+v.quizLabel+'</button></div>';
+ }
+ function infoHtml(v){
+  return (v.score?'<p class="muted">'+esc(v.score)+'</p>':'')+'<p class="basic-bag-description">'+esc(v.note)+'</p>';
+ }
+ function viewerHtml(item,v){
+  const poster='<button type="button" class="unified-training__play" '+(v.play?'onclick="'+v.play+'"':'disabled')+'>'+esc(v.playLabel)+'</button>';
+  return '<div id="basicBagViewerHead">'+headHtml(item,v)+'</div>'+
+   '<div class="training-professional-video unified-training__video" id="basicBagInlineBox" data-no="'+item.no+'">'+poster+'</div>'+
+   '<div class="basic-bag-inline-progress unified-training__progress"><div id="basicWatchProgress" class="basic-bag-progress" role="progressbar" aria-label="'+v.pctLabel+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+v.pct+'"><div style="width:'+v.pct+'%"></div></div>'+
+   '<strong id="basicWatchPct">'+v.pct+'%</strong></div>'+
+   '<p id="basicWatchInfo" class="basic-bag-status">'+esc(v.status)+'</p>'+
+   '<div id="basicBagViewerInfo">'+infoHtml(v)+'</div>';
+ }
+ function stopMovie(){
+  if(!movie)return;
+  if(movie.timer)clearInterval(movie.timer);
+  try{movie.player?.destroy();}catch(_){}
+  movie=null;
+ }
  function refreshCards(){
  const host=document.getElementById('basicBagCards');if(!host)return;
- if(backendReady){
-  const canPreview=viewerRole==='leader'&&window.innerWidth>=900;
-  host.innerHTML=lessons.map(item=>{
-    const p=statusOf(item.no),unlocked=lessonUnlock(item.no);
-    const watched=Math.min(100,Math.max(0,Math.round(100*fmt(p.watched)/(fmt(p.duration)||1))));
-    const passed=!!p.passed,watchReady=!!p.completed;
-    const score=(p.best_score===null||p.best_score===undefined)?'':' | أفضل درجة اختبار: '+Math.round(Number(p.best_score)*5)+' / 100';
-    const status=passed?'✅ اجتاز التدريب':watchReady?'✅ اكتملت المشاهدة — الاختبار متاح':unlocked?'▶ متابعة المشاهدة حتى 90%':'🔒 أكمل التدريب السابق واجتز اختباره أولًا';
-    return '<article class="basic-bag-lesson basic-two-stage"><div class="basic-bag-lesson-main">'+
-      '<div class="basic-bag-number">التدريب الأساسي '+item.no+'</div><h3>'+esc(item.title)+'</h3>'+
-      '<p class="basic-bag-description">المدرب: المهندس محمود المصري</p>'+
-      '<div class="basic-bag-status">'+status+esc(score)+'</div>'+
-      '<div class="basic-bag-progress-line"><strong class="basic-bag-percentage">'+watched+'%</strong>'+
-      '<div class="basic-bag-progress" role="progressbar" aria-label="المشاهدة المحفوظة" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+watched+'"><div style="width:'+watched+'%"></div></div></div>'+
-      '<p class="basic-bag-description">شرط اجتياز التدريب: مشاهدة 90% والحصول على 80 / 100 على الأقل. يمكن إعادة الاختبار عند الرسوب.</p></div>'+
-      '<div class="basic-bag-actions">'+
-      '<button type="button" class="name-list-btn name-list-primary" onclick="basicBagStartVideo('+item.no+')" '+(!unlocked?'disabled':'')+'>▶ '+(watchReady?'إعادة المشاهدة':'بدء / متابعة المشاهدة')+'</button>'+
-      '<button type="button" class="name-list-btn" onclick="basicBagStartQuiz('+item.no+')" '+(!unlocked||!watchReady?'disabled':'')+'>🧠 '+(passed?'إعادة الاختبار':'الاختبار المعتمد — 20 سؤالًا')+'</button>'+
-      (canPreview?'<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewFirstQuiz('+item.no+')">👁 معاينة الاختبار (غير محفوظة)</button>':'')+
-      '</div></article>';
-   }).join('');
-   return;
+ // The page was rebuilt (tab switch, re-render): an inline player left behind is gone with it.
+ if(movie&&movie.inline&&!(movie.box&&movie.box.isConnected))stopMovie();
+ if(selectedAuto||!canSelect(selectedNo))selectedNo=defaultLesson();
+ const item=currentLesson(selectedNo)||lessons[0],v=lessonView(item.no);
+ // A playing inline video must not be rebuilt: refresh the texts around it only.
+ if(movie&&movie.inline&&movie.no===item.no){
+  const list=document.getElementById('basicBagLessonList');if(list)list.innerHTML=listHtml();
+  const head=document.getElementById('basicBagViewerHead');if(head)head.innerHTML=headHtml(item,v);
+  const info=document.getElementById('basicBagViewerInfo');if(info)info.innerHTML=infoHtml(v);
+  return;
  }
- const pct=movie&&movie.duration?Math.min(100,Math.floor(100*movie.max/movie.duration)):Math.min(100,Math.floor(previewWatchedPercent));
- const later=[];
- host.innerHTML='<article class="basic-bag-lesson basic-one-stage"><div class="basic-bag-lesson-main">'+
- '<div class="basic-bag-number">التدريب الأساسي 1</div><h3>التعريف بمشروع DXN ومنتجاتها ونظامها التسويقي</h3>'+
- '<p class="basic-bag-description">المدرب: المهندس محمود المصري</p>'+
- '<div class="basic-bag-status">▶️ الفيديو متاح والاختبار معروض للمعاينة</div>'+
- '<div class="basic-bag-progress-line"><strong class="basic-bag-percentage">'+pct+'%</strong>'+
- '<div class="basic-bag-progress" role="progressbar" aria-label="نسبة المشاهدة التجريبية" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'"><div style="width:'+pct+'%"></div></div></div>'+
- '<p class="basic-bag-description">نسبة مشاهدة تجريبية أثناء هذه الجلسة — غير محفوظة.</p></div>'+
- '<div class="basic-bag-actions">'+
- '<button type="button" class="name-list-btn name-list-primary" onclick="basicBagStartVideo(1)">▶ بدء التدريب / إعادة المشاهدة</button>'+
- '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewFirstQuiz()">🧠 اختبار التدريب الأول الجديد — 20 سؤالًا</button>'+
- '</div></article>'+
- '<article class="basic-bag-lesson basic-two-stage"><div class="basic-bag-lesson-main">'+
- '<div class="basic-bag-number">التدريب الأساسي 2</div><h3>التعريف بشركة DXN ومنتجاتها ونظامها التسويقي والأرباح</h3>'+
- '<p class="basic-bag-description">المدرب: المهندس محمود المصري</p>'+
- '<div class="basic-bag-status">🔒 المشاهدة النظامية مغلقة حتى إكمال التدريب الأول واختباره</div>'+
- '<div class="basic-bag-progress-line"><strong class="basic-bag-percentage">'+previewWatchedPercent2+'%</strong>'+
- '<div class="basic-bag-progress" role="progressbar" aria-label="نسبة مشاهدة التدريب الثاني" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div style="width:0%"></div></div></div>'+
- '<p class="basic-bag-description">الفيديو والاختبار الثاني الجديدان معتمدان للمراجعة؛ التقدم والدرجات تجريبية وغير محفوظة.</p></div>'+
- '<div class="basic-bag-actions"><button type="button" class="name-list-btn" disabled>🔒 بدء التدريب بعد إكمال الأول</button>'+ 
- '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewSecondVideo()">👁 معاينة الفيديو الثاني</button>'+
- '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewSecondQuiz()">🧠 الاختبار الثاني الجديد — 20 سؤالًا</button></div></article>'+
- '<article class="basic-bag-lesson basic-two-stage"><div class="basic-bag-lesson-main">'+
- '<div class="basic-bag-number">التدريب الأساسي 3</div><h3>منتجات DXN وأصنافها وطرق تسويقها</h3>'+
- '<p class="basic-bag-description">المدرب: المهندس محمود المصري</p>'+
- '<div class="basic-bag-status">🔒 يبقى التسلسل مقفلًا حتى إكمال التدريبين السابقين — المعاينة مستقلة</div>'+
- '<div class="basic-bag-progress-line"><strong class="basic-bag-percentage">'+previewWatchedPercent3+'%</strong>'+
- '<div class="basic-bag-progress" role="progressbar" aria-label="نسبة مشاهدة التدريب الثالث التجريبية" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+previewWatchedPercent3+'"><div style="width:'+previewWatchedPercent3+'%"></div></div></div>'+
- '<p class="basic-bag-description">معاينة الفيديو والاختبار المعتمدين؛ دون حفظ تقدم أو درجات.</p></div>'+
- '<div class="basic-bag-actions"><button type="button" class="name-list-btn" disabled>🔒 بدء التدريب بعد إكمال الثاني</button>'+
- '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewThirdVideo()">👁 معاينة الفيديو الثالث</button>'+
- '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewThirdQuiz()">🧠 اختبار التدريب الثالث — 20 سؤالًا</button></div></article>'+
- '<article class="basic-bag-lesson basic-two-stage"><div class="basic-bag-lesson-main">'+
- '<div class="basic-bag-number">التدريب الأساسي 4</div><h3>نظام البيع المباشر في DXN</h3>'+
- '<p class="basic-bag-description">المدرب: المهندس محمود المصري</p>'+
- '<div class="basic-bag-status">🔒 التدريب التسلسلي مغلق حتى إكمال السابق — المعاينة متاحة</div>'+
- '<div class="basic-bag-progress-line"><strong class="basic-bag-percentage">'+previewWatchedPercent4+'%</strong>'+
- '<div class="basic-bag-progress" role="progressbar" aria-label="نسبة مشاهدة التدريب الرابع التجريبية" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+previewWatchedPercent4+'"><div style="width:'+previewWatchedPercent4+'%"></div></div></div>'+
- '<p class="basic-bag-description">الفيديو والاختبار الرابع معتمدان؛ لا تُحفظ النتائج أو المشاهدة في المعاينة.</p></div>'+
- '<div class="basic-bag-actions"><button type="button" class="name-list-btn" disabled>🔒 بدء التدريب بعد إكمال الثالث</button>'+
- '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewFourthVideo()">👁 معاينة الفيديو الرابع</button>'+
- '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewFourthQuiz()">🧠 الاختبار الرابع — 20 سؤالًا</button></div></article>'+
- '<article class="basic-bag-lesson basic-two-stage"><div class="basic-bag-lesson-main">'+
- '<div class="basic-bag-number">التدريب الأساسي 5</div><h3>خطة الأرباح والحوافز لشركة DXN</h3>'+
- '<p class="basic-bag-description">المدرب: المهندس محمود المصري</p>'+
- '<div class="basic-bag-status">🔒 التدريب التسلسلي مغلق حتى إكمال الرابع — المعاينة متاحة</div>'+
- '<div class="basic-bag-progress-line"><strong class="basic-bag-percentage">'+previewWatchedPercent5+'%</strong>'+
- '<div class="basic-bag-progress" role="progressbar" aria-label="نسبة مشاهدة التدريب الخامس التجريبية" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+previewWatchedPercent5+'"><div style="width:'+previewWatchedPercent5+'%"></div></div></div>'+
- '<p class="basic-bag-description">المحاضرة الخامسة واختبارها المعتمد — معاينة دون حفظ تقدم أو درجات.</p></div>'+
- '<div class="basic-bag-actions"><button type="button" class="name-list-btn" disabled>🔒 بدء التدريب بعد إكمال الرابع</button>'+
- '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewFifthVideo()">👁 معاينة الفيديو الخامس</button>'+
- '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewFifthQuiz()">🧠 الاختبار الخامس — 20 سؤالًا</button></div></article>'+
- '<article class="basic-bag-lesson basic-two-stage"><div class="basic-bag-lesson-main">'+
- '<div class="basic-bag-number">التدريب الأساسي 6</div><h3>التطبيق العملي لخطة الأرباح خلال ستة أشهر</h3>'+
- '<p class="basic-bag-description">المدرب: المهندس محمود المصري</p>'+
- '<div class="basic-bag-status">🔒 التدريب التسلسلي مغلق حتى إكمال الخامس — المعاينة متاحة</div>'+
- '<div class="basic-bag-progress-line"><strong class="basic-bag-percentage">'+previewWatchedPercent6+'%</strong>'+
- '<div class="basic-bag-progress" role="progressbar" aria-label="نسبة مشاهدة التدريب السادس التجريبية" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+previewWatchedPercent6+'"><div style="width:'+previewWatchedPercent6+'%"></div></div></div>'+
- '<p class="basic-bag-description">الفيديو والاختبار السادس المعتمدان؛ لا يتم حفظ التقدم أو الدرجات في المعاينة.</p></div>'+
- '<div class="basic-bag-actions"><button type="button" class="name-list-btn" disabled>🔒 بدء التدريب بعد إكمال الخامس</button>'+
- '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewSixthVideo()">👁 معاينة الفيديو السادس</button>'+
- '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewSixthQuiz()">🧠 الاختبار السادس — 20 سؤالًا</button></div></article>'+
- '<article class="basic-bag-lesson basic-two-stage"><div class="basic-bag-lesson-main">'+
- '<div class="basic-bag-number">التدريب الأساسي 7</div><h3>تفعيل العضوية وتسجيل أعضاء الفريق</h3>'+
- '<p class="basic-bag-description">المدرب: المهندس محمود المصري</p>'+
- '<div class="basic-bag-status">🔒 التدريب التسلسلي مغلق حتى إكمال السادس — المعاينة متاحة</div>'+
- '<div class="basic-bag-progress-line"><strong class="basic-bag-percentage">'+previewWatchedPercent7+'%</strong>'+
- '<div class="basic-bag-progress" role="progressbar" aria-label="نسبة مشاهدة التدريب السابع التجريبية" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+previewWatchedPercent7+'"><div style="width:'+previewWatchedPercent7+'%"></div></div></div>'+
- '<p class="basic-bag-description">الفيديو والاختبار السابع المعتمدان؛ لا يتم حفظ التقدم أو الدرجات في المعاينة.</p></div>'+
- '<div class="basic-bag-actions"><button type="button" class="name-list-btn" disabled>🔒 بدء التدريب بعد إكمال السادس</button>'+
- '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewSeventhVideo()">👁 معاينة الفيديو السابع</button>'+
- '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewSeventhQuiz()">🧠 الاختبار السابع — 20 سؤالًا</button></div></article>'+
- '<article class="basic-bag-lesson basic-two-stage"><div class="basic-bag-lesson-main">'+
- '<div class="basic-bag-number">التدريب الأساسي 8</div><h3>أساسيات النجاح التسعة مع DXN</h3>'+
- '<p class="basic-bag-description">المدرب: المهندس محمود المصري</p>'+
- '<div class="basic-bag-status">🔒 التدريب التسلسلي مغلق حتى إكمال السابع — المعاينة متاحة</div>'+
- '<div class="basic-bag-progress-line"><strong class="basic-bag-percentage">'+previewWatchedPercent8+'%</strong>'+
- '<div class="basic-bag-progress" role="progressbar" aria-label="نسبة مشاهدة التدريب الثامن التجريبية" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+previewWatchedPercent8+'"><div style="width:'+previewWatchedPercent8+'%"></div></div></div>'+
- '<p class="basic-bag-description">الفيديو والاختبار الثامن المعتمدان؛ لا يتم حفظ التقدم أو الدرجات في المعاينة.</p></div>'+
- '<div class="basic-bag-actions"><button type="button" class="name-list-btn" disabled>🔒 بدء التدريب بعد إكمال السابع</button>'+
- '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewEighthVideo()">👁 معاينة الفيديو الثامن</button>'+
- '<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewEighthQuiz()">🧠 الاختبار الثامن — 20 سؤالًا</button></div></article>'+
- later.map((name,i)=>'<article class="basic-bag-lesson basic-one-locked" aria-label="التدريب '+(i+4)+' مغلق"><div class="basic-bag-lesson-main"><div class="basic-bag-number">التدريب الأساسي '+(i+4)+'</div><h3>🔒 '+name+'</h3><p class="basic-bag-description">سنعمل عليه بعد الانتهاء من التدريب السابق واعتماده.</p></div><div class="basic-bag-actions"><button class="name-list-btn" type="button" disabled>🔒 التدريب مغلق</button></div></article>').join('');
+ if(movie&&movie.inline)stopMovie();
+ host.innerHTML='<div class="advanced-profit-grid unified-training__layout">'+
+  '<div id="basicBagLessonList" class="advanced-profit-list" aria-label="دروس التدريبات الأساسية">'+listHtml()+'</div>'+
+  '<div class="advanced-profit-viewer unified-training__viewer">'+viewerHtml(item,v)+'</div></div>';
 }
+ window.basicBagSelectLesson=function(no){
+  no=Number(no);if(!currentLesson(no)||!canSelect(no))return;
+  selectedAuto=false;
+  if(no===selectedNo)return;
+  if(movie&&movie.inline)stopMovie();
+  selectedNo=no;refreshCards();
+ };
  // The notice is rebuilt on every render, so it must follow the saved-progress
  // state instead of a one-time text set after the first load.
  function noticeText(){
@@ -168,7 +161,13 @@
   return '<section id="trainingBasicBagStart" class="card basic-bag-page"><div class="title">📘 التدريبات الأساسية — حقيبة المهندس محمود المصري</div>'+
    '<p class="muted">ثمانية تدريبات بالترتيب؛ لكل تدريب فيديو واختبار معتمد من 20 سؤالًا، ولا يُفتح التدريب التالي قبل اجتياز السابق.</p>'+
    '<p id="basicBagNotice" class="basic-bag-notice">'+esc(noticeText())+'</p>'+
-   '<div id="basicBagCards" class="basic-bag-cards"></div></section>';
+   '<details class="advanced-profit-course academy-camps-course unified-training"><summary><span class="advanced-profit-course-emoji">📘</span>'+
+   '<span class="advanced-profit-course-copy"><strong>التدريبات الأساسية: حقيبة المهندس محمود المصري</strong>'+
+   '<small>8 تدريبات متتابعة — فيديو واختبار من 20 سؤالًا لكل تدريب</small></span>'+
+   '<span class="academy-camps-open-hint"><span class="academy-camps-hint-closed">▶ اضغط لعرض التدريبات الثمانية</span>'+
+   '<span class="academy-camps-hint-open">▲ إغلاق قائمة التدريبات</span></span></summary><div class="advanced-profit-content">'+
+   '<p class="muted">اختر التدريب من القائمة. يُفتح التدريب التالي بعد اجتياز اختبار السابق.</p>'+
+   '<div id="basicBagCards" class="basic-bag-cards"></div></div></details></section>';
  }
  async function loadOverview(){
   try {
@@ -209,11 +208,7 @@
   return cover;
  }
  function close(){
-  if(movie){
-   if(movie.timer)clearInterval(movie.timer);
-   try{movie.player?.destroy();}catch(_){}
-   movie=null;
-  }
+  stopMovie();
   exam=null;
   document.querySelectorAll('.basic-bag-overlay').forEach(x=>x.remove());
   document.removeEventListener('keydown',escapeClose);
@@ -222,6 +217,8 @@
  function escapeClose(e){if(e.key==='Escape')close();}
  function watchMessage(t){
   const x=document.getElementById('basicWatchInfo');if(x)x.textContent=t;
+  // Inline player: once the server confirms 90%, the quiz button above the video opens at once.
+  if(movie&&movie.inline&&!!statusOf(movie.no).completed!==movie.shownCompleted){movie.shownCompleted=!!statusOf(movie.no).completed;refreshCards();}
  }
  function watchPct(){
   const bar=document.getElementById('basicWatchProgress');
@@ -289,15 +286,27 @@
  window.basicBagStartVideo=async function(no){
   const item=currentLesson(no);if(!item||!item.video)return safeToast('رابط الفيديو غير متوفر');
   if(!lessonUnlock(Number(no))&&!((no===2&&window.__basicVideoTwoPreview)||(no===3&&window.__basicVideoThreePreview)||(no===4&&window.__basicVideoFourPreview)||(no===5&&window.__basicVideoFivePreview)||(no===6&&window.__basicVideoSixPreview)||(no===7&&window.__basicVideoSevenPreview)||(no===8&&window.__basicVideoEightPreview)))return safeToast('التدريب مغلق: أكمل مشاهدة التدريب السابق واختباره');
-  close();const c=createModal(item.title);document.addEventListener('keydown',escapeClose);
-  const body=c.querySelector('#basicBagModalBody');
-  body.innerHTML='<div class="basic-bag-player"><div id="basicBagYT"></div></div>'+
-   '<div class="basic-bag-inline-progress"><div id="basicWatchProgress" class="basic-bag-progress"><div></div></div>'+
-   '<strong id="basicWatchPct">0%</strong></div><p id="basicWatchInfo" class="basic-bag-notice">جارٍ تحميل المشغل…</p>'+
-   '<p class="basic-bag-description">يسمح بإعادة المشاهدة والرجوع إلى الخلف؛ لا يسمح بالقفز إلى أجزاء لم تُشاهد.</p>';
+  close();
+  // V86.80 — Same player and settings; it now plays inside the page when this training's
+  // viewer is on screen, and in the original window otherwise.
+  const box=document.getElementById('basicBagInlineBox');
+  const inline=box&&Number(box.dataset.no)===item.no?box:null;
+  if(inline){
+   selectedNo=item.no;selectedAuto=false;
+   inline.innerHTML='<div id="basicBagYT"></div>';
+   watchMessage('جارٍ تحميل المشغل…');
+  }else{
+   const c=createModal(item.title);document.addEventListener('keydown',escapeClose);
+   const body=c.querySelector('#basicBagModalBody');
+   body.innerHTML='<div class="basic-bag-player"><div id="basicBagYT"></div></div>'+
+    '<div class="basic-bag-inline-progress"><div id="basicWatchProgress" class="basic-bag-progress"><div></div></div>'+
+    '<strong id="basicWatchPct">0%</strong></div><p id="basicWatchInfo" class="basic-bag-notice">جارٍ تحميل المشغل…</p>'+
+    '<p class="basic-bag-description">يسمح بإعادة المشاهدة والرجوع إلى الخلف؛ لا يسمح بالقفز إلى أجزاء لم تُشاهد.</p>';
+  }
   const saved=statusOf(item.no);movie={no:item.no,max:fmt(saved.watched),confirmed:fmt(saved.watched),duration:fmt(saved.duration),
     completed:!!saved.completed,previousWall:performance.now(),previousTime:0,
-    player:null,ready:false,timer:null,lastSent:0,saving:false};
+    player:null,ready:false,timer:null,lastSent:0,saving:false,
+    inline:!!inline,box:inline,shownCompleted:!!saved.completed};
   try{
    await ytApi();if(!movie||movie.no!==item.no)return;
    const m=movie;m.player=new window.YT.Player('basicBagYT',{
@@ -389,7 +398,7 @@
   update();
   return {update,finish,back,next};
  }
- const BASIC_FINISH_LABEL='إنهاء الاختبار وإرسال الإجابات';
+ const BASIC_FINISH_LABEL='إنهاء الاختبار وتصحيحه';
  function renderExam(){
   const e=exam;if(!e)return;
   const body=document.getElementById('basicBagModalBody');if(!body)return;

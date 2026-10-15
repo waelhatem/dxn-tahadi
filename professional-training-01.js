@@ -5,6 +5,8 @@ const lesson={"id":"professional-01","track":"professional","title":"طريقة 
 const videoId='zO3U8yj0Sig';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
 let answers={};
+/* V86.80 — Display data for the unified training layout; the questions stay in this file. */
+window.professionalTraining01Info=function(){return {label:'التدريب الاحترافي الأول',title:lesson.title,instructor:'المدرب: '+lesson.instructor,videoId,questionCount:lesson.questions.length};};
 window.professionalTraining01Page=function(){return '<article class="basic-bag-lesson professional-lesson-card" id="professionalTraining01">'+
 '<div class="basic-bag-lesson-main"><div class="basic-bag-number">التدريب الاحترافي الأول</div><h3>'+esc(lesson.title)+'</h3><p class="basic-bag-description">المدرب: '+esc(lesson.instructor)+'</p><p class="basic-bag-status">20 سؤالًا — الدرجة النهائية عند تفعيل التصحيح: 100</p></div>'+
 '<div class="basic-bag-actions"><button type="button" class="name-list-btn" onclick="professionalTraining01OpenVideo()">▶ مشاهدة الفيديو</button>'+
