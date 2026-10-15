@@ -1,0 +1,50 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const bank=JSON.parse(fs.readFileSync('data/advanced-financial-training.staging.json','utf8'));
+const html=fs.readFileSync('app/index.html','utf8');
+const js=fs.readFileSync('advanced-financial-training.js','utf8');
+const sql=fs.readFileSync('supabase/migrations/202610150001_advanced_financial_training.sql','utf8');
+test('Advanced financial course catalog has exactly 10 unique videos',()=>{
+ assert.equal(bank.lessons.length,10);
+ assert.deepEqual(bank.lessons.map(x=>x.number),[1,2,3,4,5,6,7,8,9,10]);
+ assert.equal(new Set(bank.lessons.map(x=>x.youtube_id)).size,10);
+});
+test('Approved lesson 3-10 banks contain 20 questions and four choices',()=>{
+ for(const lesson of bank.lessons.slice(2)){
+  assert.equal(lesson.questions.length,20,'lesson '+lesson.number);
+  for(const q of lesson.questions){
+   assert.ok(q.question&&q.question.length>10);
+   assert.equal(q.options.length,4);
+   assert.ok(q.options.every(o=>typeof o==='string'&&o.length>0));
+   assert.ok(Number.isInteger(q.correct_index)&&q.correct_index>=0&&q.correct_index<=3);
+  }
+ }
+});
+test('Lesson 1 and 2 exact approved texts must be supplied before publication',()=>{
+ for(const lesson of bank.lessons.slice(0,2)) assert.equal(lesson.questions,null);
+ assert.equal(bank.status,'staging-incomplete');
+});
+test('Frontend scripts parse and connect member and leader pages',()=>{
+ new vm.Script(js);
+ assert.match(html,/advanced-financial-training\.js/);
+ assert.match(html,/advancedFinancialMemberProfile/);
+ assert.match(html,/advancedFinancialLeaderProfile/);
+ assert.match(html,/advancedFinancialCoursePage/);
+ assert.match(js,/advanced_financial_watch_update/);
+ assert.match(js,/advanced_financial_submit_quiz/);
+ assert.match(js,/watchPct|watchUi/);
+});
+test('Database schema isolates history and grades all four choices on server',()=>{
+ assert.match(sql,/create table if not exists public\.advanced_financial_progress/);
+ assert.match(sql,/advanced_financial_attempts/);
+ assert.match(sql,/advanced_financial_get_quiz/);
+ assert.match(sql,/advanced_financial_submit_quiz/);
+ assert.match(sql,/jsonb_array_length\(options\)=4/);
+ assert.match(sql,/v_score>=16/);
+ assert.match(sql,/v_new\*100>=v_l\.expected_duration_seconds\*90/);
+ assert.match(sql,/app_current_user_id/);
+ assert.match(sql,/advanced_financial_leader_member_profile/);
+});
