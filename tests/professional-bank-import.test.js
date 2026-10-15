@@ -42,17 +42,17 @@ test('a private import with keys for 1, 2, 3 and 5 loads exactly those banks in 
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'pro-approved-'));
   try{
     const file=path.join(dir,'keys.private.json');
-    // Synthetic test data only. Approved real answer keys must never be added to this repository.
+    // Synthetic data only. Never include approved real answers in a tracked test.
     fs.writeFileSync(file,JSON.stringify({'1':SYNTH,'2':SYNTH,'3':SYNTH,'5':SYNTH}));
     const {sql,lessons,missing,draft}=buildSql(file);
     assert.deepEqual(lessons,[1,2,3,5]);
     assert.deepEqual(missing,[]);
     assert.deepEqual(draft,[4]);
-    assert.equal((sql.match(/professional_training_import_bank\\(/g)||[]).length,4);
-    for(const n of [1,2,3,5])assert.match(sql,new RegExp('professional_training_import_bank\\\\('+n+','));
-    assert.doesNotMatch(sql,/professional_training_import_bank\\(4,/);
-    assert.match(sql,/BEGIN;\\nSET LOCAL ROLE service_role;/);
-    assert.match(sql,/COMMIT;\\n$/);
+    assert.equal(sql.split('public.professional_training_import_bank(').length-1,4);
+    for(const n of [1,2,3,5])assert.ok(sql.includes('public.professional_training_import_bank('+n+','));
+    assert.ok(!sql.includes('public.professional_training_import_bank(4,'));
+    assert.ok(sql.includes('BEGIN;'+String.fromCharCode(10)+'SET LOCAL ROLE service_role;'));
+    assert.ok(sql.endsWith('COMMIT;'+String.fromCharCode(10)));
   }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
 
