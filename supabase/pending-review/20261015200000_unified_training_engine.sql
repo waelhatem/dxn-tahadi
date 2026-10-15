@@ -10,12 +10,13 @@
 --   * Earlier results stay: scores, attempts, passes and watch_completed are never deleted or reset.
 --     Legacy cumulative watch_seconds stay in place for audit but no longer grant anything.
 --
--- Deployment order: apply this file, then deploy the matching front end (training-engine.js) right away.
--- From this point the legacy basic/advanced watch_update functions refuse to credit watching.
+-- Deployment order (the old watch system keeps working until step 4):
+--   1. apply this file (additive: new tables and functions only; nothing existing changes);
+--   2. deploy the matching front end (training-engine.js);
+--   3. verify it with a test account;
+--   4. only then apply 20261015210000_disable_legacy_cumulative_watch.sql.
 --
--- Rollback: restore the previous definitions of basic_training_watch_update and
--- advanced_financial_watch_update from supabase/migrations (20261013_basic_training_persistence_90_80.sql and
--- 202610150001_advanced_financial_training.sql). The new tables can stay; they hold no member results.
+-- Rollback: drop the new functions and tables; they hold no earlier member results.
 
 BEGIN;
 
@@ -260,15 +261,6 @@ BEGIN
    'attempt_completed',v_done,'expired',false,
    'watch_completed',v_done OR public.training_engine_watch_completed(v_user,v_a.track,v_a.lesson_no));
 END $fn$;
-
--- ---------------------------------------------------------------- legacy cumulative watch endpoints
--- Kept with the same signatures (old cached pages) but no longer credit any watching.
-CREATE OR REPLACE FUNCTION public.basic_training_watch_update(p_token uuid,p_training_no integer,p_current integer,p_duration integer)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $fn$
-BEGIN RAISE EXCEPTION 'تم تحديث نظام المشاهدة؛ حدّث الصفحة لبدء مشاهدة جديدة'; END $fn$;
-CREATE OR REPLACE FUNCTION public.advanced_financial_watch_update(p_token uuid,p_lesson_no integer,p_current integer,p_duration integer)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $fn$
-BEGIN RAISE EXCEPTION 'تم تحديث نظام المشاهدة؛ حدّث الصفحة لبدء مشاهدة جديدة'; END $fn$;
 
 -- ---------------------------------------------------------------- professional quiz RPCs
 CREATE OR REPLACE FUNCTION public.professional_training_overview(p_token uuid)
