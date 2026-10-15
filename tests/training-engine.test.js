@@ -165,6 +165,15 @@ test('a player length different from the stored duration is announced to the mem
   assert.match(T.status(env),/تختلف عن المدة المعتمدة/);
 });
 
+test('professional draft lesson 4 cannot be watched or quizzed before owner approval',()=>{
+  const fs=require('node:fs'),path=require('node:path');
+  const sql=fs.readFileSync(path.join(__dirname,'..','supabase/pending-review/20261015200000_unified_training_engine.sql'),'utf8');
+  assert.ok(sql.includes("nzezoIaIRVg',2182,false)"),'draft lesson 4 must be inactive');
+  assert.match(sql,/Return inactive lessons too/,'the overview displays the pending lesson');
+  const ui=fs.readFileSync(path.join(__dirname,'..','professional-training-course.js'),'utf8');
+  assert.ok(ui.includes('!!lesson(n).active'),'unpublished lessons are blocked on the client too');
+});
+
 test('professional lesson whose bank is not imported keeps its quiz closed and says so',async()=>{
   const env=setup();
   Object.assign(env.server.row('member-a','professional',1),{completed:true,passed:true,best:17});
@@ -195,6 +204,24 @@ test('professional page falls back to the current unsaved preview until the serv
 });
 
 // ---- engine behaviour --------------------------------------------------------------------
+
+for(const [track,T] of Object.entries(TRACKS)){
+  test(`${track}: replaying the same YouTube player starts a fresh watch attempt from 0%`,async()=>{
+    const env=setup();await T.mount(env);await T.start(env,1);
+    await env.play(25);
+    const original=lastAttempt(env,track);
+    assert.ok(original.watched>0);
+    const player=env.players.at(-1);
+    player.state=0;player.opts.events.onStateChange({data:0});await env.flush();
+    player.t=0;player.state=1;player.opts.events.onStateChange({data:1});await env.flush();
+    assert.equal(T.pct(env),'0%','the new playback has its own progress');
+    env.advance(600);env.activeTick().f();await env.flush();
+    const replay=lastAttempt(env,track);
+    assert.notEqual(replay.id,original.id,'a distinct authenticated server attempt');
+    assert.equal(replay.watched,0,'no carry-over from the earlier video play');
+  });
+}
+
 test('engine: reports are throttled to one per 5.2 s even with ticks every 600 ms near the end',async()=>{
   const env=setup();await TRACKS.basic.mount(env);await TRACKS.basic.start(env,1);
   await env.play(100);

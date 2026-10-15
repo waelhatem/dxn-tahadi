@@ -38,6 +38,24 @@ test('incomplete or unknown keys are refused; nothing is invented for lessons wi
   assert.doesNotMatch(sql,/import_bank\((1|3|4),/);
 });
 
+test('a private import with keys for 1, 2, 3 and 5 loads exactly those banks in order while leaving draft 4 unpublished',()=>{
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'pro-approved-'));
+  try{
+    const file=path.join(dir,'keys.private.json');
+    // Synthetic data only. Never include approved real answers in a tracked test.
+    fs.writeFileSync(file,JSON.stringify({'1':SYNTH,'2':SYNTH,'3':SYNTH,'5':SYNTH}));
+    const {sql,lessons,missing,draft}=buildSql(file);
+    assert.deepEqual(lessons,[1,2,3,5]);
+    assert.deepEqual(missing,[]);
+    assert.deepEqual(draft,[4]);
+    assert.equal(sql.split('public.professional_training_import_bank(').length-1,4);
+    for(const n of [1,2,3,5])assert.ok(sql.includes('public.professional_training_import_bank('+n+','));
+    assert.ok(!sql.includes('public.professional_training_import_bank(4,'));
+    assert.ok(sql.includes('BEGIN;'+String.fromCharCode(10)+'SET LOCAL ROLE service_role;'));
+    assert.ok(sql.endsWith('COMMIT;'+String.fromCharCode(10)));
+  }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});
+
 test('a bank still marked as a draft (training 4) is never published, even when a key is given',()=>{
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'pro-keys-'));
   const file=path.join(dir,'keys.private.json');
