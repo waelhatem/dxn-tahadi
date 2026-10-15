@@ -20,10 +20,11 @@ async function refresh(){
 const prevDone=n=>n===1||!!data.find(x=>x.lesson_no===n-1&&x.completed&&x.passed);
 const isReady=x=>x&&x.active&&x.published&&x.duration>=60;
 const canStart=x=>isReady(x)&&prevDone(x.lesson_no);
+const canView=x=>!!(x&&x.video_id&&prevDone(x.lesson_no));
 const cards=()=>data.map(x=>{
- const n=x.lesson_no,ready=canStart(x),percentage=pct(x);
+ const n=x.lesson_no,ready=canStart(x),viewable=canView(x),percentage=pct(x);
  const label=x.passed?'✅ ناجح':x.completed?'📝 مشاهدة مكتملة — أدِّ الاختبار':
- !isReady(x)?'⏳ بانتظار اكتمال اعتماد الأسئلة ومدة الفيديو':
+ !isReady(x)?'⏳ الفيديو متاح للمشاهدة التمهيدية؛ احتساب التقدم والاختبار ينتظران نشر الأسئلة واعتماد مدة الفيديو':
  ready?'▶ تابع مشاهدة الفيديو':'🔒 يجب اجتياز الفيديو والاختبار السابق أولًا';
  const score=x.best_score==null?'لم يُختبر':(5*x.best_score)+' / 100';
  return '<article class="advanced-financial-lesson" data-no="'+n+'"><div class="advanced-financial-meta">'+
@@ -32,7 +33,7 @@ const cards=()=>data.map(x=>{
  '<div class="basic-bag-progress"><div style="width:'+percentage+'%"></div></div></div>'+
  '<p class="muted">درجة الاختبار: '+esc(score)+' · النجاح 80 / 100 · المشاهدة 90%</p></div>'+
  '<div class="advanced-financial-actions">'+
- '<button type="button" class="primary" data-watch="'+n+'" '+(ready?'':'disabled')+'>▶ مشاهدة الدرس</button>'+
+ '<button type="button" class="primary" data-watch="'+n+'" '+(viewable?'':'disabled')+'>'+(ready?'▶ مشاهدة الدرس':'▶ معاينة الفيديو دون حفظ التقدم')+'</button>'+
  '<button type="button" data-test="'+n+'" '+(ready&&x.completed?'':'disabled')+'>📝 اختبار الدرس</button>'+
  (role==='leader'&&window.innerWidth>=900?'<button type="button" data-preview="'+n+'">👁 معاينة فيديو (للقائد فقط)</button>':'')+
  '</div></article>';
@@ -42,7 +43,7 @@ function render(){
  if(!host)return;
  if(!loaded){host.innerHTML='<p class="muted">جارٍ تحميل حالة التدريب المحفوظة...</p>';return;}
  host.innerHTML=cards();
- host.querySelectorAll('[data-watch]').forEach(b=>b.onclick=()=>startWatch(+b.dataset.watch));
+ host.querySelectorAll('[data-watch]').forEach(b=>b.onclick=()=>{const n=+b.dataset.watch,x=data.find(l=>l.lesson_no===n);if(canStart(x))startWatch(n);else if(canView(x))viewUnpublishedVideo(n);});
  host.querySelectorAll('[data-test]').forEach(b=>b.onclick=()=>startQuiz(+b.dataset.test));
  host.querySelectorAll('[data-preview]').forEach(b=>b.onclick=()=>previewVideo(+b.dataset.preview));
  const p=document.getElementById('advancedFinancialProgress');
@@ -145,6 +146,15 @@ async function previewVideo(n){
  }catch(e){const notice=body.querySelector('#advFinancialDurationMessage');if(notice)notice.textContent='فشل تحميل المشغل: '+e.message;}
 }
 
+async function viewUnpublishedVideo(n){
+ const x=data.find(l=>l.lesson_no===n);
+ if(!canView(x))return notify('أكمل الدرس السابق أولًا');
+ const body=modal('مشاهدة تمهيدية — الدرس '+n);
+ body.innerHTML='<div class="basic-bag-player"><div id="advFinancialUnpublishedPlayer"></div></div>'+ 
+ '<p class="basic-bag-notice">هذا الفيديو متاح للمشاهدة فقط. لن تُسجّل نسبة المشاهدة ولن يُفتح الاختبار حتى تُنشر الأسئلة المعتمدة ويُثبّت وقت الفيديو من حساب القائد. لا تحتاج إلى إعادة أي اختبار سابق.</p>';
+ try{await youtube();if(!body.isConnected)return;new window.YT.Player('advFinancialUnpublishedPlayer',{videoId:x.video_id,playerVars:{rel:0,playsinline:1}});}
+ catch(e){notify('تعذّر تشغيل الفيديو: '+e.message);}
+}
 async function startWatch(n){
  const x=data.find(p=>p.lesson_no===n);if(!canStart(x))return notify('التدريب غير متاح بعد');
  const body=modal('الدرس '+n+' — '+x.title);
