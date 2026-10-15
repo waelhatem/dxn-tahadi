@@ -9,12 +9,12 @@ const source=path.resolve(process.argv[2]||'');
 const dest=path.resolve(process.argv[3]||path.join(root,'.private','basic-training-bank.private.json'));
 const lessons=[
  ['التعريف بمشروع DXN ومنتجاتها ونظامها التسويقي','lxhnkUov9sE',503],
- ['التعريف بشركة DXN ومنتجاتها ونظامها التسويقي والأرباح','K_N80xZlxXw',503],
+ ['التعريف بشركة DXN ومنتجاتها ونظامها التسويقي والأرباح','K_N80xZlxXw',439],
  ['منتجات DXN وأصنافها وطرق تسويقها','n7W9LoCMdPo',1353],
  ['نظام البيع المباشر في DXN','AMKtcQt8ltc',706],
  ['خطة الأرباح والحوافز لشركة DXN','Wa_Kp2U7x0E',842],
- ['التطبيق العملي لخطة الأرباح خلال ستة أشهر','G09ztpXOBBM',838],
- ['تفعيل العضوية وتسجيل أعضاء الفريق','kYJjJu2JQFI',1175],
+ ['التطبيق العملي لخطة الأرباح خلال ستة أشهر','G09ztpXOBBM',1474],
+ ['تفعيل العضوية وتسجيل أعضاء الفريق','kYJjJu2JQFI',450],
  ['أساسيات النجاح التسعة مع DXN','v4gYSL-KuHQ',994]
 ];
 function die(msg){console.error(msg);process.exit(1);}
