@@ -16,7 +16,7 @@ function heartbeatWithMock(){
   movie,backendReady:true,progress:[],
   Date:{now:()=>clock},Math,fmt:n=>Math.max(0,Math.floor(n)),
   rpc:async()=>({watched:++calls,completed:false}),
-  watchMessage:()=>{},Number
+  watchMessage:()=>{},watchPct:()=>{},showUncreditedWatch:()=>{},Number
  };
  vm.runInNewContext(body+';this.runHeartbeat=heartbeat',context);
  return {context,movie,advance:(ms)=>clock+=ms,call:()=>context.runHeartbeat(true),calls:()=>calls};
