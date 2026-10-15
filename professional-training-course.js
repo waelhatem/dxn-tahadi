@@ -87,6 +87,8 @@
    const r=await E().rpc('professional_training_overview',{});
    if(requested!==session||token()!==session)return;
    if(!Array.isArray(r.lessons))throw Error('استجابة غير صحيحة');
+   // The track opens to members only once the first lesson's approved bank is imported.
+   if(!r.lessons.some(l=>l.lesson_no===1&&l.published))throw Error('track not ready');
    lessons=r.lessons;backendReady=true;
   }catch(_){if(requested!==session)return;backendReady=false;}
   finally{if(requested===session){loaded=true;loading=false;render();}}

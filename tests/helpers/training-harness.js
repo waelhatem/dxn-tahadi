@@ -98,6 +98,7 @@ function fakeServer(clockRef){
     if(!tracks[t])return err('مسار التدريب غير معروف');
     const L=tracks[t].lessons[n];
     if(!L||!L.ready)return err('التدريب غير موجود');
+    if(t==='professional'&&!L.published)return err('اختبار هذا الدرس قيد الاعتماد');
     if(!unlocked(tok,t,n))return err('الدرس مغلق — أكمل الدرس السابق واجتز اختباره أولًا');
     for(const a of Object.values(attempts))if(a.tok===tok&&a.track===t&&a.n===n&&!a.ended){a.ended=true;a.reason='replaced';}
     const id='att-'+(++seq);attempts[id]={id,tok,track:t,n,expected:L.duration,watched:0,last:now(),ended:false,reason:null,completed:false};

@@ -138,6 +138,9 @@ BEGIN
    SELECT expected_duration_seconds INTO v_seconds FROM public.professional_training_lessons
    WHERE lesson_no=p_lesson_no AND active;
    IF NOT FOUND THEN RAISE EXCEPTION 'التدريب غير موجود'; END IF;
+   -- Like the advanced track: no watching before the approved bank (with keys) is imported.
+   IF (SELECT count(*) FROM public.professional_training_questions WHERE lesson_no=p_lesson_no)<>20 THEN
+     RAISE EXCEPTION 'اختبار هذا الدرس قيد الاعتماد'; END IF;
    v_prev_ok:=p_lesson_no=1 OR EXISTS(SELECT 1 FROM public.professional_training_progress
      WHERE user_id=p_user AND lesson_no=p_lesson_no-1 AND passed AND watch_completed);
  ELSE

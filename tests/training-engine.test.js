@@ -133,7 +133,7 @@ for(const [track,T] of Object.entries(TRACKS)){
     const env=setup();await T.mount(env);
     assert.equal(T.lessonLocked(env,2),true);
     const forced=await env.ctx.DXNTrainingEngine.rpc('training_watch_begin',{p_track:track,p_lesson_no:3}).catch(e=>e.message);
-    assert.match(String(forced),/الدرس مغلق/,'the server refuses as well');
+    assert.match(String(forced),/الدرس مغلق|قيد الاعتماد/,'the server refuses as well');
   });
 
   test(`${track}: rewatching a passed lesson starts at 0 and keeps the pass and score`,async()=>{
@@ -173,6 +173,17 @@ test('professional lesson whose bank is not imported keeps its quiz closed and s
   const T=TRACKS.professional;await T.mount(env);await T.open(env,3);
   assert.equal(T.quizOpen(env),false);
   assert.match(T.quiz(env).textContent,/قيد الاعتماد/);
+});
+
+test('professional track stays closed to members until the first lesson\'s approved bank is imported',async()=>{
+  const env=setup();
+  env.server.tracks.professional.lessons[1].published=false;
+  env.ctx.professionalTrainingPreviewHtml=()=>'<p>PREVIEW_BODY</p>';
+  env.host.innerHTML=env.ctx.professionalTrainingCoursePage();await env.flush();
+  assert.match(env.byId('professionalCourseBody').textContent,/PREVIEW_BODY/,'preview shown, not the live track');
+  assert.equal(env.byId('professionalLessonList'),null);
+  const begin=await env.ctx.DXNTrainingEngine.rpc('training_watch_begin',{p_track:'professional',p_lesson_no:1}).catch(e=>e.message);
+  assert.match(String(begin),/قيد الاعتماد/,'the server refuses watching as well');
 });
 
 test('professional page falls back to the current unsaved preview until the server side is installed',async()=>{
