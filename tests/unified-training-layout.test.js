@@ -66,17 +66,17 @@ const LESSON2_VIDEO='K_N80xZlxXw';
 function setup({overview,innerWidth=1200,fail=false,serverLag=0}={}){
   const {document,body}=makeDom();
   const calls=[],timers=[],intervals=[],players=[];
-  let clock=1_000_000,perf=0;
+  let clock=1_000_000,perf=0,activeToken='tok';
   const ctx={console,Math,Number,String,Array,Object,JSON,Error,Promise,Set,Map,innerWidth,document,
     Date:{now:()=>clock},performance:{now:()=>perf},
-    localStorage:{getItem:k=>k==='dxn_session'?'tok':null},
+    localStorage:{getItem:k=>k==='dxn_session'?activeToken:null},
     setTimeout:f=>{timers.push(f);return timers.length},
     setInterval:f=>{intervals.push({f,active:true});return intervals.length},
     clearInterval:id=>{if(intervals[id-1])intervals[id-1].active=false;},
     fetch:async(url,o)=>{
       const b=JSON.parse(o.body);calls.push(b);
       let out={};
-      if(b.fn==='basic_training_overview'){if(fail)return {ok:false,text:async()=>JSON.stringify({error:'خطأ تجريبي'})};out=overview();}
+      if(b.fn==='basic_training_overview'){if(fail)return {ok:false,text:async()=>JSON.stringify({error:'خطأ تجريبي'})};out=overview(b.args.p_token);}
       if(b.fn==='basic_training_watch_update'){const w=Math.max(0,b.args.p_current-serverLag);out={watched:w,completed:w>=0.9*b.args.p_duration};}
       return {ok:true,text:async()=>JSON.stringify(out)};
     }};
@@ -92,7 +92,7 @@ function setup({overview,innerWidth=1200,fail=false,serverLag=0}={}){
   const mount=()=>{host.innerHTML=ctx.basicTrainingCourseHtml();};
   const flush=async()=>{for(let i=0;i<6;i++){while(timers.length)await timers.shift()();await new Promise(r=>setImmediate(r));}};
   const advance=ms=>{clock+=ms;perf+=ms;};
-  return {ctx,document,body,host,calls,players,intervals,mount,flush,advance};
+  return {ctx,document,body,host,calls,players,intervals,mount,flush,advance,setSession:t=>{activeToken=t;}};
 }
 const byId=(env,id)=>env.document.getElementById(id);
 const listButtons=env=>byId(env,'basicBagLessonList').querySelectorAll('button');
@@ -272,4 +272,29 @@ test('local 100% video does not masquerade as confirmed progress; member can rep
   assert.equal(p.state,1,'video resumes on direct member click');
   assert.equal(byId(env,'basicBagResumeSaved').style.display,'none');
   assert.equal(quizButton(env).disabled,true,'replay is not an exam bypass');
+});
+
+test('basic progress is scoped to the session, not retained when switching member accounts',async()=>{
+ const accountA=()=>({...OVERVIEW(),progress:[
+  {training_no:1,watched:600,duration:600,completed:true,passed:true,best_score:18},
+  {training_no:2,watched:439,duration:503,completed:false,passed:false,best_score:null}
+ ]});
+ const accountB=()=>({role:'member',published_quizzes:[1,2,3,4,5,6,7,8],
+  progress:[{training_no:1,watched:0,duration:600,completed:false,passed:false,best_score:null}],
+  scores:[]});
+ const env=setup({overview:token=>token==='tok'?accountA():accountB()});
+ env.mount();await env.flush();
+ assert.equal(byId(env,'basicWatchPct').textContent,'87%');
+ env.setSession('different-member-session');env.mount();await env.flush();
+ assert.equal(byId(env,'basicWatchPct').textContent,'0%','never show previously signed-in user\'s 87%');
+ assert.match(byId(env,'basicBagVideoTitle').textContent,/التدريب الأساسي 1 من 8/);
+ assert.equal(rpcNames(env).filter(n=>n==='basic_training_overview').length,2);
+ await env.ctx.basicBagStartVideo(1);await env.flush();
+ env.players.at(-1).opts.events.onReady();
+ env.setSession('third-session');
+ const oldWatchCount=env.calls.filter(c=>c.fn==='basic_training_watch_update').length;
+ const tick=env.intervals.find(i=>i.active);
+ if(tick)tick.f();
+ assert.equal(env.calls.filter(c=>c.fn==='basic_training_watch_update').length,oldWatchCount,
+   'never send another account watch update using a switched session');
 });
