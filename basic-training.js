@@ -115,6 +115,7 @@
    '<div class="training-professional-video unified-training__video" id="basicBagInlineBox" data-no="'+item.no+'">'+poster+'</div>'+
    '<div class="basic-bag-inline-progress unified-training__progress"><div id="basicWatchProgress" class="basic-bag-progress" role="progressbar" aria-label="'+v.pctLabel+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+v.pct+'"><div style="width:'+v.pct+'%"></div></div>'+
    '<strong id="basicWatchPct">'+v.pct+'%</strong></div>'+
+   '<button type="button" id="basicBagResumeSaved" class="name-list-btn unified-training__resume" style="display:none" onclick="basicBagResumeSavedWatch()">▶ استكمال تسجيل المشاهدة من موضع الحفظ</button>'+ 
    '<p id="basicWatchInfo" class="basic-bag-status">'+esc(v.status)+'</p>'+
    '<div id="basicBagViewerInfo">'+infoHtml(v)+'</div>';
  }
@@ -223,10 +224,37 @@
  function watchPct(){
   const bar=document.getElementById('basicWatchProgress');
   if(!movie||!bar)return;
-  const p=movie.duration?Math.min(100,Math.round(100*movie.max/movie.duration)):0;
+  // The player timeline is not the verified saved progress.
+  const seconds=backendReady?movie.confirmed:movie.max;
+  const p=movie.duration?Math.min(100,Math.round(100*seconds/movie.duration)):0;
   bar.querySelector('div').style.width=p+'%';
+  bar.setAttribute('aria-valuenow',String(p));
   const out=document.getElementById('basicWatchPct');if(out)out.textContent=p+'%';
  }
+ function showUncreditedWatch(m){
+  if(movie!==m||!m.inline||!backendReady||!m.duration)return;
+  const button=document.getElementById('basicBagResumeSaved');if(!button)return;
+  let ended=false;try{ended=m.player.getPlayerState()===window.YT.PlayerState.ENDED;}catch(_){}
+  const shortOfThreshold=!m.completed&&m.confirmed*100<m.duration*90;
+  button.style.display=ended&&shortOfThreshold?'inline-flex':'none';
+  if(ended&&shortOfThreshold){
+   watchMessage('انتهى الفيديو، لكن الخادم حفظ '+Math.round(100*m.confirmed/m.duration)+'% فقط. اضغط «استكمال تسجيل المشاهدة» لإعادة مشاهدة الجزء غير المحفوظ حتى تبلغ 90%.');
+  }
+ }
+ window.basicBagResumeSavedWatch=function(){
+  const m=movie;if(!m||!m.inline||!m.ready||!backendReady||m.completed||!m.player)return;
+  // Resume from the persisted time, not the unverified 100% local timeline.
+  const resume=Math.max(0,Math.floor(m.confirmed));
+  m.max=resume;m.previousTime=resume;m.previousWall=performance.now();
+  try{
+   m.player.seekTo(resume,true);
+   m.player.playVideo();
+   const button=document.getElementById('basicBagResumeSaved');
+   if(button)button.style.display='none';
+   watchPct();
+   watchMessage('استؤنفت المشاهدة من '+Math.round(100*m.confirmed/m.duration)+'% المحفوظة؛ سيُفتح الاختبار بعد تأكيد الخادم بلوغ 90%.');
+  }catch(e){watchMessage('تعذّر استئناف الفيديو: '+(e.message||e));}
+ };
  // Server counts only reporting gaps >= 3 seconds. Every send, including
  // "force" and YouTube ended, must obey a longer interval.
  const HEARTBEAT_INTERVAL_MS=5200;
@@ -244,6 +272,7 @@
    if(movie!==m)return;
    m.confirmed=Math.max(m.confirmed||0,fmt(r.watched));
    m.completed=!!r.completed;
+   watchPct();
    const previous=progress.find(x=>x.training_no===m.no);
    if(previous)Object.assign(previous,{watched:r.watched,duration:m.duration,completed:!!r.completed});
    else progress.push({training_no:m.no,watched:r.watched,duration:m.duration,completed:!!r.completed});
@@ -252,7 +281,7 @@
      watchMessage('✅ اكتملت مشاهدة التدريب. يمكنك الآن أداء اختباره.');
     }
   }catch(e){watchMessage('لم يتم حفظ التقدم: '+e.message);}
-  finally{m.saving=false;}
+  finally{m.saving=false;showUncreditedWatch(m);}
  }
  function tick(){
   const m=movie;if(!m||!m.player||!m.ready)return;
@@ -320,7 +349,7 @@
         m.timer=setInterval(tick,600);
       },onStateChange:function(e){
         if(movie!==m)return;
-        if(e.data===window.YT.PlayerState.ENDED){tick();heartbeat(true);}
+        if(e.data===window.YT.PlayerState.ENDED){tick();heartbeat(true).then(()=>showUncreditedWatch(m));}
       },onPlaybackRateChange:function(e){
         if(movie!==m)return;
         if(Number(e.data)>1.01)try{
