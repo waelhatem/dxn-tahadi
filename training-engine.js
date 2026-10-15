@@ -50,7 +50,7 @@
  function createWatch(o){
   const w={track:o.track,lessonNo:o.lessonNo,preview:!!o.preview,lessonCompleted:!!o.watchCompleted,
    session:token(),player:null,timer:null,stopped:false,
-   attempt:null,beginning:false,max:0,previousTime:0,previousWall:0,pausedSince:0,idle:DEFAULT_IDLE_S};
+   attempt:null,beginning:false,max:0,previousTime:0,previousWall:0,pausedSince:0,idle:DEFAULT_IDLE_S,replayNeeded:false};
   const msg=t=>{if(!w.stopped&&typeof o.onMessage==='function')o.onMessage(t);};
   w.playerDuration=()=>{try{const d=w.player.getDuration();return Number.isFinite(d)&&d>0?d:0;}catch(_){return 0;}};
   const progress=()=>{
@@ -154,7 +154,19 @@
   };
   w.onState=function(state){
    const ENDED=window.YT&&window.YT.PlayerState?window.YT.PlayerState.ENDED:0;
-   if(state===ENDED){tick();report();}
+   const PLAYING=window.YT&&window.YT.PlayerState?window.YT.PlayerState.PLAYING:1;
+   if(state===ENDED){
+    tick();report();
+    // A replay of the same YouTube player must never reuse the prior attempt's seconds.
+    w.replayNeeded=true;
+   }else if(state===PLAYING&&w.replayNeeded&&!w.stopped){
+    w.replayNeeded=false;w.attempt=null;w.max=0;w.pausedSince=0;
+    w.previousTime=0;w.previousWall=performance.now();
+    try{if(w.player&&w.player.getCurrentTime()>1)w.player.seekTo(0,true);}catch(_){}
+    progress();
+    msg('بدأت إعادة المشاهدة من 0%؛ المشاهدات الجزئية السابقة لا تُجمع.');
+    // The next tick starts a fresh authenticated server attempt.
+   }
   };
   w.onRate=function(rate){if(Number(rate)>1.01)try{w.player.setPlaybackRate(1);msg('يجب تشغيل الفيديو بسرعة 1x.');}catch(_){}};
   w.stop=function(){
