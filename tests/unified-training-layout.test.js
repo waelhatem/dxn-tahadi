@@ -63,28 +63,28 @@ function makeDom(){
 }
 
 const LESSON2_VIDEO='K_N80xZlxXw';
-function setup({overview,innerWidth=1200,fail=false}={}){
+function setup({overview,innerWidth=1200,fail=false,serverLag=0}={}){
   const {document,body}=makeDom();
   const calls=[],timers=[],intervals=[],players=[];
-  let clock=1_000_000,perf=0;
+  let clock=1_000_000,perf=0,activeToken='tok';
   const ctx={console,Math,Number,String,Array,Object,JSON,Error,Promise,Set,Map,innerWidth,document,
     Date:{now:()=>clock},performance:{now:()=>perf},
-    localStorage:{getItem:k=>k==='dxn_session'?'tok':null},
+    localStorage:{getItem:k=>k==='dxn_session'?activeToken:null},
     setTimeout:f=>{timers.push(f);return timers.length},
     setInterval:f=>{intervals.push({f,active:true});return intervals.length},
     clearInterval:id=>{if(intervals[id-1])intervals[id-1].active=false;},
     fetch:async(url,o)=>{
       const b=JSON.parse(o.body);calls.push(b);
       let out={};
-      if(b.fn==='basic_training_overview'){if(fail)return {ok:false,text:async()=>JSON.stringify({error:'خطأ تجريبي'})};out=overview();}
-      if(b.fn==='basic_training_watch_update'){const w=b.args.p_current;out={watched:w,completed:w>=0.9*b.args.p_duration};}
+      if(b.fn==='basic_training_overview'){if(fail)return {ok:false,text:async()=>JSON.stringify({error:'خطأ تجريبي'})};out=overview(b.args.p_token);}
+      if(b.fn==='basic_training_watch_update'){const w=Math.max(0,b.args.p_current-serverLag);out={watched:w,completed:w>=0.9*b.args.p_duration};}
       return {ok:true,text:async()=>JSON.stringify(out)};
     }};
   ctx.window=ctx;
   ctx.YT={PlayerState:{PLAYING:1,ENDED:0,PAUSED:2},Player:function(target,opts){
     const p={target,opts,t:0,state:2,destroyed:false,
       getCurrentTime:()=>p.t,getDuration:()=>600,getPlayerState:()=>p.state,getPlaybackRate:()=>1,
-      setPlaybackRate(){},seekTo(s){p.t=s;},destroy(){p.destroyed=true;}};
+      setPlaybackRate(){},seekTo(s){p.t=s;},playVideo(){p.state=1;},destroy(){p.destroyed=true;}};
     players.push(p);return p;
   }};
   vm.createContext(ctx);vm.runInContext(read('basic-training.js'),ctx);
@@ -92,7 +92,7 @@ function setup({overview,innerWidth=1200,fail=false}={}){
   const mount=()=>{host.innerHTML=ctx.basicTrainingCourseHtml();};
   const flush=async()=>{for(let i=0;i<6;i++){while(timers.length)await timers.shift()();await new Promise(r=>setImmediate(r));}};
   const advance=ms=>{clock+=ms;perf+=ms;};
-  return {ctx,document,body,host,calls,players,intervals,mount,flush,advance};
+  return {ctx,document,body,host,calls,players,intervals,mount,flush,advance,setSession:t=>{activeToken=t;}};
 }
 const byId=(env,id)=>env.document.getElementById(id);
 const listButtons=env=>byId(env,'basicBagLessonList').querySelectorAll('button');
@@ -116,7 +116,7 @@ test('basic page uses the advanced layout: list, viewer, quiz button above the v
   assert.equal(list.id,'basicBagLessonList','list comes first, so it sits on the right in RTL');
   assert.ok(viewer.className.includes('advanced-profit-viewer'));
   const parts=viewer.children.filter(c=>c.tagName);
-  assert.deepEqual(parts.map(c=>c.id),['basicBagViewerHead','basicBagInlineBox','','basicWatchInfo','basicBagViewerInfo'],'title+quiz, video, progress, status, score');
+  assert.deepEqual(parts.map(c=>c.id),['basicBagViewerHead','basicBagInlineBox','','basicBagResumeSaved','basicWatchInfo','basicWatchDurationWarning','basicBagViewerInfo'],'title+quiz, video, progress, status, score');
   assert.ok(parts[2].className.includes('basic-bag-inline-progress'));
   assert.equal(listButtons(env).length,8);
   assert.deepEqual(listButtons(env).map(b=>b.disabled),[false,false,true,true,true,true,true,true],'lock rule unchanged');
@@ -249,4 +249,64 @@ test('shared stylesheet only targets the unified trainings and non-advanced quiz
   const page=read('app/index.html');
   assert.match(page,/<script src="\.\.\/advanced-financial-training\.js\?v=20261015-2"><\/script>/,'advanced training script untouched');
   assert.doesNotMatch(read('advanced-financial-training.js'),/unified-training/);
+});
+
+test('local 100% video does not masquerade as confirmed progress; member can replay unsaved portion',async()=>{
+  const env=setup({overview:OVERVIEW,serverLag:80});
+  env.mount();await env.flush();
+  await env.ctx.basicBagStartVideo(2);await env.flush();
+  const p=env.players[0];p.opts.events.onReady();
+  const tick=env.intervals.find(i=>i.active);
+  p.state=1;
+  for(let i=0;i<800;i++){
+    env.advance(600);p.t=Math.min(600,p.t+0.6);tick.f();await env.flush();
+  }
+  assert.ok(p.t>=599,'member actually reached the end of the player');
+  assert.equal(quizButton(env).disabled,true,'server has not confirmed 90%');
+  const savedPct=Number(byId(env,'basicWatchPct').textContent.replace('%',''));
+  assert.ok(savedPct<90,'progress bar reflects server-confirmed time, not player end');
+  p.state=0;p.opts.events.onStateChange({data:0});await env.flush();
+  assert.equal(byId(env,'basicBagResumeSaved').style.display,'inline-flex');
+  env.ctx.basicBagResumeSavedWatch();
+  assert.ok(p.t<600,'resume seeks to a saved position before the end');
+  assert.equal(p.state,1,'video resumes on direct member click');
+  assert.equal(byId(env,'basicBagResumeSaved').style.display,'none');
+  assert.equal(quizButton(env).disabled,true,'replay is not an exam bypass');
+});
+
+test('basic progress is scoped to the session, not retained when switching member accounts',async()=>{
+ const accountA=()=>({...OVERVIEW(),progress:[
+  {training_no:1,watched:600,duration:600,completed:true,passed:true,best_score:18},
+  {training_no:2,watched:439,duration:503,completed:false,passed:false,best_score:null}
+ ]});
+ const accountB=()=>({role:'member',published_quizzes:[1,2,3,4,5,6,7,8],
+  progress:[{training_no:1,watched:0,duration:600,completed:false,passed:false,best_score:null}],
+  scores:[]});
+ const env=setup({overview:token=>token==='tok'?accountA():accountB()});
+ env.mount();await env.flush();
+ assert.equal(byId(env,'basicWatchPct').textContent,'87%');
+ env.setSession('different-member-session');env.mount();await env.flush();
+ assert.equal(byId(env,'basicWatchPct').textContent,'0%','never show previously signed-in user\'s 87%');
+ assert.match(byId(env,'basicBagVideoTitle').textContent,/التدريب الأساسي 1 من 8/);
+ assert.equal(rpcNames(env).filter(n=>n==='basic_training_overview').length,2);
+ await env.ctx.basicBagStartVideo(1);await env.flush();
+ env.players.at(-1).opts.events.onReady();
+ env.setSession('third-session');
+ const oldWatchCount=env.calls.filter(c=>c.fn==='basic_training_watch_update').length;
+ const tick=env.intervals.find(i=>i.active);
+ if(tick)tick.f();
+ assert.equal(env.calls.filter(c=>c.fn==='basic_training_watch_update').length,oldWatchCount,
+   'never send another account watch update using a switched session');
+});
+
+test('duration mismatch warning is based on player actual duration, not another member\'s progress',async()=>{
+ const env=setup({overview:OVERVIEW});
+ env.mount();await env.flush();
+ await env.ctx.basicBagStartVideo(2);await env.flush();
+ const p=env.players[0];p.getDuration=()=>439;p.opts.events.onReady();
+ const warning=byId(env,'basicWatchDurationWarning');
+ assert.equal(warning.style.display,'block');
+ assert.match(warning.textContent,/مدة YouTube 7:19/);
+ assert.match(warning.textContent,/المدة المسجلة للتدريب 10:00/);
+ assert.equal(quizButton(env).disabled,true);
 });

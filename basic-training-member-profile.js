@@ -15,17 +15,19 @@
  };
  window.basicTrainingLoadMemberPage=async function(){
    const root=document.getElementById('basicTrainingMemberBody');
-   if(!root||root.dataset.loading==='1')return;
+   if(!root)return;
+   const currentToken=String(localStorage.getItem('dxn_session')||'').trim();
+   if(root.dataset.loading==='1'&&root.dataset.requestToken===currentToken)return;
    if(typeof role==='undefined'||role!=='member'||!me){root.textContent='هذه الصفحة مخصصة لحساب العضو.';return;}
    const token=String(localStorage.getItem('dxn_session')||'').trim();
    if(!token){root.textContent='يرجى تسجيل الدخول لعرض سجلك.';return;}
-   root.dataset.loading='1';root.textContent='جارٍ قراءة السجل المحفوظ...';
+   root.dataset.loading='1';root.dataset.requestToken=token;root.textContent='جارٍ قراءة السجل المحفوظ...';
    try{
      const response=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({fn:'basic_training_overview',args:{p_token:token}})});
      const payload=await response.json();
      if(!response.ok||!payload||!Array.isArray(payload.progress))throw Error(payload.error||payload.message||'خدمة حفظ التدريبات غير مفعلة بعد');
      if(payload.role!=='member')throw Error('صلاحية الحساب غير متطابقة');
-     if(!root.isConnected)return;
+     if(!root.isConnected||String(localStorage.getItem('dxn_session')||'').trim()!==token||root.dataset.requestToken!==token)return;
      const progress=payload.progress;
      const completed=progress.filter(p=>p.passed===true).length;
      // Never show a provisional average: reveal the final score ONLY after
@@ -52,7 +54,7 @@
        html+='<article class="card" style="margin:10px 0;padding:12px"><b>التدريب الأساسي '+i+' — '+esc(titles[i-1])+'</b><p class="muted">'+state+' · درجة الاختبار: <strong dir="ltr">'+esc(score)+'</strong></p><div class="muted">مشاهدة الفيديو: '+pct+'%</div><div style="height:9px;background:#e5eee9;border-radius:10px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:#168257"></div></div>'+(date?'<p class="muted">تاريخ الاجتياز: '+esc(date)+'</p>':'')+'</article>';
      }
      root.innerHTML=html;
-   }catch(e){if(root.isConnected)root.textContent='تعذّر تحميل السجل: '+(e.message||'خدمة التدريبات غير متاحة');}
-   finally{root.dataset.loading='0';}
+   }catch(e){if(root.isConnected&&root.dataset.requestToken===token&&String(localStorage.getItem('dxn_session')||'').trim()===token)root.textContent='تعذّر تحميل السجل: '+(e.message||'خدمة التدريبات غير متاحة');}
+   finally{if(root.dataset.requestToken===token){root.dataset.loading='0';delete root.dataset.requestToken;}}
  };
 })();

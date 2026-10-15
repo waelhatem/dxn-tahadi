@@ -118,7 +118,7 @@
       if(!response.ok||!data||typeof data!=='object'||Array.isArray(data)){
         throw new Error((data&&data.error)||'تعذر تحميل سجل التدريب');
       }
-      if(!root.isConnected||document.getElementById('memberProfileModal')!==modal)return;
+      if(!root.isConnected||document.getElementById('memberProfileModal')!==modal||String(localStorage.getItem('dxn_session')||'').trim()!==token)return;
       if(String(data.member_id)!==String(memberId))throw new Error('بيانات العضو غير متطابقة');
       renderResult(root,data);
     }catch(error){
