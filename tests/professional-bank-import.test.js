@@ -38,6 +38,24 @@ test('incomplete or unknown keys are refused; nothing is invented for lessons wi
   assert.doesNotMatch(sql,/import_bank\((1|3|4),/);
 });
 
+test('a private import with keys for 1, 2, 3 and 5 loads exactly those banks in order while leaving draft 4 unpublished',()=>{
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'pro-approved-'));
+  try{
+    const file=path.join(dir,'keys.private.json');
+    // Synthetic test data only. Approved real answer keys must never be added to this repository.
+    fs.writeFileSync(file,JSON.stringify({'1':SYNTH,'2':SYNTH,'3':SYNTH,'5':SYNTH}));
+    const {sql,lessons,missing,draft}=buildSql(file);
+    assert.deepEqual(lessons,[1,2,3,5]);
+    assert.deepEqual(missing,[]);
+    assert.deepEqual(draft,[4]);
+    assert.equal((sql.match(/professional_training_import_bank\\(/g)||[]).length,4);
+    for(const n of [1,2,3,5])assert.match(sql,new RegExp('professional_training_import_bank\\\\('+n+','));
+    assert.doesNotMatch(sql,/professional_training_import_bank\\(4,/);
+    assert.match(sql,/BEGIN;\\nSET LOCAL ROLE service_role;/);
+    assert.match(sql,/COMMIT;\\n$/);
+  }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});
+
 test('a bank still marked as a draft (training 4) is never published, even when a key is given',()=>{
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'pro-keys-'));
   const file=path.join(dir,'keys.private.json');
