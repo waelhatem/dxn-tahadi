@@ -29,12 +29,24 @@ test('incomplete or unknown keys are refused; nothing is invented for lessons wi
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'pro-keys-'));
   const file=path.join(dir,'keys.private.json');
   fs.writeFileSync(file,JSON.stringify({'2':SYNTH,'5':SYNTH}));
-  const {sql,lessons,missing}=buildSql(file);
+  const {sql,lessons,missing,draft}=buildSql(file);
   assert.deepEqual(lessons,[2,5]);
-  assert.deepEqual(missing,[1,3,4]);
+  assert.deepEqual(missing,[1,3]);
+  assert.deepEqual(draft,[4]);
   assert.match(sql,/SET LOCAL ROLE service_role;/);
   assert.equal((sql.match(/professional_training_import_bank\(/g)||[]).length,2);
   assert.doesNotMatch(sql,/import_bank\((1|3|4),/);
+});
+
+test('a bank still marked as a draft (training 4) is never published, even when a key is given',()=>{
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'pro-keys-'));
+  const file=path.join(dir,'keys.private.json');
+  fs.writeFileSync(file,JSON.stringify({'4':SYNTH}));
+  const {sql,lessons,draft}=buildSql(file);
+  assert.equal(readLesson(4).review_status,'draft_pending_owner_approval');
+  assert.deepEqual(lessons,[]);
+  assert.deepEqual(draft,[4]);
+  assert.doesNotMatch(sql,/import_bank\(4,/);
 });
 
 test('answer keys never reach a tracked file or the browser',()=>{

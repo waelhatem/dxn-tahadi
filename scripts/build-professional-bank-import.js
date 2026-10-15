@@ -41,15 +41,18 @@ function bankFor(no,keyText){
 }
 function buildSql(keysFile){
   const keys=JSON.parse(fs.readFileSync(keysFile,'utf8'));
-  const lessons=[1,2,3,4,5].filter(n=>keys[String(n)]);
-  const missing=[1,2,3,4,5].filter(n=>!keys[String(n)]);
+  // A bank still marked as a draft in its file is never published, even if a key is provided.
+  const draft=[1,2,3,4,5].filter(n=>/^draft/.test(String(readLesson(n).review_status||'')));
+  const lessons=[1,2,3,4,5].filter(n=>keys[String(n)]&&!draft.includes(n));
+  const missing=[1,2,3,4,5].filter(n=>!keys[String(n)]&&!draft.includes(n));
   const lit=s=>"'"+String(s).replace(/'/g,"''")+"'";
   const body=lessons.map(n=>'SELECT public.professional_training_import_bank('+n+','+lit(JSON.stringify(bankFor(n,keys[String(n)])))+'::jsonb);').join('\n');
   const sql='-- PRIVATE: contains approved answer keys. Never commit, never share publicly.\n'+
     '-- Run in the Supabase SQL editor only after the unified training engine migration, and only with approval.\n'+
-    '-- Lessons included: '+(lessons.join(', ')||'none')+'. Lessons still without approved keys: '+(missing.join(', ')||'none')+'.\n'+
+    '-- Lessons included: '+(lessons.join(', ')||'none')+'. Lessons still without approved keys: '+(missing.join(', ')||'none')+
+    '. Draft banks left unpublished: '+(draft.join(', ')||'none')+'.\n'+
     'BEGIN;\nSET LOCAL ROLE service_role;\n'+body+'\nCOMMIT;\n';
-  return {sql,lessons,missing};
+  return {sql,lessons,missing,draft};
 }
 module.exports={bankFor,buildSql,parseKeys,readLesson};
 
@@ -57,8 +60,8 @@ if(require.main===module){
   const keysFile=path.resolve(process.argv[2]||path.join(ROOT,'.private','professional-keys.private.json'));
   const out=path.resolve(process.argv[3]||path.join(ROOT,'.private','professional-bank-import.private.sql'));
   if(!/\.private\.(sql|json)$/.test(out))throw Error('output must be a *.private.sql file (git-ignored)');
-  const {sql,lessons,missing}=buildSql(keysFile);
+  const {sql,lessons,missing,draft}=buildSql(keysFile);
   fs.mkdirSync(path.dirname(out),{recursive:true});
   fs.writeFileSync(out,sql);
-  console.log('Wrote '+out+' — lessons '+lessons.join(', ')+'; still missing keys: '+(missing.join(', ')||'none'));
+  console.log('Wrote '+out+' — lessons '+lessons.join(', ')+'; still missing keys: '+(missing.join(', ')||'none')+'; drafts not published: '+(draft.join(', ')||'none'));
 }
