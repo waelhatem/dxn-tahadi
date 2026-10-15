@@ -114,7 +114,7 @@ begin
  then raise exception 'اجتز التدريب السابق أولاً'; end if;
  if not exists(select 1 from public.advanced_financial_progress
  where user_id=v_user and lesson_no=p_lesson_no and watch_completed)
- then raise exception 'أكمل مشاهدة 90% من الفيديو'; end if;
+ then raise exception 'أكمل مشاهدة 90%% من الفيديو'; end if;
  select jsonb_agg(jsonb_build_object('no',question_no,'question',question,'options',options)
  order by question_no) into v_list from public.advanced_financial_questions where lesson_no=p_lesson_no;
  if jsonb_array_length(coalesce(v_list,'[]'::jsonb))<>20 then raise exception 'بنك الأسئلة غير مكتمل'; end if;
@@ -137,7 +137,7 @@ begin
  then raise exception 'اجتز التدريب السابق أولاً'; end if;
  select * into v_p from public.advanced_financial_progress
  where user_id=v_user and lesson_no=p_lesson_no for update;
- if not found or not v_p.watch_completed then raise exception 'أكمل مشاهدة 90% من الفيديو'; end if;
+ if not found or not v_p.watch_completed then raise exception 'أكمل مشاهدة 90%% من الفيديو'; end if;
  select count(*) into v_attempts from public.advanced_financial_attempts
  where user_id=v_user and lesson_no=p_lesson_no and submitted_at>now()-interval '1 hour';
  if v_attempts>=6 then raise exception 'تجاوزت 6 محاولات خلال ساعة'; end if;
