@@ -13,7 +13,7 @@ function heartbeatWithMock(){
  let clock=10000,calls=0;
  const movie={no:1,duration:100,max:100,confirmed:0,saving:false,completed:false,lastSent:0};
  const context={
-  movie,backendReady:true,progress:[],
+  movie,backendReady:true,progress:[],authToken:()=> 'tok',trainingSession:'tok',ensureTrainingSession:()=>{},
   Date:{now:()=>clock},Math,fmt:n=>Math.max(0,Math.floor(n)),
   rpc:async()=>({watched:++calls,completed:false}),
   watchMessage:()=>{},watchPct:()=>{},showUncreditedWatch:()=>{},Number
