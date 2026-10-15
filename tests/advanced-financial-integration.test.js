@@ -23,8 +23,15 @@ test('Approved lesson 3-10 banks contain 20 questions and four choices',()=>{
   }
  }
 });
-test('Lesson 1 and 2 exact approved texts must be supplied before publication',()=>{
- for(const lesson of bank.lessons.slice(0,2)) assert.equal(lesson.questions,null);
+test('Lesson 1 approved question bank contains 20 questions and lesson 2 still awaits restoration',()=>{
+ const first=bank.lessons[0];
+ assert.equal(first.questions.length,20);
+ for(const q of first.questions){
+  assert.ok(q.question.length>10);
+  assert.equal(q.options.length,4);
+  assert.ok(Number.isInteger(q.correct_index)&&q.correct_index>=0&&q.correct_index<=3);
+ }
+ assert.equal(bank.lessons[1].questions,null);
  assert.equal(bank.status,'staging-incomplete');
 });
 test('Frontend scripts parse and connect member and leader pages',()=>{
