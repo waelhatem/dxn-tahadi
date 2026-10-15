@@ -116,7 +116,7 @@ test('basic page uses the advanced layout: list, viewer, quiz button above the v
   assert.equal(list.id,'basicBagLessonList','list comes first, so it sits on the right in RTL');
   assert.ok(viewer.className.includes('advanced-profit-viewer'));
   const parts=viewer.children.filter(c=>c.tagName);
-  assert.deepEqual(parts.map(c=>c.id),['basicBagViewerHead','basicBagInlineBox','','basicBagResumeSaved','basicWatchInfo','basicBagViewerInfo'],'title+quiz, video, progress, status, score');
+  assert.deepEqual(parts.map(c=>c.id),['basicBagViewerHead','basicBagInlineBox','','basicBagResumeSaved','basicWatchInfo','basicWatchDurationWarning','basicBagViewerInfo'],'title+quiz, video, progress, status, score');
   assert.ok(parts[2].className.includes('basic-bag-inline-progress'));
   assert.equal(listButtons(env).length,8);
   assert.deepEqual(listButtons(env).map(b=>b.disabled),[false,false,true,true,true,true,true,true],'lock rule unchanged');
@@ -297,4 +297,16 @@ test('basic progress is scoped to the session, not retained when switching membe
  if(tick)tick.f();
  assert.equal(env.calls.filter(c=>c.fn==='basic_training_watch_update').length,oldWatchCount,
    'never send another account watch update using a switched session');
+});
+
+test('duration mismatch warning is based on player actual duration, not another member\'s progress',async()=>{
+ const env=setup({overview:OVERVIEW});
+ env.mount();await env.flush();
+ await env.ctx.basicBagStartVideo(2);await env.flush();
+ const p=env.players[0];p.getDuration=()=>439;p.opts.events.onReady();
+ const warning=byId(env,'basicWatchDurationWarning');
+ assert.equal(warning.style.display,'block');
+ assert.match(warning.textContent,/مدة YouTube 7:19/);
+ assert.match(warning.textContent,/المدة المسجلة للتدريب 10:00/);
+ assert.equal(quizButton(env).disabled,true);
 });
