@@ -16,7 +16,7 @@
   session=token();stopMovie();lessons=[];loaded=false;loading=false;backendReady=false;selected=1;selectedAuto=true;exam=null;
  }
  const lesson=n=>lessons.find(l=>l.lesson_no===n);
- const unlocked=n=>n===1||!!(lesson(n-1)&&lesson(n-1).completed&&lesson(n-1).passed);
+ const unlocked=n=>!!lesson(n)&&!!lesson(n).active&&(n===1||!!(lesson(n-1)&&lesson(n-1).completed&&lesson(n-1).passed));
  function view(l){
   const attempted=l.best_score!==null&&l.best_score!==undefined;
   const state=E().lessonState({unlocked:unlocked(l.lesson_no),watchCompleted:!!l.completed,passed:!!l.passed,attempted,
@@ -25,7 +25,7 @@
   const quizEnabled=state!=='locked'&&!!l.completed&&quizReady;
   return {state,attempted,quizEnabled,
    quizLabel:'📝 '+(!quizReady?'اختبار هذا الدرس قيد الاعتماد':state==='passed'?'إعادة الاختبار':state==='failed'?'أعد الاختبار':quizEnabled?'ابدأ اختبار الدرس':'الاختبار مغلق حتى تأكيد 90%'),
-   status:({passed:'✅ ',failed:'❌ ',ready:'✅ ',locked:'🔒 ',watching:'▶ ',start:'▶ '})[state]+E().STATE_TEXT[state],
+   status:!l.active?'⏳ هذا التدريب بانتظار اعتماد الاختبار والنشر':({passed:'✅ ',failed:'❌ ',ready:'✅ ',locked:'🔒 ',watching:'▶ ',start:'▶ '})[state]+E().STATE_TEXT[state],
    score:'أفضل درجة اختبار: '+(attempted?Math.round(Number(l.best_score)*5)+' / 100':'لم يُختبر بعد')};
  }
  function defaultLesson(){
