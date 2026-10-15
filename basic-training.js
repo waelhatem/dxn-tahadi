@@ -35,9 +35,20 @@
  // Approved tests can still be previewed without saving; live attempts require RPC.
  function safeToast(s){if(typeof window.toast==='function')window.toast(s);else console.info(s);}
  function authToken(){return String(localStorage.getItem('dxn_session')||'').trim();}
+ // Keep the single-page training cache bound to exactly one signed-in session.
+ let trainingSession=authToken();
+ function ensureTrainingSession(){
+  const current=authToken();
+  if(current===trainingSession)return;
+  trainingSession=current;
+  if(movie)stopMovie();
+  loaded=false;backendReady=false;loading=false;progress=[];published=[];scores=[];
+  viewerRole='';overviewError='';exam=null;selectedNo=0;selectedAuto=true;
+ }
  async function rpc(fn,args={}){
   const tok=authToken();
   if(!tok)throw Error('سجل الدخول أولاً');
+  if(tok!==trainingSession)throw Error('تغيّر الحساب. افتح التدريب من الحساب الحالي لتحديث التقدم.');
   const response=await fetch('/api/rpc',{method:'POST',cache:'no-store',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({fn,args:{p_token:tok,...args}})});
@@ -171,22 +182,26 @@
    '<div id="basicBagCards" class="basic-bag-cards"></div></div></details></section>';
  }
  async function loadOverview(){
+  const requestedSession=trainingSession;
   try {
    const r=await rpc('basic_training_overview');
+   if(requestedSession!==trainingSession||authToken()!==requestedSession)return;
    if(!Array.isArray(r.progress)||!Array.isArray(r.published_quizzes)||!Array.isArray(r.scores))throw Error('تنسيق الاستجابة غير صحيح');
    progress=r.progress; published=r.published_quizzes;scores=r.scores;viewerRole=String(r.role||'');
    loaded=true;backendReady=true;
   }catch(e){
+   if(requestedSession!==trainingSession||authToken()!==requestedSession)return;
    overviewError=String(e.message||'');
    loaded=true;backendReady=false;
   }finally{
+   if(requestedSession!==trainingSession||authToken()!==requestedSession){ensureTrainingSession();return;}
    loading=false;
    const n=document.getElementById('basicBagNotice');
    if(n)n.textContent=noticeText();
    refreshCards();
   }
  }
- function maybeLoad(){if(!loaded&&!loading&&authToken()){loading=true;setTimeout(loadOverview,0);}return courseHtml();}
+ function maybeLoad(){ensureTrainingSession();if(!loaded&&!loading&&authToken()){loading=true;setTimeout(loadOverview,0);}return courseHtml();}
  async function ytApi(){
   if(window.YT&&window.YT.Player)return;
   if(typeof window.loadYouTubeAPI==='function'){await window.loadYouTubeAPI();return;}
@@ -259,6 +274,7 @@
  // "force" and YouTube ended, must obey a longer interval.
  const HEARTBEAT_INTERVAL_MS=5200;
  async function heartbeat(force){
+  if(authToken()!==trainingSession){ensureTrainingSession();return;}
   const m=movie;if(!m||m.saving||!m.duration||m.completed)return;
   if(!backendReady){watchMessage('تعذر حفظ المشاهدة حاليًا؛ حاول بعد تسجيل الدخول مجددًا.');return;}
   // Avoid repeated reports when YouTube pauses at its end or after the
@@ -284,6 +300,7 @@
   finally{m.saving=false;showUncreditedWatch(m);}
  }
  function tick(){
+  if(authToken()!==trainingSession){ensureTrainingSession();return;}
   const m=movie;if(!m||!m.player||!m.ready)return;
   let current,duration,state;
   try{current=m.player.getCurrentTime();duration=m.player.getDuration();state=m.player.getPlayerState();}catch(_){return;}
@@ -313,6 +330,7 @@
       &&Math.floor(m.max)>m.confirmed){heartbeat(true);}
  }
  window.basicBagStartVideo=async function(no){
+  if(authToken()!==trainingSession){ensureTrainingSession();refreshCards();return safeToast('تم تغيير الحساب؛ افتح التدريب مجددًا.');}
   const item=currentLesson(no);if(!item||!item.video)return safeToast('رابط الفيديو غير متوفر');
   if(!lessonUnlock(Number(no))&&!((no===2&&window.__basicVideoTwoPreview)||(no===3&&window.__basicVideoThreePreview)||(no===4&&window.__basicVideoFourPreview)||(no===5&&window.__basicVideoFivePreview)||(no===6&&window.__basicVideoSixPreview)||(no===7&&window.__basicVideoSevenPreview)||(no===8&&window.__basicVideoEightPreview)))return safeToast('التدريب مغلق: أكمل مشاهدة التدريب السابق واختباره');
   close();
@@ -361,6 +379,7 @@
   }catch(e){watchMessage(e.message||'تعذر تحميل الفيديو');}
  };
  window.basicBagStartQuiz=async function(no){
+  if(authToken()!==trainingSession){ensureTrainingSession();refreshCards();return safeToast('تم تغيير الحساب؛ افتح التدريب مجددًا.');}
   const item=currentLesson(no),p=statusOf(Number(no));
   if(!item)return;
   if(!lessonUnlock(Number(no)))return safeToast('التدريب مغلق: أكمل التدريب السابق أولًا');
