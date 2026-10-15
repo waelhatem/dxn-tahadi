@@ -5,6 +5,8 @@ const lesson={"id":"professional-03","track":"professional","title":"فنون ا
 const videoId='HOtDbw8-P3w';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
 let answers={};
+/* V86.80 — Display data for the unified training layout; the questions stay in this file. */
+window.professionalTraining03Info=function(){return {label:'التدريب الاحترافي الثالث',title:lesson.title,instructor:'المدرب: '+lesson.instructor,videoId,questionCount:lesson.questions.length};};
 window.professionalTraining03Page=function(){return '<article class="basic-bag-lesson professional-lesson-card" id="professionalTraining03">'+
 '<div class="basic-bag-lesson-main"><div class="basic-bag-number">التدريب الاحترافي الثالث</div><h3>'+esc(lesson.title)+'</h3><p class="basic-bag-description">المدرب: '+esc(lesson.instructor)+'</p><p class="basic-bag-status">20 سؤالًا — الدرجة النهائية عند تفعيل التصحيح: 100</p></div>'+
 '<div class="basic-bag-actions"><button type="button" class="name-list-btn" onclick="professionalTraining03OpenVideo()">▶ مشاهدة الفيديو</button>'+

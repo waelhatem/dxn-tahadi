@@ -5,6 +5,8 @@ const lesson={"id":"professional-04","track":"professional","title":"معالج�
 const videoId='nzezoIaIRVg';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
 let answers={};
+/* V86.80 — Display data for the unified training layout; the questions stay in this file. */
+window.professionalTraining04Info=function(){return {label:'التدريب الاحترافي الرابع',title:lesson.title,instructor:'المدرب: '+lesson.instructor,videoId,questionCount:lesson.questions.length};};
 window.professionalTraining04Page=function(){return '<article class="basic-bag-lesson professional-lesson-card" id="professionalTraining04">'+
 '<div class="basic-bag-lesson-main"><div class="basic-bag-number">التدريب الاحترافي الرابع</div><h3>'+esc(lesson.title)+'</h3><p class="basic-bag-description">المدرب: '+esc(lesson.instructor)+'</p><p class="basic-bag-status">20 سؤالًا — الدرجة النهائية عند تفعيل التصحيح: 100</p></div>'+
 '<div class="basic-bag-actions"><button type="button" class="name-list-btn" onclick="professionalTraining04OpenVideo()">▶ مشاهدة الفيديو</button>'+

@@ -103,7 +103,7 @@ for(let no=1;no<=8;no++){
     for(let i=0;i<20;i++){if(i!==4&&i!==0)choose(q.sections[i],i%3);if(i<19)q.next.click();}
     assert.deepEqual(visible(q.sections),[19]);
     assert.equal(q.next.hidden,true);assert.equal(q.finish.hidden,false);
-    assert.equal(q.finish.textContent,'إنهاء الاختبار وإرسال الإجابات');
+    assert.equal(q.finish.textContent,'إنهاء الاختبار وتصحيحه');
     assert.match(q.status.textContent,/^السؤال 20 من 20 — تمت الإجابة عن 19 من 20$/);
     assert.equal(calls.filter(c=>c.fn==='basic_training_submit_quiz').length,0,'answering the last question never submits');
 
