@@ -109,16 +109,42 @@ function tick(){
  if(state===window.YT.PlayerState.PLAYING&&w.max>w.confirmed)heartbeat();
  if(!w.completed&&current>=duration-3.5&&w.max>=duration-4.5)heartbeat();
 }
-function previewVideo(n){
+async function previewVideo(n){
  if(role!=='leader'||window.innerWidth<900)return notify('المعاينة للقائد على الحاسوب فقط');
  const x=data.find(l=>l.lesson_no===n);if(!x)return;
- const body=modal('معاينة غير محفوظة: الدرس '+n);
- const frame=document.createElement('iframe');frame.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(x.video_id)+'?rel=0';
- frame.title='معاينة فيديو التدريب '+n;frame.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
- frame.allowFullscreen=true;frame.style.cssText='width:100%;aspect-ratio:16/9;border:0;border-radius:12px';
- body.append(frame);const note=document.createElement('p');note.className='muted';
- note.textContent='معاينة القائد فقط؛ لا تُحتسب مدة المشاهدة ولا تُحفظ درجات.';body.append(note);
+ const body=modal('معاينة القائد: الدرس '+n);
+ body.innerHTML='<div class="basic-bag-player"><div id="advFinancialPreviewPlayer"></div></div>'+
+ '<p class="muted">معاينة القائد غير محفوظة ضمن تقدم الأعضاء. يمكن تثبيت مدة الفيديو الفعلية بعد تحميله من YouTube.</p>'+
+ '<p id="advFinancialDurationMessage" class="basic-bag-notice">جارٍ قراءة مدة الفيديو من المشغل...</p>'+
+ '<button id="advFinancialVerifyDuration" type="button" disabled>⏱ تثبيت مدة الفيديو المعتمدة</button>';
+ try{
+  await youtube();
+  if(!body.isConnected)return;
+  let seconds=0;const button=body.querySelector('#advFinancialVerifyDuration');
+  const notice=body.querySelector('#advFinancialDurationMessage');
+  new window.YT.Player('advFinancialPreviewPlayer',{
+   videoId:x.video_id,playerVars:{rel:0,playsinline:1},
+   events:{onReady:e=>{
+    if(!body.isConnected)return;
+    seconds=Math.round(Number(e.target.getDuration())||0);
+    if(seconds>=60&&seconds<=14400){
+     notice.textContent='المدة الواردة من مشغل YouTube: '+Math.floor(seconds/60)+' دقيقة و'+seconds%60+' ثانية.';
+     button.disabled=false;
+    }else notice.textContent='لم تُرجع منصة YouTube مدة صالحة. شغّل الفيديو ثم حاول إعادة المعاينة.';
+   }}
+  });
+  button.onclick=async()=>{
+   if(seconds<60||!body.isConnected)return;
+   button.disabled=true;notice.textContent='جارٍ تثبيت مدة الفيديو للقائد...';
+   try{
+    const saved=await rpc('advanced_financial_verify_duration',{p_lesson_no:n,p_duration:seconds});
+    notice.textContent='✅ تم اعتماد مدة الفيديو '+saved.duration+' ثانية.';
+    await refresh();
+   }catch(e){notice.textContent='تعذر اعتماد المدة: '+e.message;button.disabled=false;}
+  };
+ }catch(e){const notice=body.querySelector('#advFinancialDurationMessage');if(notice)notice.textContent='فشل تحميل المشغل: '+e.message;}
 }
+
 async function startWatch(n){
  const x=data.find(p=>p.lesson_no===n);if(!canStart(x))return notify('التدريب غير متاح بعد');
  const body=modal('الدرس '+n+' — '+x.title);
