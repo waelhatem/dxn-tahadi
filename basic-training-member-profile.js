@@ -6,7 +6,8 @@
  if(window.basicTrainingMemberPage)return;
  const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const titles=['التعريف بمشروع DXN ومنتجاتها ونظامها التسويقي','التعريف بشركة DXN ومنتجاتها ونظامها التسويقي والأرباح','منتجات DXN وأصنافها وطرق تسويقها','نظام البيع المباشر في DXN','خطة الأرباح والحوافز لشركة DXN','التطبيق العملي لخطة الأرباح خلال ستة أشهر','تفعيل العضوية وتسجيل أعضاء الفريق','أساسيات النجاح التسعة مع DXN'];
- const percent=p=>Math.min(100,Math.max(0,Math.round(100*(Number(p.watched)||0)/(Number(p.duration)||1))));
+ // V86.81 — Rounded down, as the server rule: 90% shows only when the watch is actually complete.
+ const percent=p=>Math.min(100,Math.max(0,Math.floor(100*(Number(p.watched)||0)/(Number(p.duration)||1))));
  window.basicTrainingMemberPage=function(){
    // Load on every build of the page (also a tab restored after reload);
    // basicTrainingLoadMemberPage ignores a second call while one is running.

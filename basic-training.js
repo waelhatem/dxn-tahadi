@@ -90,11 +90,11 @@
   const p=statusOf(no),unlocked=lessonUnlock(no),passed=!!p.passed,watchReady=!!p.completed;
   const quizEnabled=unlocked&&watchReady;
   return {icon:passed?'✅':unlocked?'▶':'🔒',
-   pct:Math.min(100,Math.max(0,Math.round(100*fmt(p.watched)/(fmt(p.duration)||1)))),pctLabel:'المشاهدة المحفوظة',
+   pct:savedPct(fmt(p.watched),fmt(p.duration)),pctLabel:'المشاهدة المحفوظة',
    play:unlocked?'basicBagStartVideo('+no+')':'',playLabel:unlocked?'▶ '+(watchReady?'إعادة المشاهدة':'بدء / متابعة المشاهدة'):'🔒 أكمل التدريب السابق واجتز اختباره أولًا',
    quiz:'basicBagStartQuiz('+no+')',quizEnabled,quizLabel:'📝 '+(passed?'إعادة اختبار الدرس':quizEnabled?'ابدأ اختبار الدرس':'اختبار الدرس — غير متاح'),
    preview:canPreviewQuiz()?'<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewFirstQuiz('+no+')">👁 معاينة الاختبار (غير محفوظة)</button>':'',
-   status:passed?'✅ اجتاز التدريب':watchReady?'✅ اكتملت المشاهدة — الاختبار متاح':unlocked?'▶ متابعة المشاهدة حتى 90%':'🔒 أكمل التدريب السابق واجتز اختباره أولًا',
+   status:passed?'✅ اجتاز التدريب':watchReady?'✅ اكتملت المشاهدة — الاختبار متاح':unlocked?'▶ المشاهدة المحفوظة '+savedPct(fmt(p.watched),fmt(p.duration))+'% — يُفتح الاختبار عند 90%':'🔒 أكمل التدريب السابق واجتز اختباره أولًا',
    score:'أفضل درجة اختبار: '+((p.best_score===null||p.best_score===undefined)?'لم يُختبر بعد':Math.round(Number(p.best_score)*5)+' / 100'),
    note:'شرط اجتياز التدريب: مشاهدة 90% والحصول على 80 / 100 على الأقل. يمكن إعادة الاختبار عند الرسوب.'};
  }
@@ -237,12 +237,17 @@
   // Inline player: once the server confirms 90%, the quiz button above the video opens at once.
   if(movie&&movie.inline&&!!statusOf(movie.no).completed!==movie.shownCompleted){movie.shownCompleted=!!statusOf(movie.no).completed;refreshCards();}
  }
+ /* V86.81 — Saved percentages are measured against the duration the server counts (the lesson's
+  * stored duration), never the player's own length; the two differ when the stored duration is
+  * wrong. Rounded down, so 90% appears only when the server's 90% rule is actually met. */
+ function savedDuration(m){return m.serverDuration||fmt(statusOf(m.no).duration)||m.duration;}
+ const savedPct=(seconds,duration)=>duration?Math.min(100,Math.max(0,Math.floor(100*seconds/duration))):0;
+ const clock=n=>{n=Math.round(n);return Math.floor(n/60)+':'+String(n%60).padStart(2,'0');};
  function watchPct(){
   const bar=document.getElementById('basicWatchProgress');
   if(!movie||!bar)return;
   // The player timeline is not the verified saved progress.
-  const seconds=backendReady?movie.confirmed:movie.max;
-  const p=movie.duration?Math.min(100,Math.round(100*seconds/movie.duration)):0;
+  const p=backendReady?savedPct(movie.confirmed,savedDuration(movie)):savedPct(movie.max,movie.duration);
   bar.querySelector('div').style.width=p+'%';
   bar.setAttribute('aria-valuenow',String(p));
   const out=document.getElementById('basicWatchPct');if(out)out.textContent=p+'%';
@@ -251,10 +256,16 @@
   if(movie!==m||!m.inline||!backendReady||!m.duration)return;
   const button=document.getElementById('basicBagResumeSaved');if(!button)return;
   let ended=false;try{ended=m.player.getPlayerState()===window.YT.PlayerState.ENDED;}catch(_){}
-  const shortOfThreshold=!m.completed&&m.confirmed*100<m.duration*90;
-  button.style.display=ended&&shortOfThreshold?'inline-flex':'none';
-  if(ended&&shortOfThreshold){
-   watchMessage('انتهى الفيديو، لكن الخادم حفظ '+Math.round(100*m.confirmed/m.duration)+'% فقط. اضغط «استكمال تسجيل المشاهدة» لإعادة مشاهدة الجزء غير المحفوظ حتى تبلغ 90%.');
+  const sd=savedDuration(m);
+  const shortOfThreshold=!m.completed&&m.confirmed*100<sd*90;
+  // The server never credits past the real video, so a video shorter than 90% of the stored
+  // duration can never open the quiz, however often it is replayed.
+  const reachable=Math.floor(m.duration)*100>=sd*90;
+  button.style.display=ended&&shortOfThreshold&&reachable?'inline-flex':'none';
+  if(ended&&shortOfThreshold&&reachable){
+   watchMessage('انتهى الفيديو، لكن الخادم حفظ '+savedPct(m.confirmed,sd)+'% فقط. اضغط «استكمال تسجيل المشاهدة» لإعادة مشاهدة الجزء غير المحفوظ حتى تبلغ 90%.');
+  }else if(ended&&shortOfThreshold){
+   watchMessage('شاهدت الفيديو كاملًا ('+clock(m.duration)+')، لكن المدة المسجلة لهذا التدريب '+clock(sd)+'، فلا يمكن أن تبلغ المشاهدة المحفوظة 90% ('+savedPct(m.confirmed,sd)+'% الآن). الخلل في بيانات التدريب وليس في مشاهدتك؛ مشاهدتك محفوظة، وسيُفتح الاختبار بعد تصحيح المدة من الإدارة.');
   }
  }
  window.basicBagResumeSavedWatch=function(){
@@ -268,12 +279,12 @@
    const button=document.getElementById('basicBagResumeSaved');
    if(button)button.style.display='none';
    watchPct();
-   watchMessage('استؤنفت المشاهدة من '+Math.round(100*m.confirmed/m.duration)+'% المحفوظة؛ سيُفتح الاختبار بعد تأكيد الخادم بلوغ 90%.');
+   watchMessage('استؤنفت المشاهدة من '+savedPct(m.confirmed,savedDuration(m))+'% المحفوظة؛ سيُفتح الاختبار بعد تأكيد الخادم بلوغ 90%.');
   }catch(e){watchMessage('تعذّر استئناف الفيديو: '+(e.message||e));}
  };
  function checkVideoDuration(m){
   if(movie!==m||!m.inline||!backendReady||!m.duration)return;
-  const expected=Number(statusOf(m.no).duration||0),actual=Math.round(m.duration);
+  const expected=Number(savedDuration(m)||0),actual=Math.round(m.duration);
   const element=document.getElementById('basicWatchDurationWarning');
   if(!element||expected<60||actual<60)return;
   const mismatch=Math.abs(actual-expected)>Math.max(5,Math.ceil(expected*0.02));
@@ -299,11 +310,12 @@
    if(movie!==m)return;
    m.confirmed=Math.max(m.confirmed||0,fmt(r.watched));
    m.completed=!!r.completed;
+   m.serverDuration=fmt(r.duration)||savedDuration(m);
    watchPct();
    const previous=progress.find(x=>x.training_no===m.no);
-   if(previous)Object.assign(previous,{watched:r.watched,duration:m.duration,completed:!!r.completed});
-   else progress.push({training_no:m.no,watched:r.watched,duration:m.duration,completed:!!r.completed});
-   if(!r.completed)watchMessage('نسبة المشاهدة المحفوظة: '+Math.round(100*m.confirmed/m.duration)+'%');
+   if(previous)Object.assign(previous,{watched:r.watched,duration:m.serverDuration,completed:!!r.completed});
+   else progress.push({training_no:m.no,watched:r.watched,duration:m.serverDuration,completed:!!r.completed});
+   if(!r.completed)watchMessage('نسبة المشاهدة المحفوظة: '+savedPct(m.confirmed,m.serverDuration)+'% — يُفتح الاختبار عند 90%');
    else{
      watchMessage('✅ اكتملت مشاهدة التدريب. يمكنك الآن أداء اختباره.');
     }
@@ -365,7 +377,7 @@
   const saved=statusOf(item.no);movie={no:item.no,max:fmt(saved.watched),confirmed:fmt(saved.watched),duration:fmt(saved.duration),
     completed:!!saved.completed,previousWall:performance.now(),previousTime:0,
     player:null,ready:false,timer:null,lastSent:0,saving:false,
-    inline:!!inline,box:inline,shownCompleted:!!saved.completed};
+    inline:!!inline,box:inline,shownCompleted:!!saved.completed,serverDuration:fmt(saved.duration)};
   try{
    await ytApi();if(!movie||movie.no!==item.no)return;
    const m=movie;m.player=new window.YT.Player('basicBagYT',{

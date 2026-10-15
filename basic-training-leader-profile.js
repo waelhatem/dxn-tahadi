@@ -70,7 +70,8 @@
       '<div><b>🎯 شرط الاجتياز</b><div style="font-size:15px;font-weight:700">90% مشاهدة و80 / 100 درجة</div></div>'+
       '</div>'+overallHtml;
     list.forEach(function(item){
-      var pct=safePercent(item.watch_percent);
+      // V86.81 — Rounded down, as the server rule: 90% shows only when the watch is actually complete.
+      var pct=Math.floor(safePercent(Math.floor(Number(item.watch_percent))));
       var grade=item.best_score==null?'لم يؤدِّ الاختبار':Math.round(Math.max(0,Math.min(20,Number(item.best_score)))*5)+' / 100';
       var passed=Boolean(item.passed);
       var watchComplete=Boolean(item.watch_completed);
