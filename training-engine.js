@@ -1,4 +1,4 @@
-/* V86.90 — Unified training engine (browser side), shared by the basic, professional and advanced tracks.
+/* V86.91 — Unified training engine (browser side), shared by the basic, professional and advanced tracks.
  * One watch attempt per viewing: it starts at 0 s when the member presses play, credits only time the
  * server confirms (training_watch_begin / training_watch_report), and is never resumed in a later
  * session. 90% confirmed by the server marks the lesson watched for good; the quiz and the next lesson
@@ -106,7 +106,7 @@
     a.completed=!!r.attempt_completed;
     progress();
     if(r.watch_completed&&!w.lessonCompleted){
-     w.lessonCompleted=true;msg('✅ أكد الخادم مشاهدة 90% — الاختبار متاح الآن.');
+     w.lessonCompleted=true;msg(o.quizReady===false?'✅ أكد الخادم إكمال مشاهدة 90%، لكن اختبار هذا الدرس لم يُنشر بعد. المشاهدة مكتملة ولن تحتاج إلى إعادتها.':'✅ أكد الخادم مشاهدة 90% — اضغط زر «ابدأ اختبار الدرس» أعلى الفيديو.');
      if(typeof o.onCompleted==='function')o.onCompleted();
     }else if(!r.watch_completed)msg('المشاهدة المؤكدة في هذه الجلسة: '+Math.floor(100*a.watched/a.duration)+'% — يُفتح الاختبار عند 90%.');
    }catch(e){msg('لم تُحفظ المشاهدة: '+e.message);}
