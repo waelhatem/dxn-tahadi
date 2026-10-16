@@ -3946,7 +3946,12 @@ function ragwanStep4Email(){
   try{return localStorage.getItem(ragwanStep4StorageKey('sponsor_email'))||''}catch(_){return ''}
 }
 function ragwanStep4ResultSeen(){
-  try{return localStorage.getItem(ragwanStep4StorageKey('result_seen'))==='1'}catch(_){return false}
+  try{
+    const verified=JSON.parse(localStorage.getItem(ragwanStep4StorageKey('result_verified_v2'))||'null');
+    const formId=String(localStorage.getItem(ragwanStep4StorageKey('form_id'))||'');
+    const email=ragwanStep4Email().toLowerCase();
+    return !!(verified&&verified.submissionId&&formId&&verified.formId===formId&&verified.email===email);
+  }catch(_){return false}
 }
 function ragwanBuildStep4AssessmentAction(){
   const email=ragwanStep4Email();
@@ -3962,10 +3967,11 @@ function ragwanBuildStep4AssessmentAction(){
     '</label>'+
     '<div class="ragwan-step4-actions">'+
       '<button type="button" class="ragwan-step4-btn copy" onclick="ragwanCopyStep4FormLink()">📋 نسخ رابط الاختبار</button>'+
-      '<button type="button" class="ragwan-step4-btn result" onclick="ragwanConfirmStep4Result()">✅ ظهرت النتيجة في الفورم</button>'+
+      '<button type="button" id="ragwanStep4ShowResultBtn" class="ragwan-step4-btn result" onclick="ragwanConfirmStep4Result()">📊 عرض نتيجة اختباري</button>'+
     '</div>'+
+    '<div id="ragwanStep4ScorePanel" role="status" aria-live="polite" style="display:none;margin:12px 0;padding:14px;border:1px solid #cae5d6;border-radius:14px;background:#f4fcf8;text-align:center"></div>'+
     '<button type="button" id="ragwanStep4AnswerBtn" class="ragwan-step4-btn answer '+(unlocked?'unlocked':'')+'" '+(unlocked?'':'disabled')+' onclick="ragwanOpenStep4Answers()">'+(unlocked?'📖 الإجابات':'🔒 الإجابات — تُفتح بعد ظهور النتيجة')+'</button>'+
-    '<div id="ragwanStep4Status" class="ragwan-step4-status" aria-live="polite">'+(unlocked?'✅ تم فتح الإجابات لهذه المحاولة.':'🔒 أكمل الاختبار في Google Form حتى تظهر النتيجة، ثم ارجع واضغط «ظهرت النتيجة في الفورم».')+'</div>'+
+    '<div id="ragwanStep4Status" class="ragwan-step4-status" aria-live="polite">'+(unlocked?'✅ النتيجة محفوظة، ويمكنك عرضها مجددًا أو مراجعة الإجابات.':'📝 بعد إرسال Google Form ارجع إلى هنا واضغط «عرض نتيجة اختباري». قد يحتاج التصحيح الآلي إلى بعض الوقت.')+'</div>'+
   '</section>';
 }
 function ragwanStep4SyncEmail(){
@@ -3973,7 +3979,7 @@ function ragwanStep4SyncEmail(){
   input.addEventListener('input',function(){
     try{
       localStorage.setItem(ragwanStep4StorageKey('sponsor_email'),String(input.value||'').trim());
-      localStorage.removeItem(ragwanStep4StorageKey('result_seen'));
+      localStorage.removeItem(ragwanStep4StorageKey('result_verified_v2'));
       localStorage.removeItem(ragwanStep4StorageKey('form_copied'));
       localStorage.removeItem(ragwanStep4StorageKey('form_id'));
       localStorage.removeItem(ragwanStep4StorageKey('form_url'));
@@ -4042,7 +4048,7 @@ async function ragwanApproveStep4Email(){
     localStorage.setItem(ragwanStep4StorageKey('form_id'),String(data.formId||''));
     localStorage.setItem(ragwanStep4StorageKey('form_url'),String(data.prefilledUrl));
     localStorage.removeItem(ragwanStep4StorageKey('form_copied'));
-    localStorage.removeItem(ragwanStep4StorageKey('result_seen'));
+    localStorage.removeItem(ragwanStep4StorageKey('result_verified_v2'));
     if(approved)approved.style.display='block';
     if(status)status.textContent='✅ تم اعتماد البريد. النموذج مرتبط بهذا الـSponsor داخليًا، وسيظهر اسمك ورقم عضويتك تلقائيًا في رابط الاختبار.';
     toast('✅ تم اعتماد بريد الراعي');
@@ -4075,23 +4081,66 @@ async function ragwanCopyStep4FormLink(){
   if(status)status.textContent='✅ تم نسخ رابط الاختبار. الرابط يحمل اسمك ورقم عضويتك تلقائيًا، والنموذج مرتبط بالـSponsor داخليًا.';
   toast('✅ تم نسخ رابط الاختبار');
 }
-function ragwanConfirmStep4Result(){
+async function ragwanConfirmStep4Result(){
   const status=document.getElementById('ragwanStep4Status');
-  const email=String((document.getElementById('ragwanStep4SponsorEmail')||{}).value||'').trim();
-  let copied=false;try{copied=localStorage.getItem(ragwanStep4StorageKey('form_copied'))==='1'}catch(_){}
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){toast('⚠️ أدخل بريد الراعي الصحيح أولًا.');return}
-  if(!copied){toast('⚠️ انسخ رابط الاختبار أولًا ثم نفّذ الاختبار.');return}
-  try{localStorage.setItem(ragwanStep4StorageKey('sponsor_email'),email);localStorage.setItem(ragwanStep4StorageKey('result_seen'),'1')}catch(_){}
-  const btn=document.getElementById('ragwanStep4AnswerBtn');
-  if(btn){
-    btn.disabled=false;btn.classList.add('unlocked');btn.textContent='📖 الإجابات';
-    btn.title='فتح الإجابات النموذجية';
+  const panel=document.getElementById('ragwanStep4ScorePanel');
+  const button=document.getElementById('ragwanStep4ShowResultBtn');
+  const email=String((document.getElementById('ragwanStep4SponsorEmail')||{}).value||'').trim().toLowerCase();
+  const memberNo=String(me&&me.member_no||'').trim().replace(/[\s-]+/g,'');
+  let formId='';
+  try{formId=String(localStorage.getItem(ragwanStep4StorageKey('form_id'))||'').trim()}catch(_){}
+  if(role!=='member'||!token||!/^\d{9}$/.test(memberNo)){
+    if(status)status.textContent='⚠️ لعرض الدرجة، افتح الخطوة الرابعة من حساب المتدرب صاحب رقم العضوية.';
+    return;
   }
-  if(status)status.textContent='✅ تم فتح زر الإجابات. يمكنك الآن مراجعة الإجابات النموذجية.';
-  toast('✅ ظهرت النتيجة — تم فتح الإجابات');
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||!formId||email!==ragwanStep4Email().toLowerCase()){
+    if(status)status.textContent='⚠️ اعتمد بريد الراعي أولًا للحصول على نموذج الاختبار المرتبط به.';
+    return;
+  }
+  if(button){button.disabled=true;button.textContent='⏳ جارٍ جلب النتيجة...';}
+  try{
+    const history=await rpc('get_external_training_assessment_submissions',{
+      p_token:token,p_membership_number:memberNo
+    });
+    const attempt=(Array.isArray(history)?history:[]).find(function(row){
+      const no=String(row&&row.membership_number||'').trim().replace(/[\s-]+/g,'');
+      const mail=String(row&&row.sponsor_email||'').trim().toLowerCase();
+      const report=row&&row.report;
+      return no===memberNo&&String(row.form_id||'')===formId&&mail===email&&
+        report&&Number.isFinite(Number(report.totalScore))&&String(row.id||'');
+    });
+    if(!attempt){
+      if(panel){panel.style.display='block';panel.textContent='⏳ لم تصل نتيجة محفوظة لهذا النموذج بعد. إذا أرسلت الاختبار حديثًا، اضغط «عرض نتيجة اختباري» مرة أخرى بعد اكتمال التصحيح.';}
+      if(status)status.textContent='لم تُسجّل نتيجة مكتملة لهذه العضوية وبريد الراعي حتى الآن.';
+      return;
+    }
+    const report=attempt.report;
+    const grade=Math.max(0,Math.min(100,Math.round(Number(report.totalScore))));
+    const approved=report.overallStatus==='approved';
+    const verdict=approved?'✅ اجتزت الاختبار':'🔁 تحتاج إلى إعادة المحاولة';
+    if(panel){
+      panel.style.display='block';
+      panel.innerHTML='<div style="font-weight:800;margin-bottom:6px">📊 نتيجة اختبار الحقيبة التدريبية</div>'+
+        '<div style="font-size:30px;font-weight:900;direction:ltr">'+grade+' / 100</div>'+
+        '<div style="font-weight:800;margin-top:7px">'+verdict+'</div>'+
+        '<div style="font-size:12px;margin-top:6px">الدرجة الرسمية المحفوظة في نظام التدريب</div>';
+    }
+    try{localStorage.setItem(ragwanStep4StorageKey('result_verified_v2'),
+      JSON.stringify({submissionId:String(attempt.id),formId:formId,email:email}));}catch(_){}
+    const answers=document.getElementById('ragwanStep4AnswerBtn');
+    if(answers){answers.disabled=false;answers.classList.add('unlocked');answers.textContent='📖 الإجابات';answers.title='فتح الإجابات النموذجية';}
+    if(status)status.textContent='✅ تم التحقق من النتيجة المحفوظة. التقرير التفصيلي يصل إلى بريد الراعي المعتمد.';
+    toast('✅ تم عرض الدرجة المحفوظة');
+  }catch(err){
+    if(panel){panel.style.display='block';panel.textContent='⚠️ تعذر استرجاع النتيجة. حاول مجددًا دون إعادة إرسال الاختبار.';}
+    if(status)status.textContent='⚠️ '+String(err&&err.message||'تعذر قراءة سجل الاختبار');
+  }finally{
+    if(button){button.disabled=false;button.textContent='📊 عرض نتيجة اختباري';}
+  }
 }
+
 function ragwanOpenStep4Answers(){
-  if(!ragwanStep4ResultSeen()){toast('🔒 يجب أن تظهر نتيجة الاختبار في Google Form أولًا.');return}
+  if(!ragwanStep4ResultSeen()){toast('🔒 اعرض الدرجة المحفوظة أولًا من زر نتيجة اختباري.');return}
   const old=document.getElementById('ragwanStep4AnswerModal');
   if(old)old.remove();
   const answers=[
@@ -4122,7 +4171,7 @@ function ragwanOpenStep4Answers(){
         '<h2>📖 الإجابات النموذجية للاختبار</h2>'+
         '<button type="button" onclick="document.getElementById(\'ragwanStep4AnswerModal\').remove()">✖️</button>'+
       '</div>'+
-      '<p class="muted" style="line-height:1.8">هذه الإجابات للمراجعة بعد ظهور نتيجة الاختبار في Google Form.</p>'+
+      '<p class="muted" style="line-height:1.8">هذه الإجابات للمراجعة بعد التحقق من حفظ نتيجة الاختبار.</p>'+
       items+
       '<button type="button" class="ragwan-step4-answer-close" onclick="document.getElementById(\'ragwanStep4AnswerModal\').remove()">إغلاق</button>'+
     '</div>';
