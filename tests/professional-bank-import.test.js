@@ -31,14 +31,14 @@ test('incomplete or unknown keys are refused; nothing is invented for lessons wi
   fs.writeFileSync(file,JSON.stringify({'2':SYNTH,'5':SYNTH}));
   const {sql,lessons,missing,draft}=buildSql(file);
   assert.deepEqual(lessons,[2,5]);
-  assert.deepEqual(missing,[1,3]);
-  assert.deepEqual(draft,[4]);
+  assert.deepEqual(missing,[1,3,4]);
+  assert.deepEqual(draft,[]);
   assert.match(sql,/SET LOCAL ROLE service_role;/);
   assert.equal((sql.match(/professional_training_import_bank\(/g)||[]).length,2);
   assert.doesNotMatch(sql,/import_bank\((1|3|4),/);
 });
 
-test('a private import with keys for 1, 2, 3 and 5 loads exactly those banks in order while leaving draft 4 unpublished',()=>{
+test('a private import with keys for 1, 2, 3 and 5 leaves approved training 4 pending its private key',()=>{
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'pro-approved-'));
   try{
     const file=path.join(dir,'keys.private.json');
@@ -46,8 +46,8 @@ test('a private import with keys for 1, 2, 3 and 5 loads exactly those banks in 
     fs.writeFileSync(file,JSON.stringify({'1':SYNTH,'2':SYNTH,'3':SYNTH,'5':SYNTH}));
     const {sql,lessons,missing,draft}=buildSql(file);
     assert.deepEqual(lessons,[1,2,3,5]);
-    assert.deepEqual(missing,[]);
-    assert.deepEqual(draft,[4]);
+    assert.deepEqual(missing,[4]);
+    assert.deepEqual(draft,[]);
     assert.equal(sql.split('public.professional_training_import_bank(').length-1,4);
     for(const n of [1,2,3,5])assert.ok(sql.includes('public.professional_training_import_bank('+n+','));
     assert.ok(!sql.includes('public.professional_training_import_bank(4,'));
@@ -56,15 +56,18 @@ test('a private import with keys for 1, 2, 3 and 5 loads exactly those banks in 
   }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
 
-test('a bank still marked as a draft (training 4) is never published, even when a key is given',()=>{
+test('owner-approved training 4 can be privately imported after its key is confirmed',()=>{
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'pro-keys-'));
-  const file=path.join(dir,'keys.private.json');
-  fs.writeFileSync(file,JSON.stringify({'4':SYNTH}));
-  const {sql,lessons,draft}=buildSql(file);
-  assert.equal(readLesson(4).review_status,'draft_pending_owner_approval');
-  assert.deepEqual(lessons,[]);
-  assert.deepEqual(draft,[4]);
-  assert.doesNotMatch(sql,/import_bank\(4,/);
+  try{
+    const file=path.join(dir,'keys.private.json');
+    fs.writeFileSync(file,JSON.stringify({'4':SYNTH}));
+    const {sql,lessons,missing,draft}=buildSql(file);
+    assert.equal(readLesson(4).review_status,'approved_by_owner');
+    assert.deepEqual(lessons,[4]);
+    assert.deepEqual(missing,[1,2,3,5]);
+    assert.deepEqual(draft,[]);
+    assert.match(sql,/import_bank\\(4,/);
+  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
 
 test('answer keys never reach a tracked file or the browser',()=>{
