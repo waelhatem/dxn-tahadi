@@ -259,6 +259,7 @@
    body.innerHTML='<div class="basic-bag-player"><div id="basicBagYT"></div></div>'+
     '<div class="basic-bag-inline-progress"><div id="basicWatchProgress" class="basic-bag-progress"><div></div></div>'+
     '<strong id="basicWatchPct">0%</strong></div><p id="basicWatchInfo" class="basic-bag-notice">جارٍ تحميل المشغل…</p>'+
+    '<div id="basicModalQuizAction" class="unified-training__quiz-location">'+quizCtaHtml(lessonView(item.no))+'</div>'+ 
     '<p class="basic-bag-description">'+esc(window.DXNTrainingEngine.POLICY_NOTE)+'</p>';
   }
   const saved=statusOf(item.no);
@@ -269,10 +270,10 @@
    onMessage:t=>{if(movie===m)watchMessage(t);},
    onProgress:p=>{showProgress(m,p);if(p.attempt&&!m.watching&&movie===m){m.watching=true;refreshCards();}},
    onCompleted:()=>{
-    // Confirmed by the server: the quiz button above the video opens at once.
+    // Confirmed by the server: update the quiz below the video without replacing the player.
     const row=progress.find(x=>x.training_no===item.no);
     if(row)row.completed=true;else progress.push({training_no:item.no,watched:0,duration:0,completed:true,passed:false,best_score:null});
-    if(movie===m)refreshCards();
+    if(movie===m){const modalCta=document.getElementById('basicModalQuizAction');if(modalCta)modalCta.innerHTML=quizCtaHtml(lessonView(item.no));refreshCards();}
    }});
   showProgress(m,{percent:0});watchMessage('جارٍ تحميل المشغل…');
   try{
