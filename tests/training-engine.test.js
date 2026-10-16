@@ -158,7 +158,7 @@ test('professional: confirmed 90% does not claim the quiz is available if its ba
   assert.match(env.byId('professionalWatchInfo').textContent,/اختبار هذا الدرس لم يُنشر/);
   await env.ctx.professionalCourseWatch(1);await env.flush();
   env.players.at(-1).opts.events.onReady();await env.flush();
-  await env.play(56);
+  await env.play(60);
   assert.equal(env.server.peek('member-a','professional',1).completed,true,'watch still saves when 90% is confirmed');
   assert.equal(button().disabled,true,'watch completion never publishes a missing bank');
   assert.match(env.byId('professionalWatchInfo').textContent,/اختبار هذا الدرس لم يُنشر بعد/);
