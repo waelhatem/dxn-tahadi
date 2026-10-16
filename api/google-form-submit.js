@@ -230,7 +230,8 @@ module.exports = async function handler(req, res) {
         questionNo: i + 1,
         question: REFERENCE_ANSWERS[i].question,
         answer,
-        score: grade.score,
+        score: isMultipleChoiceQuiz ? (grade.score === 100 ? ragwanQuizPoints(i) : 0) : grade.score,
+        maxScore: isMultipleChoiceQuiz ? ragwanQuizPoints(i) : 100,
         status: grade.status,
         note: grade.note
       });
@@ -240,7 +241,7 @@ module.exports = async function handler(req, res) {
     // (9 points for each of the first four, 8 for the remaining eight).
     // Preserve the legacy AI grading unchanged for old essay submissions.
     const totalScore = isMultipleChoiceQuiz
-      ? results.reduce((sum, x, i) => sum + (x.score === 100 ? ragwanQuizPoints(i) : 0), 0)
+      ? results.reduce((sum, x) => sum + x.score, 0)
       : Math.round(results.reduce((sum, x) => sum + x.score, 0) / results.length);
     const approvedCount = results.filter(x => x.status === 'approved').length;
     const report = {
