@@ -6221,7 +6221,7 @@ function basicTrainingPage(){
     : '<div class="card">جارٍ تحميل التدريبات الأساسية…</div>';
 }
 /* V86.80 — Professional trainings in the advanced training's layout: list on the right, video on
-   the left, quiz button above it. Each training keeps its own video and quiz window. */
+   the left, quiz button below it. Each training keeps its own video and quiz window. */
 let professionalSelected=0;
 function professionalTrainingInfos(){
   return [1,2,3,4,5].map(n=>{const info=window['professionalTraining0'+n+'Info']?.();return info?{...info,no:n}:null;});
@@ -6229,8 +6229,9 @@ function professionalTrainingInfos(){
 function professionalViewerHtml(info){
   return `<strong id="professionalVideoTitle">${esc(info.label)} — ${esc(info.title)}</strong>
     <div class="unified-training__actions"><span class="muted">${esc(info.instructor)}</span>
-     <button type="button" class="name-list-btn unified-training__quiz-button" onclick="professionalTraining0${info.no}OpenExam()">📝 ابدأ اختبار الدرس</button></div>
+    </div>
     <div class="training-professional-video unified-training__video"><iframe src="https://www.youtube-nocookie.com/embed/${esc(info.videoId)}?rel=0" title="فيديو ${esc(info.label)}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
+    <div class="unified-training__quiz-location"><button type="button" class="name-list-btn unified-training__quiz-button" onclick="professionalTraining0${info.no}OpenExam()">📝 ابدأ اختبار الدرس (معاينة)</button></div>
     <p class="basic-bag-status">${info.questionCount} سؤالًا — الدرجة النهائية عند تفعيل التصحيح: 100</p>
     <p class="basic-bag-description">نسبة المشاهدة لا تُحتسب في التدريبات الاحترافية حاليًا، والاختبار معاينة دون تصحيح أو حفظ. <a href="https://youtu.be/${esc(info.videoId)}" target="_blank" rel="noopener noreferrer">▶ فتح الفيديو على YouTube</a></p>`;
 }
