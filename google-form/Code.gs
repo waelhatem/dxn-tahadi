@@ -137,6 +137,10 @@ function createSponsorTrainingForm(sponsorEmail) {
   const form = FormApp.create(
     CONFIG.FORM_PREFIX + ' - ' + sponsorEmail
   );
+  // Auto-graded Google Forms quiz: learners see a result after submit.
+  form.setIsQuiz(true);
+  form.setCollectEmail(false);
+  form.setPublishingSummary(false);
 
 
   /* -----------------------------------------------
@@ -177,17 +181,7 @@ function createSponsorTrainingForm(sponsorEmail) {
      الأسئلة الـ12
   ------------------------------------------------ */
 
-  TRAINING_QUESTIONS.forEach(function(question) {
-
-    const item = form.addParagraphTextItem();
-
-    item.setTitle(
-      question.number + ') ' + question.title
-    );
-
-    item.setRequired(true);
-
-  });
+  addRagwanMultipleChoiceItems(form);
 
 
   /* -----------------------------------------------
@@ -195,8 +189,8 @@ function createSponsorTrainingForm(sponsorEmail) {
   ------------------------------------------------ */
 
   form.setConfirmationMessage(
-    'تم إرسال إجاباتك بنجاح.\n\n' +
-    'سيتم تقييم الاختبار وإظهار النتيجة ضمن نظام التدريب.'
+    '✅ تم إرسال الإجابات. اضغط «عرض النتيجة» (View score) في Google Forms لمعرفة درجتك من 100. ' +
+    'ويستمر إرسال تقرير الاختبار إلى بريد الراعي المعتمد.'
   );
 
 
@@ -485,6 +479,8 @@ function onSponsorTrainingSubmit(e) {
       response
         .getTimestamp()
         .toISOString(),
+
+    assessmentMode: isRagwanMultipleChoiceQuiz(form) ? 'ragwan_mcq_v1' : 'legacy_essay',
 
     answers:
       answers
