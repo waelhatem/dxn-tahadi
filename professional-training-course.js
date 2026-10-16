@@ -1,4 +1,4 @@
-/* V86.90 — Professional trainings on the unified training engine: server lessons and lock status, one
+/* V86.91 — Professional trainings on the unified training engine: server lessons and lock status, one
  * watch attempt per viewing, server quiz and grading (80 / 100 opens the next lesson). Same layout as the
  * basic and advanced tracks. Until the server side is installed, the current unsaved preview is shown. */
 (function(){
@@ -25,7 +25,7 @@
   const quizEnabled=state!=='locked'&&!!l.completed&&quizReady;
   return {state,attempted,quizEnabled,
    quizLabel:'📝 '+(!quizReady?'اختبار هذا الدرس قيد الاعتماد':state==='passed'?'إعادة الاختبار':state==='failed'?'أعد الاختبار':quizEnabled?'ابدأ اختبار الدرس':'الاختبار مغلق حتى تأكيد 90%'),
-   status:!l.active?'⏳ هذا التدريب بانتظار اعتماد الاختبار والنشر':({passed:'✅ ',failed:'❌ ',ready:'✅ ',locked:'🔒 ',watching:'▶ ',start:'▶ '})[state]+E().STATE_TEXT[state],
+   status:!l.active?'⏳ هذا التدريب بانتظار النشر':!quizReady?(l.completed?'✅ اكتملت المشاهدة، لكن اختبار هذا الدرس غير منشور بعد. لن تحتاج إلى إعادة المشاهدة.':'⏳ اختبار هذا الدرس لم يُنشر بعد؛ اكتمال المشاهدة وحده لا يفتح الاختبار.') :({passed:'✅ ',failed:'❌ ',ready:'✅ ',locked:'🔒 ',watching:'▶ ',start:'▶ '})[state]+E().STATE_TEXT[state],
    score:'أفضل درجة اختبار: '+(attempted?Math.round(Number(l.best_score)*5)+' / 100':'لم يُختبر بعد')};
  }
  function defaultLesson(){
@@ -131,7 +131,7 @@
   stopMovie();selected=l.lesson_no;selectedAuto=false;
   box.innerHTML='<div id="professionalYT"></div>';
   const m={no:l.lesson_no,box,player:null,session:null,watching:false};movie=m;
-  m.session=E().createWatch({track:'professional',lessonNo:l.lesson_no,watchCompleted:!!l.completed,
+  m.session=E().createWatch({track:'professional',lessonNo:l.lesson_no,watchCompleted:!!l.completed,quizReady:!!l.published,
    onMessage:t=>{if(movie===m)message(t);},
    onProgress:p=>{showProgress(m,p);if(p.attempt&&!m.watching&&movie===m){m.watching=true;render();}},
    onCompleted:()=>{l.completed=true;if(movie===m)render();}});
