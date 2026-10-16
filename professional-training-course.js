@@ -44,9 +44,12 @@
  function headHtml(l,v){
   return '<strong id="professionalVideoTitle">التدريب الاحترافي '+(LABELS[l.lesson_no-1]||l.lesson_no)+' — '+esc(l.title)+'</strong>'+
    '<div class="unified-training__actions"><span class="muted">'+esc(l.instructor)+'</span>'+
-   '<button type="button" class="name-list-btn unified-training__quiz-button" onclick="professionalCourseQuiz('+l.lesson_no+')" '+(v.quizEnabled?'':'disabled')+'>'+v.quizLabel+'</button></div>';
+    '</div>';
  }
  function infoHtml(v){return '<p class="muted">'+esc(v.score)+'</p><p class="basic-bag-description">'+esc(E().POLICY_NOTE)+'</p>';}
+ function quizCtaHtml(l,v){
+  return '<button type="button" class="name-list-btn unified-training__quiz-button" onclick="professionalCourseQuiz('+l.lesson_no+')" '+(v.quizEnabled?'':'disabled')+'>'+v.quizLabel+'</button>';
+ }
  function viewerHtml(l,v){
   const can=v.state!=='locked';
   return '<div id="professionalViewerHead">'+headHtml(l,v)+'</div>'+
@@ -56,6 +59,7 @@
    '<div class="basic-bag-inline-progress unified-training__progress"><div id="professionalWatchProgress" class="basic-bag-progress" role="progressbar" aria-label="مشاهدة الجلسة الحالية" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+(l.completed?100:0)+'"><div style="width:'+(l.completed?100:0)+'%"></div></div>'+
    '<strong id="professionalWatchPct">'+esc(l.completed?E().completionLabel(!!l.published):'0%')+'</strong></div>'+
    '<p id="professionalWatchInfo" class="basic-bag-status">'+esc(v.status)+'</p>'+
+    '<div id="professionalViewerQuizAction" class="unified-training__quiz-location">'+quizCtaHtml(l,v)+'</div>'+
    '<div id="professionalViewerInfo">'+infoHtml(v)+'</div>';
  }
  function stopMovie(){if(!movie)return;movie.session&&movie.session.stop();try{movie.player&&movie.player.destroy();}catch(_){}movie=null;}
@@ -73,6 +77,7 @@
   if(movie&&movie.no===l.lesson_no){
    const list=document.getElementById('professionalLessonList');if(list)list.innerHTML=listHtml();
    const head=document.getElementById('professionalViewerHead');if(head)head.innerHTML=headHtml(l,v);
+   const action=document.getElementById('professionalViewerQuizAction');if(action)action.innerHTML=quizCtaHtml(l,v);
    const info=document.getElementById('professionalViewerInfo');if(info)info.innerHTML=infoHtml(v);
    return;
   }
