@@ -1,4 +1,4 @@
-/* V86.90 — Professional trainings on the unified training engine: server lessons and lock status, one
+/* V86.92 — Professional trainings on the unified training engine: server lessons and lock status, one
  * watch attempt per viewing, server quiz and grading (80 / 100 opens the next lesson). Same layout as the
  * basic and advanced tracks. Until the server side is installed, the current unsaved preview is shown. */
 (function(){
@@ -24,8 +24,8 @@
   const quizReady=!!l.published;
   const quizEnabled=state!=='locked'&&!!l.completed&&quizReady;
   return {state,attempted,quizEnabled,
-   quizLabel:'📝 '+(!quizReady?'اختبار هذا الدرس قيد الاعتماد':state==='passed'?'إعادة الاختبار':state==='failed'?'أعد الاختبار':quizEnabled?'ابدأ اختبار الدرس':'الاختبار مغلق حتى تأكيد 90%'),
-   status:!l.active?'⏳ هذا التدريب بانتظار اعتماد الاختبار والنشر':({passed:'✅ ',failed:'❌ ',ready:'✅ ',locked:'🔒 ',watching:'▶ ',start:'▶ '})[state]+E().STATE_TEXT[state],
+   quizLabel:'📝 '+(!quizReady?E().MESSAGES.quizUnpublished:state==='passed'?'إعادة الاختبار':state==='failed'?'أعد الاختبار':quizEnabled?'ابدأ اختبار الدرس':'الاختبار مغلق حتى تأكيد 90%'),
+   status:!l.active?'⏳ هذا التدريب بانتظار النشر':!quizReady?(l.completed?E().MESSAGES.completedQuizUnpublished:'⏳ اختبار هذا الدرس لم يُنشر بعد؛ اكتمال المشاهدة يُحفظ، ويُفتح الاختبار عند نشره دون إعادة المشاهدة.') :({passed:'✅ ',failed:'❌ ',ready:'✅ ',locked:'🔒 ',watching:'▶ ',start:'▶ '})[state]+E().STATE_TEXT[state],
    score:'أفضل درجة اختبار: '+(attempted?Math.round(Number(l.best_score)*5)+' / 100':'لم يُختبر بعد')};
  }
  function defaultLesson(){
@@ -54,7 +54,7 @@
    '<button type="button" class="unified-training__play" '+(can?'onclick="professionalCourseWatch('+l.lesson_no+')"':'disabled')+'>'+
    (can?(l.completed?'▶ إعادة المشاهدة من البداية':'▶ ابدأ المشاهدة'):'🔒 '+esc(E().STATE_TEXT.locked))+'</button></div>'+
    '<div class="basic-bag-inline-progress unified-training__progress"><div id="professionalWatchProgress" class="basic-bag-progress" role="progressbar" aria-label="مشاهدة الجلسة الحالية" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+(l.completed?100:0)+'"><div style="width:'+(l.completed?100:0)+'%"></div></div>'+
-   '<strong id="professionalWatchPct">'+(l.completed?100:0)+'%</strong></div>'+
+   '<strong id="professionalWatchPct">'+esc(l.completed?E().completionLabel(!!l.published):'0%')+'</strong></div>'+
    '<p id="professionalWatchInfo" class="basic-bag-status">'+esc(v.status)+'</p>'+
    '<div id="professionalViewerInfo">'+infoHtml(v)+'</div>';
  }
@@ -113,7 +113,7 @@
   if(movie!==m)return;
   const bar=document.getElementById('professionalWatchProgress');
   if(bar){bar.querySelector('div').style.width=p.percent+'%';bar.setAttribute('aria-valuenow',String(p.percent));}
-  const out=document.getElementById('professionalWatchPct');if(out)out.textContent=p.percent+'%';
+  const out=document.getElementById('professionalWatchPct');if(out)out.textContent=p.label||p.percent+'%';
  }
  async function youtube(){
   if(window.YT&&window.YT.Player)return;
@@ -131,7 +131,7 @@
   stopMovie();selected=l.lesson_no;selectedAuto=false;
   box.innerHTML='<div id="professionalYT"></div>';
   const m={no:l.lesson_no,box,player:null,session:null,watching:false};movie=m;
-  m.session=E().createWatch({track:'professional',lessonNo:l.lesson_no,watchCompleted:!!l.completed,
+  m.session=E().createWatch({track:'professional',lessonNo:l.lesson_no,watchCompleted:!!l.completed,quizReady:()=>!!l.published,
    onMessage:t=>{if(movie===m)message(t);},
    onProgress:p=>{showProgress(m,p);if(p.attempt&&!m.watching&&movie===m){m.watching=true;render();}},
    onCompleted:()=>{l.completed=true;if(movie===m)render();}});
@@ -148,7 +148,7 @@
  window.professionalCourseQuiz=async function(n){
   resetIfAccountChanged();
   const l=lesson(Number(n));if(!backendReady||!l)return;
-  if(!unlocked(l.lesson_no)||!l.completed)return;
+  if(!unlocked(l.lesson_no)||!l.completed||!l.published)return;
   stopMovie();closeQuiz();
   const cover=document.createElement('div');cover.className='basic-bag-overlay professional-course-overlay';
   cover.innerHTML='<div class="basic-bag-modal" role="dialog" aria-modal="true"><header><strong></strong>'+
@@ -180,7 +180,7 @@
      const g=await E().rpc('professional_training_submit_quiz',{p_lesson_no:e.no,p_answers:e.answers,p_revision:e.revision});
      body.replaceChildren();const box=document.createElement('div');box.className='basic-bag-result';
      const h=document.createElement('h2');h.textContent='درجة الاختبار: '+Math.round(100*Number(g.score||0)/(Number(g.out_of)||20))+' / 100';box.appendChild(h);
-     const p=document.createElement('p');p.textContent=g.passed?'✅ اجتزت الاختبار؛ التدريب التالي متاح.':'لم تجتز الاختبار بعد. تحتاج إلى 80 / 100 على الأقل؛ يمكنك إعادة الاختبار.';box.appendChild(p);
+     const p=document.createElement('p');p.textContent=g.passed?E().MESSAGES.passed:E().MESSAGES.failed;box.appendChild(p);
      body.appendChild(box);await load();
     }catch(err){const note=document.createElement('p');note.className='basic-bag-notice';note.textContent='تعذر التصحيح: '+err.message;body.prepend(note);e.busy=false;pager.finish.disabled=false;pager.finish.textContent='إنهاء الاختبار وتصحيحه';}
    }});

@@ -23,6 +23,7 @@
  const currentLesson=n=>lessons.find(x=>x.no===Number(n));
  const statusOf=n=>progress.find(x=>x.training_no===n)||{watched:0,duration:0,completed:false};
  // Successful completion of the previous training means video + submitted exam.
+ const quizPublished=no=>published.some(x=>Number(x)===Number(no));
  function lessonUnlock(no){if(no===1)return true;return !!statusOf(no-1).completed&&scores.some(x=>Number(x.training_no)===no-1&&x.passed===true);}
  // Approved tests can still be previewed without saving; live attempts require RPC.
  function safeToast(s){if(typeof window.toast==='function')window.toast(s);else console.info(s);}
@@ -80,14 +81,17 @@
   const p=statusOf(no),unlocked=lessonUnlock(no),passed=!!p.passed,watchReady=!!p.completed;
   const attempted=p.best_score!==null&&p.best_score!==undefined;
   const state=E.lessonState({unlocked,watchCompleted:watchReady,passed,attempted,watching:!!(movie&&movie.no===no&&movie.watching)});
-  const quizEnabled=unlocked&&watchReady;
+  // V86.92 — Watch completion and quiz publication are separate: the button opens only when both hold.
+  const quizReady=quizPublished(no);
+  const quizEnabled=unlocked&&watchReady&&quizReady;
   return {icon:passed?'✅':unlocked?'▶':'🔒',state,
-   pct:watchReady?100:0,pctLabel:'مشاهدة الجلسة الحالية',
+   // V86.93 — A met watch condition is shown in words beside a full bar, not as "90%".
+   pct:watchReady?100:0,pctLabel:'مشاهدة الجلسة الحالية',pctText:watchReady?E.completionLabel(quizPublished(no)):'0%',
    play:unlocked?'basicBagStartVideo('+no+')':'',playLabel:unlocked?(watchReady?'▶ إعادة المشاهدة من البداية':'▶ ابدأ المشاهدة'):'🔒 '+E.STATE_TEXT.locked,
    quiz:'basicBagStartQuiz('+no+')',quizEnabled,
-   quizLabel:'📝 '+(state==='passed'?'إعادة الاختبار':state==='failed'?'أعد الاختبار':quizEnabled?'ابدأ اختبار الدرس':'الاختبار مغلق حتى تأكيد 90%'),
+   quizLabel:'📝 '+(!quizReady?E.MESSAGES.quizUnpublished:state==='passed'?'إعادة الاختبار':state==='failed'?'أعد الاختبار':quizEnabled?'ابدأ اختبار الدرس':'الاختبار مغلق حتى تأكيد 90%'),
    preview:canPreviewQuiz()?'<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewFirstQuiz('+no+')">👁 معاينة الاختبار (غير محفوظة)</button>':'',
-   status:({passed:'✅ ',failed:'❌ ',ready:'✅ ',locked:'🔒 ',watching:'▶ ',start:'▶ '})[state]+E.STATE_TEXT[state],
+   status:unlocked&&watchReady&&!quizReady?E.MESSAGES.completedQuizUnpublished:({passed:'✅ ',failed:'❌ ',ready:'✅ ',locked:'🔒 ',watching:'▶ ',start:'▶ '})[state]+E.STATE_TEXT[state],
    score:'أفضل درجة اختبار: '+(attempted?Math.round(Number(p.best_score)*5)+' / 100':'لم يُختبر بعد'),
    note:E.POLICY_NOTE};
  }
@@ -118,7 +122,7 @@
   return '<div id="basicBagViewerHead">'+headHtml(item,v)+'</div>'+
    '<div class="training-professional-video unified-training__video" id="basicBagInlineBox" data-no="'+item.no+'">'+poster+'</div>'+
    '<div class="basic-bag-inline-progress unified-training__progress"><div id="basicWatchProgress" class="basic-bag-progress" role="progressbar" aria-label="'+v.pctLabel+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+v.pct+'"><div style="width:'+v.pct+'%"></div></div>'+
-   '<strong id="basicWatchPct">'+v.pct+'%</strong></div>'+
+   '<strong id="basicWatchPct">'+esc(v.pctText||v.pct+'%')+'</strong></div>'+
    '<p id="basicWatchInfo" class="basic-bag-status">'+esc(v.status)+'</p>'+
    '<div id="basicBagViewerInfo">'+infoHtml(v)+'</div>';
  }
@@ -230,7 +234,7 @@
   if(movie!==m)return;m.pct=p.percent;
   const bar=document.getElementById('basicWatchProgress');
   if(bar){bar.querySelector('div').style.width=p.percent+'%';bar.setAttribute('aria-valuenow',String(p.percent));}
-  const out=document.getElementById('basicWatchPct');if(out)out.textContent=p.percent+'%';
+  const out=document.getElementById('basicWatchPct');if(out)out.textContent=p.label||p.percent+'%';
  }
  /* V86.90 — Watching goes through the unified training engine: one attempt per viewing, from 0 s,
   * confirmed by the server; the old cumulative heartbeat is gone. Opening rules are unchanged. */
@@ -256,6 +260,7 @@
   const m={no:item.no,inline:!!inline,box:inline,player:null,session:null,pct:0,preview:!backendReady,watching:false};
   movie=m;
   m.session=window.DXNTrainingEngine.createWatch({track:'basic',lessonNo:item.no,watchCompleted:!!saved.completed,preview:m.preview,
+   quizReady:()=>quizPublished(item.no),
    onMessage:t=>{if(movie===m)watchMessage(t);},
    onProgress:p=>{showProgress(m,p);if(p.attempt&&!m.watching&&movie===m){m.watching=true;refreshCards();}},
    onCompleted:()=>{
@@ -283,6 +288,7 @@
   if(!lessonUnlock(Number(no)))return safeToast('التدريب مغلق: أكمل التدريب السابق أولًا');
   if(!backendReady)return safeToast('يجب تفعيل قاعدة البيانات قبل تقديم الاختبارات');
   if(!p.completed)return safeToast('أكمل مشاهدة الفيديو أولًا');
+  if(!quizPublished(item.no))return safeToast(window.DXNTrainingEngine.MESSAGES.completedQuizUnpublished);
   close();const modal=createModal('اختبار '+item.title);
   document.addEventListener('keydown',escapeClose);
   const body=modal.querySelector('#basicBagModalBody');
@@ -363,9 +369,8 @@
     const breakdown=document.createElement('p');
     breakdown.textContent='النتيجة: '+(graded.passed?'ناجح ✅':'لم يجتز الاختبار')+' | درجة النجاح: 80 / 100';
     result.appendChild(breakdown);
-    const explain=document.createElement('p');explain.textContent=graded.passed?
-      '✅ اجتزت الاختبار! حفظنا درجتك ويمكنك الانتقال إلى التدريب التالي.':
-      'لم تجتز الاختبار بعد. تحتاج إلى 80 / 100 على الأقل؛ يمكنك مراجعة المحاضرة وإعادة المحاولة.';
+    const explain=document.createElement('p');
+    explain.textContent=graded.passed?window.DXNTrainingEngine.MESSAGES.passed:window.DXNTrainingEngine.MESSAGES.failed;
     result.appendChild(explain);
     // The server returns only the score; correct answers are intentionally private.
     if(!graded.passed){

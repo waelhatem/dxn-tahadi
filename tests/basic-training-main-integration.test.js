@@ -15,7 +15,9 @@ test('all inline scripts in the actual app HTML parse successfully',()=>{
  scripts.forEach((code,i)=>assert.doesNotThrow(()=>new vm.Script(code,{filename:'app-inline-'+i+'.js'})));
 });
 test('main-targeted basic training scripts are loaded once',()=>{
- const deps=['../basic-training.css?v=20261014-onequestion','../basic-training.js?v=20261015-engine','../unified-training-ui.css?v=20261015-unified',
+ // basic-training.js follows the engine's cache version (checked in unified-training-layout.test.js).
+ assert.equal((page.match(/<script src="\.\.\/basic-training\.js\?v=[\w-]+"><\/script>/g)||[]).length,1,'basic-training.js loaded once');
+ const deps=['../basic-training.css?v=20261014-onequestion','../unified-training-ui.css?v=20261015-unified',
   '../basic-training-member-profile.js?v=20261015-engine','../basic-training-leader-profile.js?v=20261015-engine',
   '../basic-training-admin.js?v=20261014-uistate'];
  deps.forEach(src=>assert.equal(page.split(src).length-1,1,src));

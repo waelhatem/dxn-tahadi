@@ -98,6 +98,8 @@ function fakeServer(clockRef){
     if(!tracks[t])return err('مسار التدريب غير معروف');
     const L=tracks[t].lessons[n];
     if(!L||!L.ready)return err('التدريب غير موجود');
+    // As training_engine_lesson_seconds: the advanced track is not watched before its bank is complete.
+    if(t==='advanced'&&!L.published)return err('بنك أسئلة التدريب غير مكتمل');
     if(!unlocked(tok,t,n))return err('الدرس مغلق — أكمل الدرس السابق واجتز اختباره أولًا');
     for(const a of Object.values(attempts))if(a.tok===tok&&a.track===t&&a.n===n&&!a.ended){a.ended=true;a.reason='replaced';}
     const id='att-'+(++seq);attempts[id]={id,tok,track:t,n,expected:L.duration,watched:0,last:now(),ended:false,reason:null,completed:false};
@@ -140,11 +142,12 @@ function fakeServer(clockRef){
       case 'training_watch_begin':return begin(tok,a.p_track,a.p_lesson_no);
       case 'training_watch_report':return report(tok,a.p_attempt_id,a.p_current,a.p_duration);
       case 'basic_training_watch_update':case 'advanced_financial_watch_update':return err('تم تحديث نظام المشاهدة؛ حدّث الصفحة لبدء مشاهدة جديدة');
-      case 'basic_training_overview':return {ok:true,body:{role:'member',published_quizzes:[1,2,3,4,5,6,7,8],watch_requirement:90,pass_requirement:16,
+      case 'basic_training_overview':return {ok:true,body:{role:'member',watch_requirement:90,pass_requirement:16,
+        published_quizzes:Object.entries(tracks.basic.lessons).filter(([,L])=>L.published).map(([n])=>+n),
         progress:Object.entries(tracks.basic.lessons).map(([n,L])=>{const r=peek(tok,'basic',+n)||{};return {training_no:+n,watched:0,duration:L.duration,completed:!!r.completed,passed:!!r.passed,best_score:r.best??null};}),
         scores:Object.keys(tracks.basic.lessons).map(Number).filter(n=>peek(tok,'basic',n)&&peek(tok,'basic',n).best!=null).map(n=>({training_no:n,score:peek(tok,'basic',n).best,passed:peek(tok,'basic',n).passed}))}};
       case 'advanced_financial_overview':return {ok:true,body:{role:'member',watch_requirement:90,pass_requirement:16,
-        lessons:Object.entries(tracks.advanced.lessons).map(([n,L])=>{const r=peek(tok,'advanced',+n)||{};return {lesson_no:+n,title:L.title,video_id:L.video,duration:L.duration,active:true,published:true,watched:0,completed:!!r.completed,best_score:r.best??null,passed:!!r.passed};})}};
+        lessons:Object.entries(tracks.advanced.lessons).map(([n,L])=>{const r=peek(tok,'advanced',+n)||{};return {lesson_no:+n,title:L.title,video_id:L.video,duration:L.duration,active:true,published:L.published,watched:0,completed:!!r.completed,best_score:r.best??null,passed:!!r.passed};})}};
       case 'professional_training_overview':return {ok:true,body:{role:'member',watch_requirement:90,pass_requirement:16,
         lessons:Object.entries(tracks.professional.lessons).map(([n,L])=>{const r=peek(tok,'professional',+n)||{};return {lesson_no:+n,title:L.title,instructor:L.instructor,video_id:L.video,duration:L.duration,active:true,published:L.published,completed:!!r.completed,best_score:r.best??null,passed:!!r.passed};})}};
       case 'basic_training_get_quiz':return quiz(tok,'basic',a.p_training_no);
@@ -160,10 +163,11 @@ function fakeServer(clockRef){
 }
 
 // Loads the real browser scripts into one context with the fake server, DOM and YouTube player.
-function setup({token='member-a',scripts=['training-engine.js','basic-training.js','advanced-financial-training.js','professional-training-course.js'],realSeconds={},hold=null}={}){
+// `reloadOf`: a full page reload of an earlier env — fresh scripts and DOM, same server data and clock.
+function setup({token='member-a',scripts=['training-engine.js','basic-training.js','advanced-financial-training.js','professional-training-course.js'],realSeconds={},hold=null,reloadOf=null}={}){
   const {document,body}=makeDom();
-  const clockRef={now:1_000_000};let perf=0,activeToken=token;
-  const server=fakeServer(clockRef);
+  const clockRef=reloadOf?reloadOf.clockRef:{now:1_000_000};let perf=0,activeToken=token;
+  const server=reloadOf?reloadOf.server:fakeServer(clockRef);
   const calls=[],timers=[],intervals=[],players=[],held=[];
   const ctx={console,Math,Number,String,Array,Object,JSON,Error,Promise,Set,Map,innerWidth:1200,document,
     Date:{now:()=>clockRef.now},performance:{now:()=>perf},

@@ -135,7 +135,14 @@ test('shared stylesheet only targets the unified trainings and non-advanced quiz
   assert.ok(selectors.length>10);
   for(const s of selectors)assert.match(s,/^(\.unified-training|\.basic-bag-overlay:not\(\.advanced-financial-overlay\))/,s);
   const page=read('app/index.html');
-  for(const f of ['training-engine.js','advanced-financial-training.js','basic-training.js','professional-training-course.js'])
-    assert.ok(page.includes('<script src="../'+f+'?v=20261015-engine"></script>'),f+' loaded with the engine version');
+  // The cache version changes with every release, so it is not pinned here (a pinned string broke the
+  // Vercel build on each bump). What matters: each script is loaded once, with a version, and the four
+  // engine scripts are bumped together so no member mixes an old track with a new engine.
+  const versions=['training-engine.js','advanced-financial-training.js','basic-training.js','professional-training-course.js'].map(f=>{
+    const found=[...page.matchAll(new RegExp('<script src="\\.\\./'+f.replace('.','\\.')+'\\?v=([\\w-]+)"></script>','g'))];
+    assert.equal(found.length,1,f+' loaded exactly once with a cache version');
+    return found[0][1];
+  });
+  assert.equal(new Set(versions).size,1,'engine and tracks share one cache version: '+versions.join(', '));
   assert.ok(page.indexOf('training-engine.js')<page.indexOf('basic-training.js?v='),'engine loads before the tracks');
 });
