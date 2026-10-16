@@ -72,7 +72,7 @@ const cards=()=>{
  '<div class="basic-bag-inline-progress"><div class="basic-bag-progress"><div id="advFinancialWatchBar" style="width:'+shown+'%"></div></div><strong id="advFinancialWatchPct">'+esc(selected.completed?E.completionLabel(isReady(selected)):'0%')+'</strong></div>'+ 
   '<p id="advFinancialWatchMessage" class="muted">'+esc(label)+'</p>'+
   '<div class="advanced-financial-quiz-location">'+
- '<button type="button" class="name-list-btn primary advanced-financial-test-cta" data-test="'+n+'" style="display:inline-flex;justify-content:center;align-items:center;gap:8px;margin-inline-start:0;padding:13px 22px;min-width:0;font-size:1.05rem;font-weight:800;background:'+q.background+';color:'+q.color+';border:2px solid #0b805c;border-radius:12px;cursor:pointer;">'+q.text+'</button>'+
+ '<button type="button" class="name-list-btn primary advanced-financial-test-cta" data-test="'+n+'" style="display:inline-flex;justify-content:center;align-items:center;gap:8px;margin-inline-start:0;padding:13px 22px;min-width:0;font-size:1.05rem;font-weight:800;background:'+q.background+';color:'+q.color+';border:2px solid #0b805c;border-radius:12px;cursor:pointer;" '+(q.open?'':'disabled')+'>'+q.text+'</button>'+
   '</div>'+
   '<p class="muted">الدرجة: '+esc(score)+'</p>'+
  '</div></div>';
