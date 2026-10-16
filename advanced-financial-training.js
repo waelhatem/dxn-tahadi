@@ -70,7 +70,7 @@ const cards=()=>{
  (role==='leader'&&window.innerWidth>=900?'<button type="button" class="name-list-btn" data-preview="'+n+'">⏱ اعتماد مدة الفيديو</button>':'')+
  '</div>'+
  '<div class="training-professional-video" id="advancedFinancialInlineBox"><div id="advFinancialYT"></div></div>'+
- '<div class="basic-bag-inline-progress"><div class="basic-bag-progress"><div id="advFinancialWatchBar" style="width:'+shown+'%"></div></div><strong id="advFinancialWatchPct">'+shown+'%</strong></div>'+ 
+ '<div class="basic-bag-inline-progress"><div class="basic-bag-progress"><div id="advFinancialWatchBar" style="width:'+shown+'%"></div></div><strong id="advFinancialWatchPct">'+esc(selected.completed?E.completionLabel(isReady(selected)):'0%')+'</strong></div>'+ 
  '<p id="advFinancialWatchMessage" class="muted">'+esc(label)+'</p><p class="muted">الدرجة: '+esc(score)+'</p>'+
  '</div></div>';
 };
@@ -125,8 +125,8 @@ async function youtube(){
 }
 function status(s){const el=document.getElementById('advFinancialWatchMessage');if(el)el.textContent=s;}
 function watchUi(p){
- const bar=document.getElementById('advFinancialWatchBar');if(bar)bar.style.width=p+'%';
- const n=document.getElementById('advFinancialWatchPct');if(n)n.textContent=p+'%';
+ const bar=document.getElementById('advFinancialWatchBar');if(bar)bar.style.width=p.percent+'%';
+ const n=document.getElementById('advFinancialWatchPct');if(n)n.textContent=p.label||p.percent+'%';
 }
 async function previewVideo(n){
  if(role!=='leader'||window.innerWidth<900)return notify('المعاينة للقائد على الحاسوب فقط');
@@ -175,7 +175,7 @@ async function mountInline(x){
   w.engine=window.DXNTrainingEngine.createWatch({track:'advanced',lessonNo:n,watchCompleted:!!x.completed,preview:!tracked,
    quizReady:()=>isReady(data.find(l=>l.lesson_no===n)),
    onMessage:t=>{if(watch===w)status(t);},
-   onProgress:p=>{if(watch===w&&tracked)watchUi(p.percent);},
+   onProgress:p=>{if(watch===w&&tracked)watchUi(p);},
    onCompleted:()=>{
     // Saved state first (startQuiz reads it), then the existing button — no render, so no new player.
     const d=data.find(l=>l.lesson_no===n);if(!d||watch!==w)return;

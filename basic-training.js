@@ -85,7 +85,8 @@
   const quizReady=quizPublished(no);
   const quizEnabled=unlocked&&watchReady&&quizReady;
   return {icon:passed?'✅':unlocked?'▶':'🔒',state,
-   pct:watchReady?100:0,pctLabel:'مشاهدة الجلسة الحالية',
+   // V86.93 — A met watch condition is shown in words beside a full bar, not as "90%".
+   pct:watchReady?100:0,pctLabel:'مشاهدة الجلسة الحالية',pctText:watchReady?E.completionLabel(quizPublished(no)):'0%',
    play:unlocked?'basicBagStartVideo('+no+')':'',playLabel:unlocked?(watchReady?'▶ إعادة المشاهدة من البداية':'▶ ابدأ المشاهدة'):'🔒 '+E.STATE_TEXT.locked,
    quiz:'basicBagStartQuiz('+no+')',quizEnabled,
    quizLabel:'📝 '+(!quizReady?E.MESSAGES.quizUnpublished:state==='passed'?'إعادة الاختبار':state==='failed'?'أعد الاختبار':quizEnabled?'ابدأ اختبار الدرس':'الاختبار مغلق حتى تأكيد 90%'),
@@ -121,7 +122,7 @@
   return '<div id="basicBagViewerHead">'+headHtml(item,v)+'</div>'+
    '<div class="training-professional-video unified-training__video" id="basicBagInlineBox" data-no="'+item.no+'">'+poster+'</div>'+
    '<div class="basic-bag-inline-progress unified-training__progress"><div id="basicWatchProgress" class="basic-bag-progress" role="progressbar" aria-label="'+v.pctLabel+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+v.pct+'"><div style="width:'+v.pct+'%"></div></div>'+
-   '<strong id="basicWatchPct">'+v.pct+'%</strong></div>'+
+   '<strong id="basicWatchPct">'+esc(v.pctText||v.pct+'%')+'</strong></div>'+
    '<p id="basicWatchInfo" class="basic-bag-status">'+esc(v.status)+'</p>'+
    '<div id="basicBagViewerInfo">'+infoHtml(v)+'</div>';
  }
@@ -233,7 +234,7 @@
   if(movie!==m)return;m.pct=p.percent;
   const bar=document.getElementById('basicWatchProgress');
   if(bar){bar.querySelector('div').style.width=p.percent+'%';bar.setAttribute('aria-valuenow',String(p.percent));}
-  const out=document.getElementById('basicWatchPct');if(out)out.textContent=p.percent+'%';
+  const out=document.getElementById('basicWatchPct');if(out)out.textContent=p.label||p.percent+'%';
  }
  /* V86.90 — Watching goes through the unified training engine: one attempt per viewing, from 0 s,
   * confirmed by the server; the old cumulative heartbeat is gone. Opening rules are unchanged. */

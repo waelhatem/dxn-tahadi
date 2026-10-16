@@ -54,7 +54,7 @@
    '<button type="button" class="unified-training__play" '+(can?'onclick="professionalCourseWatch('+l.lesson_no+')"':'disabled')+'>'+
    (can?(l.completed?'▶ إعادة المشاهدة من البداية':'▶ ابدأ المشاهدة'):'🔒 '+esc(E().STATE_TEXT.locked))+'</button></div>'+
    '<div class="basic-bag-inline-progress unified-training__progress"><div id="professionalWatchProgress" class="basic-bag-progress" role="progressbar" aria-label="مشاهدة الجلسة الحالية" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+(l.completed?100:0)+'"><div style="width:'+(l.completed?100:0)+'%"></div></div>'+
-   '<strong id="professionalWatchPct">'+(l.completed?100:0)+'%</strong></div>'+
+   '<strong id="professionalWatchPct">'+esc(l.completed?E().completionLabel(!!l.published):'0%')+'</strong></div>'+
    '<p id="professionalWatchInfo" class="basic-bag-status">'+esc(v.status)+'</p>'+
    '<div id="professionalViewerInfo">'+infoHtml(v)+'</div>';
  }
@@ -113,7 +113,7 @@
   if(movie!==m)return;
   const bar=document.getElementById('professionalWatchProgress');
   if(bar){bar.querySelector('div').style.width=p.percent+'%';bar.setAttribute('aria-valuenow',String(p.percent));}
-  const out=document.getElementById('professionalWatchPct');if(out)out.textContent=p.percent+'%';
+  const out=document.getElementById('professionalWatchPct');if(out)out.textContent=p.label||p.percent+'%';
  }
  async function youtube(){
   if(window.YT&&window.YT.Player)return;

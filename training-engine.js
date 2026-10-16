@@ -1,4 +1,4 @@
-/* V86.92 — Unified training engine (browser side), shared by the basic, professional and advanced tracks.
+/* V86.93 — Unified training engine (browser side), shared by the basic, professional and advanced tracks.
  * One watch attempt per viewing: it starts at 0 s when the member presses play, credits only time the
  * server confirms (training_watch_begin / training_watch_report), and is never resumed in a later
  * session. 90% confirmed by the server marks the lesson watched for good; the quiz and the next lesson
@@ -37,8 +37,13 @@
   watching:'المشاهدة قيد التنفيذ — أكمل 90% لفتح الاختبار.',
   passed:'🎉 اجتزت الاختبار بنجاح — أصبح التدريب التالي متاحًا.',
   failed:'لم تحقق درجة النجاح المطلوبة. يمكنك إعادة الاختبار وفق نظام المحاولات.',
-  quizUnpublished:'اختبار هذا الدرس لم يُنشر بعد'
+  quizUnpublished:'اختبار هذا الدرس لم يُنشر بعد',
+  conditionMet:'✅ اكتمل شرط المشاهدة بنجاح',
+  conditionMetQuizOpen:'✅ اكتمل شرط المشاهدة بنجاح — 📝 الاختبار متاح الآن',
+  conditionMetQuizUnpublished:'✅ اكتملت المشاهدة — الاختبار لم يُنشر بعد'
  };
+ // The words beside the full bar once the watch condition is met (saved or confirmed now).
+ const completionLabel=quizReady=>quizReady?MESSAGES.conditionMetQuizOpen:MESSAGES.conditionMetQuizUnpublished;
  const POLICY_NOTE='تُحتسب المشاهدة داخل جلسة واحدة تبدأ من بداية الفيديو بسرعة 1x؛ عند بلوغ 90% يؤكد الخادم الإكمال ويُفتح الاختبار. المشاهدة غير المكتملة لا تُحفظ بين الجلسات، والنجاح في الاختبار (80 / 100) يفتح الدرس التالي.';
 
  const token=()=>String(localStorage.getItem('dxn_session')||'').trim();
@@ -68,9 +73,17 @@
    if(w.stopped||typeof o.onProgress!=='function')return;
    if(w.preview){const d=w.playerDuration();o.onProgress({percent:d?Math.min(100,Math.floor(100*w.max/d)):0,watched:w.max,duration:d,attempt:false});return;}
    const a=w.attempt;
-   // Once the server has confirmed 90%, the rest of the video still plays and the bar keeps following it.
-   const seconds=a?(a.completed?Math.max(a.watched,Math.floor(w.max)):a.watched):0;
-   o.onProgress({percent:a&&a.duration?Math.min(100,Math.floor(100*seconds/a.duration)):0,watched:seconds,duration:a?a.duration:0,attempt:!!a,completed:!!(a&&a.completed)});
+   // V86.93 — The bar shows the watch condition, not the YouTube position. Before 90% it is the share
+   // the server confirmed in this attempt; once the server confirms 90% the condition is met, so the bar
+   // is full and says so in words (the video itself keeps playing to its end, untouched).
+   if(a&&a.completed||!a&&w.lessonCompleted){
+    o.onProgress({percent:100,label:completionLabel(quizReady()),conditionMet:true,watched:a?a.watched:0,duration:a?a.duration:0,attempt:!!a});
+    return;
+   }
+   const percent=a&&a.duration?Math.min(100,Math.floor(100*a.watched/a.duration)):0;
+   // Rewatching a completed lesson: this session's share on its own; the saved completion stays.
+   const label=a&&a.rewatch?'جلسة إعادة المشاهدة: '+percent+'% — الإنجاز محفوظ':percent+'%';
+   o.onProgress({percent,label,conditionMet:false,watched:a?a.watched:0,duration:a?a.duration:0,attempt:!!a});
   };
   const sameAccount=()=>{if(token()===w.session)return true;w.stop();return false;};
   // Forget the current attempt; the next play starts a new one from the beginning.
@@ -86,9 +99,9 @@
     const r=await rpc('training_watch_begin',{p_track:w.track,p_lesson_no:w.lessonNo});
     if(w.stopped||!sameAccount())return;
     w.idle=Number(r.idle_timeout_seconds)||DEFAULT_IDLE_S;
-    w.attempt={id:r.attempt_id,duration:Number(r.duration)||0,watched:0,lastSent:0,saving:false,completed:false};
     // Saved as watched already (e.g. in another tab): the page learns it now and opens the quiz.
     if(r.watch_completed&&!w.lessonCompleted){w.lessonCompleted=true;if(typeof o.onCompleted==='function')o.onCompleted();}
+    w.attempt={id:r.attempt_id,duration:Number(r.duration)||0,watched:0,lastSent:0,saving:false,completed:false,rewatch:w.lessonCompleted};
     // The attempt is new: whatever was played before it counts from 0 again.
     w.max=0;try{if(w.player.getCurrentTime()>1)w.player.seekTo(0,true);}catch(_){}
     w.previousTime=0;w.previousWall=performance.now();
@@ -156,7 +169,7 @@
    const elapsed=Math.max(0,Math.min((now-w.previousWall)/1000,2));
    const moving=current>=w.previousTime-0.2&&current-w.previousTime<=elapsed+1;
    w.previousTime=current;w.previousWall=now;
-   if(state===PLAYING&&moving&&current>w.max){w.max=Math.min(duration,current);if(w.preview||(w.attempt&&w.attempt.completed))progress();}
+   if(state===PLAYING&&moving&&current>w.max){w.max=Math.min(duration,current);if(w.preview)progress();}
    report();
   }
   w.attach=function(player){
@@ -229,6 +242,6 @@
   return {update,finish,back,next};
  }
 
- window.DXNTrainingEngine={createWatch,lessonState,STATE_TEXT,MESSAGES,POLICY_NOTE,pageQuestions,rpc,
+ window.DXNTrainingEngine={createWatch,lessonState,STATE_TEXT,MESSAGES,completionLabel,POLICY_NOTE,pageQuestions,rpc,
   constants:{REPORT_INTERVAL_MS,TICK_MS,FORWARD_TOLERANCE_S,WATCH_PERCENT:90,PASS_SCORE:16}};
 })();

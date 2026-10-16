@@ -12,6 +12,7 @@ const TRACKS={
     quiz:env=>env.byId('basicBagViewerHead').querySelector('.unified-training__quiz-button'),
     quizOpen:env=>!env.byId('basicBagViewerHead').querySelector('.unified-training__quiz-button').disabled,
     pct:env=>env.byId('basicWatchPct').textContent,
+    bar:env=>env.byId('basicWatchProgress').querySelector('div').style.width,
     status:env=>env.byId('basicWatchInfo').textContent,
     lessonLocked:(env,n)=>env.byId('basicBagLessonList').querySelectorAll('button')[n-1].disabled,
     async takeQuiz(env,n,answers){await env.ctx.basicBagStartQuiz(n);await env.flush();
@@ -26,6 +27,7 @@ const TRACKS={
     quiz:env=>env.document.querySelector('#advancedFinancialLessons [data-test]'),
     quizOpen:env=>{const b=env.document.querySelector('#advancedFinancialLessons [data-test]');return /ابدأ اختبار|أعد الاختبار|إعادة الاختبار/.test(b.textContent);},
     pct:env=>env.byId('advFinancialWatchPct').textContent,
+    bar:env=>env.byId('advFinancialWatchBar').style.width,
     status:env=>env.byId('advFinancialWatchMessage').textContent,
     lessonLocked:(env,n)=>env.document.querySelector('[data-select-lesson="'+n+'"]').disabled,
     async takeQuiz(env,n,answers){
@@ -48,6 +50,7 @@ const TRACKS={
     quiz:env=>env.byId('professionalViewerHead').querySelector('.unified-training__quiz-button'),
     quizOpen:env=>!env.byId('professionalViewerHead').querySelector('.unified-training__quiz-button').disabled,
     pct:env=>env.byId('professionalWatchPct').textContent,
+    bar:env=>env.byId('professionalWatchProgress').querySelector('div').style.width,
     status:env=>env.byId('professionalWatchInfo').textContent,
     lessonLocked:(env,n)=>env.byId('professionalLessonList').querySelectorAll('button')[n-1].disabled,
     async takeQuiz(env,n,answers){await env.ctx.professionalCourseQuiz(n);await env.flush();
