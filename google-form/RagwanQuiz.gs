@@ -214,3 +214,61 @@ function migrateRagwanQuizForm(id){
     throw err;
   }
 }
+
+
+/**
+ * اختبار آمن للنتيجة الفورية: ينشئ نموذجًا تجريبيًا فقط، دون ربطه
+ * ببريد سبونسر، ودون Trigger، ودون تغيير النماذج الحالية.
+ * بعد إنشائه افتح رابط التحرير واضبط: Settings > Release grades >
+ * Immediately after each submission، ثم جرّب الرابط العام كمتدرب.
+ */
+function createRagwanQuizPreviewOnly(){
+  const form=FormApp.create('تجربة آمنة — اختبار حقيبة رجوان (لا تستخدمه للأعضاء)');
+  form.setIsQuiz(true);
+  form.setCollectEmail(false);
+  form.setPublishingSummary(false);
+  form.setShuffleQuestions(false);
+  form.setDescription('نسخة تجريبية للتحقق من عرض الدرجة فور الإرسال. لا تُستخدم لتدريب الأعضاء.');
+  form.addTextItem().setTitle('اسم العضو الكامل').setRequired(true);
+  form.addTextItem().setTitle('رقم العضوية').setRequired(true);
+  addRagwanMultipleChoiceItems(form);
+  form.setConfirmationMessage('تم إرسال الإجابات. اضغط «عرض النتيجة» (View score).');
+  const result={editUrl:form.getEditUrl(),respondentUrl:form.getPublishedUrl(),formId:form.getId()};
+  Logger.log(JSON.stringify(result));
+  return result;
+}
+
+/**
+ * تدقيق قراءة فقط للنماذج الموجودة. لا يغير أي نموذج ولا ينشئ ملفات.
+ * لا تُرسل سجل التنفيذ وفيه بريد السبونسر لأشخاص غير مخولين.
+ */
+function auditRagwanSponsorQuizzesReadOnly(){
+  const props=PropertiesService.getScriptProperties().getProperties();
+  const rows=Object.keys(props).filter(function(k){
+    return k.indexOf('SPONSOR_')===0;
+  }).sort().map(function(key){
+    const id=key.slice(8);
+    try{
+      const form=FormApp.openById(id);
+      return {formId:id,quiz:form.isQuiz(),totalItems:form.getItems().length,
+        paragraphQuestions:form.getItems(FormApp.ItemType.PARAGRAPH_TEXT).length,
+        choiceQuestions:form.getItems(FormApp.ItemType.MULTIPLE_CHOICE).length,
+        autoGradeReady:isRagwanMultipleChoiceQuiz(form)};
+    }catch(err){return {formId:id,error:String(err&&err.message||err)};}
+  });
+  Logger.log(JSON.stringify(rows));
+  return rows;
+}
+
+/**
+ * تحويل نموذج موجود واحد فقط بعد نجاح النموذج التجريبي
+ * وإتمام النسخ الاحتياطي؛ يتحقق أن المعرف مسجل لهذا المشروع.
+ */
+function migrateOneRagwanSponsorQuiz(formId){
+  const id=String(formId||'').trim();
+  if(!id)throw new Error('يجب تزويد Form ID المعتمد، ولا يجوز التخمين.');
+  const props=PropertiesService.getScriptProperties();
+  if(!props.getProperty('SPONSOR_'+id))throw new Error('Form ID ليس مسجلًا لسبونسر في هذا المشروع.');
+  migrateRagwanQuizForm(id);
+  return {formId:id,quiz:true,formUrl:FormApp.openById(id).getPublishedUrl()};
+}
