@@ -66,12 +66,15 @@ const cards=()=>{
  '<strong id="advancedProfitVideoTitle">الدرس '+n+' من 10 — '+esc(selected.title)+'</strong>'+
  '<div class="advanced-financial-inline-actions" style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;width:100%;">'+
  '<span class="muted" style="margin-inline-end:auto;">'+(ready?'▶ عند التشغيل تبدأ جلسة مشاهدة جديدة من البداية':'⏳ هذا الدرس غير منشور بعد، والمشاهدة لا تُحتسب')+'</span>'+
- '<button type="button" class="name-list-btn primary advanced-financial-test-cta" data-test="'+n+'" style="display:inline-flex;justify-content:center;align-items:center;gap:8px;margin-inline-start:auto;padding:13px 22px;min-width:180px;font-size:1.05rem;font-weight:800;background:'+q.background+';color:'+q.color+';border:2px solid #0b805c;border-radius:12px;cursor:pointer;">'+q.text+'</button>'+
  (role==='leader'&&window.innerWidth>=900?'<button type="button" class="name-list-btn" data-preview="'+n+'">⏱ اعتماد مدة الفيديو</button>':'')+
  '</div>'+
  '<div class="training-professional-video" id="advancedFinancialInlineBox"><div id="advFinancialYT"></div></div>'+
  '<div class="basic-bag-inline-progress"><div class="basic-bag-progress"><div id="advFinancialWatchBar" style="width:'+shown+'%"></div></div><strong id="advFinancialWatchPct">'+esc(selected.completed?E.completionLabel(isReady(selected)):'0%')+'</strong></div>'+ 
- '<p id="advFinancialWatchMessage" class="muted">'+esc(label)+'</p><p class="muted">الدرجة: '+esc(score)+'</p>'+
+  '<p id="advFinancialWatchMessage" class="muted">'+esc(label)+'</p>'+
+  '<div class="advanced-financial-quiz-location">'+
+ '<button type="button" class="name-list-btn primary advanced-financial-test-cta" data-test="'+n+'" style="display:inline-flex;justify-content:center;align-items:center;gap:8px;margin-inline-start:0;padding:13px 22px;min-width:0;font-size:1.05rem;font-weight:800;background:'+q.background+';color:'+q.color+';border:2px solid #0b805c;border-radius:12px;cursor:pointer;" '+(q.open?'':'disabled')+'>'+q.text+'</button>'+
+  '</div>'+
+  '<p class="muted">الدرجة: '+esc(score)+'</p>'+
  '</div></div>';
 };
 function render(){
@@ -86,7 +89,7 @@ function render(){
  host.querySelectorAll('[data-test]').forEach(b=>b.onclick=()=>startQuiz(+b.dataset.test));
  host.querySelectorAll('[data-preview]').forEach(b=>b.onclick=()=>previewVideo(+b.dataset.preview));
  const p=document.getElementById('advancedFinancialProgress');
- if(p){const passed=data.filter(x=>x.passed&&x.completed).length;p.textContent='الدروس المجتازة: '+passed+' / 10'+(passed===10?' — 🎉 اكتملت دورة خطة DXN المالية':'');}
+ if(p){const passed=data.filter(x=>x.passed&&x.completed).length;p.textContent='الدروس المجتازة: '+passed+' / 10'+(passed===10?' — 🎉 اكتمل التدريب المتقدم':'');}
 }
 window.advancedFinancialCoursePage=function(){
  resetIfAccountChanged();
@@ -96,7 +99,7 @@ window.advancedFinancialCoursePage=function(){
  const vids=window.advancedProfitVideos||[];
  return '<section class="card advanced-financial-course" dir="rtl"><div class="title">🚀 التدريب المتقدم</div>'+
  '<details class="advanced-profit-course academy-camps-course"><summary><span class="advanced-profit-course-emoji">📈</span>'+
- '<span class="advanced-profit-course-copy"><strong>التدريب المتقدم الأول: خطة أرباح DXN المالية</strong>'+
+ '<span class="advanced-profit-course-copy"><strong>التدريب المتقدم</strong>'+
  '<small>المهندس محمود المصري — 10 دروس متتابعة واختبار لكل درس</small></span>'+
  '<span class="academy-camps-open-hint"><span class="academy-camps-hint-closed">▶ اضغط لعرض الدروس العشرة</span>'+
  '<span class="academy-camps-hint-open">▲ إغلاق قائمة الدروس</span></span></summary><div class="advanced-profit-content">'+
@@ -181,7 +184,7 @@ async function mountInline(x){
     const d=data.find(l=>l.lesson_no===n);if(!d||watch!==w)return;
     d.completed=true;
     const test=document.querySelector('#advancedFinancialLessons [data-test="'+n+'"]');
-    if(test){const q=quizButton(d);test.textContent=q.text;test.style.background=q.background;test.style.color=q.color;}
+    if(test){const q=quizButton(d);test.textContent=q.text;test.style.background=q.background;test.style.color=q.color;test.disabled=!q.open;}
    }});
   watch=w;
   w.player=new window.YT.Player(target,{videoId:x.video_id,playerVars:{rel:0,disablekb:tracked?1:0,playsinline:1,start:0},
@@ -238,18 +241,18 @@ function renderExam(body){
 }
 window.advancedFinancialMemberProfile=function(){
  setTimeout(()=>window.advancedFinancialMemberRefresh?.(),0);
- return '<section class="card advanced-financial-member-profile"><div class="title">📈 خطة DXN المالية — سجلي التدريبي</div>'+
+ return '<section class="card advanced-financial-member-profile"><div class="title">🚀 التدريب المتقدم — سجلي التدريبي</div>'+
  '<div id="advancedFinancialMemberBody">جارٍ قراءة السجل...</div></section>';
 };
 window.advancedFinancialMemberRefresh=async function(){
  const root=document.getElementById('advancedFinancialMemberBody');if(!root)return;
  try{const d=await rpc('advanced_financial_overview');
  if(!root.isConnected)return;
- const list=d.lessons||[],complete=list.every(x=>x.completed&&x.passed&&x.best_score!=null);
+ const list=(d.lessons||[]).slice().sort((a,b)=>Number(a.lesson_no)-Number(b.lesson_no)),complete=list.length===10&&list.every(x=>x.completed&&x.passed&&x.best_score!=null);
  const average=complete?list.reduce((a,x)=>a+x.best_score*5,0)/10:null;
  root.innerHTML=(complete?'<strong>🏆 المعدل النهائي: '+average.toFixed(1)+' / 100</strong>':'<p class="muted">لا يظهر المعدل النهائي حتى إكمال الاختبارات العشرة.</p>')+
  list.map(x=>'<div class="card"><b>الدرس '+x.lesson_no+': '+esc(x.title)+'</b><p class="muted">المشاهدة: '+(x.completed?'✅ مكتملة':'غير مكتملة')+' — الدرجة: '+
- (x.best_score==null?'لم يُختبر':(x.best_score*5)+' / 100')+' — '+(x.passed?'✅ ناجح':'⏳ قيد الإنجاز')+'</p></div>').join('');
+ (x.best_score==null?'لم يُختبر':(x.best_score*5)+' / 100')+' — '+(x.passed?'✅ مجتاز':x.best_score!=null?'❌ لم يجتز':x.completed?'📝 جاهز للاختبار':'⏳ لم تكتمل المشاهدة')+'</p>'+(x.passed_at?'<p class="muted">📅 تاريخ الاجتياز: '+esc(new Date(x.passed_at).toLocaleDateString('ar-IQ'))+'</p>':'')+'</div>').join('');
  }catch(e){root.textContent='تعذر قراءة السجل: '+e.message;}
 };
 window.advancedFinancialLeaderProfile=async function(memberId){
@@ -257,15 +260,21 @@ window.advancedFinancialLeaderProfile=async function(memberId){
  const modal=document.getElementById('memberProfileModal');if(!modal||!memberId)return;
  modal.querySelector('#advancedFinancialLeaderSection')?.remove();
  const section=document.createElement('section');section.id='advancedFinancialLeaderSection';section.className='card';
- section.innerHTML='<div class="title">📈 التدريب المتقدم — خطة DXN المالية</div><p class="muted">جارٍ تحميل نتائج العضو...</p>';
- modal.append(section);
+ section.innerHTML='<div class="title">🚀 التدريب المتقدم</div><p class="muted">جارٍ تحميل نتائج العضو...</p>';
+ const resultsPanel=modal.querySelector('#leaderTrainingResultsPanelAdvanced');
+ if(resultsPanel)resultsPanel.appendChild(section);
+ else {
+ const anchor=modal.querySelector('.command-actions');
+ if(anchor&&anchor.parentElement)anchor.insertAdjacentElement('beforebegin',section);
+ else (modal.querySelector('.evidence-modal')||modal).appendChild(section);
+ }
  try{const d=await rpc('advanced_financial_leader_member_profile',{p_member_id:String(memberId)});
  if(!section.isConnected||String(d.member_id)!==String(memberId))return;
- const lessons=d.lessons||[];const allPassed=lessons.length===10&&lessons.every(x=>x.completed&&x.passed&&x.best_score!=null);
+ const lessons=(d.lessons||[]).slice().sort((a,b)=>Number(a.lesson_no)-Number(b.lesson_no));const allPassed=lessons.length===10&&lessons.every(x=>x.completed&&x.passed&&x.best_score!=null);
  const average=allPassed?lessons.reduce((total,x)=>total+Number(x.best_score)*5,0)/10:null;
- section.innerHTML='<div class="title">📈 التدريب المتقدم — خطة DXN المالية</div>'+ 
+ section.innerHTML='<div class="title">🚀 التدريب المتقدم</div>'+ 
  (allPassed?'<p class="basic-training-average-score">🏆 المعدل النهائي: '+average.toFixed(1)+' / 100</p>':'<p class="muted">يظهر المعدل النهائي عند اكتمال الدروس والاختبارات العشرة.</p>')+
- (d.lessons||[]).map(x=>'<div class="row"><span>'+x.lesson_no+'. '+esc(x.title)+'</span><span>المشاهدة '+(x.completed?'مكتملة':'غير مكتملة')+' | '+(x.best_score==null?'لا توجد درجة':x.best_score*5+' / 100')+' | '+(x.passed?'✅':'⏳')+'</span></div>').join('');
+ lessons.map(x=>'<div class="row"><span>'+x.lesson_no+'. '+esc(x.title)+'</span><span>المشاهدة '+(x.completed?'مكتملة':'غير مكتملة')+' | '+(x.best_score==null?'لا توجد درجة':x.best_score*5+' / 100')+' | '+(x.passed?'✅ مجتاز':x.best_score!=null?'❌ لم يجتز':x.completed?'📝 جاهز للاختبار':'⏳ لم تكتمل المشاهدة')+'</span>'+(x.passed_at?'<span>📅 '+esc(new Date(x.passed_at).toLocaleDateString('ar-IQ'))+'</span>':'')+'</div>').join('');
  }catch(e){if(section.isConnected)section.innerHTML='<p class="muted">تعذر تحميل سجل التدريب: '+esc(e.message)+'</p>';}
 };
 })();
