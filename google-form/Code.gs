@@ -194,10 +194,7 @@ function createSponsorTrainingForm(sponsorEmail) {
      إعدادات النموذج
   ------------------------------------------------ */
 
-  form.setConfirmationMessage(
-    'تم إرسال إجاباتك بنجاح.\n\n' +
-    'سيتم تقييم الاختبار وإظهار النتيجة ضمن نظام التدريب.'
-  );
+  form.setConfirmationMessage(sponsorTrainingResultInstructions());
 
 
   /* -----------------------------------------------
@@ -1534,4 +1531,37 @@ function jsonOutput_(data) {
       ContentService.MimeType.JSON
     );
 
+}
+
+
+/**
+ * رسالة ثابتة لا تعرض الدرجة لأن تصحيح الأسئلة المقالية يجري في نظام DXN
+ * بعد إرسال Google Form. لا نعرض نتيجة عضو داخل رسالة مشتركة لجميع الأعضاء.
+ */
+function sponsorTrainingResultInstructions() {
+  return 'تم إرسال إجاباتك بنجاح.\n\n' +
+    'يجري تصحيح الاختبار آليًا وإرسال التقرير إلى بريد الراعي المعتمد.\n' +
+    'لعرض درجتك من 100: ارجع إلى مجتمع الصحة والثراء، افتح خطة رجوان > الخطوة الرابعة، ' +
+    'ثم اضغط «عرض نتيجة اختباري» من حسابك. إذا لم تظهر فورًا، أعد طلبها بعد اكتمال التصحيح.';
+}
+
+/**
+ * تشغيل يدوي مرة واحدة من حساب مالك نماذج Google Forms الحالية.
+ * يغيّر رسالة الإتمام فقط ولا يمس الأسئلة أو الإجابات أو نماذج السبونسر.
+ */
+function updateSponsorTrainingFormConfirmations() {
+  const props=PropertiesService.getScriptProperties().getProperties();
+  const ids=Object.keys(props).filter(function(key){return key.indexOf('SPONSOR_')===0;});
+  const result={updated:0,failed:[]};
+  ids.forEach(function(key){
+    const id=key.substring('SPONSOR_'.length);
+    try {
+      FormApp.openById(id).setConfirmationMessage(sponsorTrainingResultInstructions());
+      result.updated+=1;
+    } catch(err) {
+      result.failed.push({formId:id,error:String(err&&err.message||err)});
+    }
+  });
+  Logger.log(JSON.stringify(result));
+  return result;
 }
