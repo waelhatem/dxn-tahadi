@@ -80,9 +80,13 @@
   const section=document.createElement('section');section.id='professionalTrainingLeaderSection';section.className='card';
   section.style.cssText='margin-top:10px;direction:rtl;text-align:right;border:1px solid #d7e7df';
   section.innerHTML='<h3>🎓 التدريبات الاحترافية — سجل العضو</h3><p class="muted">جارٍ قراءة النتائج...</p>';
+  const resultsPanel=modal.querySelector('#leaderTrainingResultsPanelProfessional');
+  if(resultsPanel)resultsPanel.appendChild(section);
+  else {
   const anchor=modal.querySelector('.command-actions');
   if(anchor&&anchor.parentElement)anchor.insertAdjacentElement('beforebegin',section);
   else (modal.querySelector('.evidence-modal')||modal).appendChild(section);
+  }
   const key=token();
   if(!key){section.textContent='يرجى تسجيل الدخول.';return;}
   try{
