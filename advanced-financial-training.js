@@ -258,7 +258,9 @@ window.advancedFinancialLeaderProfile=async function(memberId){
  modal.querySelector('#advancedFinancialLeaderSection')?.remove();
  const section=document.createElement('section');section.id='advancedFinancialLeaderSection';section.className='card';
  section.innerHTML='<div class="title">📈 التدريب المتقدم — خطة DXN المالية</div><p class="muted">جارٍ تحميل نتائج العضو...</p>';
- modal.append(section);
+ const anchor=modal.querySelector('.command-actions');
+ if(anchor&&anchor.parentElement)anchor.insertAdjacentElement('beforebegin',section);
+ else (modal.querySelector('.evidence-modal')||modal).appendChild(section);
  try{const d=await rpc('advanced_financial_leader_member_profile',{p_member_id:String(memberId)});
  if(!section.isConnected||String(d.member_id)!==String(memberId))return;
  const lessons=d.lessons||[];const allPassed=lessons.length===10&&lessons.every(x=>x.completed&&x.passed&&x.best_score!=null);
