@@ -89,7 +89,7 @@ function render(){
  host.querySelectorAll('[data-test]').forEach(b=>b.onclick=()=>startQuiz(+b.dataset.test));
  host.querySelectorAll('[data-preview]').forEach(b=>b.onclick=()=>previewVideo(+b.dataset.preview));
  const p=document.getElementById('advancedFinancialProgress');
- if(p){const passed=data.filter(x=>x.passed&&x.completed).length;p.textContent='الدروس المجتازة: '+passed+' / 10'+(passed===10?' — 🎉 اكتملت دورة خطة DXN المالية':'');}
+ if(p){const passed=data.filter(x=>x.passed&&x.completed).length;p.textContent='الدروس المجتازة: '+passed+' / 10'+(passed===10?' — 🎉 اكتمل التدريب المتقدم':'');}
 }
 window.advancedFinancialCoursePage=function(){
  resetIfAccountChanged();
@@ -99,7 +99,7 @@ window.advancedFinancialCoursePage=function(){
  const vids=window.advancedProfitVideos||[];
  return '<section class="card advanced-financial-course" dir="rtl"><div class="title">🚀 التدريب المتقدم</div>'+
  '<details class="advanced-profit-course academy-camps-course"><summary><span class="advanced-profit-course-emoji">📈</span>'+
- '<span class="advanced-profit-course-copy"><strong>التدريب المتقدم الأول: خطة أرباح DXN المالية</strong>'+
+ '<span class="advanced-profit-course-copy"><strong>التدريب المتقدم</strong>'+
  '<small>المهندس محمود المصري — 10 دروس متتابعة واختبار لكل درس</small></span>'+
  '<span class="academy-camps-open-hint"><span class="academy-camps-hint-closed">▶ اضغط لعرض الدروس العشرة</span>'+
  '<span class="academy-camps-hint-open">▲ إغلاق قائمة الدروس</span></span></summary><div class="advanced-profit-content">'+
