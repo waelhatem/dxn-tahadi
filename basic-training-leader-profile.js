@@ -25,6 +25,8 @@
     // The leader sees this summary at the very end of the member record,
     // immediately below the external bag exam history and before actions.
     // A single deterministic anchor avoids accidentally matching other training sections.
+    var resultsPanel=modal.querySelector('#leaderTrainingResultsPanelBasic');
+    if(resultsPanel){resultsPanel.appendChild(element);return;}
     var anchor=modal.querySelector('.command-actions');
     if(anchor&&anchor.parentElement){
       anchor.insertAdjacentElement('beforebegin',element);
