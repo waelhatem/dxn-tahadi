@@ -238,7 +238,7 @@ function renderExam(body){
 }
 window.advancedFinancialMemberProfile=function(){
  setTimeout(()=>window.advancedFinancialMemberRefresh?.(),0);
- return '<section class="card advanced-financial-member-profile"><div class="title">📈 خطة DXN المالية — سجلي التدريبي</div>'+
+ return '<section class="card advanced-financial-member-profile"><div class="title">🚀 التدريب المتقدم — سجلي التدريبي</div>'+
  '<div id="advancedFinancialMemberBody">جارٍ قراءة السجل...</div></section>';
 };
 window.advancedFinancialMemberRefresh=async function(){
@@ -257,15 +257,19 @@ window.advancedFinancialLeaderProfile=async function(memberId){
  const modal=document.getElementById('memberProfileModal');if(!modal||!memberId)return;
  modal.querySelector('#advancedFinancialLeaderSection')?.remove();
  const section=document.createElement('section');section.id='advancedFinancialLeaderSection';section.className='card';
- section.innerHTML='<div class="title">📈 التدريب المتقدم — خطة DXN المالية</div><p class="muted">جارٍ تحميل نتائج العضو...</p>';
+ section.innerHTML='<div class="title">🚀 التدريب المتقدم</div><p class="muted">جارٍ تحميل نتائج العضو...</p>';
+ const resultsPanel=modal.querySelector('#leaderTrainingResultsPanelAdvanced');
+ if(resultsPanel)resultsPanel.appendChild(section);
+ else {
  const anchor=modal.querySelector('.command-actions');
  if(anchor&&anchor.parentElement)anchor.insertAdjacentElement('beforebegin',section);
  else (modal.querySelector('.evidence-modal')||modal).appendChild(section);
+ }
  try{const d=await rpc('advanced_financial_leader_member_profile',{p_member_id:String(memberId)});
  if(!section.isConnected||String(d.member_id)!==String(memberId))return;
  const lessons=(d.lessons||[]).slice().sort((a,b)=>Number(a.lesson_no)-Number(b.lesson_no));const allPassed=lessons.length===10&&lessons.every(x=>x.completed&&x.passed&&x.best_score!=null);
  const average=allPassed?lessons.reduce((total,x)=>total+Number(x.best_score)*5,0)/10:null;
- section.innerHTML='<div class="title">📈 التدريب المتقدم — خطة DXN المالية</div>'+ 
+ section.innerHTML='<div class="title">🚀 التدريب المتقدم</div>'+ 
  (allPassed?'<p class="basic-training-average-score">🏆 المعدل النهائي: '+average.toFixed(1)+' / 100</p>':'<p class="muted">يظهر المعدل النهائي عند اكتمال الدروس والاختبارات العشرة.</p>')+
  lessons.map(x=>'<div class="row"><span>'+x.lesson_no+'. '+esc(x.title)+'</span><span>المشاهدة '+(x.completed?'مكتملة':'غير مكتملة')+' | '+(x.best_score==null?'لا توجد درجة':x.best_score*5+' / 100')+' | '+(x.passed?'✅ مجتاز':x.best_score!=null?'❌ لم يجتز':x.completed?'📝 جاهز للاختبار':'⏳ لم تكتمل المشاهدة')+'</span>'+(x.passed_at?'<span>📅 '+esc(new Date(x.passed_at).toLocaleDateString('ar-IQ'))+'</span>':'')+'</div>').join('');
  }catch(e){if(section.isConnected)section.innerHTML='<p class="muted">تعذر تحميل سجل التدريب: '+esc(e.message)+'</p>';}
