@@ -1,5 +1,5 @@
 // إعدادات مشروع مجتمع الصحة والثراء
-window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezzn.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_pD9m1Z3gN--2HAfhf_t2YA_2RiAeUh'};
+window.DXN_CONFIG={SUPABASE_URL:'https://ryqpstkzppaifpvhezzn.supabase.co',SUPABASE_ANON_KEY:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5cXBzdGt6cHBhaWZwdmhlenpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4MDU0NjcsImV4cCI6MjEwNDM4MTQ2N30.uIDaTKSouPnjz9os39xQfw3g1zMHTLoDEwwkPSG1IDI'};
 /* V86.46.34 — corrected Supabase project URL, exact separate member/leader training tab names using visible account role. */
 (function(){
   if(window.__DXN_LOGIN_RUNTIME_V8632__)return; window.__DXN_LOGIN_RUNTIME_V8632__=true;
