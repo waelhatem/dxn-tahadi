@@ -112,10 +112,13 @@
  function headHtml(item,v){
   return '<strong id="basicBagVideoTitle">التدريب الأساسي '+item.no+' من 8 — '+esc(item.title)+'</strong>'+
    '<div class="unified-training__actions"><span class="muted">المدرب: المهندس محمود المصري</span>'+v.preview+
-   '<button type="button" class="name-list-btn unified-training__quiz-button" onclick="'+v.quiz+'" '+(v.quizEnabled?'':'disabled')+'>'+v.quizLabel+'</button></div>';
+    '</div>';
  }
  function infoHtml(v){
   return (v.score?'<p class="muted">'+esc(v.score)+'</p>':'')+'<p class="basic-bag-description">'+esc(v.note)+'</p>';
+ }
+ function quizCtaHtml(v){
+  return '<button type="button" class="name-list-btn unified-training__quiz-button" onclick="'+v.quiz+'" '+(v.quizEnabled?'':'disabled')+'>'+v.quizLabel+'</button>';
  }
  function viewerHtml(item,v){
   const poster='<button type="button" class="unified-training__play" '+(v.play?'onclick="'+v.play+'"':'disabled')+'>'+esc(v.playLabel)+'</button>';
@@ -124,6 +127,7 @@
    '<div class="basic-bag-inline-progress unified-training__progress"><div id="basicWatchProgress" class="basic-bag-progress" role="progressbar" aria-label="'+v.pctLabel+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+v.pct+'"><div style="width:'+v.pct+'%"></div></div>'+
    '<strong id="basicWatchPct">'+esc(v.pctText||v.pct+'%')+'</strong></div>'+
    '<p id="basicWatchInfo" class="basic-bag-status">'+esc(v.status)+'</p>'+
+    '<div id="basicViewerQuizAction" class="unified-training__quiz-location">'+quizCtaHtml(v)+'</div>'+
    '<div id="basicBagViewerInfo">'+infoHtml(v)+'</div>';
  }
  function stopMovie(){
@@ -142,6 +146,7 @@
  if(movie&&movie.inline&&movie.no===item.no){
   const list=document.getElementById('basicBagLessonList');if(list)list.innerHTML=listHtml();
   const head=document.getElementById('basicBagViewerHead');if(head)head.innerHTML=headHtml(item,v);
+   const action=document.getElementById('basicViewerQuizAction');if(action)action.innerHTML=quizCtaHtml(v);
   const info=document.getElementById('basicBagViewerInfo');if(info)info.innerHTML=infoHtml(v);
   return;
  }
