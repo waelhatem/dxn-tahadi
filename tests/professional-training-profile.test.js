@@ -33,7 +33,7 @@ test('member professional grades are shown as /100 in correct lesson order, incl
  const html=await memberHtml([20,16,0]);
  assert.match(html,/100 \/ 100/);assert.match(html,/80 \/ 100/);assert.match(html,/0 \/ 100/);
  for(let i=1;i<5;i++)assert.ok(html.indexOf('التدريب الاحترافي '+i)<html.indexOf('التدريب الاحترافي '+(i+1)));
- assert.match(html,/التدريبات الاحترافية/).toString();
+ assert.match(html,/المشاهدات المكتملة/);
 });
 test('final professional average is hidden until all five videos and tests are passed',async()=>{
  const pending=await memberHtml([20,20,20,20,null]);
