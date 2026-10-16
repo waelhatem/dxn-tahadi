@@ -148,6 +148,23 @@ for(const [track,T] of Object.entries(TRACKS)){
   });
 }
 
+test('professional: confirmed 90% does not claim the quiz is available if its bank is unpublished',async()=>{
+  const env=setup({realSeconds:{zO3U8yj0Sig:60}});
+  env.server.tracks.professional.lessons[1].duration=60;
+  env.server.tracks.professional.lessons[1].published=false;
+  env.host.innerHTML=env.ctx.professionalTrainingCoursePage();await env.flush();
+  const button=()=>env.byId('professionalViewerHead').querySelector('.unified-training__quiz-button');
+  assert.equal(button().disabled,true,'an unpublished quiz must remain disabled');
+  assert.match(env.byId('professionalWatchInfo').textContent,/اختبار هذا الدرس لم يُنشر/);
+  await env.ctx.professionalCourseWatch(1);await env.flush();
+  env.players.at(-1).opts.events.onReady();await env.flush();
+  await env.play(56);
+  assert.equal(env.server.peek('member-a','professional',1).completed,true,'watch still saves when 90% is confirmed');
+  assert.equal(button().disabled,true,'watch completion never publishes a missing bank');
+  assert.match(env.byId('professionalWatchInfo').textContent,/اختبار هذا الدرس لم يُنشر بعد/);
+  assert.doesNotMatch(env.byId('professionalWatchInfo').textContent,/الاختبار متاح الآن/);
+});
+
 test('basic durations: training 2 (439 s) completes at 90% of 439 s; 6 and 7 use their real lengths',async()=>{
   const env=setup();Object.assign(env.server.row('member-a','basic',1),{completed:true,passed:true,best:18});
   const T=TRACKS.basic;await T.mount(env);await T.open(env,2);await T.start(env,2);
