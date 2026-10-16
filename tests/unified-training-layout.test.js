@@ -135,7 +135,9 @@ test('shared stylesheet only targets the unified trainings and non-advanced quiz
   assert.ok(selectors.length>10);
   for(const s of selectors)assert.match(s,/^(\.unified-training|\.basic-bag-overlay:not\(\.advanced-financial-overlay\))/,s);
   const page=read('app/index.html');
-  for(const f of ['training-engine.js','advanced-financial-training.js','basic-training.js','professional-training-course.js'])
-    assert.ok(page.includes('<script src="../'+f+'?v=20261015-engine"></script>'),f+' loaded with the engine version');
+  for(const f of ['training-engine.js','advanced-financial-training.js','basic-training.js','professional-training-course.js']){
+    const version=['training-engine.js','professional-training-course.js'].includes(f)?'20261016-quizready':'20261015-engine';
+    assert.ok(page.includes('<script src="../'+f+'?v='+version+'"></script>'),f+' loaded with the correct cache version');
+  }
   assert.ok(page.indexOf('training-engine.js')<page.indexOf('basic-training.js?v='),'engine loads before the tracks');
 });
