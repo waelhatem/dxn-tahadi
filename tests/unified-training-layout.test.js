@@ -9,11 +9,11 @@ const {setup,read}=require('./helpers/training-harness');
 
 const byId=(env,id)=>env.document.getElementById(id);
 const listButtons=env=>byId(env,'basicBagLessonList').querySelectorAll('button');
-const quizButton=env=>byId(env,'basicBagViewerHead').querySelector('.unified-training__quiz-button');
+const quizButton=env=>byId(env,'basicViewerQuizAction').querySelector('.unified-training__quiz-button');
 const mountBasic=async env=>{env.host.innerHTML=env.ctx.basicTrainingCourseHtml();await env.flush();};
 const passLesson1=env=>Object.assign(env.server.row('member-a','basic',1),{completed:true,passed:true,best:18});
 
-test('basic page uses the advanced layout: list, viewer, quiz button above the video, progress below',async()=>{
+test('basic page uses the advanced layout: list, viewer, quiz button below the video, progress below',async()=>{
   const env=setup();passLesson1(env);
   await mountBasic(env);
   const details=env.host.querySelector('details');
@@ -24,7 +24,7 @@ test('basic page uses the advanced layout: list, viewer, quiz button above the v
   assert.equal(list.id,'basicBagLessonList','list comes first, so it sits on the right in RTL');
   assert.ok(viewer.className.includes('advanced-profit-viewer'));
   const parts=viewer.children.filter(c=>c.tagName);
-  assert.deepEqual(parts.map(c=>c.id),['basicBagViewerHead','basicBagInlineBox','','basicWatchInfo','basicBagViewerInfo'],'title+quiz, video, progress, status, score');
+  assert.deepEqual(parts.map(c=>c.id),['basicBagViewerHead','basicBagInlineBox','','basicWatchInfo','basicViewerQuizAction','basicBagViewerInfo'],'title+quiz, video, progress, status, score');
   assert.ok(parts[2].className.includes('basic-bag-inline-progress'));
   assert.deepEqual(listButtons(env).map(b=>b.disabled),[false,false,true,true,true,true,true,true],'lock rule unchanged');
   assert.deepEqual(listButtons(env).map(b=>b.attrs['aria-pressed']),['false','true','false','false','false','false','false','false'],'opens on the first training still to pass');
@@ -77,15 +77,15 @@ test('leader on desktop can still reach the unsaved quiz preview of every traini
   assert.equal(byId(env,'basicBagInlineBox').querySelector('button').disabled,true,'locked video stays closed');
 });
 
-test('professional course page: same layout, server locks, quiz above the video, progress below',async()=>{
+test('professional course page: same layout, server locks, quiz below the video, progress below',async()=>{
   const env=setup();
   env.host.innerHTML=env.ctx.professionalTrainingCoursePage();await env.flush();
   assert.ok(env.host.querySelector('details').className.includes('unified-training'));
   const [list,viewer]=env.host.querySelector('.advanced-profit-grid').children.filter(c=>c.tagName);
   assert.equal(list.id,'professionalLessonList');
-  assert.deepEqual(viewer.children.filter(c=>c.tagName).map(c=>c.id),['professionalViewerHead','professionalInlineBox','','professionalWatchInfo','professionalViewerInfo']);
+  assert.deepEqual(viewer.children.filter(c=>c.tagName).map(c=>c.id),['professionalViewerHead','professionalInlineBox','','professionalWatchInfo','professionalViewerQuizAction','professionalViewerInfo']);
   assert.deepEqual(list.querySelectorAll('button').map(b=>b.disabled),[false,true,true],'only lesson 1 open');
-  assert.equal(byId(env,'professionalViewerHead').querySelector('.unified-training__quiz-button').disabled,true);
+  assert.equal(byId(env,'professionalViewerQuizAction').querySelector('.unified-training__quiz-button').disabled,true);
   assert.match(byId(env,'professionalViewerHead').textContent,/م\. محمود المصري/);
 });
 
@@ -113,7 +113,7 @@ test('professional preview data: five independent trainings, old cards as fallba
   assert.match(make({professionalTraining01Page:()=>'<article>OLD_CARD</article>'}),/OLD_CARD/);
 });
 
-test('advanced page keeps its layout: list, viewer, quiz button above the video, progress below',async()=>{
+test('advanced page keeps its layout: list, viewer, quiz button below the video, progress below',async()=>{
   const env=setup();
   env.host.innerHTML=env.ctx.advancedFinancialCoursePage();await env.flush();
   const grid=env.host.querySelector('.advanced-profit-grid');
