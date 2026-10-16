@@ -101,7 +101,7 @@ test('professional: confirmed 90% does not claim the quiz is available if its ba
   env.server.tracks.professional.lessons[1].duration=60;
   env.server.tracks.professional.lessons[1].published=false;
   env.host.innerHTML=env.ctx.professionalTrainingCoursePage();await env.flush();
-  const button=()=>env.byId('professionalViewerHead').querySelector('.unified-training__quiz-button');
+  const button=()=>env.byId('professionalViewerQuizAction').querySelector('.unified-training__quiz-button');
   assert.equal(button().disabled,true,'an unpublished quiz must remain disabled');
   assert.match(env.byId('professionalWatchInfo').textContent,/اختبار هذا الدرس لم يُنشر/);
   await env.ctx.professionalCourseWatch(1);await env.flush();
