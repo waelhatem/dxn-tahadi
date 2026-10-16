@@ -33,6 +33,15 @@ const isReady=x=>x&&x.active&&x.published&&x.duration>=60;
 const canStart=x=>isReady(x)&&prevDone(x.lesson_no);
 const canView=x=>!!(x&&x.video_id&&prevDone(x.lesson_no));
 let selectedLesson=1;
+// V86.92 — The quiz button's text and colour come from the lesson's saved state only. The same function
+// renders the page and updates the button in place when the server confirms 90% (the player keeps playing).
+function quizButton(x){
+ const E=window.DXNTrainingEngine,ready=canStart(x);
+ const state=E.lessonState({unlocked:prevDone(x.lesson_no),watchCompleted:!!x.completed,passed:!!x.passed,attempted:x.best_score!=null,watching:false});
+ const open=ready&&!!x.completed;
+ const text=!isReady(x)&&x.completed?E.MESSAGES.quizUnpublished:state==='passed'?'إعادة الاختبار':state==='failed'?'أعد الاختبار':open?'ابدأ اختبار الدرس':'اختبار الدرس — غير متاح';
+ return {open,text:'📝 '+text,background:open?'#087b55':'#d7e6df',color:open?'#fff':'#224c3f'};
+}
 const cards=()=>{
  const selected=data.find(x=>x.lesson_no===selectedLesson)||data[0];
  if(!selected)return '';
@@ -47,7 +56,7 @@ const cards=()=>{
  const E=window.DXNTrainingEngine;
  const state=E.lessonState({unlocked:prevDone(n),watchCompleted:!!selected.completed,passed:!!selected.passed,attempted:selected.best_score!=null,watching:false});
  const label=ready?E.STATE_TEXT[state]:'المشاهدة داخل الصفحة للعرض فقط؛ لا تُحتسب قبل اعتماد الدرس.';
- const quizText=state==='passed'?'إعادة الاختبار':state==='failed'?'أعد الاختبار':ready&&selected.completed?'ابدأ اختبار الدرس':'اختبار الدرس — غير متاح';
+ const q=quizButton(selected);
  const shown=selected.completed?100:0;
  const score=selected.best_score==null?'لم يُختبر':(5*selected.best_score)+' / 100';
  return '<p class="muted">اختر الدرس من القائمة. الفيديو العاشر خلاصة الدروس السابقة.</p>'+
@@ -57,7 +66,7 @@ const cards=()=>{
  '<strong id="advancedProfitVideoTitle">الدرس '+n+' من 10 — '+esc(selected.title)+'</strong>'+
  '<div class="advanced-financial-inline-actions" style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;width:100%;">'+
  '<span class="muted" style="margin-inline-end:auto;">'+(ready?'▶ عند التشغيل تبدأ جلسة مشاهدة جديدة من البداية':'⏳ هذا الدرس غير منشور بعد، والمشاهدة لا تُحتسب')+'</span>'+
- '<button type="button" class="name-list-btn primary advanced-financial-test-cta" data-test="'+n+'" style="display:inline-flex;justify-content:center;align-items:center;gap:8px;margin-inline-start:auto;padding:13px 22px;min-width:180px;font-size:1.05rem;font-weight:800;background:'+(ready&&selected.completed?'#087b55':'#d7e6df')+';color:'+(ready&&selected.completed?'#fff':'#224c3f')+';border:2px solid #0b805c;border-radius:12px;cursor:pointer;">📝 '+quizText+'</button>'+
+ '<button type="button" class="name-list-btn primary advanced-financial-test-cta" data-test="'+n+'" style="display:inline-flex;justify-content:center;align-items:center;gap:8px;margin-inline-start:auto;padding:13px 22px;min-width:180px;font-size:1.05rem;font-weight:800;background:'+q.background+';color:'+q.color+';border:2px solid #0b805c;border-radius:12px;cursor:pointer;">'+q.text+'</button>'+
  (role==='leader'&&window.innerWidth>=900?'<button type="button" class="name-list-btn" data-preview="'+n+'">⏱ اعتماد مدة الفيديو</button>':'')+
  '</div>'+
  '<div class="training-professional-video" id="advancedFinancialInlineBox"><div id="advFinancialYT"></div></div>'+
@@ -164,12 +173,15 @@ async function mountInline(x){
   // V86.90 — One attempt per viewing through the unified engine; untracked lessons play as preview.
   const w={engine:null,player:null};
   w.engine=window.DXNTrainingEngine.createWatch({track:'advanced',lessonNo:n,watchCompleted:!!x.completed,preview:!tracked,
+   quizReady:()=>isReady(data.find(l=>l.lesson_no===n)),
    onMessage:t=>{if(watch===w)status(t);},
    onProgress:p=>{if(watch===w&&tracked)watchUi(p.percent);},
    onCompleted:()=>{
-    const d=data.find(l=>l.lesson_no===n);if(d)d.completed=true;
+    // Saved state first (startQuiz reads it), then the existing button — no render, so no new player.
+    const d=data.find(l=>l.lesson_no===n);if(!d||watch!==w)return;
+    d.completed=true;
     const test=document.querySelector('#advancedFinancialLessons [data-test="'+n+'"]');
-    if(test){test.textContent='📝 ابدأ اختبار الدرس';test.style.background='#087b55';test.style.color='#fff';}
+    if(test){const q=quizButton(d);test.textContent=q.text;test.style.background=q.background;test.style.color=q.color;}
    }});
   watch=w;
   w.player=new window.YT.Player(target,{videoId:x.video_id,playerVars:{rel:0,disablekb:tracked?1:0,playsinline:1,start:0},
@@ -217,7 +229,7 @@ function renderExam(body){
  submit.onclick=async()=>{if(e.busy||e.answers.includes(-1))return;e.busy=true;submit.disabled=true;
  try{const result=await rpc('advanced_financial_submit_quiz',{p_lesson_no:e.no,p_answers:e.answers,p_revision:e.revision});
  body.replaceChildren();const resultBox=document.createElement('section');resultBox.className='basic-bag-result';
- resultBox.textContent='درجة الاختبار: '+result.score*5+' / 100 — '+(result.passed?'✅ ناجح، يمكنك الانتقال للتدريب التالي.':'لم تجتز الاختبار؛ راجع الدرس وأعد المحاولة.');
+ resultBox.textContent='درجة الاختبار: '+result.score*5+' / 100 — '+(result.passed?window.DXNTrainingEngine.MESSAGES.passed:window.DXNTrainingEngine.MESSAGES.failed);
  body.append(resultBox);await refresh();
  }catch(err){notify(err.message);e.busy=false;updateFooter()}};
  foot.append(back,next,submit);body.append(foot);

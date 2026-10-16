@@ -1,4 +1,4 @@
-/* V86.91 — Unified training engine (browser side), shared by the basic, professional and advanced tracks.
+/* V86.92 — Unified training engine (browser side), shared by the basic, professional and advanced tracks.
  * One watch attempt per viewing: it starts at 0 s when the member presses play, credits only time the
  * server confirms (training_watch_begin / training_watch_report), and is never resumed in a later
  * session. 90% confirmed by the server marks the lesson watched for good; the quiz and the next lesson
@@ -30,6 +30,15 @@
   if(s.watching)return 'watching';
   return 'start';
  }
+ // V86.92 — One wording for every track. «الاختبار متاح الآن» only when the member can really open it.
+ const MESSAGES={
+  completedQuizOpen:'✅ اكتملت مشاهدة الدرس بنجاح — الاختبار متاح الآن.',
+  completedQuizUnpublished:'✅ اكتملت مشاهدة الدرس وحُفظ تقدمك. اختبار هذا الدرس لم يُنشر بعد، ولن تحتاج إلى إعادة المشاهدة.',
+  watching:'المشاهدة قيد التنفيذ — أكمل 90% لفتح الاختبار.',
+  passed:'🎉 اجتزت الاختبار بنجاح — أصبح التدريب التالي متاحًا.',
+  failed:'لم تحقق درجة النجاح المطلوبة. يمكنك إعادة الاختبار وفق نظام المحاولات.',
+  quizUnpublished:'اختبار هذا الدرس لم يُنشر بعد'
+ };
  const POLICY_NOTE='تُحتسب المشاهدة داخل جلسة واحدة تبدأ من بداية الفيديو بسرعة 1x؛ عند بلوغ 90% يؤكد الخادم الإكمال ويُفتح الاختبار. المشاهدة غير المكتملة لا تُحفظ بين الجلسات، والنجاح في الاختبار (80 / 100) يفتح الدرس التالي.';
 
  const token=()=>String(localStorage.getItem('dxn_session')||'').trim();
@@ -52,12 +61,16 @@
    session:token(),player:null,timer:null,stopped:false,
    attempt:null,beginning:false,max:0,previousTime:0,previousWall:0,pausedSince:0,idle:DEFAULT_IDLE_S,replayNeeded:false};
   const msg=t=>{if(!w.stopped&&typeof o.onMessage==='function')o.onMessage(t);};
+  // Whether this lesson's quiz bank is published, read at the moment it matters (the track may learn it later).
+  const quizReady=()=>typeof o.quizReady==='function'?!!o.quizReady():o.quizReady!==false;
   w.playerDuration=()=>{try{const d=w.player.getDuration();return Number.isFinite(d)&&d>0?d:0;}catch(_){return 0;}};
   const progress=()=>{
    if(w.stopped||typeof o.onProgress!=='function')return;
    if(w.preview){const d=w.playerDuration();o.onProgress({percent:d?Math.min(100,Math.floor(100*w.max/d)):0,watched:w.max,duration:d,attempt:false});return;}
    const a=w.attempt;
-   o.onProgress({percent:a&&a.duration?Math.min(100,Math.floor(100*a.watched/a.duration)):0,watched:a?a.watched:0,duration:a?a.duration:0,attempt:!!a});
+   // Once the server has confirmed 90%, the rest of the video still plays and the bar keeps following it.
+   const seconds=a?(a.completed?Math.max(a.watched,Math.floor(w.max)):a.watched):0;
+   o.onProgress({percent:a&&a.duration?Math.min(100,Math.floor(100*seconds/a.duration)):0,watched:seconds,duration:a?a.duration:0,attempt:!!a,completed:!!(a&&a.completed)});
   };
   const sameAccount=()=>{if(token()===w.session)return true;w.stop();return false;};
   // Forget the current attempt; the next play starts a new one from the beginning.
@@ -74,7 +87,8 @@
     if(w.stopped||!sameAccount())return;
     w.idle=Number(r.idle_timeout_seconds)||DEFAULT_IDLE_S;
     w.attempt={id:r.attempt_id,duration:Number(r.duration)||0,watched:0,lastSent:0,saving:false,completed:false};
-    w.lessonCompleted=w.lessonCompleted||!!r.watch_completed;
+    // Saved as watched already (e.g. in another tab): the page learns it now and opens the quiz.
+    if(r.watch_completed&&!w.lessonCompleted){w.lessonCompleted=true;if(typeof o.onCompleted==='function')o.onCompleted();}
     // The attempt is new: whatever was played before it counts from 0 again.
     w.max=0;try{if(w.player.getCurrentTime()>1)w.player.seekTo(0,true);}catch(_){}
     w.previousTime=0;w.previousWall=performance.now();
@@ -106,9 +120,12 @@
     a.completed=!!r.attempt_completed;
     progress();
     if(r.watch_completed&&!w.lessonCompleted){
-     w.lessonCompleted=true;msg(o.quizReady===false?'✅ أكد الخادم إكمال مشاهدة 90%، لكن اختبار هذا الدرس لم يُنشر بعد. المشاهدة مكتملة ولن تحتاج إلى إعادتها.':'✅ أكد الخادم مشاهدة 90% — اضغط زر «ابدأ اختبار الدرس» أعلى الفيديو.');
+     // V86.92 — The track updates its own lesson state and quiz button first (without touching the
+     // player), then the message says whether the quiz can really be opened now.
+     w.lessonCompleted=true;
      if(typeof o.onCompleted==='function')o.onCompleted();
-    }else if(!r.watch_completed)msg('المشاهدة المؤكدة في هذه الجلسة: '+Math.floor(100*a.watched/a.duration)+'% — يُفتح الاختبار عند 90%.');
+     msg(quizReady()?MESSAGES.completedQuizOpen:MESSAGES.completedQuizUnpublished);
+    }else if(!r.watch_completed)msg('المشاهدة قيد التنفيذ: '+Math.floor(100*a.watched/a.duration)+'% — أكمل 90% لفتح الاختبار.');
    }catch(e){msg('لم تُحفظ المشاهدة: '+e.message);}
    finally{a.saving=false;}
   }
@@ -139,7 +156,7 @@
    const elapsed=Math.max(0,Math.min((now-w.previousWall)/1000,2));
    const moving=current>=w.previousTime-0.2&&current-w.previousTime<=elapsed+1;
    w.previousTime=current;w.previousWall=now;
-   if(state===PLAYING&&moving&&current>w.max){w.max=Math.min(duration,current);if(w.preview)progress();}
+   if(state===PLAYING&&moving&&current>w.max){w.max=Math.min(duration,current);if(w.preview||(w.attempt&&w.attempt.completed))progress();}
    report();
   }
   w.attach=function(player){
@@ -212,6 +229,6 @@
   return {update,finish,back,next};
  }
 
- window.DXNTrainingEngine={createWatch,lessonState,STATE_TEXT,POLICY_NOTE,pageQuestions,rpc,
+ window.DXNTrainingEngine={createWatch,lessonState,STATE_TEXT,MESSAGES,POLICY_NOTE,pageQuestions,rpc,
   constants:{REPORT_INTERVAL_MS,TICK_MS,FORWARD_TOLERANCE_S,WATCH_PERCENT:90,PASS_SCORE:16}};
 })();
