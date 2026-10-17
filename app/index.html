@@ -5998,7 +5998,11 @@ async function ragwanCompleteStep(){
     ragwanRenderProgress();
     toast(step===10?'🏆 أحسنت! أكملت خطة رجوان كاملة مع '+(ragwanTraineeLabel(ragwanSelectedTrainee)||'المتدرب')+'.':'🟢 تم تسجيل إنجاز الخطوة للمتدرب.');
     ragwanOpenDoor(step>=10?10:step+1);
-    if(step===10)setTimeout(ragwanRenderPlanCompletionInline,120);
+    if(step===10){
+      // Show the final completion action immediately after the server confirms step 10.
+      ragwanRenderPlanCompletionInline();
+      requestAnimationFrame(ragwanRenderPlanCompletionInline);
+    }
   }catch(e){toast('⚠️ '+(e.message||'تعذر حفظ إنجاز الخطوة.'))}
 }
 function ragwanRenderPlanCompletionInline(){
@@ -6012,6 +6016,12 @@ function ragwanRenderPlanCompletionInline(){
     host.classList.remove('visible');host.innerHTML='';return;
   }
   host.classList.add('visible');
+  // Do not retain the previous trainee's completion UI when switching records.
+  const activeTraineeId=String(ragwanSelectedTraineeId||'');
+  if(host.dataset.traineeId!==activeTraineeId){
+    host.dataset.traineeId=activeTraineeId;
+    delete host.dataset.saved;
+  }
   if(host.dataset.saved==='1')return;
   host.innerHTML='<label>🏆 الخطة مكتملة</label>'+
     '<div class="hint">أكملت الأبواب العشرة مع المتدرب: <b>'+esc(ragwanTraineeLabel(ragwanSelectedTrainee))+'</b></div>'+
@@ -6044,6 +6054,8 @@ async function ragwanSavePlanCompletionMemberInline(){
           '<div id="ragwanCertificateBuilderStatus" class="ragwan-certificate-builder-status" aria-live="polite"></div>'+
         '</div>';
     }
+    // Render/initialize the certificate controls now, without leaving this training tab.
+    if(typeof window.ragwanInitCertificateGender==='function')window.ragwanInitCertificateGender();
     toast('✅ تم تسجيل إكمال الخطة مع '+(out?.completion?.member_name||ragwanSelectedTrainee.name||'')+' وإبلاغ القائد.');
   }catch(e){
     if(status)status.textContent='⚠️ '+String(e?.message||'تعذر حفظ إكمال الخطة.');
