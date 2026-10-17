@@ -3621,7 +3621,14 @@ async function ragwanAddTraineeByMemberNo(){
     input?.focus();
     return;
   }
-  if(status)status.textContent='⏳ جارٍ التحقق من رقم العضوية...';
+  if(!/^\\d{9}$/.test(memberNo)){
+    if(status)status.textContent='⚠️ رقم العضوية يجب أن يتكوّن من 9 أرقام.';
+    input?.focus();return;
+  }
+  const btn=document.getElementById('ragwanTraineeAddBtn');
+  if(btn?.disabled)return;
+  if(btn)btn.disabled=true;
+  if(status)status.textContent='⏳ جارٍ التحقق من رقم العضوية والتأكد من عدم تكرار إضافته...';
   try{
     const out=await ragwanPlanApi('add_trainee_by_member_no',{member_no:memberNo});
     const trainee=out?.trainee||{};
@@ -3645,6 +3652,8 @@ async function ragwanAddTraineeByMemberNo(){
   }catch(e){
     if(status)status.textContent='⚠️ '+String(e?.message||'تعذر إضافة المتدرب.');
     input?.focus();
+  }finally{
+    if(btn)btn.disabled=false;
   }
 }
 async function ragwanOpenTraineesTable(){
@@ -3771,7 +3780,7 @@ function ragwanTraineePanelMarkup(){
   if(ragwanSelectedTrainee)return ragwanSelectedTraineeSummary();
   return '<section class="ragwan-trainee-selector" id="ragwanTraineeSelector">'+
     '<div class="ragwan-trainee-selector-head"><div><div class="ragwan-trainee-kicker">👤 المتدرب</div><h3>إضافة متدرب جديد إلى خطة رجوان</h3><p>أدخل رقم عضوية المتدرب فقط؛ سيجلب النظام الاسم ورقم العضوية تلقائيًا ويضيفه إلى سجل الخطة.</p></div></div>'+
-    '<div class="ragwan-trainee-search-row"><div class="ragwan-search-wrap"><span>🪪</span><input id="ragwanTraineeMemberNoInput" type="text" inputmode="numeric" autocomplete="off" placeholder="ادخل رقم عضوية المتدرب" onkeydown="if(event.key===\'Enter\')ragwanAddTraineeByMemberNo()"></div><button type="button" class="primary" onclick="ragwanAddTraineeByMemberNo()">➕ إضافة المتدرب</button><button type="button" class="primary" onclick="ragwanOpenTraineesTable()">👥 المتدربون في الخطة</button></div>'+
+    '<div class="ragwan-trainee-search-row"><div class="ragwan-search-wrap"><span>🪪</span><input id="ragwanTraineeMemberNoInput" type="text" inputmode="numeric" autocomplete="off" placeholder="ادخل رقم عضوية المتدرب" onkeydown="if(event.key===\'Enter\')ragwanAddTraineeByMemberNo()"></div><button type="button" class="primary" id="ragwanTraineeAddBtn" onclick="ragwanAddTraineeByMemberNo()">➕ إضافة المتدرب</button><button type="button" class="primary" onclick="ragwanOpenTraineesTable()">👥 المتدربون في الخطة</button></div>'+
     '<div id="ragwanTraineeAddStatus" class="ragwan-trainee-add-status" aria-live="polite"></div>'+
   '</section>';
 }
