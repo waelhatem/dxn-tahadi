@@ -3621,7 +3621,7 @@ async function ragwanAddTraineeByMemberNo(){
     input?.focus();
     return;
   }
-  if(!/^\\d{9}$/.test(memberNo)){
+  if(!/^\d{9}$/.test(memberNo)){
     if(status)status.textContent='⚠️ رقم العضوية يجب أن يتكوّن من 9 أرقام.';
     input?.focus();return;
   }
