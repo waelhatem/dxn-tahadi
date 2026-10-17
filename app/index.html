@@ -4727,6 +4727,30 @@ async function ragwanWelcomeCopyPostWithImage(){
     }
   },'image/png');
 }
+function ragwanWelcomeAutoFillTrainee(prefix){
+  // Uses only the trainee already selected and authorized in the sponsor's plan.
+  if(role!=='member'||!ragwanSelectedTrainee||!ragwanSelectedTraineeId)return;
+  const trainee=ragwanSelectedTrainee;
+  const fields=[
+    [prefix+'Name',String(trainee.name||'').trim()],
+    [prefix+'MemberNo',String(trainee.member_no||'').trim()],
+    [prefix+'Sponsor',String(me?.name||'').trim()]
+  ];
+  fields.forEach(([id,value])=>{
+    const input=document.getElementById(id);
+    if(input&&value)input.value=value;
+  });
+  const country=String(trainee.country||'').trim();
+  const countryInput=document.getElementById(prefix+'Country');
+  if(country&&countryInput&&Array.from(countryInput.options).some(option=>option.value===country))countryInput.value=country;
+  const city=String(trainee.city||trainee.governorate||'').trim();
+  const cityInput=document.getElementById(prefix+'City');
+  if(city&&cityInput)cityInput.value=city;
+  const descriptorInput=document.getElementById(prefix+'CountryDescriptor');
+  if(descriptorInput&&countryInput?.value)descriptorInput.value=RAGWAN_COUNTRY_DESCRIPTORS[countryInput.value]||'';
+  // Gender isn't guaranteed by select_trainee; never infer it from the name.
+}
+
 function ragwanRenderWelcomeBuilder(){
   const el=document.getElementById('ragwanWelcomeBuilder');if(!el)return;
   el.innerHTML=
@@ -4752,6 +4776,7 @@ function ragwanRenderWelcomeBuilder(){
       '<div class="ragwan-welcome-preview-wrap"><div class="ragwan-welcome-preview-title">🖼️ معاينة الفريم</div><img id="ragwanWelcomePreview" alt="معاينة صورة الترحيب"><canvas id="ragwanWelcomeCanvas" class="hidden"></canvas><div class="muted">للأنثى يستخدم النظام الفريم النسائي دون طلب صورة شخصية.</div></div>'+
     '</div>'+
     (role==='leader' ? '<div class="ragwan-welcome-message-box"><b>📝 رسالة الترحيب — قابلة للتعديل للقائد</b><textarea id="ragwanWelcomeMessageEditor" rows="18" style="width:100%;min-height:320px;resize:vertical;line-height:1.8;padding:14px;border-radius:12px;border:1px solid rgba(0,0,0,.12);font-family:inherit;direction:rtl" oninput="this.dataset.userEdited=\'1\';document.getElementById(\'ragwanWelcomeMessagePreview\').textContent=this.value"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button type="button" onclick="ragwanWelcomeResetMessage()">↩️ استعادة القالب الأصلي</button><button type="button" onclick="ragwanCopyWelcomeMessage()">📋 نسخ الرسالة المعدلة</button></div><pre id="ragwanWelcomeMessagePreview" style="display:none"></pre></div>' : '<div class="ragwan-welcome-message-box"><b>📝 رسالة الترحيب الأصلية</b><p class="muted" style="line-height:1.8;margin:8px 0 0">يتم اعتماد القالب الأصلي تلقائيًا. تعديل الرسالة متاح لحساب القائد فقط.</p><pre id="ragwanWelcomeMessagePreview" style="white-space:pre-wrap;direction:rtl;line-height:1.8;margin-top:10px"></pre></div>') ;
+  ragwanWelcomeAutoFillTrainee('ragwanWelcome');
   ragwanWelcomeGenderChanged();
   ragwanBindWelcomePhotoDrag();
 }
@@ -4936,7 +4961,7 @@ function ragwanRenderStepWelcome(){
 
   el.innerHTML=
     '<section class="ragwan-welcome-card">'+
-      '<div class="ragwan-welcome-head"><span>🎉</span><div><h3>رسالة وصورة الترحيب بالعضو الجديد</h3><p>أدخل بيانات العضو، ثم اختر الجنس لتوليد الصياغة المناسبة. يستخدم الباب الثالث تصميمًا واحدًا ثابتًا للذكر والأنثى، ولا يحتاج إلى رفع صورة شخصية.</p></div></div>'+
+      '<div class="ragwan-welcome-head"><span>🎉</span><div><h3>رسالة وصورة الترحيب بالعضو الجديد</h3><p>تُجلب بيانات المتدرب المختار تلقائيًا؛ يمكنك تعديلها عند الحاجة، ثم اختيار الجنس لتوليد الصياغة المناسبة. يستخدم الباب الثالث تصميمًا واحدًا ثابتًا للذكر والأنثى، ولا يحتاج إلى رفع صورة شخصية.</p></div></div>'+
       '<div class="ragwan-welcome-fields">'+
         '<label>👤 اسم العضو<input id="ragwanDoor3WelcomeName" type="text" placeholder="اكتب اسم العضو الجديد" oninput="ragwanDoor3WelcomeUpdate()"></label>'+
         '<label>🔢 رقم العضوية<input id="ragwanDoor3WelcomeMemberNo" type="text" inputmode="numeric" maxlength="9" placeholder="اكتب رقم العضوية المكون من 9 أرقام" oninput="ragwanDoor3WelcomeUpdate()"></label>'+
@@ -4962,6 +4987,7 @@ function ragwanRenderStepWelcome(){
       '<div class="ragwan-welcome-note">💡 الباب الثالث يستخدم تصميم ترحيب واحدًا ثابتًا للذكر والأنثى من ملف GitHub، ولا توجد فيه وظيفة رفع صورة عضو أو تحريكها أو تغيير مقياسها.</div>'+
     '</section>';
 
+  ragwanWelcomeAutoFillTrainee('ragwanDoor3Welcome');
   ragwanDoor3WelcomeUpdate();
 }
 
