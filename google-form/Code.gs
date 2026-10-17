@@ -1,6 +1,6 @@
 /*******************************************************
  * DXN Training Assessment - Google Forms Integration
- * Version: 2.0
+ * Version: 3.0
  *
  * الوظائف:
  * 1) إنشاء Google Form مستقل لكل Sponsor
@@ -10,6 +10,8 @@
  * 5) إرسال إجابات العضو إلى موقع DXN
  * 6) استقبال نتيجة التقييم من الموقع
  * 7) إرسال تقرير النتيجة إلى بريد Sponsor
+ * 8) إنشاء رابط Pre-filled للعضو
+ * 9) تمرير اسم العضو ورقم عضويته تلقائيًا من الموقع
  *******************************************************/
 
 
@@ -137,6 +139,10 @@ function createSponsorTrainingForm(sponsorEmail) {
   const form = FormApp.create(
     CONFIG.FORM_PREFIX + ' - ' + sponsorEmail
   );
+  form.setIsQuiz(true);
+  form.setPublishingSummary(false);
+  form.setCollectEmail(false);
+  form.setShuffleQuestions(false);
 
 
   /* -----------------------------------------------
@@ -145,8 +151,8 @@ function createSponsorTrainingForm(sponsorEmail) {
 
   form.setDescription(
     'اختبار الحقيبة التدريبية\n\n' +
-    'يرجى الإجابة عن جميع الأسئلة بوضوح وبأسلوبك الخاص.\n' +
-    'بعد إرسال الاختبار سيتم تقييم الإجابات آليًا ومراجعة النتيجة ضمن نظام التدريب.\n\n' +
+    'اختر إجابة واحدة صحيحة لكل سؤال من الأسئلة الاثني عشر.\n' +
+    'بعد الإرسال اضغط «عرض النتيجة» داخل Google Forms لمعرفة درجتك من 100.\n\n' +
     'هذا النموذج مخصص للعضو الذي حصل على الرابط من السبونسر.'
   );
 
@@ -177,17 +183,7 @@ function createSponsorTrainingForm(sponsorEmail) {
      الأسئلة الـ12
   ------------------------------------------------ */
 
-  TRAINING_QUESTIONS.forEach(function(question) {
-
-    const item = form.addParagraphTextItem();
-
-    item.setTitle(
-      question.number + ') ' + question.title
-    );
-
-    item.setRequired(true);
-
-  });
+  addRagwanMultipleChoiceItems(form);
 
 
   /* -----------------------------------------------
@@ -195,14 +191,15 @@ function createSponsorTrainingForm(sponsorEmail) {
   ------------------------------------------------ */
 
   form.setConfirmationMessage(
-    'تم إرسال إجاباتك بنجاح.\n\n' +
-    'سيتم تقييم الاختبار وإظهار النتيجة ضمن نظام التدريب.'
+    '✅ تم إرسال إجاباتك بنجاح.\n' +
+    'اضغط «عرض النتيجة» (View score) داخل Google Forms لمعرفة درجتك من 100.\n' +
+    'يستمر إرسال تقرير الإجابات إلى بريد الراعي المعتمد.'
   );
 
 
   /* -----------------------------------------------
      حفظ العلاقة:
-     
+
      Form ID
         ↓
      Sponsor Email
@@ -464,6 +461,14 @@ function onSponsorTrainingSubmit(e) {
      تجهيز البيانات
   ------------------------------------------------ */
 
+  // Preserve the approved question sequence even if layout changes.
+  const orderByTitle = TRAINING_QUESTIONS.map(function(q) {
+    return q.number + ') ' + q.title;
+  });
+  answers.sort(function(a,b) {
+    return orderByTitle.indexOf(a.question) - orderByTitle.indexOf(b.question);
+  });
+
   const payload = {
 
     source:
@@ -485,6 +490,9 @@ function onSponsorTrainingSubmit(e) {
       response
         .getTimestamp()
         .toISOString(),
+
+    assessmentMode:
+      isRagwanMultipleChoiceQuiz(form) ? 'ragwan_mcq_v1' : 'legacy_essay',
 
     answers:
       answers
@@ -519,54 +527,13 @@ function onSponsorTrainingSubmit(e) {
 
 
     /* -------------------------------------------
-       تأكيد الحفظ والهوية قبل إرسال البريد
+       إرسال التقرير إلى Sponsor
     -------------------------------------------- */
 
     if (
-      !backendResult ||
-      backendResult.ok !== true ||
-      !backendResult.submissionId
+      backendResult &&
+      backendResult.report
     ) {
-
-      throw new Error(
-        'تم إرسال الاختبار للتقييم لكن لم يتم تأكيد حفظه في سجل الموقع.'
-      );
-
-    }
-
-    if (
-      String(backendResult.formId || '').trim() !==
-      String(formId).trim()
-    ) {
-
-      throw new Error(
-        'عدم تطابق Form ID بين Google Form وسجل الموقع.'
-      );
-
-    }
-
-    if (
-      String(backendResult.membershipNumber || '').trim().replace(/[\\s-]+/g, '') !==
-      String(membershipNumber).trim().replace(/[\\s-]+/g, '')
-    ) {
-
-      throw new Error(
-        'عدم تطابق رقم عضوية العضو بين Google Form وسجل الموقع.'
-      );
-
-    }
-
-    Logger.log(
-      'تم حفظ اختبار العضو بنجاح. Submission ID: ' +
-      backendResult.submissionId
-    );
-
-
-    /* -------------------------------------------
-       إرسال التقرير إلى Sponsor بعد تأكيد الحفظ
-    -------------------------------------------- */
-
-    if (backendResult.report) {
 
       sendSponsorReportEmail(
         sponsorEmail,
@@ -586,6 +553,10 @@ function onSponsorTrainingSubmit(e) {
    إرسال البيانات إلى موقع DXN
 ===================================================== */
 
+/* =====================================================
+   إرسال البيانات إلى موقع DXN
+===================================================== */
+
 function sendToBackend(payload) {
 
   /* -----------------------------------------------
@@ -598,6 +569,7 @@ function sendToBackend(payload) {
       .getScriptProperties()
       .getProperty('GOOGLE_FORM_WEBHOOK_SECRET') || ''
   ).trim();
+
 
   if (!webhookSecret) {
 
@@ -615,8 +587,12 @@ function sendToBackend(payload) {
   const requestPayload = Object.assign(
     {},
     payload,
-    { webhookSecret: webhookSecret }
+    {
+      webhookSecret:
+        webhookSecret
+    }
   );
+
 
   const options = {
 
@@ -634,7 +610,9 @@ function sendToBackend(payload) {
     },
 
     payload:
-      JSON.stringify(requestPayload),
+      JSON.stringify(
+        requestPayload
+      ),
 
     muteHttpExceptions:
       true
@@ -735,6 +713,7 @@ function sendToBackend(payload) {
   return result;
 
 }
+
 
 
 /* =====================================================
@@ -894,7 +873,7 @@ function sendSponsorReportEmail(
           Number(
             item.score || 0
           ) +
-          '/100' +
+          '/' + Number(item.maxScore || 100) +
           '</td>' +
 
           '<td>' +
@@ -1035,7 +1014,7 @@ function buildPlainTextReport(
           Number(
             item.score || 0
           ) +
-          '/100\n';
+          '/' + Number(item.maxScore || 100) + '\n';
 
         text +=
           'الحالة: ' +
@@ -1366,29 +1345,83 @@ function listSponsorForms() {
 
   return forms;
 
-}function testGetSponsorFormInfo() {
-  const props = PropertiesService.getScriptProperties();
-  const all = props.getProperties();
+}
 
-  const key = Object.keys(all).find(k => k.startsWith('FORM_CREATED_'));
+
+/* =====================================================
+   اختبار معرفة بيانات Sponsor Form
+===================================================== */
+
+function testGetSponsorFormInfo() {
+
+  const props =
+    PropertiesService.getScriptProperties();
+
+  const all =
+    props.getProperties();
+
+
+  const key =
+    Object.keys(all)
+      .find(
+        function(k) {
+          return k.indexOf('FORM_CREATED_') === 0;
+        }
+      );
+
 
   if (!key) {
-    throw new Error('لم يتم العثور على Form ID محفوظ في Script Properties.');
+
+    throw new Error(
+      'لم يتم العثور على Form ID محفوظ في Script Properties.'
+    );
+
   }
 
-  const formId = key.replace('FORM_CREATED_', '');
 
-  Logger.log('Form ID: ' + formId);
+  const formId =
+    key.replace(
+      'FORM_CREATED_',
+      ''
+    );
 
-  const result = getSponsorFormInfo(formId);
 
-  Logger.log(JSON.stringify(result, null, 2));
-}function diagnoseWebhookSecret() {
+  Logger.log(
+    'Form ID: ' +
+    formId
+  );
+
+
+  const result =
+    getSponsorFormInfo(
+      formId
+    );
+
+
+  Logger.log(
+    JSON.stringify(
+      result,
+      null,
+      2
+    )
+  );
+
+}
+
+
+/* =====================================================
+   فحص Webhook Secret
+===================================================== */
+
+function diagnoseWebhookSecret() {
 
   const secret =
     PropertiesService
       .getScriptProperties()
-      .getProperty('GOOGLE_FORM_WEBHOOK_SECRET') || '';
+      .getProperty(
+        'GOOGLE_FORM_WEBHOOK_SECRET'
+      ) || '';
+
 
   const bytes =
     Utilities.computeDigest(
@@ -1397,125 +1430,330 @@ function listSponsorForms() {
       Utilities.Charset.UTF_8
     );
 
-  const hash =
-    bytes.map(function(b) {
-      const v = b < 0 ? b + 256 : b;
-      return ('0' + v.toString(16)).slice(-2);
-    }).join('');
 
-  Logger.log('Secret configured: ' + (secret.length > 0));
-  Logger.log('Secret length: ' + secret.length);
-  Logger.log('Secret SHA-256: ' + hash);
+  const hash =
+    bytes
+      .map(
+        function(b) {
+
+          const v =
+            b < 0
+              ? b + 256
+              : b;
+
+          return (
+            '0' +
+            v.toString(16)
+          ).slice(-2);
+
+        }
+      )
+      .join('');
+
+
+  Logger.log(
+    'Secret configured: ' +
+    (
+      secret.length > 0
+    )
+  );
+
+  Logger.log(
+    'Secret length: ' +
+    secret.length
+  );
+
+  Logger.log(
+    'Secret SHA-256: ' +
+    hash
+  );
+
 }
 
+
 /* =====================================================
-   Web App bridge — Sponsor form lookup/creation
+   Web App Bridge
 ===================================================== */
+
+/**
+ * الوظيفة:
+ *
+ * 1) يستقبل بريد Sponsor من الموقع.
+ * 2) يستقبل اسم العضو من حسابه.
+ * 3) يستقبل رقم عضوية العضو من حسابه.
+ * 4) يبحث عن نموذج Sponsor المرتبط بالبريد.
+ * 5) إذا لم يوجد النموذج، ينشئه.
+ * 6) ينشئ رابط Google Form مملوءًا تلقائيًا ببيانات العضو.
+ *
+ * الاستدعاء:
+ *
+ * ?action=sponsor_form
+ * &email=sponsor@example.com
+ * &memberName=اسم العضو
+ * &membershipNumber=123456
+ */
 
 function doGet(e) {
 
   try {
 
+    const params =
+      (e && e.parameter) || {};
+
+
     const action =
       String(
-        (e && e.parameter && e.parameter.action) || ''
+        params.action || ''
       ).trim();
 
-    const email =
+
+    /* -----------------------------------------------
+       فحص Web App
+    ------------------------------------------------ */
+
+    if (
+      action === 'health'
+    ) {
+
+      return jsonOutput({
+
+        ok:
+          true,
+
+        service:
+          'DXN Google Forms Bridge',
+
+        version:
+          '3.0'
+
+      });
+
+    }
+
+
+    /* -----------------------------------------------
+       التحقق من نوع الطلب
+    ------------------------------------------------ */
+
+    if (
+      action !== 'sponsor_form'
+    ) {
+
+      return jsonOutput({
+
+        ok:
+          false,
+
+        error:
+          'الإجراء غير مدعوم.'
+
+      });
+
+    }
+
+
+    /* -----------------------------------------------
+       قراءة البيانات القادمة من الموقع
+    ------------------------------------------------ */
+
+    const sponsorEmail =
       String(
-        (e && e.parameter && e.parameter.email) || ''
-      ).trim();
+        params.email || ''
+      )
+        .trim()
+        .toLowerCase();
 
-    if (action !== 'sponsor_form') {
-      return jsonOutput_({
-        ok: false,
-        error: 'Invalid action.'
+
+    const memberName =
+      String(
+        params.memberName || ''
+      )
+        .trim();
+
+
+    const membershipNumber =
+      String(
+        params.membershipNumber || ''
+      )
+        .trim();
+
+
+    /* -----------------------------------------------
+       التحقق من بريد Sponsor
+    ------------------------------------------------ */
+
+    if (!sponsorEmail) {
+
+      return jsonOutput({
+
+        ok:
+          false,
+
+        error:
+          'لم يتم إرسال بريد Sponsor.'
+
       });
+
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return jsonOutput_({
-        ok: false,
-        error: 'بريد الراعي غير صالح.'
+
+    if (
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+        sponsorEmail
+      )
+    ) {
+
+      return jsonOutput({
+
+        ok:
+          false,
+
+        error:
+          'بريد Sponsor غير صحيح.'
+
       });
+
     }
 
-    const props =
-      PropertiesService.getScriptProperties();
 
-    const all =
-      props.getProperties();
+    /* -----------------------------------------------
+       التحقق من اسم العضو
+    ------------------------------------------------ */
 
-    let formId = '';
+    if (!memberName) {
 
-    Object.keys(all).some(function(key) {
+      return jsonOutput({
 
-      if (key.indexOf('SPONSOR_') !== 0) {
-        return false;
-      }
+        ok:
+          false,
 
-      const savedEmail =
-        String(all[key] || '').trim().toLowerCase();
+        error:
+          'اسم العضو غير موجود في الطلب.'
 
-      if (savedEmail === email.toLowerCase()) {
+      });
 
-        formId =
-          key.replace('SPONSOR_', '');
+    }
 
-        return true;
-      }
 
-      return false;
+    /* -----------------------------------------------
+       التحقق من رقم العضوية
+       الرقم هنا للتسجيل فقط.
+       مصدره حساب العضو في الموقع.
+    ------------------------------------------------ */
 
-    });
+    if (!membershipNumber) {
 
-    if (!formId) {
+      return jsonOutput({
+
+        ok:
+          false,
+
+        error:
+          'رقم عضوية العضو غير موجود في الطلب.'
+
+      });
+
+    }
+
+
+    /* -----------------------------------------------
+       البحث عن نموذج Sponsor الموجود
+    ------------------------------------------------ */
+
+    let form =
+      findSponsorFormByEmail(
+        sponsorEmail
+      );
+
+
+    /* -----------------------------------------------
+       إذا لم يوجد النموذج يتم إنشاء نموذج واحد
+    ------------------------------------------------ */
+
+    if (!form) {
 
       const created =
-        createSponsorTrainingForm(email);
+        createSponsorTrainingForm(
+          sponsorEmail
+        );
 
-      formId =
-        String(
-          created && created.formId || ''
-        ).trim();
+
+      form =
+        FormApp.openById(
+          created.formId
+        );
 
     }
 
-    if (!formId) {
-      throw new Error(
-        'تعذر إنشاء أو العثور على نموذج الراعي.'
+
+    /* -----------------------------------------------
+       إنشاء رابط Google Form مملوء تلقائيًا
+    ------------------------------------------------ */
+
+    const prefilledUrl =
+      createMemberPrefilledUrl(
+        form,
+        memberName,
+        membershipNumber
       );
-    }
 
-    const form =
-      FormApp.openById(formId);
 
-    return jsonOutput_({
+    /* -----------------------------------------------
+       إعادة البيانات إلى الموقع
+    ------------------------------------------------ */
 
-      ok: true,
+    return jsonOutput({
+
+      ok:
+        true,
 
       formId:
-        formId,
+        form.getId(),
 
       sponsorEmail:
-        email,
+        sponsorEmail,
+
+      memberName:
+        memberName,
+
+      membershipNumber:
+        membershipNumber,
 
       memberUrl:
-        form.getPublishedUrl()
+        prefilledUrl,
+
+      prefilledUrl:
+        prefilledUrl
 
     });
 
   }
+
   catch (error) {
 
-    return jsonOutput_({
+    Logger.log(
+      'Web App Bridge Error: ' +
+      (
+        error &&
+        error.stack
+          ? error.stack
+          : error
+      )
+    );
 
-      ok: false,
+
+    return jsonOutput({
+
+      ok:
+        false,
 
       error:
-        String(
-          error && error.message || error
+        (
+          error &&
+          error.message
         )
+          ? error.message
+          : String(error)
 
     });
 
@@ -1524,12 +1762,234 @@ function doGet(e) {
 }
 
 
-function jsonOutput_(data) {
+/* =====================================================
+   البحث عن نموذج Sponsor بواسطة البريد
+===================================================== */
+
+function findSponsorFormByEmail(
+  sponsorEmail
+) {
+
+  const properties =
+    PropertiesService
+      .getScriptProperties();
+
+
+  const all =
+    properties.getProperties();
+
+
+  const normalizedEmail =
+    String(
+      sponsorEmail || ''
+    )
+      .trim()
+      .toLowerCase();
+
+
+  const keys =
+    Object.keys(all)
+      .filter(
+        function(key) {
+
+          return (
+            key.indexOf(
+              'SPONSOR_'
+            ) === 0
+          );
+
+        }
+      );
+
+
+  for (
+    let i = 0;
+    i < keys.length;
+    i++
+  ) {
+
+    const key =
+      keys[i];
+
+
+    const savedEmail =
+      String(
+        all[key] || ''
+      )
+        .trim()
+        .toLowerCase();
+
+
+    if (
+      savedEmail !==
+      normalizedEmail
+    ) {
+
+      continue;
+
+    }
+
+
+    const formId =
+      key.replace(
+        'SPONSOR_',
+        ''
+      );
+
+
+    try {
+
+      return FormApp.openById(
+        formId
+      );
+
+    }
+
+    catch (error) {
+
+      Logger.log(
+        'تعذر فتح النموذج المرتبط بـ ' +
+        sponsorEmail +
+        ': ' +
+        formId
+      );
+
+    }
+
+  }
+
+
+  return null;
+
+}
+
+
+/* =====================================================
+   إنشاء رابط Google Form مملوء تلقائيًا
+===================================================== */
+
+function createMemberPrefilledUrl(
+  form,
+  memberName,
+  membershipNumber
+) {
+
+  if (!form) {
+
+    throw new Error(
+      'لم يتم العثور على نموذج Google Form.'
+    );
+
+  }
+
+
+  const items =
+    form.getItems();
+
+
+  let nameItem =
+    null;
+
+
+  let numberItem =
+    null;
+
+
+  items.forEach(
+    function(item) {
+
+      const title =
+        String(
+          item.getTitle() || ''
+        ).trim();
+
+
+      if (
+        title ===
+        'اسم العضو الكامل'
+      ) {
+
+        nameItem =
+          item;
+
+      }
+
+
+      if (
+        title ===
+        'رقم العضوية'
+      ) {
+
+        numberItem =
+          item;
+
+      }
+
+    }
+  );
+
+
+  if (!nameItem) {
+
+    throw new Error(
+      'حقل "اسم العضو الكامل" غير موجود في نموذج Sponsor.'
+    );
+
+  }
+
+
+  if (!numberItem) {
+
+    throw new Error(
+      'حقل "رقم العضوية" غير موجود في نموذج Sponsor.'
+    );
+
+  }
+
+
+  const response =
+    form.createResponse();
+
+
+  response.withItemResponse(
+
+    nameItem
+      .asTextItem()
+      .createResponse(
+        memberName
+      )
+
+  );
+
+
+  response.withItemResponse(
+
+    numberItem
+      .asTextItem()
+      .createResponse(
+        membershipNumber
+      )
+
+  );
+
+
+  return response.toPrefilledUrl();
+
+}
+
+
+/* =====================================================
+   إخراج JSON للـ Web App
+===================================================== */
+
+function jsonOutput(data) {
 
   return ContentService
+
     .createTextOutput(
       JSON.stringify(data)
     )
+
     .setMimeType(
       ContentService.MimeType.JSON
     );

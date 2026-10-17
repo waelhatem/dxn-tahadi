@@ -3,6 +3,8 @@ const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPAB
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const OPENAI_MODEL = process.env.AI_AGENT_GRADING_MODEL || process.env.AI_AGENT_HELPER_MODEL || 'gpt-5.6-luna';
 const WEBHOOK_SECRET = String(process.env.GOOGLE_FORM_WEBHOOK_SECRET || '').trim();
+const RAGWAN_MCQ_BANK = require('../data/ragwan-step4-mcq.json');
+const ragwanQuizPoints = (i) => i < 4 ? 9 : 8;
 
 const REFERENCE_ANSWERS = [
   {
@@ -171,12 +173,13 @@ async function saveSubmission(payload, report) {
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return json(res, 405, { error: 'Method not allowed' });
-  if (!OPENAI_API_KEY) return json(res, 503, { error: 'OPENAI_API_KEY غير مضبوط في Vercel' });
   if (!SUPABASE_SECRET_KEY) return json(res, 503, { error: 'SUPABASE_SECRET_KEY غير مضبوط في Vercel' });
   if (!WEBHOOK_SECRET) return json(res, 503, { error: 'GOOGLE_FORM_WEBHOOK_SECRET غير مضبوط في Vercel' });
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+    const isMultipleChoiceQuiz = body.assessmentMode === 'ragwan_mcq_v1';
+    if (!isMultipleChoiceQuiz && !OPENAI_API_KEY) return json(res, 503, { error: 'OPENAI_API_KEY غير مضبوط في Vercel' });
     const secret = String(req.headers['x-google-form-secret'] || body.webhookSecret || '').trim();
     if (secret !== WEBHOOK_SECRET) {
       const crypto = require('crypto');
@@ -208,18 +211,38 @@ module.exports = async function handler(req, res) {
       const item = answers[i] || {};
       const answer = String(item.answer || '').trim();
       if (!answer) throw new Error(`الإجابة عن السؤال ${i + 1} فارغة`);
-      const grade = await gradeOne({ answer }, REFERENCE_ANSWERS[i]);
+      let grade;
+      if (isMultipleChoiceQuiz) {
+        const item = RAGWAN_MCQ_BANK[i];
+        if (!item || !Array.isArray(item.options) || item.options.length !== 4 || !item.options.includes(answer)) {
+          return json(res, 400, { error: 'خيار غير صالح في السؤال رقم ' + (i + 1) });
+        }
+        const correct = answer === item.options[item.correct];
+        grade = {
+          score: correct ? 100 : 0,
+          status: correct ? 'approved' : 'retry',
+          note: correct ? 'إجابة صحيحة' : 'إجابة غير صحيحة'
+        };
+      } else {
+        grade = await gradeOne({ answer }, REFERENCE_ANSWERS[i]);
+      }
       results.push({
         questionNo: i + 1,
         question: REFERENCE_ANSWERS[i].question,
         answer,
-        score: grade.score,
+        score: isMultipleChoiceQuiz ? (grade.score === 100 ? ragwanQuizPoints(i) : 0) : grade.score,
+        maxScore: isMultipleChoiceQuiz ? ragwanQuizPoints(i) : 100,
         status: grade.status,
         note: grade.note
       });
     }
 
-    const totalScore = Math.round(results.reduce((sum, x) => sum + x.score, 0) / results.length);
+    // For Google Forms Quiz the 12 graded questions total exactly 100 points
+    // (9 points for each of the first four, 8 for the remaining eight).
+    // Preserve the legacy AI grading unchanged for old essay submissions.
+    const totalScore = isMultipleChoiceQuiz
+      ? results.reduce((sum, x) => sum + x.score, 0)
+      : Math.round(results.reduce((sum, x) => sum + x.score, 0) / results.length);
     const approvedCount = results.filter(x => x.status === 'approved').length;
     const report = {
       totalScore,
@@ -229,6 +252,7 @@ module.exports = async function handler(req, res) {
       overallStatus: results.every(x => x.status === 'approved') ? 'approved' : 'retry',
       identity: {
         source: 'google_form',
+        assessmentMode: isMultipleChoiceQuiz ? 'ragwan_mcq_v1' : 'legacy_essay',
         formId,
         sponsorEmail,
         memberName,
