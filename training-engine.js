@@ -242,6 +242,39 @@
   return {update,finish,back,next};
  }
 
- window.DXNTrainingEngine={createWatch,lessonState,STATE_TEXT,MESSAGES,completionLabel,POLICY_NOTE,pageQuestions,rpc,
+
+ // Server-provided corrections for the member's *completed* attempt only.
+ // Text-only DOM nodes avoid injecting question content as markup.
+ function appendQuizMistakeReview(target,graded){
+  const section=document.createElement('section');section.className='quiz-mistake-review';
+  section.setAttribute('aria-label','مراجعة الإجابات غير الصحيحة');
+  const title=document.createElement('h3');title.textContent='📝 مراجعة الإجابات غير الصحيحة';
+  section.append(title);
+  if(!graded||graded.review_available!==true||!Array.isArray(graded.wrong_answers)){
+   const note=document.createElement('p');
+   note.className='quiz-review-unavailable';
+   note.textContent='تم حفظ درجة الاختبار، لكن تعذر تحميل تفاصيل الإجابات غير الصحيحة لهذه المحاولة.';
+   section.append(note);target.append(section);return;
+  }
+  const wrong=graded.wrong_answers;
+  const intro=document.createElement('p');intro.className='quiz-review-intro';
+  intro.textContent=wrong.length
+   ?'عدد الإجابات غير الصحيحة: '+wrong.length+' من '+(Number(graded.out_of)||20)+' — راجع التصحيح أدناه.'
+   :'✅ أحسنت! جميع إجاباتك صحيحة، ولا توجد أخطاء للمراجعة.';
+  section.append(intro);
+  wrong.forEach(item=>{
+   const row=document.createElement('div');row.className='quiz-review-item';
+   const question=document.createElement('strong');
+   question.textContent='السؤال '+Number(item.no)+' — '+String(item.question||'');
+   const chosen=document.createElement('p');chosen.className='quiz-review-chosen';
+   chosen.textContent='✖ اختيارك: '+String(item.chosen_option||'');
+   const correct=document.createElement('p');correct.className='quiz-review-correct';
+   correct.textContent='✔ الإجابة الصحيحة: '+String(item.correct_option||'');
+   row.append(question,chosen,correct);section.append(row);
+  });
+  target.append(section);
+ }
+
+ window.DXNTrainingEngine={createWatch,lessonState,STATE_TEXT,MESSAGES,completionLabel,POLICY_NOTE,pageQuestions,appendQuizMistakeReview,rpc,
   constants:{REPORT_INTERVAL_MS,TICK_MS,FORWARD_TOLERANCE_S,WATCH_PERCENT:90,PASS_SCORE:16}};
 })();
