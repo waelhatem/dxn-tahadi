@@ -1,0 +1,11 @@
+/* Feedback is shown only after a saved, graded test. Scoped to result panels. */
+.quiz-mistake-review{margin:20px 0 2px;padding:16px;border:1px solid #d4e4db;border-radius:16px;background:#f7fbf8;direction:rtl;text-align:right}
+.quiz-mistake-review h3{margin:0 0 10px;font-size:18px;font-weight:900;color:#164b37}
+.quiz-review-intro{font-size:14px;line-height:1.9;margin:5px 0 13px;color:#315f4a}
+.quiz-review-item{padding:13px 14px;border-radius:13px;border:1px solid #e0e9e5;background:#fff;margin:10px 0;overflow-wrap:anywhere;line-height:1.9}
+.quiz-review-item strong{font-size:14px;color:#173e31;display:block;margin-bottom:7px}
+.quiz-review-item p{margin:4px 0;font-size:14px}
+.quiz-review-chosen{color:#a73d32!important}
+.quiz-review-correct{color:#086644!important;font-weight:750}
+.quiz-review-unavailable{font-size:13px;color:#805900;line-height:1.85}
+@media(max-width:650px){.quiz-mistake-review{padding:12px;border-radius:12px}.quiz-review-item{padding:11px 10px}}
