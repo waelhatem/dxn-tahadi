@@ -1790,7 +1790,7 @@ function renderInAppNav(){
   el.innerHTML=`<button type="button" class="dxn-nav-btn dxn-nav-back" ${dxnNav.back.length?'':'disabled'} onclick="event.preventDefault();this.blur();dxnNavGoBack()" aria-label="الرجوع للصفحة السابقة" title="الرجوع للصفحة السابقة"><span class="dxn-nav-ico" aria-hidden="true">◀️</span> <span>رجوع</span></button><button type="button" class="dxn-nav-btn dxn-nav-forward" ${dxnNav.forward.length?'':'disabled'} onclick="event.preventDefault();this.blur();dxnNavGoForward()" aria-label="التقدم إلى الصفحة التالية" title="التقدم إلى الصفحة التالية"><span>تقدم</span> <span class="dxn-nav-ico" aria-hidden="true">▶️</span></button>`;
 }
 function scrollToTabContent(){return;}
-function switchTab(next){if(next==='training'&&!canAccessTraining())return;if(next==='basic_training_profile'&&(role!=='member'||!me))return;if(next==='basic_training_admin'&&role!=='leader')return;if(next==='training')trainingSubtab='home';tab=next;saveDxnUiState({tab:next,trainingSubtab});try{render();if(next==='basic_training_profile')setTimeout(()=>window.basicTrainingLoadMemberPage?.(),0);if(next==='basic_training_admin')setTimeout(()=>window.basicTrainingAdminLoad?.(1),0);dxnNavPush(`tab:${next}`);recordSiteVisit(role||'visitor',next)}catch(e){console.error(e);toast('تعذر فتح القسم: '+(e.message||e))}}
+function switchTab(next){if(next==='training'&&!canAccessTraining())return;if(next==='basic_training_profile'&&(role!=='member'||!me))return;if(next==='basic_training_admin'&&role!=='leader')return;if(next==='training')trainingSubtab='home';tab=next;saveDxnUiState({tab:next,trainingSubtab});try{render();if(next==='basic_training_profile')setTimeout(()=>window.basicTrainingLoadMemberPage?.(),0);if(next==='basic_training_admin')setTimeout(()=>window.basicTrainingAdminLoad?.(1),0);if(next==='training')loadMemberTrainingAccess(true);dxnNavPush(`tab:${next}`);recordSiteVisit(role||'visitor',next)}catch(e){console.error(e);toast('تعذر فتح القسم: '+(e.message||e))}}
 function openMemberProgress(){if(role!=='member'||!me){toast('هذه الصفحة متاحة للأعضاء فقط.');return;}tab='progress';try{render()}catch(e){console.error(e);toast('تعذر فتح صفحة تقدّمي: '+(e.message||e))}}
 
 function memberNextStep(){
@@ -1880,6 +1880,64 @@ function memberPathMap(){
  ${step(2,'هذا الأسبوع','📚',weekTitle,weekDesc,weekStatus,nextLesson?`startTrainingLesson('${nextLesson.id}')`:"switchTab('training')",nextTraining?'ابدأ التدريب':'مراجعة التدريب',weekPct,weekDetails,weekStatus==='active')}
  ${step(3,'هذا الشهر','🎯',monthTitle,monthDesc,monthStatus,monthPending?'switchTab(\'notifications\')':"editMyMonthlyPoints()",monthPending?'مراجعة الحالة':pts>=targetPts?'تحديث النقاط':'تحديث نقاط DXN',monthPending?25:monthPct,monthDetails,monthStatus==='active'||monthStatus==='blocked')}
  </div><div class=\"path-note\">📌 <b>حالة مسارك:</b> ${activityNote}</div></div>`;
+}
+
+
+// V87 — Cross-track gates for members, using saved server lesson/watch and quiz results.
+// Member number comes from authenticated bootstrap; browser input never grants an exception.
+let memberTrainingAccess={session:'',loaded:false,record:null,promise:null,error:''};
+function memberTrainingExempt(){
+  return role==='member'&&String(me&&me.member_no||'').trim()==='820469486';
+}
+function trainingTrackUnlocked(track){
+  if(role!=='member'||memberTrainingExempt())return true;
+  if(track==='basic')return true;
+  const s=memberTrainingAccess;
+  if(!s.loaded||s.session!==token||!s.record)return false;
+  if(track==='professional')return s.record.professional_allowed===true;
+  if(track==='advanced_training')return s.record.advanced_allowed===true;
+  return true;
+}
+function trainingTrackLockReason(track){
+  if(trainingTrackUnlocked(track))return '';
+  if(memberTrainingAccess.error)return '🔒 تعذر التحقق من اكتمال التدريبات. أعد المحاولة من شاشة التدريبات.';
+  if(!memberTrainingAccess.loaded)return '🔒 جارٍ التحقق من نتائج التدريبات المحفوظة...';
+  return track==='professional'
+    ?'🔒 أكمل مشاهدة جميع التدريبات الأساسية الثمانية واجتز اختباراتها أولًا.'
+    :'🔒 أكمل جميع التدريبات الاحترافية الخمسة واختباراتها أولًا.';
+}
+function loadMemberTrainingAccess(force=false){
+  if(role!=='member'||memberTrainingExempt())return Promise.resolve();
+  if(memberTrainingAccess.session!==token){
+    memberTrainingAccess={session:token,loaded:false,record:null,promise:null,error:''};
+  }
+  if(memberTrainingAccess.promise)return memberTrainingAccess.promise;
+  if(memberTrainingAccess.loaded&&!force)return Promise.resolve(memberTrainingAccess.record);
+  const session=token;
+  memberTrainingAccess.error='';
+  memberTrainingAccess.promise=(async()=>{
+    try{
+      const response=await fetch('/api/rpc',{method:'POST',cache:'no-store',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({fn:'member_training_track_access',args:{p_token:session}})});
+      const access=await response.json();
+      if(!response.ok)throw Error(access.error||'تعذر التحقق من اكتمال التدريب');
+      if(session!==token||role!=='member')return;
+      memberTrainingAccess.loaded=true;
+      memberTrainingAccess.record=access;
+      memberTrainingAccess.error='';
+      if(trainingSubtab==='professional'&&!trainingTrackUnlocked('professional'))trainingSubtab='lessons';
+      if(trainingSubtab==='advanced_training'&&!trainingTrackUnlocked('advanced_training'))trainingSubtab='lessons';
+    }catch(e){
+      if(session!==token)return;
+      memberTrainingAccess.loaded=false;memberTrainingAccess.record=null;
+      memberTrainingAccess.error=e.message||'تعذر التحقق من نتائج التدريبات';
+    }finally{
+      if(session===token)memberTrainingAccess.promise=null;
+      if(session===token&&role==='member'&&tab==='training')try{render()}catch(e){console.error(e)}
+    }
+  })();
+  return memberTrainingAccess.promise;
 }
 
 function canAccessTraining(){return (role==='member'&&!!me&&/^\d{9}$/.test(String(me.member_no||'')))||role==='leader';}
@@ -2949,6 +3007,8 @@ function ideaTrustVideos(){
   renderViewSwitch();
 }
 function switchTrainingSubtab(next){
+  if((next==='professional'||next==='advanced_training')&&!trainingTrackUnlocked(next)){toast(trainingTrackLockReason(next));return;}
+  if(next==='lessons')loadMemberTrainingAccess(true);
   if(next!=='home'&&next!=='lessons'&&next!=='basic'&&next!=='professional'&&next!=='advanced_training'&&next!=='training_camps'&&next!=='ragwan_success_plan')return;
   trainingSubtab=next;
   saveDxnUiState({tab,trainingSubtab:next});
@@ -6410,6 +6470,7 @@ function trainingCampsPage(){
 function advancedTrainingPage(){ return typeof window.advancedFinancialCoursePage==='function'?window.advancedFinancialCoursePage():'<section class="card">جارٍ تحميل التدريب المتقدم...</section>'; }
 
 function trainings(){
+  if(role==='member'&&memberTrainingAccess.session!==token&&!memberTrainingExempt())setTimeout(()=>loadMemberTrainingAccess(),0);
   const lessons=(trainingData.lessons||[]).sort((a,b)=>Number(a.lesson_no)-Number(b.lesson_no));
   const progress=trainingData.my_progress||[];
 
@@ -6470,18 +6531,18 @@ function trainings(){
         <span class="training-feature-copy"><strong>التدريبات الأساسية</strong><small>حقيبة المهندس محمود المصري — فيديوهات واختبارات معتمدة</small></span>
         <span class="training-feature-arrow">›</span>
       </button>
-      <button type="button" class="training-feature-card training-feature-professional" onclick="switchTrainingSubtab('professional')">
+      <button type="button" class="training-feature-card training-feature-professional ${!trainingTrackUnlocked('professional')?'training-stage-locked':''}" ${!trainingTrackUnlocked('professional')?'disabled aria-disabled="true"':''} onclick="switchTrainingSubtab('professional')">
         <span class="training-feature-shine"></span>
-        <span class="training-feature-badge">🎓 المسار الاحترافي</span>
+        <span class="training-feature-badge">${trainingTrackUnlocked('professional')?'🎓 المسار الاحترافي':'🔒 مغلق مؤقتًا'}</span>
         <span class="training-feature-icon">🏆</span>
-        <span class="training-feature-copy"><strong>التدريبات الاحترافية</strong><small>المحاضرات والتطبيقات والاختبارات المعتمدة</small></span>
+        <span class="training-feature-copy"><strong>التدريبات الاحترافية</strong><small>${trainingTrackUnlocked('professional')?'المحاضرات والتطبيقات والاختبارات المعتمدة':trainingTrackLockReason('professional')}</small></span>
         <span class="training-feature-arrow">›</span>
       </button>
-      <button type="button" class="training-feature-card training-feature-professional" onclick="switchTrainingSubtab('advanced_training')">
+      <button type="button" class="training-feature-card training-feature-professional ${!trainingTrackUnlocked('advanced_training')?'training-stage-locked':''}" ${!trainingTrackUnlocked('advanced_training')?'disabled aria-disabled="true"':''} onclick="switchTrainingSubtab('advanced_training')">
         <span class="training-feature-shine"></span>
-        <span class="training-feature-badge">🚀 المسار المتقدم</span>
+        <span class="training-feature-badge">${trainingTrackUnlocked('advanced_training')?'🚀 المسار المتقدم':'🔒 مغلق مؤقتًا'}</span>
         <span class="training-feature-icon">🚀</span>
-        <span class="training-feature-copy"><strong>التدريب المتقدم</strong><small>مسار مستقل — سيتم إضافة الدروس والاختبارات لاحقًا</small></span>
+        <span class="training-feature-copy"><strong>التدريب المتقدم</strong><small>${trainingTrackUnlocked('advanced_training')?'10 دروس متتابعة — يبدأ بما هو منشور':'🔒 أكمل التدريبات الاحترافية أولًا لفتح هذا المسار.'}</small></span>
         <span class="training-feature-arrow">›</span>
       </button>
       <button type="button" class="training-feature-card training-feature-lessons" onclick="switchTrainingSubtab('training_camps')">
@@ -6507,10 +6568,12 @@ function trainings(){
   }
 
   if(trainingSubtab==='professional'){
+    if(!trainingTrackUnlocked('professional'))return backToTrainingTypes+trainingTypeChoices;
     return backToTrainingTypes+professionalTrainingPage();
   }
 
   if(trainingSubtab==='advanced_training'){
+    if(!trainingTrackUnlocked('advanced_training'))return backToTrainingTypes+trainingTypeChoices;
     return backToTrainingTypes+advancedTrainingPage();
   }
 
@@ -8694,6 +8757,9 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 .training-professional-assessment{margin-top:16px;padding:14px;background:#f2f6f3;border:1px solid #d9e5dd;border-radius:12px;font-size:14px;line-height:1.8}
 .training-professional-assessment p{margin:5px 0 0;color:#435f52}
 @media(max-width:799px){.training-kind-tabs{grid-template-columns:1fr}.training-kind-tabs .training-feature-card{min-height:128px}}
+.training-kind-tabs .training-stage-locked{opacity:.65;filter:saturate(.3);cursor:not-allowed;box-shadow:none}
+.training-kind-tabs .training-stage-locked .training-feature-arrow{opacity:.4}
+.training-kind-tabs .training-stage-locked .training-feature-copy small{line-height:1.8}
 </style>
 <link rel="stylesheet" href="../basic-training.css?v=20261014-onequestion">
 <link rel="stylesheet" href="../unified-training-ui.css?v=20261015-unified">
