@@ -232,7 +232,10 @@ function renderExam(body){
  submit.onclick=async()=>{if(e.busy||e.answers.includes(-1))return;e.busy=true;submit.disabled=true;
  try{const result=await rpc('advanced_financial_submit_quiz',{p_lesson_no:e.no,p_answers:e.answers,p_revision:e.revision});
  body.replaceChildren();const resultBox=document.createElement('section');resultBox.className='basic-bag-result';
- resultBox.textContent='درجة الاختبار: '+result.score*5+' / 100 — '+(result.passed?window.DXNTrainingEngine.MESSAGES.passed:window.DXNTrainingEngine.MESSAGES.failed);
+ const grade=document.createElement('h2');grade.textContent='درجة الاختبار: '+Math.round(100*Number(result.score||0)/(Number(result.out_of)||20))+' / 100';
+ const summary=document.createElement('p');summary.textContent=result.passed?window.DXNTrainingEngine.MESSAGES.passed:window.DXNTrainingEngine.MESSAGES.failed;
+ resultBox.append(grade,summary);
+ window.DXNTrainingEngine.appendQuizMistakeReview(resultBox,result);
  body.append(resultBox);await refresh();
  }catch(err){notify(err.message);e.busy=false;updateFooter()}};
  foot.append(back,next,submit);body.append(foot);

@@ -378,12 +378,8 @@
     const explain=document.createElement('p');
     explain.textContent=graded.passed?window.DXNTrainingEngine.MESSAGES.passed:window.DXNTrainingEngine.MESSAGES.failed;
     result.appendChild(explain);
-    // The server returns only the score; correct answers are intentionally private.
-    if(!graded.passed){
-      const note=document.createElement('p');
-      note.textContent='راجع محتوى التدريب، ثم أعد المحاولة لاحقًا. لا تُعرض مفاتيح الإجابات النظامية.';
-      result.appendChild(note);
-    }
+    // Display only mistakes returned by the server after the submission is saved.
+    window.DXNTrainingEngine.appendQuizMistakeReview(result,graded);
     body.appendChild(result);await loadOverview();
    }catch(err){safeToast(err.message||'تعذر التصحيح');submit.disabled=false;submit.textContent=BASIC_FINISH_LABEL;pager.update();e.busy=false;}
   }

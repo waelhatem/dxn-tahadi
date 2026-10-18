@@ -186,6 +186,7 @@
      body.replaceChildren();const box=document.createElement('div');box.className='basic-bag-result';
      const h=document.createElement('h2');h.textContent='درجة الاختبار: '+Math.round(100*Number(g.score||0)/(Number(g.out_of)||20))+' / 100';box.appendChild(h);
      const p=document.createElement('p');p.textContent=g.passed?E().MESSAGES.passed:E().MESSAGES.failed;box.appendChild(p);
+     E().appendQuizMistakeReview(box,g);
      body.appendChild(box);await load();
     }catch(err){const note=document.createElement('p');note.className='basic-bag-notice';note.textContent='تعذر التصحيح: '+err.message;body.prepend(note);e.busy=false;pager.finish.disabled=false;pager.finish.textContent='إنهاء الاختبار وتصحيحه';}
    }});
