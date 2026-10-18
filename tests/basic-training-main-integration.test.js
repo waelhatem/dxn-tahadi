@@ -54,8 +54,50 @@ test('basic training is independent of existing Ragwan and old lessons',()=>{
  assert.match(typeChooser,/switchTrainingSubtab\('training_camps'\)/);
  assert.match(page,/if\(trainingSubtab==='lessons'\)\s*\{\s*return backChoice\+trainingTypeChoices/);
  assert.match(page,/if\(trainingSubtab==='basic'\)\s*\{\s*return backToTrainingTypes\+basicTrainingPage\(\)/);
- assert.match(page,/if\(trainingSubtab==='professional'\)\s*\{\s*return backToTrainingTypes\+professionalTrainingPage\(\)/);
+ assert.match(page,/if\(trainingSubtab==='professional'\)\s*\{\s*if\(!trainingTrackUnlocked\('professional'\)\)return backToTrainingTypes\+trainingTypeChoices;\s*return backToTrainingTypes\+professionalTrainingPage\(\)/);
 });
+
+test('training lock preview is exclusive to primary leader, scoped to training chooser and view-only',()=>{
+ const start=page.indexOf('let trainingLockPreviewMode=false');
+ const end=page.indexOf('\nfunction canAccessTraining(){',start);
+ assert.ok(start>0&&end>start,'training lock preview functions exist');
+ const src=page.slice(start,end);
+ const ownerId='5cf50c5d-d23e-499e-96b3-f71b10c4d854';
+ const make=(role,userId,subtab='lessons')=>{
+   const context={role,data:{user_id:userId},tab:'training',trainingSubtab:subtab,
+    trainingTrackUnlocked:()=>true,trainingTrackLockReason:()=>'',render:()=>{}};
+   vm.createContext(context);
+   vm.runInContext(src+';this.previewTest={eligible:trainingLockPreviewEligible,active:trainingLockPreviewActive,toggle:toggleTrainingLockPreview,setStage:setTrainingLockPreviewStage,controls:trainingLockPreviewControls,unlocked:trainingTrackDisplayUnlocked};',context);
+   return context.previewTest;
+ };
+ const leader=make('leader',ownerId);
+ assert.equal(leader.eligible(),true);
+ assert.match(leader.controls(),/معاينة قيود العضو/);
+ assert.equal(leader.unlocked('professional'),true);
+ leader.toggle();
+ assert.equal(leader.active(),true);
+ assert.equal(leader.unlocked('professional'),false,'new member professional locked');
+ assert.equal(leader.unlocked('advanced_training'),false,'new member advanced locked');
+ leader.setStage('basic_done');
+ assert.equal(leader.unlocked('professional'),true);
+ assert.equal(leader.unlocked('advanced_training'),false);
+ leader.setStage('professional_done');
+ assert.equal(leader.unlocked('advanced_training'),true);
+ leader.toggle();
+ assert.equal(leader.active(),false);
+ assert.equal(leader.unlocked('advanced_training'),true);
+ for(const denied of [make('leader','different-user'),make('member',ownerId),make('leader',ownerId,'home')]){
+   assert.equal(denied.active(),false);
+   denied.toggle();
+   assert.equal(denied.active(),false);
+ }
+ assert.equal(make('leader','different-user').controls(),'');
+ assert.equal(make('member',ownerId).controls(),'');
+ const topTabs=page.slice(page.indexOf('function render(){'),page.indexOf('const DXN_LEVELS='));
+ assert.doesNotMatch(topTabs,/toggleTrainingLockPreview/,'global navigation contains no preview button');
+ assert.match(page,/if\(trainingLockPreviewActive\(\)&&\['basic','professional','advanced_training'\]\.includes\(next\)\)/);
+});
+
 test('no previous direct public answer-key resources appear in clean branch',()=>{
  assert.equal(fs.existsSync(path.join(root,'basic-training-quiz1.js')),false);
  assert.equal(fs.existsSync(path.join(root,'basic-training-01-quiz.json')),false);
@@ -70,9 +112,17 @@ test('training navigation never falls through to the legacy lesson cards',()=>{
  assert.ok(start>=0&&end>start,'training section not found');
  const source=page.slice(start,end+2);
  const evaluate=new Function('trainingData','trainingSubtab','role','basicTrainingPage','professionalTrainingPage','ragwanSuccessIntro','canAccessTraining','esc',
+   'trainingTrackUnlocked','trainingTrackLockReason','memberTrainingAccess','memberTrainingExempt','token','setTimeout',
+   'trainingTrackDisplayUnlocked','trainingTrackDisplayReason','trainingLockPreviewControls',
    source+'\nreturn trainings();');
  const history={lessons:[{id:123,lesson_no:1,title:'LEGACY_MARKER_DO_NOT_RENDER',reward_stars:10}],my_progress:[]};
- const exec=state=>evaluate(history,state,'member',()=>'<h1>BASIC_TRACK</h1>',()=>'<h1>PROF_TRACK</h1>',()=>'<h1>RAGWAN_TRACK</h1>',()=>true,x=>x);
+ const exec=(state,{pro=true,adv=true}={})=>evaluate(history,state,'member',
+   ()=>'<h1>BASIC_TRACK</h1>',()=>'<h1>PROF_TRACK</h1>',()=>'<h1>RAGWAN_TRACK</h1>',()=>true,x=>x,
+   track=>track==='professional'?pro:track==='advanced_training'?adv:true,
+   track=>'🔒 أكمل التدريب السابق أولًا', {session:'test-session'},()=>false,'test-session',()=>{},
+   track=>track==='professional'?pro:track==='advanced_training'?adv:true,
+   track=>'🔒 أكمل التدريب السابق أولًا',()=> '');
+
  const root=exec('home');
  assert.match(root,/switchTrainingSubtab\('lessons'\)/);
  assert.match(root,/switchTrainingSubtab\('ragwan_success_plan'\)/);
@@ -82,6 +132,9 @@ test('training navigation never falls through to the legacy lesson cards',()=>{
  assert.match(menu,/switchTrainingSubtab\('professional'\)/);
  assert.match(exec('basic'),/BASIC_TRACK/);
  assert.match(exec('professional'),/PROF_TRACK/);
+ assert.doesNotMatch(exec('professional',{pro:false}),/PROF_TRACK/,'locked professional track is never rendered');
+ assert.match(exec('lessons',{pro:false,adv:false}),/disabled aria-disabled="true"/);
+ assert.doesNotMatch(exec('advanced_training',{pro:true,adv:false}),/advancedFinancialCoursePage/);
  assert.match(exec('ragwan_success_plan'),/RAGWAN_TRACK/);
  for(const state of ['home','lessons','basic','professional','old','legacy','unexpected']){
   const result=exec(state);

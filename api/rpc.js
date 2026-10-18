@@ -1154,6 +1154,52 @@ async function communityMeetingCancel(args){
   return {ok:true,id};
 }
 
+
+// V87: sequential member training access (server-derived, never from browser flags).
+// Owner exemption is the authenticated member number 820469486.
+async function resolveTrainingTrackAccess(pToken) {
+  if(!pToken || !/^[0-9a-f-]{36}$/i.test(String(pToken))) throw new Error('جلسة الدخول غير صالحة');
+  const args={p_token:pToken};
+  const basic=await supabaseRpcRequest('basic_training_overview',args,SUPABASE_KEY,12000);
+  if(!basic.ok || !basic.data || !Array.isArray(basic.data.progress)){
+    throw new Error('تعذر التحقق من إكمال التدريبات الأساسية');
+  }
+  const role=String(basic.data.role||'').toLowerCase();
+  if(role==='leader'){
+    return {role,exempt:true,basic_complete:true,professional_complete:true,
+      professional_allowed:true,advanced_allowed:true,basic_passed:8,basic_total:8,
+      professional_passed:5,professional_total:5};
+  }
+  if(role!=='member')throw new Error('حساب العضو غير مصرح له بفتح التدريبات');
+  const boot=await supabaseRpcRequest('bootstrap',args,SUPABASE_KEY,12000);
+  if(!boot.ok||boot.data?.role!=='member')throw new Error('تعذر التحقق من هوية العضو');
+  const number=String(boot.data?.current_member?.member_no||boot.data?.members?.[0]?.member_no||'').trim();
+  const exempt=number==='820469486';
+  const validBasic=basic.data.progress.filter(x=>x&&x.completed===true&&x.passed===true).length;
+  const basicTotal=basic.data.progress.length;
+  const basicComplete=basicTotal===8&&validBasic===8;
+  let professionalTotal=5,professionalPassed=0,professionalComplete=false;
+  // The verified account exemption is unconditional: no prerequisite query may block it.
+  if(exempt)return {role,exempt,basic_complete:basicComplete,professional_complete:false,
+    basic_passed:validBasic,basic_total:basicTotal,professional_passed:0,professional_total:5,
+    professional_allowed:true,advanced_allowed:true};
+  // Check the professional stage only after all eight basic lessons are passed.
+  if(basicComplete){
+    const pro=await supabaseRpcRequest('professional_training_overview',args,SUPABASE_KEY,12000);
+    if(!pro.ok||!pro.data||!Array.isArray(pro.data.lessons)){
+      throw new Error('تعذر التحقق من اكتمال التدريبات الاحترافية');
+    }
+    const active=pro.data.lessons.filter(x=>x&&x.active===true);
+    professionalTotal=active.length;
+    professionalPassed=active.filter(x=>x.completed===true&&x.passed===true).length;
+    professionalComplete=professionalTotal===5&&professionalPassed===5;
+  }
+  return {role,exempt,basic_complete:basicComplete,professional_complete:professionalComplete,
+    basic_passed:validBasic,basic_total:basicTotal,professional_passed:professionalPassed,
+    professional_total:professionalTotal,professional_allowed:exempt||basicComplete,
+    advanced_allowed:exempt||(basicComplete&&professionalComplete)};
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -1185,6 +1231,31 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid RPC name' });
     }
 
+
+
+    // Guard before forwarding protected course calls to Supabase.
+    // Also guard watch-start: a locked member must not start a new watch attempt.
+    const isProtectedProfessional = ['professional_training_overview',
+      'professional_training_get_quiz','professional_training_submit_quiz'].includes(fn) ||
+      (fn==='training_watch_begin' && args.p_track==='professional');
+    const isProtectedAdvanced = ['advanced_financial_overview',
+      'advanced_financial_get_quiz','advanced_financial_submit_quiz',
+      'advanced_financial_watch_update'].includes(fn) ||
+      (fn==='training_watch_begin' && args.p_track==='advanced');
+    if(fn==='member_training_track_access' || isProtectedProfessional || isProtectedAdvanced){
+      try{
+        const access=await resolveTrainingTrackAccess(args.p_token);
+        if(fn==='member_training_track_access')return res.status(200).json(access);
+        if((isProtectedProfessional&&!access.professional_allowed)||
+           (isProtectedAdvanced&&!access.advanced_allowed)){
+          return res.status(403).json({error:isProtectedProfessional
+            ?'🔒 أكمل التدريبات الأساسية واختباراتها أولًا لفتح التدريبات الاحترافية.'
+            :'🔒 أكمل التدريبات الاحترافية واختباراتها أولًا لفتح التدريب المتقدم.'});
+        }
+      }catch(error){
+        return res.status(403).json({error:String(error&&error.message||error)});
+      }
+    }
 
     if(fn==='ai_training_material_prepare' || fn==='ai_training_material_complete' || fn==='ai_training_material_process'){
       try{
