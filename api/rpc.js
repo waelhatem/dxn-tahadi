@@ -1179,9 +1179,12 @@ async function resolveTrainingTrackAccess(pToken) {
   const basicTotal=basic.data.progress.length;
   const basicComplete=basicTotal===8&&validBasic===8;
   let professionalTotal=5,professionalPassed=0,professionalComplete=false;
-  // Fetch saved professional progress only once the basic track is cleared,
-  // or for the authenticated exempt account.
-  if(basicComplete||exempt){
+  // The verified account exemption is unconditional: no prerequisite query may block it.
+  if(exempt)return {role,exempt,basic_complete:basicComplete,professional_complete:false,
+    basic_passed:validBasic,basic_total:basicTotal,professional_passed:0,professional_total:5,
+    professional_allowed:true,advanced_allowed:true};
+  // Check the professional stage only after all eight basic lessons are passed.
+  if(basicComplete){
     const pro=await supabaseRpcRequest('professional_training_overview',args,SUPABASE_KEY,12000);
     if(!pro.ok||!pro.data||!Array.isArray(pro.data.lessons)){
       throw new Error('تعذر التحقق من اكتمال التدريبات الاحترافية');
