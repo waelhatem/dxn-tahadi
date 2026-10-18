@@ -54,7 +54,7 @@ test('basic training is independent of existing Ragwan and old lessons',()=>{
  assert.match(typeChooser,/switchTrainingSubtab\('training_camps'\)/);
  assert.match(page,/if\(trainingSubtab==='lessons'\)\s*\{\s*return backChoice\+trainingTypeChoices/);
  assert.match(page,/if\(trainingSubtab==='basic'\)\s*\{\s*return backToTrainingTypes\+basicTrainingPage\(\)/);
- assert.match(page,/if\(trainingSubtab==='professional'\)\s*\{\s*return backToTrainingTypes\+professionalTrainingPage\(\)/);
+ assert.match(page,/if\(trainingSubtab==='professional'\)\s*\{\s*if\(!trainingTrackUnlocked\('professional'\)\)return backToTrainingTypes\+trainingTypeChoices;\s*return backToTrainingTypes\+professionalTrainingPage\(\)/);
 });
 test('no previous direct public answer-key resources appear in clean branch',()=>{
  assert.equal(fs.existsSync(path.join(root,'basic-training-quiz1.js')),false);
@@ -70,9 +70,14 @@ test('training navigation never falls through to the legacy lesson cards',()=>{
  assert.ok(start>=0&&end>start,'training section not found');
  const source=page.slice(start,end+2);
  const evaluate=new Function('trainingData','trainingSubtab','role','basicTrainingPage','professionalTrainingPage','ragwanSuccessIntro','canAccessTraining','esc',
+   'trainingTrackUnlocked','trainingTrackLockReason','memberTrainingAccess','memberTrainingExempt','token','setTimeout',
    source+'\nreturn trainings();');
  const history={lessons:[{id:123,lesson_no:1,title:'LEGACY_MARKER_DO_NOT_RENDER',reward_stars:10}],my_progress:[]};
- const exec=state=>evaluate(history,state,'member',()=>'<h1>BASIC_TRACK</h1>',()=>'<h1>PROF_TRACK</h1>',()=>'<h1>RAGWAN_TRACK</h1>',()=>true,x=>x);
+ const exec=(state,{pro=true,adv=true}={})=>evaluate(history,state,'member',
+   ()=>'<h1>BASIC_TRACK</h1>',()=>'<h1>PROF_TRACK</h1>',()=>'<h1>RAGWAN_TRACK</h1>',()=>true,x=>x,
+   track=>track==='professional'?pro:track==='advanced_training'?adv:true,
+   track=>'🔒 أكمل التدريب السابق أولًا', {session:'test-session'},()=>false,'test-session',()=>{});
+
  const root=exec('home');
  assert.match(root,/switchTrainingSubtab\('lessons'\)/);
  assert.match(root,/switchTrainingSubtab\('ragwan_success_plan'\)/);
@@ -82,6 +87,9 @@ test('training navigation never falls through to the legacy lesson cards',()=>{
  assert.match(menu,/switchTrainingSubtab\('professional'\)/);
  assert.match(exec('basic'),/BASIC_TRACK/);
  assert.match(exec('professional'),/PROF_TRACK/);
+ assert.doesNotMatch(exec('professional',{pro:false}),/PROF_TRACK/,'locked professional track is never rendered');
+ assert.match(exec('lessons',{pro:false,adv:false}),/disabled aria-disabled="true"/);
+ assert.doesNotMatch(exec('advanced_training',{pro:true,adv:false}),/advancedFinancialCoursePage/);
  assert.match(exec('ragwan_success_plan'),/RAGWAN_TRACK/);
  for(const state of ['home','lessons','basic','professional','old','legacy','unexpected']){
   const result=exec(state);
