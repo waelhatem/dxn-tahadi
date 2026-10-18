@@ -1,0 +1,52 @@
+/* Dedicated primary-leader follow-up dashboard, responsive and scoped. */
+.ll-wrap{--ll-dark:#101e2a;--ll-line:#dfe7ed;--ll-soft:#f3f8fa;max-width:1240px;margin:18px auto 42px;text-align:right;direction:rtl;color:#142b37}
+.ll-wrap *,.ll-dialog *{box-sizing:border-box}
+.ll-head{background:linear-gradient(125deg,#091a27,#19384a);padding:27px 30px;border-radius:22px;color:#fff;display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:18px;flex-wrap:wrap}
+.ll-kicker{font-size:12px;letter-spacing:.02em;color:#a0d8dc;font-weight:750}
+.ll-head h2{font-size:clamp(22px,2.6vw,30px);margin:8px 0}
+.ll-head p{color:#c6d7dc;font-size:14px;margin:0;max-width:690px;line-height:1.85}
+.ll-head-actions{display:flex;flex-wrap:wrap;gap:10px}
+.ll-wrap button,.ll-dialog button{cursor:pointer;border:1px solid #d1dee5;border-radius:12px;padding:11px 15px;font-weight:750;background:#fff;color:#193c4b}
+.ll-head-actions button{background:#203e4d;color:#fff;border-color:#436273}
+.ll-wrap button.ll-primary,.ll-dialog button.ll-primary{background:#08647b;color:#fff;border-color:#08647b}
+.ll-wrap button:disabled,.ll-dialog button:disabled{opacity:.5;cursor:wait}
+.ll-message{padding:11px 16px;border:1px solid #d6e9e0;background:#edf8f2;border-radius:12px;margin-bottom:16px;color:#166144;font-size:13px}
+.ll-message.ll-error{background:#fff1ee;border-color:#f1c0b6;color:#ad3726}
+.ll-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:17px}
+.ll-stat{padding:16px 14px;border:1px solid var(--ll-line);background:#fff;border-radius:17px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.ll-stat span{font-size:12px;color:#5c7180;font-weight:700}.ll-stat strong{font-size:28px;color:#0f374b;font-variant-numeric:tabular-nums}
+.ll-filters{display:grid;grid-template-columns:2fr 1fr;gap:12px;background:#fff;border:1px solid var(--ll-line);border-radius:18px;padding:15px;margin-bottom:14px}
+.ll-filters label,.ll-fields label,.ll-dialog form label{display:flex;flex-direction:column;gap:7px;color:#334f5b;font-size:13px;font-weight:750}
+.ll-wrap input,.ll-wrap select,.ll-dialog input,.ll-dialog select,.ll-dialog textarea{width:100%;padding:12px 13px;border:1px solid #ccdce4;border-radius:12px;min-height:44px;background:#fff;color:#102d3e;font-size:14px;font-family:inherit}
+.ll-wrap :is(input,select):focus,.ll-dialog :is(input,select,textarea):focus{outline:2px solid #9bd5e1;outline-offset:1px}
+.ll-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.ll-card{background:#fff;border:1px solid var(--ll-line);border-radius:18px;padding:18px;min-width:0;box-shadow:0 7px 24px rgba(9,39,48,.035)}
+.ll-card-top{display:flex;gap:11px;align-items:center;flex-wrap:wrap}
+.ll-avatar{width:44px;height:44px;display:grid;place-items:center;border-radius:14px;background:#e8f1f4;color:#0f677e;font-size:19px;font-weight:900}
+.ll-person{flex:1;min-width:120px}.ll-person h3{margin:0 0 5px;font-size:17px;color:#142d3b}.ll-person span{font-size:12px;color:#70838f}
+.ll-badge{border:1px solid #d7e8ec;border-radius:30px;background:#edf6f8;color:#196074;font-size:12px;padding:6px 10px;font-weight:800}
+.ll-facts{display:flex;flex-wrap:wrap;gap:9px 16px;font-size:13px;color:#536b77;margin:15px 0;line-height:1.7}
+.ll-facts span{overflow-wrap:anywhere}.ll-due{color:#a55d00;font-weight:900}
+.ll-card-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;border-top:1px solid #edf2f5;padding-top:14px}
+.ll-card-actions select{width:auto;max-width:100%;flex:1 1 140px;font-size:12px;min-height:40px}
+.ll-card-actions button,.ll-card-actions a{display:inline-flex;justify-content:center;align-items:center;min-height:40px;font-size:12px;padding:9px 10px;text-decoration:none}
+.ll-card-actions a{border:1px solid #c3e0d1;background:#eefaf3;color:#07663d;border-radius:12px;font-weight:850}
+.ll-empty{grid-column:1/-1;background:#fff;border:1px dashed #c4d7df;padding:36px;text-align:center;border-radius:18px;color:#607786}
+.ll-foot{font-size:12px;color:#71848f;margin-top:17px;line-height:1.8}
+.ll-overlay{position:fixed;inset:0;z-index:2147483003;display:flex;justify-content:center;align-items:center;padding:16px;direction:rtl}
+.ll-backdrop{position:absolute;inset:0;background:rgba(8,28,39,.70)}
+.ll-dialog{position:relative;width:min(720px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:22px;padding:24px;color:#142c39;text-align:right;box-shadow:0 28px 65px rgba(0,0,0,.3)}
+.ll-dialog header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:18px}
+.ll-dialog h3{font-size:21px;margin:0}.ll-dialog header button{min-width:44px}
+.ll-dialog form{display:grid;gap:15px}
+.ll-dialog .ll-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.ll-fields .ll-full{grid-column:1/-1}
+.ll-modal-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:18px}
+.ll-modal-msg{color:#ac2f23;font-size:13px;min-height:18px}
+.ll-dialog-sub{font-size:13px;color:#71838e}.ll-description{background:#f5f9fb;border-radius:12px;padding:12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.ll-event{border-right:3px solid #bad4df;margin:12px 0;padding:10px 15px;background:#f7fafc;border-radius:0 10px 10px 0}
+.ll-event>div{display:flex;justify-content:space-between;gap:8px}.ll-event small{color:#74818b}
+.ll-event p{white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0 0;line-height:1.7;font-size:13px}
+.ll-dialog button.ll-archive{border-color:#f5d4cc;color:#aa332b;background:#fff6f3}
+@media(max-width:850px){.ll-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.ll-list{grid-template-columns:1fr}}
+@media(max-width:550px){.ll-wrap{margin:9px auto 28px}.ll-head{padding:20px 17px;border-radius:18px}.ll-head-actions{width:100%}.ll-head-actions button{flex:1}.ll-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.ll-filters{grid-template-columns:1fr}.ll-dialog{padding:18px;border-radius:18px}.ll-dialog .ll-fields{grid-template-columns:1fr}.ll-card{padding:14px}.ll-card-actions button,.ll-card-actions a{flex:1 1 120px}.ll-card-actions select{flex:1 0 100%}}
