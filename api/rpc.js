@@ -1200,6 +1200,64 @@ async function resolveTrainingTrackAccess(pToken) {
     advanced_allowed:exempt||(basicComplete&&professionalComplete)};
 }
 
+
+// Only enrich a *successfully submitted* and saved quiz. Correct keys never
+// appear in get_quiz, and no endpoint returns a bank's complete answer key.
+const TRAINING_QUIZ_REVIEW_SOURCES=Object.freeze({
+  basic_training_submit_quiz:{table:'basic_training_questions',lessonField:'training_no',answerOptions:3},
+  professional_training_submit_quiz:{table:'professional_training_questions',lessonField:'lesson_no',answerOptions:3},
+  advanced_financial_submit_quiz:{table:'advanced_financial_questions',lessonField:'lesson_no',answerOptions:4}
+});
+async function appendSubmittedQuizReview(fn,args,graded){
+  const source=TRAINING_QUIZ_REVIEW_SOURCES[fn];
+  if(!source||!graded||typeof graded!=='object'||Array.isArray(graded))return graded;
+  const answers=args.p_answers;
+  const lesson=Number(args.p_training_no??args.p_lesson_no);
+  // The grader has validated these inputs already; revalidate before reading
+  // private keys to keep this additional path minimal and fail-closed.
+  if(!Number.isInteger(lesson)||lesson<1||lesson>20||
+     !Array.isArray(answers)||answers.length!==20||
+     answers.some(n=>!Number.isInteger(n)||n<0||n>=source.answerOptions)){
+    return {...graded,review_available:false};
+  }
+  if(!SUPABASE_SECRET_KEY){
+    console.error('Training quiz review: private server key is not configured');
+    return {...graded,review_available:false};
+  }
+  try{
+    const url='/rest/v1/'+source.table+'?select=question_no,question,options,correct_index&'+
+      source.lessonField+'=eq.'+encodeURIComponent(String(lesson))+'&order=question_no.asc&limit=20';
+    const result=await supabaseRestRequest(url,SUPABASE_SECRET_KEY,12000);
+    if(!result.ok||!Array.isArray(result.data)||result.data.length!==20)
+      throw new Error('question bank unavailable');
+    const used=new Set();let correct=0;
+    const wrong=[];
+    for(const q of result.data){
+      const no=Number(q.question_no),right=Number(q.correct_index),options=q.options;
+      if(!Number.isInteger(no)||no<1||no>20||used.has(no)||
+         !Array.isArray(options)||options.length!==source.answerOptions||
+         !Number.isInteger(right)||right<0||right>=options.length)
+        throw new Error('question bank does not match attempt');
+      used.add(no);
+      const choice=answers[no-1];
+      if(choice===right){correct++;continue}
+      wrong.push({
+        no, question:String(q.question||''),
+        chosen_option:String(options[choice]??''),
+        correct_option:String(options[right]??'')
+      });
+    }
+    // Do not display corrections from a bank updated during submission.
+    if(correct!==Number(graded.score) || Number(graded.out_of)!==20)
+      throw new Error('question bank revision changed after grading');
+    return {...graded,review_available:true,incorrect_count:wrong.length,wrong_answers:wrong};
+  }catch(error){
+    console.error('Training quiz review could not be prepared:',error.message);
+    // Saved score remains authoritative even if the supplementary review fails.
+    return {...graded,review_available:false};
+  }
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -1372,6 +1430,11 @@ module.exports = async function handler(req, res) {
     }
 
     const response=await supabaseRpcRequest(fn,args,privilegedTeamRpc ? SUPABASE_SECRET_KEY : SUPABASE_KEY,10000);
+    // Review is generated only after the database accepts and persists the exam.
+    if(response.ok && TRAINING_QUIZ_REVIEW_SOURCES[fn]){
+      const reviewed=await appendSubmittedQuizReview(fn,args,response.data);
+      return res.status(response.status||200).json(reviewed);
+    }
     return res.status(response.status||500).json(response.data||{error:response.text||'Supabase request failed'});
 
   } catch (error) {
