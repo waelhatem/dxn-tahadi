@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#104b39">
+  <title>معاينة الرسالة الصباحية | مجتمع الصحة والثراء</title>
+  <style>
+    *{box-sizing:border-box}
+    html{font-family:system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif}
+    body{margin:0;min-height:100svh;background:linear-gradient(155deg,#143e32,#406f5a 52%,#d7e8db);color:#1b4033;display:flex;align-items:center;justify-content:center;padding:20px 14px}
+    .preview-wrap{width:min(560px,100%)}
+    .preview-top{color:#fff;text-align:center;line-height:1.8;margin:0 0 16px;font-size:14px;font-weight:700}
+    .dxn-global-announcement-panel{width:100%;background:#fff;border:1px solid #dfe9e4;border-radius:24px;padding:23px;box-shadow:0 24px 70px rgba(0,0,0,.22)}
+    .ga-type{display:inline-block;background:#e6f5ee;color:#12563e;border-radius:999px;padding:8px 13px;margin-bottom:13px;font-size:13px}
+    h2{margin:0 0 13px}
+    .ga-body{font-size:17px}
+    .ga-footer{display:flex;justify-content:flex-start;gap:10px;margin-top:18px;flex-wrap:wrap}
+    .ga-footer button{font:inherit;font-weight:850;border:1px solid #d8e7df;border-radius:13px;padding:12px 21px;background:#fff;color:#18533d;cursor:pointer}
+    .ga-footer button.primary{background:#126044;color:#fff}
+    .preview-note{color:#fff;font-size:12px;text-align:center;margin:16px 4px 0;line-height:1.8}
+    @media(max-width:520px){body{padding:18px 12px}.dxn-global-announcement-panel{padding:18px;border-radius:22px}.preview-top{font-size:13px}}
+  </style>
+  <script src="/daily-announcement-presentation.js?v=20261019-3" defer></script>
+</head>
+<body>
+  <main class="preview-wrap">
+    <p class="preview-top">🌅 مجتمع الصحة والثراء — معاينة مستقلة للتصميم</p>
+    <section class="dxn-global-announcement-panel dxn-ga-daily-panel" aria-label="نموذج نافذة الرسالة الصباحية">
+      <div class="ga-type">🔵 إعلان عام • معاينة التصميم</div>
+      <h2>🌅 صباح الصحة والثراء</h2>
+      <div class="ga-body" id="dailyPreviewBody"></div>
+      <div class="ga-footer">
+        <button class="primary" type="button" id="understood">✓ فهمت</button>
+        <button type="button" id="closePreview">إغلاق</button>
+      </div>
+    </section>
+    <p class="preview-note">🔒 هذا نموذج ثابت لتجربة الشكل فقط. لا ينشر أي إعلان، ولا يحتاج إلى تسجيل دخول.</p>
+  </main>
+  <script>
+    (function(){
+      'use strict';
+      var sample='🌿 صحتك هي ثروتك الأولى، وهي تستحق منك عناية صغيرة كل يوم 💚 ابدأ صباحك بعادة بسيطة تمنحك نشاطاً وراحة، كالمشي قليلاً 🚶 أو تنظيم نومك 🌙 وتذكّر أن النجاح في صحتك وعملك يبدأ بالاستمرارية والثقة بالنفس ✨ شاركنا اليوم: ما العادة الجميلة التي ستبدأ بها من هذا الصباح؟ 💬';
+      var body=document.getElementById('dailyPreviewBody');
+      if(window.__DXN_DAILY_PRESENTATION__)window.__DXN_DAILY_PRESENTATION__.renderBody(body,sample);
+      else body.textContent=sample;
+      function close(){
+        document.querySelector('.preview-note').textContent='✅ تمت مراجعة النموذج. يمكنك العودة إليه متى شئت من الرابط نفسه.';
+      }
+      document.getElementById('understood').addEventListener('click',close);
+      document.getElementById('closePreview').addEventListener('click',close);
+    })();
+  </script>
+</body>
+</html>

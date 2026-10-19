@@ -51,21 +51,45 @@ test('leader control mounts in existing announcement card; member close acknowle
   assert.match(fs.readFileSync(path.join(ROOT,'daily-announcement-leader.js'),'utf8'),/dxnGlobalAnnouncementCard/);
 });
 
-test('member AI broadcast uses visual formatter while manual announcements keep original body markup',()=>{
+test('member AI broadcast uses ONE bold unified text block and leaves manual announcements untouched',()=>{
   assert.match(INDEX,/item\.source==='daily_ai'&&window\.__DXN_DAILY_PRESENTATION__/);
   assert.match(INDEX,/\/daily-announcement-presentation\.js/);
-  const presentation=require('../daily-announcement-presentation.js');
-  const sections=presentation.sectionsOf('🌿 فكرة اليوم: اعتن بنفسك\n\n💡 خطوة عملية: التزم بخطوة\n\n💬 ما الذي ستغيره اليوم؟');
-  assert.equal(sections.length,3);
-  assert.equal(sections[0].type,'lead');
-  assert.equal(sections[1].type,'tip');
-  assert.equal(sections[2].type,'question');
-  assert.equal(presentation.sectionsOf('مقدمة بلا إيموجي\n\nما هدفك اليوم؟')[0].icon,'🌿');
-  const source=fs.readFileSync(path.join(ROOT,'daily-announcement-presentation.js'),'utf8');
-  assert.match(source,/font-weight:800/);
-  assert.match(source,/font-weight:900/);
-  assert.match(source,/textContent=entry\.text/);
-  assert.doesNotMatch(source, /innerHTML/);
+  const formatter=require('../daily-announcement-presentation.js');
+  const old='🌿 فكرة اليوم: صحتك تستحق اهتمامك\n\n💡 خطوة عملية: امش كل يوم\n\n💬 سؤال اليوم: ماذا ستبدأ؟';
+  const normalized=formatter.normalizeDailyText(old);
+  assert.equal(normalized,'🌿 صحتك تستحق اهتمامك 💡 امش كل يوم 💬 ماذا ستبدأ؟');
+  assert.ok(!normalized.includes('\n'));
+  let value='';
+  const classes=[];
+  const attrs={};
+  const container={
+    classList:{add(v){classes.push(v)}},
+    setAttribute(k,v){attrs[k]=v},
+    set textContent(v){value=v},
+    get textContent(){return value}
+  };
+  formatter.renderBody(container,old);
+  assert.equal(container.textContent,normalized);
+  assert.deepEqual(classes,['dxn-ga-daily-content']);
+  assert.equal(attrs.dir,'rtl');
+  const css=fs.readFileSync(path.join(ROOT,'daily-announcement-presentation.js'),'utf8');
+  assert.match(css,/font-weight:900/);
+  assert.match(css,/display:block/);
+  assert.doesNotMatch(css,/createElement\('p'\)/);
+  assert.doesNotMatch(css,/innerHTML/);
+  assert.match(css,/textContent=normalizeDailyText\(text\)/);
   const cron=fs.readFileSync(path.join(ROOT,'api','daily-announcement-cron.js'),'utf8');
-  assert.match(cron,/قسّم body إلى ثلاث فقرات/);
+  assert.match(cron,/مقطع واحد متصل فقط/);
+  assert.match(cron,/4 إلى 6 رموز إيموجي/);
+  assert.match(cron,/String\(draft\.body\)\.replace/);
+});
+
+test('standalone preview opens directly, stays purely local and shares daily styling',()=>{
+  const page=fs.readFileSync(path.join(ROOT,'daily-announcement-preview.html'),'utf8');
+  assert.match(page,/lang="ar" dir="rtl"/);
+  assert.match(page,/daily-announcement-presentation\.js/);
+  assert.match(page,/renderBody\(body/);
+  assert.match(page,/معاينة مستقلة/);
+  assert.match(page,/صحتك هي ثروتك الأولى/);
+  assert.doesNotMatch(page,/\/api\/|fetch\(|localStorage|create_global_announcement/);
 });
