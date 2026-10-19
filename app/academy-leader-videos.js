@@ -12,7 +12,7 @@
   const COVER_SRC='/academy-leader-photo.avif';
   const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
   const TYPES=['video/mp4','video/quicktime','video/webm','video/x-m4v','video/3gpp'];
-  let mode='guide',pendingVideo='',videos=[],activeRoot=null,loading=false;
+  let mode='guide',videos=[],activeRoot=null,loading=false;
   let localVideoPreviewUrl='';
   function session(){try{return String(localStorage.getItem('dxn_session')||'').trim()}catch(_){return ''}}
   function isLeader(){try{return typeof role!=='undefined'&&role==='leader'}catch(_){return false}}
@@ -39,6 +39,19 @@
     playIcon.setAttribute('aria-hidden','true');
     cover.append(art,shading,title,brand,playIcon);
     return cover;
+  }
+  // Compact landscape preview for the published catalogue only; retain the
+  // original 9:16 portrait artwork in the leader's upload preview.
+  function videoThumbElement(){
+    const thumb=elem('span','academy-leader-video-thumb');
+    const art=elem('img','academy-leader-video-thumb-art');
+    art.src=COVER_SRC;art.alt='';art.loading='lazy';art.decoding='async';
+    const type=elem('span','academy-leader-video-tag','🎬 فيديو تعليمي');
+    const play=elem('span','academy-leader-video-play','▶');
+    play.setAttribute('aria-hidden','true');
+    const hint=elem('span','academy-leader-video-hint','اضغط للمشاهدة بملء الشاشة');
+    thumb.append(art,type,play,hint);
+    return thumb;
   }
   function showMessage(message,error){
     const node=document.getElementById('academyLeaderVideoMessage');
@@ -168,13 +181,7 @@
       if(!Array.isArray(rows))throw Error('البيانات الواردة غير صالحة');
       videos=rows.filter(item=>UUID.test(item.id));
       renderList();
-      if(pendingVideo){
-        const id=pendingVideo;
-        pendingVideo='';
-        if(videos.some(v=>v.id===id))await selectVideo(id);
-        else showMessage('تعذّر العثور على الفيديو المقصود. قد يكون غير متاح أو محذوفاً.',true);
-      }
-      else if(!videos.length)showMessage('🎬 لم تُنشر شروحات جديدة بعد. الفيديوهات الثلاثة الحالية محفوظة في «دليل استخدام المجتمع».');
+      if(!videos.length)showMessage('🎬 لم تُنشر شروحات جديدة بعد. الفيديوهات الثلاثة الحالية محفوظة في «دليل استخدام المجتمع».');
       else showMessage(videos.length+' فيديو متاح في شروحات القائد.');
     }catch(err){showMessage('تعذر تحميل الشروحات: '+err.message,true)}
     finally{loading=false}
@@ -191,7 +198,8 @@
       const holder=elem('div','academy-leader-video-entry');
       const button=elem('button','academy-leader-card');
       button.type='button';
-      button.append(coverElement(v.title));
+      button.setAttribute('aria-label','تشغيل الفيديو: '+v.title);
+      button.append(videoThumbElement());
       const copy=elem('span','academy-leader-card-copy');
       copy.append(elem('strong','',v.title));
       if(v.description)copy.append(elem('small','',v.description));
@@ -219,30 +227,17 @@
       await loadVideos();
     }catch(e){showMessage('تعذر تعيين دليل الترحيب: '+(e.message||e),true)}
   }
-  async function selectVideo(id){
-    if(!UUID.test(id))return;
-    const video=videos.find(v=>v.id===id);
-    if(!video){pendingVideo=id;return}
-    const host=document.getElementById('academyLeaderVideoPlayer');
-    if(!host)return;
-    host.replaceChildren();
-    const title=elem('h3','', '🎬 '+video.title);
-    const label=elem('p','',video.description||'شرح من شروحات القائد');
-    const cover=coverElement(video.title);
-    cover.classList.add('academy-leader-stage-cover');
-    const status=elem('p','academy-leader-loading','جارٍ تجهيز تشغيل الفيديو...');
-    status.textContent='جارٍ تجهيز تشغيل الفيديو...';
-    host.append(cover,title,label,status);
-    try{
-      const result=await post('/api/academy-video-storage',{action:'play',p_token:session(),video_id:id});
-      if(!UUID.test(id)||!document.getElementById('academyLeaderVideoPlayer'))return;
-      status.remove();
-      cover.remove();
-      const player=elem('video','academy-leader-player');
-      player.controls=true;player.playsInline=true;player.preload='metadata';player.src=result.url;
-      host.append(player);
-      host.scrollIntoView({behavior:'smooth',block:'start'});
-    }catch(err){status.textContent='تعذر فتح الفيديو: '+err.message;status.classList.add('error')}
+  // Keep the community page intact. Opening in the direct click gesture avoids
+  // mobile popup blockers and lets the viewer close when playback finishes.
+  function selectVideo(id){
+    if(!UUID.test(String(id||'')))return false;
+    const viewer=window.open('/app/academy-video-viewer.html?video='+encodeURIComponent(id),'_blank');
+    if(!viewer){
+      showMessage('تعذر فتح نافذة المشاهدة. اسمح بفتح التبويبات الجديدة لهذا الموقع ثم حاول مرة أخرى.',true);
+      return false;
+    }
+    try{viewer.focus()}catch(_){}
+    return true;
   }
   function inferredType(file){
     const typed=String(file.type||'').toLowerCase();
@@ -359,7 +354,6 @@
       const meta=document.getElementById('academyLeaderMetaFields');
       if(panel)panel.hidden=true;
       if(meta)meta.hidden=true;
-      pendingVideo=published.video_id;
       await loadVideos();
       showMessage('✅ تم نشر الفيديو وإنشاء إعلان تلقائي للأعضاء! بإمكانهم فتحه من الرسالة.');
     }catch(err){showMessage('تعذر النشر: '+err.message,true)}
@@ -376,13 +370,7 @@
     if(root)makeControls(root);
   }
   window.academyOpenLeaderVideo=function(id){
-    if(!UUID.test(String(id||'')))return;
-    pendingVideo=id;
-    mode='leader';
-    if(!document.querySelector('.academy-root'))window.switchTab?.('academy');
-    mount();
-    setMode('leader');
-    loadVideos();
+    return selectVideo(id);
   };
   window.academyLeaderVideosMount=mount;
   window.academyLeaderVideoRefresh=loadVideos;
@@ -436,6 +424,13 @@
     '.academy-leader-cover-brand{position:absolute;top:25.15%;left:27.4%;width:45.2%;height:5%;display:grid;place-items:center;z-index:3;padding:0 2px;border:1.7px solid #d5ac62;border-radius:999px;background:linear-gradient(110deg,#073122,#0d4531);box-shadow:0 2px 6px #1a2b15aa;font-size:clamp(10px,2vw,16px);font-weight:950;white-space:nowrap;color:#fff0bf}',
     '.academy-leader-cover-title{position:absolute;top:14.4%;left:7.4%;width:85.1%;height:12%;z-index:2;display:flex;align-items:center;justify-content:center;text-align:center;padding:3%;font-size:clamp(16px,2.45vw,24px);line-height:1.22;font-weight:950;color:#f4ce80;overflow-wrap:anywhere;overflow:hidden;text-shadow:0 2px 3px #0009}',
     '.academy-leader-cover-play{position:absolute;left:4%;bottom:4%;z-index:3;width:38px;height:38px;border-radius:50%;background:rgba(237,203,130,.94);color:#135139;display:grid;place-items:center;font-size:17px;box-shadow:0 3px 12px rgba(0,0,0,.25)}',
+    '.academy-leader-video-thumb{position:relative;display:block;width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:13px;background:#0a382b;isolation:isolate}',
+    '.academy-leader-video-thumb:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#04160d22 0%,transparent 35%,#06160b9a 100%);z-index:1;pointer-events:none}',
+    '.academy-leader-video-thumb-art{display:block;width:100%;height:100%;object-fit:cover;object-position:center 45%}',
+    '.academy-leader-video-tag{position:absolute;right:10px;top:10px;z-index:2;border-radius:8px;background:#053d2dd9;color:#fff2c6;font-size:13px;font-weight:950;padding:7px 10px}',
+    '.academy-leader-video-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;width:74px;height:74px;border:3px solid #fff3d8;border-radius:50%;display:grid;place-items:center;background:#e3bf6d;color:#0a4937;font-size:30px;padding-left:4px;box-shadow:0 0 0 8px #092e2580,0 7px 24px #0008}',
+    '.academy-leader-video-hint{position:absolute;inset:auto 5px 11px;z-index:2;color:white;font-size:14px;font-weight:950;text-align:center;text-shadow:0 2px 5px #000}',
+    '.academy-leader-card:hover .academy-leader-video-play,.academy-leader-card:focus-visible .academy-leader-video-play{transform:translate(-50%,-50%) scale(1.08)}',
     '.academy-leader-cover-preview{max-width:480px;width:100%;margin:3px auto}',
     '.academy-leader-stage-cover{margin-bottom:12px}',
     '.academy-leader-preview-link{font-size:14px;font-weight:800;color:#1a6846;text-decoration:underline;text-underline-offset:4px}',
