@@ -71,6 +71,9 @@
          cacheControl:'3600'
        },
        uploadDataDuringCreation:true,
+       // Tie the persisted TUS URL to this exact signed path, not only the file name.
+       // A refreshed upload token/path must never reuse an expired signed URL.
+       fingerprint:async()=>fileKey(file)+'|'+draft.path,
        chunkSize:6*1024*1024,
        retryDelays:[0,3000,5000,10000,20000],
        removeFingerprintOnSuccess:true,
