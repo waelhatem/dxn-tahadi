@@ -10134,7 +10134,16 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       '<div class="ga-type">'+typeLabel(item.announcement_type)+'</div><h2>'+safeEsc(item.title)+'</h2><div class="ga-body">'+safeEsc(item.body)+'</div>'+
       '<div class="ga-footer"><button type="button" class="primary" onclick="window.__DXN_GA_ACK__()">✓ فهمت</button><button type="button" onclick="window.__DXN_GA_CLOSE__()">إغلاق</button></div></div>';
     document.body.appendChild(node);
-    window.__DXN_GA_ACK__=function(){acknowledgeAnnouncement(item.id)};window.__DXN_GA_CLOSE__=closeMemberModal;
+    if(item.source==='daily_ai'&&window.__DXN_DAILY_PRESENTATION__){
+      var panel=node.querySelector('.dxn-global-announcement-panel');
+      var bodyElement=node.querySelector('.ga-body');
+      if(panel&&bodyElement){
+        panel.classList.add('dxn-ga-daily-panel');
+        window.__DXN_DAILY_PRESENTATION__.renderBody(bodyElement,item.body);
+        window.__DXN_DAILY_PRESENTATION__.addPublishTime(panel,item.created_at);
+      }
+    }
+    window.__DXN_GA_ACK__=function(){acknowledgeAnnouncement(item.id)};window.__DXN_GA_CLOSE__=item.source==='daily_ai'?function(){acknowledgeAnnouncement(item.id)}:closeMemberModal;
   }
   async function loadMemberAnnouncements(){
     if(loadingMemberAnnouncements||memberAnnouncementShown)return;
@@ -10149,6 +10158,8 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observe);else observe();
 })();
 </script>
+<script src="/daily-announcement-presentation.js?v=20261019-2" defer></script>
+<script src="/daily-announcement-leader.js?v=20261019-2" defer></script>
 </body>
 
 </html>

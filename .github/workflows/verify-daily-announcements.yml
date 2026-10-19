@@ -1,0 +1,31 @@
+name: Verify AI morning announcements
+on:
+  pull_request:
+    paths:
+      - 'api/daily-announcement-cron.js'
+      - 'api/daily-announcement-preview.js'
+      - 'server.js'
+      - 'daily-announcement-leader.js'
+      - 'daily-announcement-presentation.js'
+      - 'supabase/migrations/20261019080000_ai_daily_global_announcements.sql'
+      - 'tests/daily-announcements.test.js'
+      - 'tests/daily-announcement-preview.test.js'
+      - 'app/index.html'
+      - 'vercel.json'
+      - 'package.json'
+      - '.github/workflows/verify-daily-announcements.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Verify Node version
+        run: node --version
+      - name: Run announcement tests
+        run: node --test tests/daily-announcement-preview.test.js tests/daily-announcements.test.js tests/global-announcements.test.js
+      - name: Run project build suite
+        run: npm run build
