@@ -45,6 +45,70 @@
       el.querySelector('#dxnDailyStatus').textContent='تعذر تحميل الإعدادات: '+e.message;
     }
   }
+  function closeTestModal(){
+    const modal=document.getElementById('dxnDailyPreviewModal');
+    if(modal)modal.remove();
+    document.removeEventListener('keydown',onPreviewKeydown);
+  }
+  function onPreviewKeydown(e){if(e.key==='Escape')closeTestModal()}
+  function showTestModal(message){
+    closeTestModal();
+    const modal=document.createElement('div');
+    modal.id='dxnDailyPreviewModal';
+    modal.className='dxn-global-announcement-modal';
+    const panel=document.createElement('div');
+    panel.className='dxn-global-announcement-panel ga-announcement';
+    panel.setAttribute('role','dialog');
+    panel.setAttribute('aria-modal','true');
+    panel.setAttribute('aria-label','معاينة إعلان صباحي للقائد فقط');
+    const tag=document.createElement('div');
+    tag.className='ga-type';
+    tag.textContent='🔵 إعلان • معاينة للقائد فقط';
+    const title=document.createElement('h2');
+    title.textContent=String(message.title||'');
+    const body=document.createElement('div');
+    body.className='ga-body';
+    body.textContent=String(message.body||'');
+    const footer=document.createElement('div');
+    footer.className='ga-footer';
+    const understood=document.createElement('button');
+    understood.type='button';
+    understood.className='primary';
+    understood.textContent='✓ فهمت';
+    understood.addEventListener('click',closeTestModal);
+    const close=document.createElement('button');
+    close.type='button';
+    close.textContent='إغلاق';
+    close.addEventListener('click',closeTestModal);
+    footer.append(understood,close);
+    panel.append(tag,title,body,footer);
+    modal.appendChild(panel);
+    document.body.appendChild(modal);
+    document.addEventListener('keydown',onPreviewKeydown);
+    understood.focus();
+  }
+  async function runTestPreview(el){
+    const btn=el.querySelector('#dxnDailyPreviewButton');
+    const status=el.querySelector('#dxnDailyPreviewStatus');
+    btn.disabled=true;
+    status.textContent='✨ جارٍ توليد رسالة حقيقية بالذكاء الاصطناعي...';
+    try{
+      const res=await fetch('/api/daily-announcement-preview',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        cache:'no-store',
+        body:JSON.stringify({p_token:session()})
+      });
+      const payload=await res.json();
+      if(!res.ok||!payload.preview||!payload.title||!payload.body){
+        throw new Error(payload.error||'تعذرت معاينة الرسالة.');
+      }
+      showTestModal(payload);
+      status.textContent='✅ تم توليد معاينة خاصة بك فقط. لم يتم نشر أي إعلان.';
+    }catch(e){
+      status.textContent='تعذرت التجربة: '+String(e&&e.message||e);
+    }finally{btn.disabled=false}
+  }
   function inject(){
     const card=document.getElementById('dxnGlobalAnnouncementCard');
     if(!card||document.getElementById('dxnDailyAnnouncementSettings'))return;
@@ -58,6 +122,9 @@
       '<small id="dxnDailyLast"></small>'+ 
       '<div id="dxnDailyArchive"></div>'+
       '<button type="button" id="dxnDailyToggle" class="primary" disabled>تحميل...</button>'+
+      '<button type="button" id="dxnDailyPreviewButton">👁️ تجربة الرسالة الصباحية الآن</button>'+
+      '<small>هذه معاينة حية لك فقط، لا تُرسل إلى الأعضاء ولا تحفظ إعلاناً في قاعدة البيانات.</small>'+
+      '<div id="dxnDailyPreviewStatus" role="status" aria-live="polite"></div>'+
       '<p class="dxn-daily-note">تظهر رسالة اليوم فقط للعضو مرة واحدة بعد تأكيدها. تبقى الإعلانات اليدوية ذات الأولوية.</p>';
     card.appendChild(el);
     el.querySelector('#dxnDailyToggle').addEventListener('click',async function(){
@@ -72,10 +139,11 @@
         btn.disabled=false;
       }
     });
+    el.querySelector('#dxnDailyPreviewButton').addEventListener('click',function(){runTestPreview(el)});
     load(el);
   }
   const css=document.createElement('style');
-  css.textContent='.dxn-daily-settings{margin-top:20px;padding:17px;border:1px solid #b8dcc9;border-radius:15px;background:#f2faf5;display:grid;gap:10px;line-height:1.7;color:#174d38}.dxn-daily-title{font-weight:900;font-size:18px}.dxn-daily-settings p{margin:0}.dxn-daily-settings small{color:#667085}.dxn-daily-settings button{max-width:280px}.dxn-daily-note{font-size:12px;color:#566c62}';
+  css.textContent='.dxn-daily-settings{margin-top:20px;padding:17px;border:1px solid #b8dcc9;border-radius:15px;background:#f2faf5;display:grid;gap:10px;line-height:1.7;color:#174d38}.dxn-daily-title{font-weight:900;font-size:18px}.dxn-daily-settings p{margin:0}.dxn-daily-settings small{color:#667085}.dxn-daily-settings button{max-width:280px}.dxn-daily-settings #dxnDailyPreviewButton{background:#fff;color:#155b42;border:1px solid #90bba7;border-radius:10px;padding:10px;font-weight:800;cursor:pointer}.dxn-daily-settings #dxnDailyPreviewButton:disabled{opacity:.6;cursor:wait}.dxn-daily-note{font-size:12px;color:#566c62}';
   document.head.appendChild(css);
   let queued=false;
   const observer=new MutationObserver(function(){

@@ -3,9 +3,12 @@ on:
   pull_request:
     paths:
       - 'api/daily-announcement-cron.js'
+      - 'api/daily-announcement-preview.js'
+      - 'server.js'
       - 'daily-announcement-leader.js'
       - 'supabase/migrations/20261019080000_ai_daily_global_announcements.sql'
       - 'tests/daily-announcements.test.js'
+      - 'tests/daily-announcement-preview.test.js'
       - 'app/index.html'
       - 'vercel.json'
       - 'package.json'
@@ -22,6 +25,6 @@ jobs:
       - name: Verify Node version
         run: node --version
       - name: Run announcement tests
-        run: node --test tests/daily-announcements.test.js tests/global-announcements.test.js
+        run: node --test tests/daily-announcement-preview.test.js tests/daily-announcements.test.js tests/global-announcements.test.js
       - name: Run project build suite
         run: npm run build

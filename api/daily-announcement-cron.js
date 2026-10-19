@@ -136,3 +136,6 @@ async function handler(req,res){
 }
 module.exports=handler;
 module.exports.__test={baghdadDate,topicFor,validateDraft};
+
+// Shared formatter for the leader's read-only AI preview; never writes announcements.
+module.exports.generateDailyDraft=generate;
