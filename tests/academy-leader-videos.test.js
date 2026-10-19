@@ -119,18 +119,26 @@ test('upload has 50 MB limit and front end sends file directly via signed token'
 
 
 test('all leader video thumbnails use one static 16:9 artwork with their own safe title',()=>{
-  const cover=fs.readFileSync(path.join(ROOT,'academy-leader-cover.svg'),'utf8');
-  assert.match(cover,/viewBox="0 0 1280 720"/);
-  assert.match(cover,/<svg[\s>]/);
-  assert.doesNotMatch(cover,/<text[\s>]/);
-  assert.match(enhanced,/const COVER_SRC='\/academy-leader-cover\.svg'/);
+  const cover=fs.readFileSync(path.join(ROOT,'academy-leader-photo.avif'));
+  assert.ok(cover.length>9000);
+  assert.equal(cover.subarray(4,8).toString(),'ftyp');
+  assert.match(enhanced,/const COVER_SRC='\/academy-leader-photo\.avif'/);
   assert.match(enhanced,/function coverElement\(videoTitle\)/);
   assert.match(enhanced,/elem\('strong','academy-leader-cover-title',videoTitle\)/);
   assert.match(enhanced,/button\.append\(coverElement\(v\.title\)\)/);
   assert.match(enhanced,/titleInput\?\.addEventListener\('input'/);
   assert.match(enhanced,/art\.querySelector\('\.academy-leader-cover-title'\)\.textContent=text/);
   assert.match(enhanced,/academy-leader-stage-cover/);
-  assert.match(enhanced,/aspect-ratio:16\/9/);
+  assert.match(enhanced,/aspect-ratio:9\/16/);
   assert.match(enhanced,/font-weight:950/);
   assert.doesNotMatch(enhanced,/ffmpeg|canvas\.toBlob|extractFrame|transcod/i);
+});
+
+test('preview runs on the same deployed app and reuses the uploaded portrait',()=>{
+  const preview=fs.readFileSync(path.join(ROOT,'academy-cover-preview.html'),'utf8');
+  assert.match(preview,/data:image\/avif;base64,/);
+  assert.match(preview,/شروحات القائد/);
+  assert.match(preview,/الموبايل/);
+  assert.match(preview,/اللابتوب/);
+  assert.match(enhanced,/href=\\"\/academy-cover-preview.html\\"/);
 });

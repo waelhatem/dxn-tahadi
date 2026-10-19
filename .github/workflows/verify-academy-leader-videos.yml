@@ -3,7 +3,8 @@ on:
   pull_request:
     paths:
       - 'app/academy-leader-videos.js'
-      - 'academy-leader-cover.svg'
+      - 'academy-leader-photo.avif'
+      - 'academy-cover-preview.html'
       - 'app/index.html'
       - 'api/academy-video-storage.js'
       - 'server.js'

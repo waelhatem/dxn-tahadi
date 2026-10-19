@@ -8,7 +8,7 @@
   const MAX_BYTES=50*1024*1024;
   const PROJECT='https://ryqpstkzppaifpvhezzn.supabase.co';
   const PUBLISHABLE='sb_publishable_pD9m1Z3gN--2HAfhf_t2YA_2RiAeUh';
-  const COVER_SRC='/academy-leader-cover.svg';
+  const COVER_SRC='/academy-leader-photo.avif';
   const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
   const TYPES=['video/mp4','video/quicktime','video/webm','video/x-m4v','video/3gpp'];
   let mode='guide',pendingVideo='',videos=[],activeRoot=null,loading=false;
@@ -31,11 +31,11 @@
     art.decoding='async';
     art.setAttribute('aria-hidden','true');
     const shading=elem('span','academy-leader-cover-shade');
-    const brand=elem('span','academy-leader-cover-brand','🎓 أكاديمية المجتمع');
+    const brand=elem('span','academy-leader-cover-brand','شروحات القائد');
     const title=elem('strong','academy-leader-cover-title',videoTitle);
     const playIcon=elem('span','academy-leader-cover-play','▶');
     playIcon.setAttribute('aria-hidden','true');
-    cover.append(art,shading,brand,title,playIcon);
+    cover.append(art,shading,title,brand,playIcon);
     return cover;
   }
   function showMessage(message,error){
@@ -77,7 +77,8 @@
         +'<label>اختر ملف الفيديو<input type="file" id="academyLeaderVideoFile" accept="video/mp4,video/quicktime,video/webm,video/x-m4v,video/3gpp,.mp4,.mov,.webm,.m4v,.3gp" required></label>'
         +'<small>MP4 / MOV / WebM — الحد الحالي 50 ميغابايت. سيتم إرسال إعلان مشاهدة جديد للأعضاء بعد اكتمال النشر فقط.</small>'
         +'<div class="academy-leader-cover-preview" id="academyLeaderCoverPreview" aria-label="معاينة الغلاف الموحد"></div>'
-        +'<small>🖼️ غلاف ثابت موحّد لكل فيديو؛ يتغير عنوانه تلقائياً، دون أي مونتاج للفيديو.</small>'
+        +'<small>🖼️ صورتك المعتمدة ثابتة لجميع الفيديوهات؛ يتغيّر العنوان تلقائياً، وعبارة «شروحات القائد» ثابتة، دون أي مونتاج.</small>'
+        +'<a class="academy-leader-preview-link" href="/academy-cover-preview.html" target="_blank" rel="noopener">👁️ افتح معاينة الغلاف للموبايل واللابتوب</a>'
         +'<button type="submit" id="academyLeaderPublishButton">⬆️ رفع الفيديو ونشره</button>'
         +'</form>':'')
       +'<div role="status" aria-live="polite" id="academyLeaderVideoMessage"></div>'
@@ -258,20 +259,21 @@
     '.academy-leader-card-copy{display:grid;gap:5px;min-width:0;flex:1}',
     '.academy-leader-card-copy strong{font-size:17px;color:#135239;overflow-wrap:anywhere}',
     '.academy-leader-card-copy small,.academy-leader-card-copy time{color:#667085}',
-    '.academy-leader-cover{position:relative;display:block;aspect-ratio:16/9;width:100%;overflow:hidden;border-radius:13px;background:#103f32;color:#fff;isolation:isolate}',
+    '.academy-leader-cover{position:relative;display:block;aspect-ratio:9/16;width:100%;max-width:330px;margin-inline:auto;overflow:hidden;border-radius:13px;background:#103f32;color:#fff;isolation:isolate}',
     '.academy-leader-cover-art,.academy-leader-cover-shade{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}',
-    '.academy-leader-cover-art{object-fit:cover}',
-    '.academy-leader-cover-shade{background:linear-gradient(90deg,rgba(3,29,21,.28),rgba(3,29,21,.76) 65%,rgba(3,29,21,.84))}',
-    '.academy-leader-cover-brand{position:absolute;top:8%;right:6%;z-index:1;padding:5px 10px;border:1px solid rgba(238,216,154,.55);border-radius:8px;font-size:clamp(10px,1.3vw,13px);font-weight:900;background:rgba(10,63,48,.55);color:#f8e4b4}',
-    '.academy-leader-cover-title{position:absolute;right:6%;top:37%;width:78%;z-index:1;font-size:clamp(16px,2.1vw,23px);line-height:1.5;font-weight:950;color:#fff;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;overflow:hidden;text-shadow:0 2px 7px rgba(0,0,0,.35)}',
-    '.academy-leader-cover-play{position:absolute;left:6%;bottom:9%;z-index:1;width:41px;height:41px;border-radius:50%;background:#edcb82;color:#135139;display:grid;place-items:center;font-size:18px;box-shadow:0 3px 12px rgba(0,0,0,.25)}',
+    '.academy-leader-cover-art{object-fit:fill}',
+    '.academy-leader-cover-shade{top:14.4%;left:7.4%;width:85.1%;height:12%;border:2px solid #b98b42;border-radius:12%/22%;background:linear-gradient(115deg,#073324,#0c382b 46%,#093b2b);box-shadow:inset 0 0 20px #06170f,0 3px 6px #0f281c88;z-index:1}',
+    '.academy-leader-cover-brand{position:absolute;top:25.15%;left:27.4%;width:45.2%;height:5%;display:grid;place-items:center;z-index:3;padding:0 2px;border:1.7px solid #d5ac62;border-radius:999px;background:linear-gradient(110deg,#073122,#0d4531);box-shadow:0 2px 6px #1a2b15aa;font-size:clamp(10px,2vw,16px);font-weight:950;white-space:nowrap;color:#fff0bf}',
+    '.academy-leader-cover-title{position:absolute;top:14.4%;left:7.4%;width:85.1%;height:12%;z-index:2;display:flex;align-items:center;justify-content:center;text-align:center;padding:3%;font-size:clamp(16px,2.45vw,24px);line-height:1.22;font-weight:950;color:#f4ce80;overflow-wrap:anywhere;overflow:hidden;text-shadow:0 2px 3px #0009}',
+    '.academy-leader-cover-play{position:absolute;left:4%;bottom:4%;z-index:3;width:38px;height:38px;border-radius:50%;background:rgba(237,203,130,.94);color:#135139;display:grid;place-items:center;font-size:17px;box-shadow:0 3px 12px rgba(0,0,0,.25)}',
     '.academy-leader-cover-preview{max-width:480px;width:100%;margin:3px auto}',
     '.academy-leader-stage-cover{margin-bottom:12px}',
-    '@media(min-width:600px){.academy-leader-stage-cover .academy-leader-cover-title{font-size:clamp(24px,3vw,34px)}}',
+    '.academy-leader-preview-link{font-size:14px;font-weight:800;color:#1a6846;text-decoration:underline;text-underline-offset:4px}',
+    '@media(min-width:600px){.academy-leader-stage-cover .academy-leader-cover-title{font-size:clamp(17px,2.45vw,24px)}}',
     '#academyLeaderVideoPlayer:empty{display:none}',
     '#academyLeaderVideoPlayer{background:#fff;border:1px solid #dce8e0;border-radius:15px;padding:14px}',
     '.academy-leader-player{width:100%;height:auto;max-height:68vh;background:#101820;border-radius:13px}',
-    '@media(max-width:520px){.academy-leader-tabs button{font-size:13px}.academy-leader-card{padding:9px}.academy-leader-header h2{font-size:22px}.academy-leader-cover-title{font-size:clamp(15px,4.3vw,20px)}.academy-leader-cover-brand{font-size:11px}}'
+    '@media(max-width:520px){.academy-leader-tabs button{font-size:13px}.academy-leader-card{padding:9px}.academy-leader-header h2{font-size:22px}.academy-leader-cover-title{font-size:clamp(15px,4.3vw,20px)}.academy-leader-cover-brand{font-size:clamp(10px,3vw,14px)}}'
   ].join('');
   document.head.append(css);
   const observer=new MutationObserver(()=>mount());
