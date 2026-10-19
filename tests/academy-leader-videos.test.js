@@ -127,11 +127,12 @@ test('all leader video thumbnails use one static 16:9 artwork with their own saf
   assert.match(enhanced,/const COVER_SRC='\/academy-leader-photo\.avif'/);
   assert.match(enhanced,/function coverElement\(videoTitle\)/);
   assert.match(enhanced,/elem\('strong','academy-leader-cover-title',videoTitle\)/);
-  assert.match(enhanced,/button\.append\(coverElement\(v\.title\)\)/);
+  assert.match(enhanced,/button\.append\(videoThumbElement\(\)\)/);
   assert.match(enhanced,/titleInput\?\.addEventListener\('input'/);
   assert.match(enhanced,/art\.querySelector\('\.academy-leader-cover-title'\)\.textContent=text/);
-  assert.match(enhanced,/academy-leader-stage-cover/);
+  assert.match(enhanced,/academy-leader-video-thumb/);
   assert.match(enhanced,/aspect-ratio:9\/16/);
+  assert.match(enhanced,/aspect-ratio:16\/9/);
   assert.match(enhanced,/font-weight:950/);
   assert.doesNotMatch(enhanced,/ffmpeg|canvas\.toBlob|extractFrame|transcod/i);
 });
@@ -174,10 +175,10 @@ test('video notices show a distinct watch action and suppress popups during dire
  assert.match(src,/ga-video-watch-btn/);
  assert.match(src,/مشاهدة الفيديو الآن/);
  assert.match(src,/videoWatchPausedSession=sessionAtClick/);
- assert.match(src,/closeMemberModal\(\);\s*try\{\s*window\.academyOpenLeaderVideo\(item\.video_id\)/);
+ assert.match(src,/closeMemberModal\(\);\s*try\{\s*if\(window\.academyOpenLeaderVideo\(item\.video_id\)===false\)throw/);
  assert.match(src,/videoWatchPausedSession===tokenValue\(\)/);
  assert.match(src,/gaRpc\('acknowledge_global_announcement'/);
- assert.match(enhanced,/if\(videos\.some\(v=>v\.id===id\)\)await selectVideo\(id\)/);
+ assert.match(enhanced,/window\.open\('\/app\/academy-video-viewer\.html\?video='/);
 });
 
 
@@ -197,7 +198,8 @@ test('video announcement button opens exactly the linked video without a follow-
   };
   const ctx={
     window:{
-      academyOpenLeaderVideo(id){opened.push(id);}
+      academyOpenLeaderVideo(id){opened.push(id);},
+      addEventListener(){}
     },
     role:'member',tab:'home',
     console,toast(){},
@@ -325,4 +327,65 @@ test('TUS simulated upload reports progress and remembers successful bytes durin
  assert.equal(started,1);
  uploader.clearDraft();
  assert.equal(store.size,0);
+});
+
+test('leader video thumbnail is visibly playable, compact and never expands inline into a portrait player',()=>{
+  assert.match(enhanced,/function videoThumbElement\(\)/);
+  assert.match(enhanced,/academy-leader-video-play/);
+  assert.match(enhanced,/فيديو تعليمي/);
+  assert.match(enhanced,/اضغط للمشاهدة بملء الشاشة/);
+  assert.match(enhanced,/aspect-ratio:16\/9/);
+  assert.match(enhanced,/object-fit:cover/);
+  assert.doesNotMatch(enhanced,/host\.append\(cover,title,label,status\)/);
+  assert.doesNotMatch(enhanced,/player\.src=result\.url/);
+  assert.match(enhanced,/window\.open\('\/app\/academy-video-viewer\.html\?video='/);
+});
+
+test('secure standalone player preserves community tab, supports native fullscreen and returns at end',async()=>{
+  const vm=require('node:vm');
+  const html=fs.readFileSync(path.join(ROOT,'app/academy-video-viewer.html'),'utf8');
+  const js=html.match(/<script>([\s\S]*?)<\/script>/);
+  assert.ok(js,'the standalone viewer script is present');
+  const id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  const token='11111111-1111-4111-8111-111111111111';
+  const handlers={},elems={};
+  for(const key of ['player','title','status','start','play','return']){
+    elems[key]={hidden:true,textContent:'',classList:{toggle(){}},addEventListener(name,fn){handlers[key+':'+name]=fn}};
+  }
+  const calls=[],signedUrl='https://storage.example.com/private-signed-video.mp4',messages=[];
+  let closes=0,fullscreen=0,played=0;
+  elems.player.requestFullscreen=()=>{fullscreen++;return Promise.resolve()};
+  elems.player.play=()=>{played++;return Promise.resolve()};
+  const context={
+    URLSearchParams,location:{search:'?video='+id,origin:'https://example.test'},
+    window:{opener:{closed:false,postMessage:(m,origin)=>messages.push({m,origin})},close(){closes++},closed:false},
+    localStorage:{getItem(name){return name==='dxn_session'?token:null}},
+    document:{getElementById(key){return elems[key]}},
+    setTimeout(fn){},console,
+    fetch:async (url,opts)=>{
+      const body=JSON.parse(opts.body);
+      calls.push({url,body});
+      if(url==='/api/rpc')return{ok:true,json:async()=>[{id,title:'شرح الوصول للتدريبات الأساسية'}]};
+      if(url==='/api/academy-video-storage')return{ok:true,json:async()=>({url:signedUrl})};
+      throw Error('unexpected '+url);
+    }
+  };
+  vm.runInNewContext(js[1],context,{timeout:1200});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(elems.player.src,signedUrl);
+  assert.equal(elems.start.hidden,false);
+  assert.equal(calls.length,2);
+  assert.equal(calls[1].body.video_id,id);
+  assert.equal(calls[1].body.p_token,token);
+  handlers['play:click']();
+  assert.equal(fullscreen,1);
+  assert.equal(played,1);
+  assert.equal(elems.start.hidden,true);
+  handlers['player:ended']();
+  assert.equal(closes,1);
+  assert.equal(messages[0].m.type,'dxn-academy-viewer-return');
+  assert.equal(messages[0].origin,'https://example.test');
+  assert.match(html,/العودة إلى المجتمع/);
+  assert.match(html,/object-fit:contain/);
+  assert.doesNotMatch(html,/SUPABASE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY/);
 });
