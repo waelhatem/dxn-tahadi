@@ -12,6 +12,7 @@
   const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
   const TYPES=['video/mp4','video/quicktime','video/webm','video/x-m4v','video/3gpp'];
   let mode='guide',pendingVideo='',videos=[],activeRoot=null,loading=false;
+  let localVideoPreviewUrl='';
   function session(){try{return String(localStorage.getItem('dxn_session')||'').trim()}catch(_){return ''}}
   function isLeader(){try{return typeof role!=='undefined'&&role==='leader'}catch(_){return false}}
   function elem(tag,className,textValue){
@@ -72,14 +73,24 @@
     section.innerHTML='<header class="academy-leader-header"><span>🎓 أكاديمية المجتمع</span><h2>🎬 شروحات القائد</h2><p>شروحات فيديو حديثة تساعدك على استخدام المجتمع والاستفادة من إمكاناته.</p></header>'
       +(isLeader()?'<form id="academyLeaderUploadForm" class="academy-leader-upload">'
         +'<strong>👑 أضف شرحاً جديداً من هاتفك</strong>'
-        +'<label>عنوان الفيديو<input id="academyLeaderVideoTitle" maxlength="160" required placeholder="مثال: طريقة استخدام تبويب فريقي"></label>'
+        +'<label>1️⃣ اختر الفيديو أولاً<input type="file" id="academyLeaderVideoFile" accept="video/mp4,video/quicktime,video/webm,video/x-m4v,video/3gpp,.mp4,.mov,.webm,.m4v,.3gp" required></label>'
+        +'<small>اختيار الملف لا يرفع الفيديو ولا ينشره. استمع إليه وشاهده أولاً من جهازك، ثم اختر العنوان المناسب.</small>'
+        +'<section class="academy-leader-local-preview" id="academyLeaderLocalPreview" aria-label="معاينة الفيديو قبل النشر" hidden>'
+        +'<strong>🔊 2️⃣ استمع وشاهد الفيديو قبل إضافته</strong>'
+        +'<div class="academy-leader-local-file" id="academyLeaderLocalFile"></div>'
+        +'<video id="academyLeaderLocalPlayer" class="academy-leader-local-player" controls playsinline preload="metadata" aria-label="تشغيل الفيديو المحلي للاستماع إليه قبل النشر"></video>'
+        +'<p id="academyLeaderLocalHint" class="academy-leader-local-hint" role="status">اضغط تشغيل للاستماع إلى الشرح، وأوقفه أو تقدّم فيه كما تريد. الفيديو لم يُرفع بعد.</p>'
+        +'<button class="academy-leader-write-title" type="button" id="academyLeaderWriteTitle">✍️ انتهيت من الاستماع — كتابة العنوان</button>'
+        +'</section>'
+        +'<div id="academyLeaderMetaFields" class="academy-leader-meta-fields" hidden>'
+        +'<label>3️⃣ عنوان الفيديو<input id="academyLeaderVideoTitle" maxlength="160" required placeholder="مثال: طريقة استخدام تبويب فريقي"></label>'
         +'<label>موضوع الشرح ووصفه<textarea id="academyLeaderVideoDescription" maxlength="700" rows="3" required placeholder="اكتب باختصار ما الذي سيتعلمه العضو"></textarea></label>'
-        +'<label>اختر ملف الفيديو<input type="file" id="academyLeaderVideoFile" accept="video/mp4,video/quicktime,video/webm,video/x-m4v,video/3gpp,.mp4,.mov,.webm,.m4v,.3gp" required></label>'
-        +'<small>MP4 / MOV / WebM — الحد الحالي 50 ميغابايت. سيتم إرسال إعلان مشاهدة جديد للأعضاء بعد اكتمال النشر فقط.</small>'
         +'<div class="academy-leader-cover-preview" id="academyLeaderCoverPreview" aria-label="معاينة الغلاف الموحد"></div>'
-        +'<small>🖼️ صورتك المعتمدة ثابتة لجميع الفيديوهات؛ يتغيّر العنوان تلقائياً، وعبارة «شروحات القائد» ثابتة، دون أي مونتاج.</small>'
+        +'<small>🖼️ الغلاف ثابت بصورتك المعتمدة، ويتغير العنوان تلقائياً دون مونتاج.</small>'
         +'<a class="academy-leader-preview-link" href="/academy-cover-preview.html" target="_blank" rel="noopener">👁️ افتح معاينة الغلاف للموبايل واللابتوب</a>'
-        +'<button type="submit" id="academyLeaderPublishButton">⬆️ رفع الفيديو ونشره</button>'
+        +'<small>MP4 / MOV / WebM — الحد الحالي 50 ميغابايت. عند الضغط على النشر فقط سيُرفع الملف ويرسل إعلان للأعضاء.</small>'
+        +'</div>'
+        +'<button type="submit" id="academyLeaderPublishButton" disabled>⬆️ نشر الفيديو وإرسال الإعلان</button>'
         +'</form>':'')
       +'<div role="status" aria-live="polite" id="academyLeaderVideoMessage"></div>'
       +'<div id="academyLeaderVideoPlayer"></div><div id="academyLeaderVideoList"></div>';
@@ -87,6 +98,13 @@
     const form=section.querySelector('#academyLeaderUploadForm');
     if(form){
       form.addEventListener('submit',function(event){event.preventDefault();uploadVideo()});
+      form.querySelector('#academyLeaderVideoFile')?.addEventListener('change',academyPreviewSelectedFile);
+      form.querySelector('#academyLeaderWriteTitle')?.addEventListener('click',function(){
+        const player=form.querySelector('#academyLeaderLocalPlayer');
+        if(player&&!player.paused)player.pause();
+        const field=form.querySelector('#academyLeaderVideoTitle');
+        if(field)field.focus();
+      });
       const titleInput=form.querySelector('#academyLeaderVideoTitle');
       const preview=form.querySelector('#academyLeaderCoverPreview');
       const art=coverElement('عنوان الفيديو يظهر هنا');
@@ -181,17 +199,76 @@
     const ext=(file.name.split('.').pop()||'').toLowerCase();
     return {mp4:'video/mp4',mov:'video/quicktime',webm:'video/webm',m4v:'video/x-m4v','3gp':'video/3gpp'}[ext]||'';
   }
+  // Keep the recording on the leader's own phone/laptop until "publish" is clicked.
+  // Object URLs play the original file in the browser; no upload, conversion or editing.
+  function academyClearLocalPreview(){
+    const player=document.getElementById('academyLeaderLocalPlayer');
+    if(player){
+      player.pause();
+      player.removeAttribute('src');
+      player.load();
+    }
+    if(localVideoPreviewUrl){
+      URL.revokeObjectURL(localVideoPreviewUrl);
+      localVideoPreviewUrl='';
+    }
+  }
+  function academyPreviewSelectedFile(){
+    const input=document.getElementById('academyLeaderVideoFile');
+    const file=input?.files?.[0];
+    const panel=document.getElementById('academyLeaderLocalPreview');
+    const meta=document.getElementById('academyLeaderMetaFields');
+    const label=document.getElementById('academyLeaderLocalFile');
+    const player=document.getElementById('academyLeaderLocalPlayer');
+    const hint=document.getElementById('academyLeaderLocalHint');
+    const publish=document.getElementById('academyLeaderPublishButton');
+    academyClearLocalPreview();
+    if(panel)panel.hidden=true;
+    if(meta)meta.hidden=true;
+    if(publish)publish.disabled=true;
+    if(!file)return;
+    if(file.size<1||file.size>MAX_BYTES){
+      showMessage('حجم الفيديو يتجاوز 50 ميغابايت أو أن الملف فارغ. اختر فيديو أصغر أولاً.',true);
+      return;
+    }
+    if(!inferredType(file)){
+      showMessage('صيغة الفيديو غير مدعومة، اختر MP4 أو MOV أو WebM.',true);
+      return;
+    }
+    try{
+      localVideoPreviewUrl=URL.createObjectURL(file);
+      if(player){
+        player.src=localVideoPreviewUrl;
+        player.load();
+        player.onerror=function(){
+          if(hint)hint.textContent='تعذّر تشغيل هذا التسجيل على الجهاز. جرّب فتحه في مشغّل هاتفك أو اختر ملف MP4 متوافقاً.';
+        };
+      }
+      if(label)label.textContent=file.name+' — '+(file.size/1024/1024).toFixed(1)+' MB';
+      if(hint)hint.textContent='اضغط ▶ للتشغيل والاستماع. يمكنك الإيقاف والتقديم والتأخير، ثم كتابة العنوان في الحقول التالية.';
+      if(panel)panel.hidden=false;
+      if(meta)meta.hidden=false;
+      if(publish)publish.disabled=false;
+      showMessage('🎧 يمكنك الاستماع للفيديو الآن؛ لم يتم رفعه أو إرسال إعلان عنه.');
+    }catch(e){
+      academyClearLocalPreview();
+      showMessage('لم نتمكن من معاينة الملف على هذا الجهاز: '+(e.message||e),true);
+    }
+  }
   async function uploadVideo(){
     if(!isLeader())return;
     const button=document.getElementById('academyLeaderPublishButton');
     const title=String(document.getElementById('academyLeaderVideoTitle')?.value||'').trim();
     const description=String(document.getElementById('academyLeaderVideoDescription')?.value||'').trim();
     const file=document.getElementById('academyLeaderVideoFile')?.files?.[0];
+    if(!localVideoPreviewUrl){showMessage('اختر الفيديو واستمع إليه قبل إدخال العنوان ونشره.',true);return}
     if(!button||!file||title.length<4||title.length>160||description.length<5){showMessage('اكتب عنوان الفيديو وموضوعه، ثم اختر ملف الفيديو.',true);return}
     if(file.size>MAX_BYTES){showMessage('حجم الفيديو أكبر من 50 ميغابايت. اضغط الملف أولاً ثم حاول.',true);return}
     const mime=inferredType(file);
     if(!mime){showMessage('صيغة الفيديو غير مدعومة. استخدم MP4 أو MOV أو WebM.',true);return}
     button.disabled=true;
+    const uploadInput=document.getElementById('academyLeaderVideoFile');
+    if(uploadInput)uploadInput.disabled=true;
     try{
       showMessage('🔐 جارٍ تجهيز رفع آمن للفيديو...');
       const prepared=await post('/api/academy-video-storage',{
@@ -211,17 +288,26 @@
       });
       if(!published||!published.video_id)throw Error('الرفع تم لكن تعذر حفظ إعلان الفيديو. لا تعيد الرفع قبل المراجعة.');
       document.getElementById('academyLeaderUploadForm')?.reset();
+      academyClearLocalPreview();
+      const panel=document.getElementById('academyLeaderLocalPreview');
+      const meta=document.getElementById('academyLeaderMetaFields');
+      if(panel)panel.hidden=true;
+      if(meta)meta.hidden=true;
       pendingVideo=published.video_id;
-      showMessage('✅ تم نشر الفيديو وإنشاء إعلان تلقائي للأعضاء! بإمكانهم فتحه من الرسالة.');
       await loadVideos();
+      showMessage('✅ تم نشر الفيديو وإنشاء إعلان تلقائي للأعضاء! بإمكانهم فتحه من الرسالة.');
     }catch(err){showMessage('تعذر النشر: '+err.message,true)}
-    finally{button.disabled=false}
+    finally{
+      if(uploadInput)uploadInput.disabled=false;
+      button.disabled=!localVideoPreviewUrl;
+    }
   }
   function mount(){
     const root=document.querySelector('.academy-root');
-    if(!root||root===activeRoot)return;
-    activeRoot=root;
-    makeControls(root);
+    if(root===activeRoot)return;
+    if(activeRoot)academyClearLocalPreview();
+    activeRoot=root||null;
+    if(root)makeControls(root);
   }
   window.academyOpenLeaderVideo=function(id){
     if(!UUID.test(String(id||'')))return;
@@ -251,6 +337,15 @@
     '.academy-leader-upload button{background:#16694a;color:#fff;border:0;padding:13px;border-radius:12px;font:inherit;font-weight:900;cursor:pointer}',
     '.academy-leader-upload button:disabled{opacity:.6}',
     '.academy-leader-upload small{color:#667085;line-height:1.7}',
+    '.academy-leader-local-preview{display:grid;gap:10px;border:1px solid #b7d9c3;border-radius:15px;padding:14px;background:#f1f9f3}',
+    '.academy-leader-local-preview[hidden],.academy-leader-meta-fields[hidden]{display:none!important}',
+    '.academy-leader-local-preview strong{font-size:17px;color:#15543d}',
+    '.academy-leader-local-file{overflow-wrap:anywhere;font-size:13px;color:#547365}',
+    '.academy-leader-local-player{display:block;width:100%;max-height:60vh;min-height:180px;object-fit:contain;background:#081b15;border-radius:12px}',
+    '.academy-leader-local-hint{margin:0;color:#3e6c53;font-size:13px;line-height:1.8}',
+    '.academy-leader-write-title{width:100%;min-height:44px;border:1px solid #a5cdb1!important;background:#e5f4e8!important;color:#15543d!important}',
+    '.academy-leader-meta-fields{display:grid;gap:12px;border-top:1px solid #d6e6d9;padding-top:16px}',
+    '.academy-leader-upload button:disabled{opacity:.55;cursor:not-allowed}',
     '#academyLeaderVideoMessage{font-weight:750;color:#22593e;line-height:1.8}',
     '#academyLeaderVideoMessage.error,.academy-leader-loading.error{color:#b42318}',
     '.academy-leader-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:16px}',
