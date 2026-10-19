@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'app/academy-leader-videos.js'
+      - 'app/academy-resumable.js'
+      - 'supabase/migrations/20261019130000_academy_welcome_video_and_100mb_schema.sql'
       - 'academy-leader-photo.avif'
       - 'academy-cover-preview.html'
       - 'app/index.html'
