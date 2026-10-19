@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#071b17">
+<title>مشاهدة فيديو أكاديمية المجتمع</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#071b17;color:#f3fff8;font-family:Tahoma,Arial,sans-serif}
+body{height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:60px;padding:10px clamp(12px,3vw,26px);background:#0d3027;border-bottom:1px solid #32614e}
+header .brand{font-size:clamp(14px,3vw,18px);font-weight:900}
+button{font:inherit;cursor:pointer}
+.return{background:#e4f4e9;color:#0e4b38;border:0;border-radius:11px;padding:11px 14px;font-weight:900}
+main{flex:1;min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:8px;padding:10px clamp(8px,2vw,20px)}
+h1{font-size:clamp(15px,3vw,22px);line-height:1.6;margin:0;text-align:center}
+.stage{position:relative;min-height:0;display:grid;place-items:center;background:#030d0b;border:1px solid #264a3a;border-radius:14px;overflow:hidden}
+video{display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;background:#000}
+video[hidden],button[hidden],.message[hidden]{display:none!important}
+.center{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:16px;padding:20px;text-align:center;background:rgba(1,13,10,.70)}
+.center[hidden]{display:none!important}
+.play{min-height:60px;padding:14px 30px;border:2px solid #f2ce80;border-radius:50px;background:#e9c477;color:#143c2e;font-weight:950;font-size:clamp(16px,4vw,22px)}
+.message{color:#d5eee0;font-size:14px;line-height:1.7;text-align:center;padding:3px 12px}
+.message.error{color:#ffb9ad}
+.hint{font-size:12px;text-align:center;color:#a8c7b6;padding-bottom:env(safe-area-inset-bottom)}
+video:fullscreen,video:-webkit-full-screen{width:100vw;height:100vh;object-fit:contain;background:#000}
+@media(max-width:520px){header{min-height:53px}.return{padding:9px 11px;font-size:13px}.stage{border-radius:8px}}
+</style>
+</head>
+<body>
+<header>
+ <div class="brand">🎓 أكاديمية المجتمع — شروحات القائد</div>
+ <button type="button" class="return" id="return">↩ العودة إلى المجتمع</button>
+</header>
+<main>
+ <h1 id="title">جارٍ تجهيز الفيديو…</h1>
+ <div class="stage">
+  <video id="player" controls playsinline preload="metadata" hidden></video>
+  <div class="center" id="start" hidden>
+   <div>🎬 الفيديو جاهز للمشاهدة</div>
+   <button type="button" class="play" id="play">▶ تشغيل بملء الشاشة</button>
+  </div>
+ </div>
+ <div class="message" id="status" role="status" aria-live="polite">جارٍ التحقق من جلسة العضو وتجهيز التشغيل الآمن…</div>
+</main>
+<div class="hint" id="hint">عند انتهاء الفيديو سنعيدك إلى صفحة المجتمع المفتوحة دون فقدان موضعها.</div>
+<script>
+(function(){
+ 'use strict';
+ const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
+ const id=new URLSearchParams(location.search).get('video')||'';
+ const player=document.getElementById('player');
+ const title=document.getElementById('title');
+ const status=document.getElementById('status');
+ const start=document.getElementById('start');
+ const play=document.getElementById('play');
+ let finished=false;
+ function message(text,error){status.textContent=text;status.classList.toggle('error',!!error)}
+ function notifyReturn(){
+   try{if(window.opener&&!window.opener.closed)window.opener.postMessage({type:'dxn-academy-viewer-return'},location.origin)}catch(_){}
+ }
+ function goBack(){
+   notifyReturn();
+   window.close();
+   // Browser restrictions may disallow automatic tab closing. Keep a manual fallback.
+   setTimeout(function(){if(!window.closed)message('إذا لم يُغلق هذا التبويب تلقائياً، أغلقه يدوياً للعودة إلى صفحة المجتمع التي بقيت مفتوحة.');},250);
+ }
+ async function request(url,body){
+   const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store'});
+   let data;try{data=await res.json()}catch(_){throw Error('تعذرت قراءة استجابة الخادم')}
+   if(!res.ok)throw Error(data.error||data.message||'تعذر الاتصال بالخادم');
+   return data;
+ }
+ document.getElementById('return').addEventListener('click',goBack);
+ player.addEventListener('ended',function(){
+   if(finished)return;
+   finished=true;
+   message('✅ اكتملت المشاهدة. جارٍ العودة إلى المجتمع…');
+   goBack();
+ });
+ play.addEventListener('click',function(){
+   start.hidden=true;
+   player.hidden=false;
+   // Fullscreen must be requested in a direct user gesture. Some mobile browsers
+   // deny it; in that case the dedicated viewer still fills the browser viewport.
+   try{
+     if(typeof player.requestFullscreen==='function'){
+       const p=player.requestFullscreen();
+       if(p&&typeof p.catch==='function')p.catch(function(){});
+     }else if(typeof player.webkitEnterFullscreen==='function')player.webkitEnterFullscreen();
+   }catch(_){}
+   const result=player.play();
+   if(result&&typeof result.catch==='function')result.catch(function(){message('اضغط زر التشغيل في الفيديو للبدء بالمشاهدة.');});
+   message('شاهد الفيديو هنا. عند انتهائه ستعود تلقائياً إلى صفحة المجتمع إن سمح المتصفح.');
+ });
+ async function prepare(){
+   if(!UUID.test(id)){message('رابط الفيديو غير صالح. افتحه من أكاديمية المجتمع.',true);return;}
+   let token='';try{token=String(localStorage.getItem('dxn_session')||'').trim()}catch(_){}
+   if(!UUID.test(token)){message('يرجى فتح الفيديو من حسابك المسجّل داخل مجتمع الصحة والثراء.',true);return;}
+   try{
+     const rows=await request('/api/rpc',{fn:'academy_leader_videos_list_v2',args:{p_token:token}});
+     const item=Array.isArray(rows)?rows.find(function(v){return v.id===id}):null;
+     if(!item)throw Error('الفيديو غير منشور أو غير متاح لهذا الحساب.');
+     title.textContent='🎬 '+item.title;
+     const stream=await request('/api/academy-video-storage',{action:'play',p_token:token,video_id:id});
+     if(!stream||typeof stream.url!=='string'||!stream.url.startsWith('https://'))throw Error('تعذر تجهيز رابط تشغيل آمن.');
+     player.src=stream.url;
+     player.hidden=false;
+     start.hidden=false;
+     message('جاهز للتشغيل — اضغط الزر الذهبي للمشاهدة بملء الشاشة.');
+   }catch(e){message('تعذر فتح الفيديو: '+(e.message||e),true);}
+ }
+ prepare();
+})();
+</script>
+</body>
+</html>
