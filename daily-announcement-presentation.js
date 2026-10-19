@@ -14,7 +14,7 @@
   function renderBody(container,text){
     if(!container)return;
     container.classList.add('dxn-ga-daily-content');
-    // textContent, never innerHTML: the AI must not inject markup.
+    // Render the copy as plain text only, preventing markup injection.
     container.textContent=normalizeDailyText(text);
     container.setAttribute('dir','rtl');
   }
