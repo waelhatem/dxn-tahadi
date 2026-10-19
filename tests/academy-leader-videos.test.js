@@ -116,3 +116,21 @@ test('upload has 50 MB limit and front end sends file directly via signed token'
   assert.match(enhanced,/action:'play'/);
   assert.match(fs.readFileSync(path.join(ROOT,'server.js'),'utf8'),/\/api\/academy-video-storage/);
 });
+
+
+test('all leader video thumbnails use one static 16:9 artwork with their own safe title',()=>{
+  const cover=fs.readFileSync(path.join(ROOT,'academy-leader-cover.svg'),'utf8');
+  assert.match(cover,/viewBox="0 0 1280 720"/);
+  assert.match(cover,/<svg[\s>]/);
+  assert.doesNotMatch(cover,/<text[\s>]/);
+  assert.match(enhanced,/const COVER_SRC='\/academy-leader-cover\.svg'/);
+  assert.match(enhanced,/function coverElement\(videoTitle\)/);
+  assert.match(enhanced,/elem\('strong','academy-leader-cover-title',videoTitle\)/);
+  assert.match(enhanced,/button\.append\(coverElement\(v\.title\)\)/);
+  assert.match(enhanced,/titleInput\?\.addEventListener\('input'/);
+  assert.match(enhanced,/art\.querySelector\('\.academy-leader-cover-title'\)\.textContent=text/);
+  assert.match(enhanced,/academy-leader-stage-cover/);
+  assert.match(enhanced,/aspect-ratio:16\/9/);
+  assert.match(enhanced,/font-weight:950/);
+  assert.doesNotMatch(enhanced,/ffmpeg|canvas\.toBlob|extractFrame|transcod/i);
+});
