@@ -163,3 +163,17 @@ test('choosing a video previews its real local recording before writing title an
   assert.ok(filePicker<enhanced.indexOf('function academyPreviewSelectedFile()'),'select file appears in publisher form before preview handler');
   assert.doesNotMatch(enhanced.slice(enhanced.indexOf('function academyPreviewSelectedFile()'),enhanced.indexOf('async function uploadVideo()')),/uploadToSignedUrl|academy_leader_video_publish/);
 });
+
+
+test('video notices show a distinct watch action and suppress popups during direct playback',()=>{
+ const src=fs.readFileSync(path.join(ROOT,'app/index.html'),'utf8');
+ assert.match(src,/ga-video-announcement/);
+ assert.match(src,/🎬 فيديو تعليمي جديد في الأكاديمية/);
+ assert.match(src,/ga-video-watch-btn/);
+ assert.match(src,/مشاهدة الفيديو الآن/);
+ assert.match(src,/videoWatchPausedSession=sessionAtClick/);
+ assert.match(src,/closeMemberModal\(\);\s*try\{\s*window\.academyOpenLeaderVideo\(item\.video_id\)/);
+ assert.match(src,/videoWatchPausedSession===tokenValue\(\)/);
+ assert.match(src,/gaRpc\('acknowledge_global_announcement'/);
+ assert.match(enhanced,/if\(videos\.some\(v=>v\.id===id\)\)await selectVideo\(id\)/);
+});

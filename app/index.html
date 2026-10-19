@@ -10022,6 +10022,14 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 .dxn-global-announcement-panel h2{margin:0 0 10px;font-size:25px}
 .dxn-global-announcement-panel .ga-body{white-space:pre-wrap;line-height:1.9;color:#34443e}
 .dxn-global-announcement-panel .ga-footer{display:flex;justify-content:flex-start;gap:8px;flex-wrap:wrap;margin-top:18px}
+/* Video notices use the established popup, with a prominent direct-watch action. */
+.dxn-global-announcement-panel.ga-video-announcement{border:2px solid #bbd9c8;background:linear-gradient(180deg,#f4fbf6,#fff 34%);text-align:right}
+.dxn-global-announcement-panel.ga-video-announcement .ga-type{background:#e1f3e8;color:#0b5f43;font-weight:950}
+.dxn-global-announcement-panel.ga-video-announcement h2{font-weight:950;color:#114b39;overflow-wrap:anywhere}
+.dxn-global-announcement-panel.ga-video-announcement .ga-body{font-weight:650;overflow-wrap:anywhere}
+.dxn-global-announcement-panel .ga-video-watch-btn{min-height:48px;padding:12px 21px;font-size:15px;font-weight:950;border-radius:12px;background:#156849;color:#fff}
+.dxn-global-announcement-panel.ga-video-announcement .ga-footer{align-items:stretch}
+@media(max-width:650px){.dxn-global-announcement-panel.ga-video-announcement .ga-footer{display:grid;grid-template-columns:1fr 1fr}.dxn-global-announcement-panel.ga-video-announcement .ga-video-watch-btn{grid-column:1/-1;width:100%}}
 @media(max-width:650px){.dxn-global-announcement-panel{padding:18px;border-radius:20px;width:96vw}.dxn-global-announcement-card .ga-actions button{flex:1;min-width:150px}}
 
 /* Advanced course catalogue: one course, ten nested lessons. */
@@ -10070,6 +10078,9 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
   if(window.__DXN_GLOBAL_ANNOUNCEMENTS_V1__)return;
   window.__DXN_GLOBAL_ANNOUNCEMENTS_V1__=true;
   var loadingMemberAnnouncements=false,memberAnnouncementShown=false,previewNode=null;
+  // A member who chooses to watch a lesson should not be interrupted by the next popup.
+  // Key this to the signed-in session, so a fresh login can receive new announcements.
+  var videoWatchPausedSession='';
 
   function tokenValue(){try{return String(localStorage.getItem('dxn_session')||'').trim()}catch(e){return ''}}
   function safeEsc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -10127,13 +10138,13 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     catch(e){toast(e.message||'تعذر حفظ التأكيد.')}
   }
   async function showMemberAnnouncement(item){
-    if(!item||memberAnnouncementShown)return;
+    if(!item||memberAnnouncementShown||videoWatchPausedSession===tokenValue())return;
     memberAnnouncementShown=true;
     var node=document.createElement('div');node.id='dxnGlobalAnnouncementModal';node.className='dxn-global-announcement-modal';
     var videoNotice=item.source==='video'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(String(item.video_id||''));
-    node.innerHTML='<div class="dxn-global-announcement-panel '+typeClass(item.announcement_type)+'" role="dialog" aria-modal="true" aria-label="إعلان عام">'+
-      '<div class="ga-type">'+typeLabel(item.announcement_type)+'</div><h2>'+safeEsc(item.title)+'</h2><div class="ga-body">'+safeEsc(item.body)+'</div>'+
-      '<div class="ga-footer">'+(videoNotice?'<button type="button" class="primary" onclick="window.__DXN_GA_WATCH__()">▶ مشاهدة الفيديو</button>':'')+'<button type="button" class="'+(videoNotice?'':'primary')+'" onclick="window.__DXN_GA_ACK__()">✓ فهمت</button><button type="button" onclick="window.__DXN_GA_CLOSE__()">إغلاق</button></div></div>';
+    node.innerHTML='<div class="dxn-global-announcement-panel '+typeClass(item.announcement_type)+(videoNotice?' ga-video-announcement':'')+'" role="dialog" aria-modal="true" aria-label="'+(videoNotice?'إشعار فيديو تعليمي جديد':'إعلان عام')+'">'+
+      '<div class="ga-type">'+(videoNotice?'🎬 فيديو تعليمي جديد في الأكاديمية':typeLabel(item.announcement_type))+'</div><h2>'+safeEsc(item.title)+'</h2><div class="ga-body">'+safeEsc(item.body)+'</div>'+
+      '<div class="ga-footer">'+(videoNotice?'<button type="button" class="primary ga-video-watch-btn" onclick="window.__DXN_GA_WATCH__()">▶ مشاهدة الفيديو الآن</button>':'')+'<button type="button" class="'+(videoNotice?'':'primary')+'" onclick="window.__DXN_GA_ACK__()">✓ فهمت</button><button type="button" onclick="window.__DXN_GA_CLOSE__()">إغلاق</button></div></div>';
     document.body.appendChild(node);
     if(item.source==='daily_ai'&&window.__DXN_DAILY_PRESENTATION__){
       var panel=node.querySelector('.dxn-global-announcement-panel');
@@ -10145,21 +10156,38 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       }
     }
     window.__DXN_GA_ACK__=function(){acknowledgeAnnouncement(item.id)};
-    window.__DXN_GA_WATCH__=async function(){
+    window.__DXN_GA_WATCH__=function(){
       if(!videoNotice)return;
-      try{await gaRpc('acknowledge_global_announcement',{p_token:tokenValue(),p_announcement_id:item.id});}
-      catch(e){console.warn('تعذر تأكيد قراءة إعلان الفيديو',e)}
+      if(typeof window.academyOpenLeaderVideo!=='function'){
+        toast('تعذر تحميل مكتبة شروحات القائد. حدّث الصفحة وحاول مجدداً.');
+        return;
+      }
+      var sessionAtClick=tokenValue();
+      // Suppress subsequent popups *before* removing the modal. The mutation
+      // observer otherwise opens another announcement on top of the video.
+      videoWatchPausedSession=sessionAtClick;
       closeMemberModal();
-      if(typeof window.academyOpenLeaderVideo==='function')window.academyOpenLeaderVideo(item.video_id);
-      else toast('تعذر فتح مكتبة شروحات القائد.');
+      try{
+        window.academyOpenLeaderVideo(item.video_id);
+      }catch(e){
+        videoWatchPausedSession='';
+        console.error('تعذر فتح فيديو الإعلان',e);
+        toast('تعذر فتح الشرح، حاول الضغط على مشاهدة الفيديو مرة أخرى.');
+        loadMemberAnnouncements();
+        return;
+      }
+      // Save the acknowledgement without blocking the navigation/player.
+      gaRpc('acknowledge_global_announcement',{
+        p_token:sessionAtClick,p_announcement_id:item.id
+      }).catch(function(e){console.warn('تعذر تأكيد قراءة إعلان الفيديو',e)});
     };
     window.__DXN_GA_CLOSE__=(item.source==='daily_ai'||videoNotice)?function(){acknowledgeAnnouncement(item.id)}:closeMemberModal;
   }
   async function loadMemberAnnouncements(){
-    if(loadingMemberAnnouncements||memberAnnouncementShown)return;
+    if(loadingMemberAnnouncements||memberAnnouncementShown||videoWatchPausedSession===tokenValue())return;
     if(typeof role==='undefined'||role!=='member'||!tokenValue())return;
     loadingMemberAnnouncements=true;
-    try{var rows=await gaRpc('list_global_announcements_for_member',{p_token:tokenValue()});if(Array.isArray(rows)&&rows.length)await showMemberAnnouncement(rows[0])}
+    try{var rows=await gaRpc('list_global_announcements_for_member',{p_token:tokenValue()});if(Array.isArray(rows)&&rows.length&&videoWatchPausedSession!==tokenValue())await showMemberAnnouncement(rows[0])}
     catch(e){console.debug('global announcement load failed',e)}
     finally{loadingMemberAnnouncements=false}
   }

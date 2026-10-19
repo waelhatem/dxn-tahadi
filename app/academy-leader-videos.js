@@ -139,7 +139,12 @@
       if(!Array.isArray(rows))throw Error('البيانات الواردة غير صالحة');
       videos=rows.filter(item=>UUID.test(item.id));
       renderList();
-      if(pendingVideo){const id=pendingVideo;pendingVideo='';await selectVideo(id)}
+      if(pendingVideo){
+        const id=pendingVideo;
+        pendingVideo='';
+        if(videos.some(v=>v.id===id))await selectVideo(id);
+        else showMessage('تعذّر العثور على الفيديو المقصود. قد يكون غير متاح أو محذوفاً.',true);
+      }
       else if(!videos.length)showMessage('🎬 لم تُنشر شروحات جديدة بعد. الفيديوهات الثلاثة الحالية محفوظة في «دليل استخدام المجتمع».');
       else showMessage(videos.length+' فيديو متاح في شروحات القائد.');
     }catch(err){showMessage('تعذر تحميل الشروحات: '+err.message,true)}
