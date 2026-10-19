@@ -1,0 +1,27 @@
+name: Verify academy leader videos
+on:
+  pull_request:
+    paths:
+      - 'app/academy-leader-videos.js'
+      - 'app/index.html'
+      - 'api/academy-video-storage.js'
+      - 'server.js'
+      - 'supabase/migrations/20261019093000_academy_leader_videos.sql'
+      - 'tests/academy-leader-videos.test.js'
+      - 'package.json'
+      - '.github/workflows/verify-academy-leader-videos.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Verify Node version
+        run: node --version
+      - name: Run academy tests
+        run: node --test tests/academy-leader-videos.test.js tests/global-announcements.test.js
+      - name: Run project build suite
+        run: npm run build
