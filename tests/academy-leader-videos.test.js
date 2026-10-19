@@ -177,3 +177,71 @@ test('video notices show a distinct watch action and suppress popups during dire
  assert.match(src,/gaRpc\('acknowledge_global_announcement'/);
  assert.match(enhanced,/if\(videos\.some\(v=>v\.id===id\)\)await selectVideo\(id\)/);
 });
+
+
+test('video announcement button opens exactly the linked video without a follow-on popup',async()=>{
+  const vm=require('node:vm');
+  const match=INDEX.match(/<script id="dxn-global-announcements-v1-script">([\s\S]*?)<\/script>/);
+  assert.ok(match,'global announcement module exists');
+  const noticeId='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+  const videoId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  const elems=Object.create(null), queued=[],opened=[],acknowledged=[];
+  let listCalls=0,observerCallback;
+  let session='session-1';
+  const body={
+    appendChild(node){node.parentNode=body;elems[node.id]=node;},
+    removeChild(node){if(elems[node.id]===node)delete elems[node.id];node.parentNode=null;}
+  };
+  const ctx={
+    window:{
+      academyOpenLeaderVideo(id){opened.push(id);}
+    },
+    role:'member',tab:'home',
+    console,toast(){},
+    localStorage:{getItem(k){return k==='dxn_session'?session:null}},
+    document:{
+      readyState:'complete',body,
+      createElement(){return {id:'',className:'',innerHTML:'',parentNode:null}},
+      getElementById(id){return elems[id]||null}
+    },
+    MutationObserver:class {
+      constructor(fn){observerCallback=fn}
+      observe(){}
+    },
+    setTimeout(fn){queued.push(fn)},
+    fetch:async (_url,options)=>{
+      const {fn,args}=JSON.parse(options.body);
+      let result;
+      if(fn==='list_global_announcements_for_member'){
+        listCalls++;
+        result=[{id:noticeId,title:'🎬 شرح جديد: شرح تسجيل العضو',body:'موضوع الفيديو: تسجيل العضو',
+          source:'video',video_id:videoId,announcement_type:'announcement'}];
+      }else if(fn==='acknowledge_global_announcement'){
+        acknowledged.push(args.p_announcement_id);
+        result=true;
+      }else throw Error('unexpected '+fn);
+      return {ok:true,status:200,text:async()=>JSON.stringify(result)};
+    }
+  };
+  vm.runInNewContext(match[1],ctx,{timeout:1500});
+  assert.equal(queued.length,1);
+  await queued.shift()();
+  await new Promise(resolve=>setImmediate(resolve));
+  const modal=elems.dxnGlobalAnnouncementModal;
+  assert.ok(modal,'member popup opened on login');
+  assert.match(modal.innerHTML,/🎬 فيديو تعليمي جديد في الأكاديمية/);
+  assert.match(modal.innerHTML,/شرح تسجيل العضو/);
+  assert.match(modal.innerHTML,/موضوع الفيديو/);
+  assert.match(modal.innerHTML,/▶ مشاهدة الفيديو الآن/);
+  ctx.window.__DXN_GA_WATCH__();
+  assert.deepEqual(opened,[videoId]);
+  assert.equal(elems.dxnGlobalAnnouncementModal,undefined,'modal closes before navigation');
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.deepEqual(acknowledged,[noticeId]);
+  const oldCalls=listCalls;
+  observerCallback();
+  assert.equal(queued.length,1);
+  await queued.shift()();
+  assert.equal(listCalls,oldCalls,'other announcements stay paused during playback');
+  assert.equal(elems.dxnGlobalAnnouncementModal,undefined);
+});
