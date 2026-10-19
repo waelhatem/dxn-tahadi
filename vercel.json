@@ -8,6 +8,10 @@
     {
       "path": "/api/push-cron",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/daily-announcement-cron",
+      "schedule": "0 5 * * *"
     }
   ],
   "headers": [
