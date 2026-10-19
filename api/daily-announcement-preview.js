@@ -3,25 +3,29 @@
 const {generateDailyDraft,__test:{baghdadDate,topicFor}}=require('./daily-announcement-cron');
 
 const SUPABASE_URL='https://ryqpstkzppaifpvhezzn.supabase.co';
+// The app already uses this publishable key with its documented bootstrap RPC.
+const SUPABASE_PUBLIC_KEY=String(process.env.SUPABASE_PUBLISHABLE_KEY||process.env.SUPABASE_ANON_KEY||'sb_publishable_pD9m1Z3gN--2HAfhf_t2YA_2RiAeUh').trim();
 const SESSION_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const recentCalls=new Map();
 
 async function checkLeader(token){
-  const key=String(process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY||'').trim();
-  if(!key)throw new Error('supabase_key_missing');
-  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/current_role',{
+  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/bootstrap',{
     method:'POST',
     headers:{
-      apikey:key,
-      Authorization:'Bearer '+key,
+      apikey:SUPABASE_PUBLIC_KEY,
+      Authorization:'Bearer '+SUPABASE_PUBLIC_KEY,
       'Content-Type':'application/json',
       Accept:'application/json'
     },
     body:JSON.stringify({p_token:token}),
     signal:AbortSignal.timeout(15000)
   });
-  if(!r.ok)throw new Error('leader_verification_failed');
-  return (await r.json())==='leader';
+  if(!r.ok){
+    if(r.status===400||r.status===401||r.status===403)return false;
+    throw new Error('leader_verification_http_'+r.status);
+  }
+  const user=await r.json();
+  return user?.role==='leader' && typeof user?.user_id==='string' && user.user_id.length>0;
 }
 
 async function handler(req,res){
@@ -32,7 +36,7 @@ async function handler(req,res){
   try{
     // Verify server-side, never trust any client-side role or button visibility.
     if(!(await checkLeader(token)))return res.status(403).json({error:'هذه التجربة مخصصة للقائد فقط.'});
-    if(!process.env.OPENAI_API_KEY)return res.status(503).json({error:'مفتاح خدمة الذكاء الاصطناعي غير مُعدّ في بيئة المعاينة.'});
+    if(!String(process.env.OPENAI_API_KEY||'').trim())return res.status(503).json({error:'خدمة التوليد غير مفعّلة في المعاينة. يجب إضافة OPENAI_API_KEY إلى متغيرات Preview على Vercel.',code:'OPENAI_KEY_MISSING'});
 
     // Best-effort per-session throttle against accidental repeated clicks.
     const now=Date.now();
@@ -52,7 +56,10 @@ async function handler(req,res){
   }catch(e){
     console.error('[daily-announcement-preview]',String(e?.message||e));
     return res.status(502).json({
-      error:'تعذر توليد الرسالة الآن. تحقق من مفاتيح Supabase وOpenAI في بيئة المعاينة.'
+      error:String(e?.message||'').startsWith('leader_verification_')
+        ?'تعذر التحقق من حساب القائد مؤقتاً. حاول مجدداً.'
+        :'فشل توليد الرسالة من خدمة الذكاء الاصطناعي. يُرجى فحص مفتاح OpenAI وصلاحية النموذج في Vercel.',
+      code:String(e?.message||'').startsWith('leader_verification_')?'AUTH_SERVICE_ERROR':'AI_GENERATION_FAILED'
     });
   }
 }

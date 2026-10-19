@@ -42,7 +42,10 @@
       renderStatus(el,settings);
       btn.disabled=false;
     }catch(e){
-      el.querySelector('#dxnDailyStatus').textContent='تعذر تحميل الإعدادات: '+e.message;
+      el.querySelector('#dxnDailyStatus').textContent=/get_daily_announcement_settings|schema cache|PGRST202/i.test(String(e.message||''))
+        ?'⏳ إعدادات النشر التلقائي تنتظر تحديث قاعدة البيانات. تستطيع معاينة النافذة من الزر أدناه.'
+        :'تعذر تحميل إعدادات النشر حالياً. زر المعاينة يعمل بصورة مستقلة.';
+      btn.textContent='النشر التلقائي غير جاهز';
     }
   }
   function closeTestModal(){
@@ -87,6 +90,13 @@
     document.addEventListener('keydown',onPreviewKeydown);
     understood.focus();
   }
+  function showDesignSample(el){
+    showTestModal({
+      title:'🌅 صباح الصحة والثراء | نموذج بصري',
+      body:'💚 صحتك هي ثروتك الأولى.\n\nابدأ يومك بعادة بسيطة: كوب ماء، بعض الحركة، وخطوة صغيرة نحو هدفك. تطوير الذات ونشر المعرفة يقومان على الالتزام والصدق، لا على وعود غير واقعية.\n\n🌿 ما العادة الإيجابية التي تريد البدء بها اليوم؟'
+    });
+    el.querySelector('#dxnDailyPreviewStatus').textContent='👁️ هذه معاينة شكلية ثابتة للنافذة، وليست رسالة مولدة بالذكاء الاصطناعي. لم يُنشر شيء.';
+  }
   async function runTestPreview(el){
     const btn=el.querySelector('#dxnDailyPreviewButton');
     const status=el.querySelector('#dxnDailyPreviewStatus');
@@ -122,7 +132,8 @@
       '<small id="dxnDailyLast"></small>'+ 
       '<div id="dxnDailyArchive"></div>'+
       '<button type="button" id="dxnDailyToggle" class="primary" disabled>تحميل...</button>'+
-      '<button type="button" id="dxnDailyPreviewButton">👁️ تجربة الرسالة الصباحية الآن</button>'+
+      '<button type="button" id="dxnDailyPreviewButton">✨ توليد رسالة بالذكاء الاصطناعي الآن</button>'+
+      '<button type="button" id="dxnDailyDesignSampleButton">👁️ معاينة شكل النافذة دون نشر</button>'+
       '<small>هذه معاينة حية لك فقط، لا تُرسل إلى الأعضاء ولا تحفظ إعلاناً في قاعدة البيانات.</small>'+
       '<div id="dxnDailyPreviewStatus" role="status" aria-live="polite"></div>'+
       '<p class="dxn-daily-note">تظهر رسالة اليوم فقط للعضو مرة واحدة بعد تأكيدها. تبقى الإعلانات اليدوية ذات الأولوية.</p>';
@@ -140,10 +151,11 @@
       }
     });
     el.querySelector('#dxnDailyPreviewButton').addEventListener('click',function(){runTestPreview(el)});
+    el.querySelector('#dxnDailyDesignSampleButton').addEventListener('click',function(){showDesignSample(el)});
     load(el);
   }
   const css=document.createElement('style');
-  css.textContent='.dxn-daily-settings{margin-top:20px;padding:17px;border:1px solid #b8dcc9;border-radius:15px;background:#f2faf5;display:grid;gap:10px;line-height:1.7;color:#174d38}.dxn-daily-title{font-weight:900;font-size:18px}.dxn-daily-settings p{margin:0}.dxn-daily-settings small{color:#667085}.dxn-daily-settings button{max-width:280px}.dxn-daily-settings #dxnDailyPreviewButton{background:#fff;color:#155b42;border:1px solid #90bba7;border-radius:10px;padding:10px;font-weight:800;cursor:pointer}.dxn-daily-settings #dxnDailyPreviewButton:disabled{opacity:.6;cursor:wait}.dxn-daily-note{font-size:12px;color:#566c62}';
+  css.textContent='.dxn-daily-settings{margin-top:20px;padding:17px;border:1px solid #b8dcc9;border-radius:15px;background:#f2faf5;display:grid;gap:10px;line-height:1.7;color:#174d38}.dxn-daily-title{font-weight:900;font-size:18px}.dxn-daily-settings p{margin:0}.dxn-daily-settings small{color:#667085}.dxn-daily-settings button{max-width:280px}.dxn-daily-settings #dxnDailyPreviewButton,.dxn-daily-settings #dxnDailyDesignSampleButton{background:#fff;color:#155b42;border:1px solid #90bba7;border-radius:10px;padding:10px;font-weight:800;cursor:pointer}.dxn-daily-settings #dxnDailyPreviewButton:disabled{opacity:.6;cursor:wait}.dxn-daily-note{font-size:12px;color:#566c62}';
   document.head.appendChild(css);
   let queued=false;
   const observer=new MutationObserver(function(){

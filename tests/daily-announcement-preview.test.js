@@ -34,8 +34,8 @@ test('member and inactive sessions cannot generate an AI preview',async()=>{
   process.env.SUPABASE_SECRET_KEY='test-role-key';
   let count=0;global.fetch=async(url)=>{
     count++;
-    assert.match(url,/\/rpc\/current_role$/);
-    return {ok:true,json:async()=> 'member'};
+    assert.match(url,/\/rpc\/bootstrap$/);
+    return {ok:true,json:async()=> ({role:'member',user_id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'})};
   };
   try{
     const res=response();await handler({method:'POST',body:{p_token:token}},res);
@@ -51,8 +51,8 @@ test('verified leader gets AI content but no database announcement is inserted',
   const urls=[];
   global.fetch=async(url)=>{
     urls.push(url);
-    if(String(url).includes('/rpc/current_role')){
-      return {ok:true,json:async()=> 'leader'};
+    if(String(url).includes('/rpc/bootstrap')){
+      return {ok:true,json:async()=> ({role:'leader',user_id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'})};
     }
     if(String(url).includes('api.openai.com')){
       return {ok:true,text:async()=>JSON.stringify({output:[{
@@ -77,10 +77,21 @@ test('verified leader gets AI content but no database announcement is inserted',
   }
 });
 
+test('preview matches deployed bootstrap and migration uses app_current_role',()=>{
+  const source=fs.readFileSync(path.join(__dirname,'..','api/daily-announcement-preview.js'),'utf8');
+  assert.match(source,/\/rpc\/bootstrap/);
+  assert.doesNotMatch(source,/\/rpc\/current_role/);
+  const migration=fs.readFileSync(path.join(__dirname,'..','supabase/migrations/20261019080000_ai_daily_global_announcements.sql'),'utf8');
+  assert.match(migration,/public\.app_current_role\(p_token\)/);
+  assert.doesNotMatch(migration,/public\.current_role\(p_token\)/);
+});
+
 test('leader preview is independent of the daily-settings migration',()=>{
   const source=fs.readFileSync(path.join(__dirname,'..','daily-announcement-leader.js'),'utf8');
   const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
   assert.match(source,/dxnDailyPreviewButton/);
+  assert.match(source,/dxnDailyDesignSampleButton/);
+  assert.match(source,/showDesignSample\(el\)/);
   assert.match(source,/runTestPreview\(el\)/);
   assert.match(source,/showTestModal\(payload\)/);
   assert.match(source,/dxn-global-announcement-modal/);
@@ -88,4 +99,21 @@ test('leader preview is independent of the daily-settings migration',()=>{
   assert.match(source,/لم يتم نشر أي إعلان/);
   assert.match(server,/\/api\/daily-announcement-preview/);
   assert.ok(require('../vercel.json').functions['api/daily-announcement-preview.js'].maxDuration>=30);
+});
+
+test('missing Preview AI key gives the leader an actionable error',async()=>{
+  const originalFetch=global.fetch,previous=process.env.OPENAI_API_KEY;
+  delete process.env.OPENAI_API_KEY;
+  global.fetch=async url=>{
+    assert.match(String(url),/\/rpc\/bootstrap$/);
+    return {ok:true,json:async()=>({role:'leader',user_id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'})};
+  };
+  try{
+    const res=response();await handler({method:'POST',body:{p_token:token}},res);
+    assert.equal(res.code,503);
+    assert.equal(res.body.code,'OPENAI_KEY_MISSING');
+  }finally{
+    global.fetch=originalFetch;
+    if(previous!==undefined)process.env.OPENAI_API_KEY=previous;
+  }
 });

@@ -41,7 +41,7 @@ declare
   v_history json;
 begin
   uid := public.app_current_user_id(p_token);
-  if uid is null or public.current_role(p_token) <> 'leader' then
+  if uid is null or public.app_current_role(p_token) <> 'leader' then
     raise exception 'هذه الإعدادات متاحة للقائد فقط';
   end if;
   select enabled,updated_at into v_enabled,v_updated
@@ -71,7 +71,7 @@ returns json language plpgsql security definer set search_path = '' as $$
 declare uid uuid;
 begin
   uid := public.app_current_user_id(p_token);
-  if uid is null or public.current_role(p_token) <> 'leader' then
+  if uid is null or public.app_current_role(p_token) <> 'leader' then
     raise exception 'التحكم بالنشر الصباحي متاح للقائد فقط';
   end if;
   if p_enabled is null then raise exception 'قيمة التشغيل مطلوبة'; end if;
@@ -167,7 +167,7 @@ returns json language plpgsql security definer set search_path = '' as $$
 declare uid uuid; result json;
 begin
   uid := public.app_current_user_id(p_token);
-  if uid is null or public.current_role(p_token) <> 'member' then
+  if uid is null or public.app_current_role(p_token) <> 'member' then
     return '[]'::json;
   end if;
 
