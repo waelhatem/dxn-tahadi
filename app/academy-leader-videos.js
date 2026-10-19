@@ -21,7 +21,7 @@
     return n;
   }
   // One permanent artwork for every video. Only the DOM title text changes.
-  // The original uploaded video file is never edited, transcoded or re-encoded.
+  // Only a visual cover is displayed; the original uploaded file is untouched.
   function coverElement(videoTitle){
     const cover=elem('span','academy-leader-cover');
     const art=elem('img','academy-leader-cover-art');
