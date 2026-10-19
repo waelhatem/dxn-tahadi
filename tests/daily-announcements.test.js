@@ -93,3 +93,27 @@ test('standalone preview opens directly, stays purely local and shares daily sty
   assert.match(page,/صحتك هي ثروتك الأولى/);
   assert.doesNotMatch(page,/\/api\/|fetch\(|localStorage|create_global_announcement/);
 });
+
+test('member no 820469486 remains eligible as an active member, separate from leader login',()=>{
+  // No membership-number targeting: every authenticated member is included.
+  assert.match(SQL,/public\.app_current_role\(p_token\) <> 'member'/);
+  assert.match(SQL,/from public\.global_announcements a/);
+  assert.doesNotMatch(SQL,/and\s+(?:u\.|m\.)?member_no\s*=/i);
+  assert.match(INDEX,/loadMemberAnnouncements/);
+  assert.match(INDEX,/item\.source==='daily_ai'/);
+});
+
+test('daily member popup shows real publish time in Baghdad, not a fixed 8 AM claim',()=>{
+  const p=require('../daily-announcement-presentation.js');
+  assert.equal(typeof p.addPublishTime,'function');
+  assert.equal(p.formatBaghdadPublishTime(''), '');
+  assert.equal(p.formatBaghdadPublishTime('invalid'), '');
+  const formatted=p.formatBaghdadPublishTime('2026-10-19T05:17:00Z');
+  assert.match(formatted,/٨|8/);
+  assert.match(formatted,/١٧|17/);
+  assert.match(INDEX,/addPublishTime\(panel,item\.created_at\)/);
+  const script=fs.readFileSync(path.join(ROOT,'daily-announcement-presentation.js'),'utf8');
+  assert.match(script,/نُشرت الساعة/);
+  assert.match(script,/Asia\/Baghdad/);
+  assert.match(script,/if\(!time\)return/);
+});

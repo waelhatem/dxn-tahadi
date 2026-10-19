@@ -10140,6 +10140,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       if(panel&&bodyElement){
         panel.classList.add('dxn-ga-daily-panel');
         window.__DXN_DAILY_PRESENTATION__.renderBody(bodyElement,item.body);
+        window.__DXN_DAILY_PRESENTATION__.addPublishTime(panel,item.created_at);
       }
     }
     window.__DXN_GA_ACK__=function(){acknowledgeAnnouncement(item.id)};window.__DXN_GA_CLOSE__=item.source==='daily_ai'?function(){acknowledgeAnnouncement(item.id)}:closeMemberModal;
