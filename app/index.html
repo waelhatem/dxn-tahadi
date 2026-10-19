@@ -1119,7 +1119,7 @@ window.DXNI18N={setLanguage:(l)=>{if(packs[l]){current=l;apply()}},getLanguage:(
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=86.44.8"></script><script src="academy.js?v=1"></script><script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=86.44.8"></script><script src="academy.js?v=1"></script><script src="academy-leader-videos.js?v=20261019-1" defer></script><script>
 function validateDXNAge18(birthDate){
   if(!birthDate) return {ok:false, message:'يرجى إدخال تاريخ التولد.'};
   const d = new Date(birthDate + 'T00:00:00');
@@ -10130,9 +10130,10 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     if(!item||memberAnnouncementShown)return;
     memberAnnouncementShown=true;
     var node=document.createElement('div');node.id='dxnGlobalAnnouncementModal';node.className='dxn-global-announcement-modal';
+    var videoNotice=item.source==='video'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(String(item.video_id||''));
     node.innerHTML='<div class="dxn-global-announcement-panel '+typeClass(item.announcement_type)+'" role="dialog" aria-modal="true" aria-label="إعلان عام">'+
       '<div class="ga-type">'+typeLabel(item.announcement_type)+'</div><h2>'+safeEsc(item.title)+'</h2><div class="ga-body">'+safeEsc(item.body)+'</div>'+
-      '<div class="ga-footer"><button type="button" class="primary" onclick="window.__DXN_GA_ACK__()">✓ فهمت</button><button type="button" onclick="window.__DXN_GA_CLOSE__()">إغلاق</button></div></div>';
+      '<div class="ga-footer">'+(videoNotice?'<button type="button" class="primary" onclick="window.__DXN_GA_WATCH__()">▶ مشاهدة الفيديو</button>':'')+'<button type="button" class="'+(videoNotice?'':'primary')+'" onclick="window.__DXN_GA_ACK__()">✓ فهمت</button><button type="button" onclick="window.__DXN_GA_CLOSE__()">إغلاق</button></div></div>';
     document.body.appendChild(node);
     if(item.source==='daily_ai'&&window.__DXN_DAILY_PRESENTATION__){
       var panel=node.querySelector('.dxn-global-announcement-panel');
@@ -10143,7 +10144,16 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
         window.__DXN_DAILY_PRESENTATION__.addPublishTime(panel,item.created_at);
       }
     }
-    window.__DXN_GA_ACK__=function(){acknowledgeAnnouncement(item.id)};window.__DXN_GA_CLOSE__=item.source==='daily_ai'?function(){acknowledgeAnnouncement(item.id)}:closeMemberModal;
+    window.__DXN_GA_ACK__=function(){acknowledgeAnnouncement(item.id)};
+    window.__DXN_GA_WATCH__=async function(){
+      if(!videoNotice)return;
+      try{await gaRpc('acknowledge_global_announcement',{p_token:tokenValue(),p_announcement_id:item.id});}
+      catch(e){console.warn('تعذر تأكيد قراءة إعلان الفيديو',e)}
+      closeMemberModal();
+      if(typeof window.academyOpenLeaderVideo==='function')window.academyOpenLeaderVideo(item.video_id);
+      else toast('تعذر فتح مكتبة شروحات القائد.');
+    };
+    window.__DXN_GA_CLOSE__=(item.source==='daily_ai'||videoNotice)?function(){acknowledgeAnnouncement(item.id)}:closeMemberModal;
   }
   async function loadMemberAnnouncements(){
     if(loadingMemberAnnouncements||memberAnnouncementShown)return;

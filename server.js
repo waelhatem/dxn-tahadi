@@ -9,6 +9,7 @@ const HOST = '0.0.0.0';
 const handlerPaths = {
   '/api/rpc': './api/rpc',
   '/api/daily-announcement-cron': './api/daily-announcement-cron',
+  '/api/academy-video-storage': './api/academy-video-storage',
   '/api/daily-announcement-preview': './api/daily-announcement-preview',
   '/api/rpc-health': './api/rpc-health',
   '/api/grade-training': './api/grade-training',
