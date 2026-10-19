@@ -389,3 +389,21 @@ test('secure standalone player preserves community tab, supports native fullscre
   assert.match(html,/object-fit:contain/);
   assert.doesNotMatch(html,/SUPABASE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY/);
 });
+
+test('leader can preview the exact welcome notice layout without sending or reading an announcement',()=>{
+ const fnStart=enhanced.indexOf('function previewWelcomeAnnouncement(video)');
+ const fnEnd=enhanced.indexOf('async function academySetWelcome(',fnStart);
+ assert.ok(fnStart>=0&&fnEnd>fnStart);
+ const preview=enhanced.slice(fnStart,fnEnd);
+ assert.match(enhanced,/if\(isLeader\(\)&&v\.is_welcome\)/);
+ assert.match(enhanced,/preview\.addEventListener\('click',\(\)=>previewWelcomeAnnouncement\(v\)\)/);
+ assert.match(preview,/if\(!isLeader\(\)\|\|!video\|\|!video\.is_welcome/);
+ assert.match(preview,/dxn-global-announcement-modal/);
+ assert.match(preview,/dxn-global-announcement-panel ga-announcement ga-video-announcement/);
+ assert.match(preview,/🎓 دليل الترحيب للأعضاء الجدد/);
+ assert.match(preview,/▶ مشاهدة شرح التدريبات الأساسية/);
+ assert.match(preview,/function dismiss\(\)/);
+ assert.match(preview,/selectVideo\(video\.id\)/);
+ assert.doesNotMatch(preview,/acknowledge_global_announcement|create_global_announcement|gaRpc\(|rpc\(/);
+ assert.match(index,/academy-leader-videos\.js\?v=20261019-welcome-preview-1/);
+});
