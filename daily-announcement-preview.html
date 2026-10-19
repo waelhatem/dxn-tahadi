@@ -38,7 +38,7 @@
     <p class="preview-note">🔒 هذا نموذج ثابت لتجربة الشكل فقط. لا ينشر أي إعلان، ولا يحتاج إلى تسجيل دخول.</p>
   </main>
   <script>
-    (function(){
+    document.addEventListener('DOMContentLoaded',function(){
       'use strict';
       var sample='🌿 صحتك هي ثروتك الأولى، وهي تستحق منك عناية صغيرة كل يوم 💚 ابدأ صباحك بعادة بسيطة تمنحك نشاطاً وراحة، كالمشي قليلاً 🚶 أو تنظيم نومك 🌙 وتذكّر أن النجاح في صحتك وعملك يبدأ بالاستمرارية والثقة بالنفس ✨ شاركنا اليوم: ما العادة الجميلة التي ستبدأ بها من هذا الصباح؟ 💬';
       var body=document.getElementById('dailyPreviewBody');
@@ -49,7 +49,7 @@
       }
       document.getElementById('understood').addEventListener('click',close);
       document.getElementById('closePreview').addEventListener('click',close);
-    })();
+    });
   </script>
 </body>
 </html>

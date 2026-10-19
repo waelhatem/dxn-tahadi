@@ -6,7 +6,7 @@
   function normalizeDailyText(value){
     return String(value==null?'':value)
       .replace(/\*\*/g,'')
-      .replace(/\b(?:فكرة اليوم|خطوة عملية|سؤال اليوم)\s*[:：]\s*/g,'')
+      .replace(/(?:فكرة اليوم|خطوة عملية|سؤال اليوم)\s*[:：]\s*/g,'')
       .replace(/\s+/g,' ')
       .trim();
   }
