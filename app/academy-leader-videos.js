@@ -209,6 +209,12 @@
       button.addEventListener('click',()=>selectVideo(v.id));
       holder.append(button);
       if(v.is_welcome)holder.append(elem('div','academy-leader-welcome-badge','🎓 دليل الترحيب للأعضاء الجدد'));
+      if(isLeader()&&v.is_welcome){
+        const preview=elem('button','academy-leader-welcome-preview','👁️ معاينة إشعار الترحيب كما يراه العضو');
+        preview.type='button';
+        preview.addEventListener('click',()=>previewWelcomeAnnouncement(v));
+        holder.append(preview);
+      }
       if(isLeader()&&!v.is_welcome){
         const makeWelcome=elem('button','academy-leader-set-welcome','🎓 تعيين هذا الفيديو دليل الترحيب');
         makeWelcome.type='button';
@@ -218,6 +224,44 @@
       grid.append(holder);
     }
     wrap.append(grid);
+  }
+  // Leader-only visual reproduction. No RPC acknowledgement, notification
+  // creation or change to members' read/unread state.
+  function previewWelcomeAnnouncement(video){
+    if(!isLeader()||!video||!video.is_welcome||!UUID.test(String(video.id||'')))return;
+    if(document.getElementById('academyLeaderWelcomePreview'))return;
+    const modal=elem('div','dxn-global-announcement-modal');
+    modal.id='academyLeaderWelcomePreview';
+    const panel=elem('div','dxn-global-announcement-panel ga-announcement ga-video-announcement');
+    panel.setAttribute('role','dialog');
+    panel.setAttribute('aria-modal','true');
+    panel.setAttribute('aria-label','معاينة إشعار الترحيب بحساب القائد');
+    const marker=elem('div','academy-leader-preview-marker','👑 معاينة خاصة بالقائد — لا يُرسل إشعار ولا تُسجل قراءة');
+    const type=elem('div','ga-type','🎓 دليل الترحيب للأعضاء الجدد');
+    const title=elem('h2','','🎬 شرح جديد: '+video.title);
+    const description=String(video.description||'').trim();
+    const notice='🎥 تم نشر شرح جديد في أكاديمية المجتمع: '+video.title+
+      (description?' — '+description:'')+' 📚 اضغط «▶ مشاهدة الفيديو» للانتقال إليه.';
+    const body=elem('div','ga-body',notice);
+    const footer=elem('div','ga-footer');
+    const watch=elem('button','primary ga-video-watch-btn','▶ مشاهدة شرح التدريبات الأساسية');
+    const understood=elem('button','','✓ فهمت');
+    const close=elem('button','','إغلاق');
+    [watch,understood,close].forEach(btn=>{btn.type='button'});
+    function onEscape(event){if(event.key==='Escape')dismiss()}
+    function dismiss(){
+      document.removeEventListener('keydown',onEscape);
+      modal.remove();
+    }
+    understood.addEventListener('click',dismiss);
+    close.addEventListener('click',dismiss);
+    watch.addEventListener('click',function(){if(selectVideo(video.id))dismiss()});
+    footer.append(watch,understood,close);
+    panel.append(marker,type,title,body,footer);
+    modal.append(panel);
+    document.body.append(modal);
+    document.addEventListener('keydown',onEscape);
+    watch.focus();
   }
   async function academySetWelcome(id){
     if(!isLeader()||!UUID.test(id))return;
@@ -405,6 +449,8 @@
     '.academy-leader-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:16px}',
     '.academy-leader-video-entry{display:grid;gap:8px;align-content:start}',
     '.academy-leader-welcome-badge{border-radius:10px;padding:7px 10px;background:#e1f3e5;color:#15543d;font-weight:900;font-size:13px;text-align:center}',
+    '.academy-leader-welcome-preview{border:1px solid #b5d1c0;border-radius:10px;background:#e6f3ea;color:#15543d;padding:11px 10px;font:inherit;font-weight:900;cursor:pointer}',
+    '.academy-leader-preview-marker{border-radius:9px;background:#fff7dc;color:#755718;padding:9px 12px;font-weight:800;font-size:12px;line-height:1.6;margin-bottom:11px}',
     '.academy-leader-set-welcome{border:1px solid #b7d4bd;background:#f2fbf4;color:#14563e;font:inherit;font-size:13px;font-weight:850;border-radius:10px;padding:10px;cursor:pointer}',
     '.academy-leader-welcome-note{margin:0;background:#f3f9ec;border:1px solid #dfebc4;border-radius:12px;padding:10px;font-size:13px;line-height:1.8;color:#456338}',
     '.academy-leader-progress-wrap{display:grid;gap:8px;border:1px solid #b5d6c0;background:#f2faf4;border-radius:13px;padding:12px}',
