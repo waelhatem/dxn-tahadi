@@ -142,3 +142,24 @@ test('preview runs on the same deployed app and reuses the uploaded portrait',()
   assert.match(preview,/اللابتوب/);
   assert.ok(enhanced.includes('href="/academy-cover-preview.html"'));
 });
+
+test('choosing a video previews its real local recording before writing title and publishing',()=>{
+  const filePicker=enhanced.indexOf('id="academyLeaderVideoFile"');
+  const preview=enhanced.indexOf('id="academyLeaderLocalPlayer"');
+  const title=enhanced.indexOf('id="academyLeaderVideoTitle"');
+  const submit=enhanced.indexOf('id="academyLeaderPublishButton"');
+  assert.ok(filePicker>=0&&preview>filePicker&&title>preview&&submit>title);
+  assert.match(enhanced,/function academyPreviewSelectedFile\(\)/);
+  assert.match(enhanced,/URL\.createObjectURL\(file\)/);
+  assert.match(enhanced,/URL\.revokeObjectURL\(localVideoPreviewUrl\)/);
+  assert.match(enhanced,/academyLeaderVideoFile'\)\?\.addEventListener\('change',academyPreviewSelectedFile\)/);
+  assert.match(enhanced,/controls playsinline preload="metadata"/);
+  assert.match(enhanced,/id="academyLeaderMetaFields"[^>]*hidden/);
+  assert.match(enhanced,/id="academyLeaderPublishButton" disabled/);
+  assert.match(enhanced,/if\(!localVideoPreviewUrl\)/);
+  assert.match(enhanced,/function mount\(\)[\s\S]*?if\(activeRoot\)academyClearLocalPreview\(\)/);
+  assert.match(enhanced,/academy-leader-local-preview\[hidden\]/);
+  assert.match(enhanced,/academy-leader-meta-fields\[hidden\]/);
+  assert.ok(filePicker<enhanced.indexOf('function academyPreviewSelectedFile()'),'select file appears in publisher form before preview handler');
+  assert.doesNotMatch(enhanced.slice(enhanced.indexOf('function academyPreviewSelectedFile()'),enhanced.indexOf('async function uploadVideo()')),/uploadToSignedUrl|academy_leader_video_publish/);
+});
