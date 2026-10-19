@@ -19,6 +19,20 @@
     btn.textContent=settings.enabled?'إيقاف النشر التلقائي':'تفعيل النشر التلقائي';
     el.querySelector('#dxnDailyLast').textContent=
       settings.last_published_date?'آخر رسالة: '+settings.last_published_date:'لم تُنشر رسالة آلية بعد';
+    const archive=el.querySelector('#dxnDailyArchive');
+    archive.replaceChildren();
+    const rows=Array.isArray(settings.history)?settings.history:[];
+    if(rows.length){
+      const label=document.createElement('strong');label.textContent='آخر الرسائل المنشورة:';
+      archive.appendChild(label);
+      const list=document.createElement('ul');
+      rows.forEach(item=>{
+        const li=document.createElement('li');
+        li.textContent=String(item.date||'')+' — '+String(item.title||'');
+        list.appendChild(li);
+      });
+      archive.appendChild(list);
+    }
   }
   async function load(el){
     const btn=el.querySelector('#dxnDailyToggle');
@@ -41,7 +55,8 @@
       '<p>إنشاء رسالة عربية جديدة ونشرها كإعلان عام في نافذة العضو. لا تنشر في دردشة المجتمع.</p>'+
       '<div>🕗 موعد النشر: <strong>8:00 صباحاً بتوقيت بغداد</strong></div>'+
       '<div id="dxnDailyStatus" role="status" aria-live="polite">جارٍ تحميل الإعدادات...</div>'+
-      '<small id="dxnDailyLast"></small>'+
+      '<small id="dxnDailyLast"></small>'+ 
+      '<div id="dxnDailyArchive"></div>'+
       '<button type="button" id="dxnDailyToggle" class="primary" disabled>تحميل...</button>'+
       '<p class="dxn-daily-note">تظهر رسالة اليوم فقط للعضو مرة واحدة بعد تأكيدها. تبقى الإعلانات اليدوية ذات الأولوية.</p>';
     card.appendChild(el);

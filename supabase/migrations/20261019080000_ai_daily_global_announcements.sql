@@ -38,6 +38,7 @@ declare
   v_enabled boolean;
   v_updated timestamptz;
   v_last text;
+  v_history json;
 begin
   uid := public.app_current_user_id(p_token);
   if uid is null or public.current_role(p_token) <> 'leader' then
@@ -47,11 +48,17 @@ begin
     from public.daily_announcement_settings where id=1;
   select max(publish_date)::text into v_last
     from public.global_announcements where source='daily_ai';
+  select coalesce(json_agg(json_build_object('date',h.publish_date,'title',h.title)), '[]'::json)
+  into v_history from (
+    select publish_date,title from public.global_announcements
+    where source='daily_ai' order by publish_date desc limit 7
+  ) h;
   return json_build_object(
     'enabled', coalesce(v_enabled,false),
     'scheduled_time','08:00',
     'time_zone','Asia/Baghdad',
     'last_published_date',v_last,
+    'history',v_history,
     'updated_at',v_updated
   );
 end;
@@ -170,7 +177,7 @@ begin
   ) order by
     case when a.source='manual' and a.announcement_type='important' then 0
          when a.source='manual' and a.announcement_type='warning' then 1
-         when a.source='manual' then 2
+         when a.source='daily_ai' then 2
          else 3 end,
     a.created_at desc), '[]'::json)
   into result
