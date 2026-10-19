@@ -181,7 +181,8 @@ test('video notices show a distinct watch action and suppress popups during dire
 
 test('video announcement button opens exactly the linked video without a follow-on popup',async()=>{
   const vm=require('node:vm');
-  const match=INDEX.match(/<script id="dxn-global-announcements-v1-script">([\s\S]*?)<\/script>/);
+  const indexHtml=fs.readFileSync(path.join(ROOT,'app/index.html'),'utf8');
+  const match=indexHtml.match(/<script id="dxn-global-announcements-v1-script">([\s\S]*?)<\/script>/);
   assert.ok(match,'global announcement module exists');
   const noticeId='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
   const videoId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
