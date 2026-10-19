@@ -1119,7 +1119,7 @@ window.DXNI18N={setLanguage:(l)=>{if(packs[l]){current=l;apply()}},getLanguage:(
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=86.44.8"></script><script src="academy.js?v=1"></script><script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js" defer></script><script src="academy-resumable.js?v=20261019-1" defer></script><script src="academy-leader-videos.js?v=20261019-5" defer></script><script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=86.44.8"></script><script src="academy.js?v=1"></script><script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js" defer></script><script src="academy-resumable.js?v=20261019-1" defer></script><script src="academy-leader-videos.js?v=20261019-fullscreen-1" defer></script><script>
 function validateDXNAge18(birthDate){
   if(!birthDate) return {ok:false, message:'يرجى إدخال تاريخ التولد.'};
   const d = new Date(birthDate + 'T00:00:00');
@@ -10168,7 +10168,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       videoWatchPausedSession=sessionAtClick;
       closeMemberModal();
       try{
-        window.academyOpenLeaderVideo(item.video_id);
+        if(window.academyOpenLeaderVideo(item.video_id)===false)throw new Error('تعذر فتح تبويب المشاهدة');
       }catch(e){
         videoWatchPausedSession='';
         console.error('تعذر فتح فيديو الإعلان',e);
@@ -10183,6 +10183,12 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     };
     window.__DXN_GA_CLOSE__=(item.source==='daily_ai'||videoNotice)?function(){acknowledgeAnnouncement(item.id)}:closeMemberModal;
   }
+  // After the separate viewer finishes/closes, restore ordinary notification
+  // processing without re-rendering or navigating the member's current tab.
+  window.addEventListener('message',function(evt){
+    if(evt.origin!==location.origin||!evt.data||evt.data.type!=='dxn-academy-viewer-return')return;
+    videoWatchPausedSession='';
+  });
   async function loadMemberAnnouncements(){
     if(loadingMemberAnnouncements||memberAnnouncementShown||videoWatchPausedSession===tokenValue())return;
     if(typeof role==='undefined'||role!=='member'||!tokenValue())return;
