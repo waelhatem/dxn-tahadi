@@ -54,7 +54,7 @@
       +(isLeader()?'<form id="academyLeaderUploadForm" class="academy-leader-upload">'
         +'<strong>👑 أضف شرحاً جديداً من هاتفك</strong>'
         +'<label>عنوان الفيديو<input id="academyLeaderVideoTitle" maxlength="160" required placeholder="مثال: طريقة استخدام تبويب فريقي"></label>'
-        +'<label>موضوع الشرح ووصفه<textarea id="academyLeaderVideoDescription" maxlength="700" rows="3" placeholder="اكتب باختصار ما الذي سيتعلمه العضو"></textarea></label>'
+        +'<label>موضوع الشرح ووصفه<textarea id="academyLeaderVideoDescription" maxlength="700" rows="3" required placeholder="اكتب باختصار ما الذي سيتعلمه العضو"></textarea></label>'
         +'<label>اختر ملف الفيديو<input type="file" id="academyLeaderVideoFile" accept="video/mp4,video/quicktime,video/webm,video/x-m4v,video/3gpp,.mp4,.mov,.webm,.m4v,.3gp" required></label>'
         +'<small>MP4 / MOV / WebM — الحد الحالي 50 ميغابايت. سيتم إرسال إعلان مشاهدة جديد للأعضاء بعد اكتمال النشر فقط.</small>'
         +'<button type="submit" id="academyLeaderPublishButton">⬆️ رفع الفيديو ونشره</button>'
@@ -151,7 +151,7 @@
     const title=String(document.getElementById('academyLeaderVideoTitle')?.value||'').trim();
     const description=String(document.getElementById('academyLeaderVideoDescription')?.value||'').trim();
     const file=document.getElementById('academyLeaderVideoFile')?.files?.[0];
-    if(!button||!file||title.length<4||title.length>160){showMessage('اكتب عنواناً واضحاً واختر الفيديو.',true);return}
+    if(!button||!file||title.length<4||title.length>160||description.length<5){showMessage('اكتب عنوان الفيديو وموضوعه، ثم اختر ملف الفيديو.',true);return}
     if(file.size>MAX_BYTES){showMessage('حجم الفيديو أكبر من 50 ميغابايت. اضغط الملف أولاً ثم حاول.',true);return}
     const mime=inferredType(file);
     if(!mime){showMessage('صيغة الفيديو غير مدعومة. استخدم MP4 أو MOV أو WebM.',true);return}

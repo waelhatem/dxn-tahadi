@@ -41,7 +41,7 @@ v_object storage.objects%rowtype;v_size bigint;
 begin
  uid:=public.app_current_user_id(p_token);
  if uid is null or public.app_current_role(p_token)<>'leader' then raise exception 'نشر فيديوهات القائد متاح للقائد فقط';end if;
- if char_length(v_title) not between 4 and 160 or char_length(v_description)>700 then raise exception 'العنوان أو الوصف غير صالح';end if;
+ if char_length(v_title) not between 4 and 160 or char_length(v_description) not between 5 and 700 then raise exception 'العنوان أو الوصف غير صالح';end if;
  if v_type not in('video/mp4','video/quicktime','video/webm','video/x-m4v','video/3gpp') then raise exception 'نوع ملف الفيديو غير مدعوم';end if;
  if p_file_size is null or p_file_size not between 1 and 52428800 then raise exception 'حجم الفيديو أكبر من الحد المسموح (50 ميغابايت)';end if;
  if v_path !~ ('^leader/'||uid::text||'/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(mp4|mov|webm|m4v|3gp)$') then raise exception 'مسار الفيديو غير صالح';end if;
