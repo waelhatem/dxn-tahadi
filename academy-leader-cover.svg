@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="الخلفية الموحدة لشروحات القائد">
+ <defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071f1b"/><stop offset=".52" stop-color="#124635"/><stop offset="1" stop-color="#18785c"/></linearGradient>
+  <radialGradient id="glow"><stop stop-color="#77cb9a" stop-opacity=".24"/><stop offset="1" stop-color="#77cb9a" stop-opacity="0"/></radialGradient>
+  <linearGradient id="gold" x1="0" x2="1"><stop stop-color="#eacb81"/><stop offset="1" stop-color="#ab8540"/></linearGradient>
+  <pattern id="grid" width="42" height="42" patternUnits="userSpaceOnUse"><path d="M42 0H0V42" fill="none" stroke="#eaf8ee" stroke-opacity=".055" stroke-width="1"/></pattern>
+ </defs>
+ <rect width="1280" height="720" fill="url(#bg)"/>
+ <rect width="1280" height="720" fill="url(#grid)"/>
+ <circle cx="1080" cy="80" r="475" fill="url(#glow)"/>
+ <path d="M790-70c320 50 495 270 540 516M945-99c317 87 475 277 525 505M730 645c245-42 408-165 545-375" fill="none" stroke="#86d7ab" stroke-opacity=".12" stroke-width="2"/>
+ <path d="M-40 650 310 355 560 720H0Z" fill="#d6f3d4" opacity=".065"/>
+ <g opacity=".38" transform="translate(987 188)">
+  <rect x="-130" y="-110" width="260" height="220" rx="40" fill="#064e3c" stroke="#b1ebcc" stroke-width="2"/>
+  <circle r="92" fill="none" stroke="url(#gold)" stroke-width="5"/>
+  <circle r="71" fill="none" stroke="#f3dfad" stroke-opacity=".35" stroke-width="2"/>
+  <path d="M-19-42 53 0-19 42Z" fill="url(#gold)"/>
+ </g>
+ <path d="M60 615h415" stroke="url(#gold)" stroke-width="7" stroke-linecap="round" opacity=".72"/>
+ <path d="M60 635h215" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity=".18"/>
+ <path d="M1210 58h-110" stroke="#efdba6" stroke-width="3" opacity=".45"/>
+ <circle cx="1190" cy="645" r="12" stroke="#eedba8" stroke-opacity=".5" fill="none" stroke-width="3"/>
+</svg>
