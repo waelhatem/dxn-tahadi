@@ -140,5 +140,5 @@ test('preview runs on the same deployed app and reuses the uploaded portrait',()
   assert.match(preview,/شروحات القائد/);
   assert.match(preview,/الموبايل/);
   assert.match(preview,/اللابتوب/);
-  assert.match(enhanced,/href=\\"\/academy-cover-preview.html\\"/);
+  assert.ok(enhanced.includes('href="/academy-cover-preview.html"'));
 });
