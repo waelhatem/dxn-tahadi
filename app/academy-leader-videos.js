@@ -5,9 +5,10 @@
   if(window.__DXN_ACADEMY_LEADER_VIDEOS__)return;
   window.__DXN_ACADEMY_LEADER_VIDEOS__=true;
   const BUCKET='platform-academy';
-  const MAX_BYTES=50*1024*1024;
+  const UPGRADE_MAX_BYTES=100*1024*1024;
+  // Project is currently Supabase Free: request effective cap from the server.
+  let MAX_BYTES=50*1024*1024;
   const PROJECT='https://ryqpstkzppaifpvhezzn.supabase.co';
-  const PUBLISHABLE='sb_publishable_pD9m1Z3gN--2HAfhf_t2YA_2RiAeUh';
   const COVER_SRC='/academy-leader-photo.avif';
   const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
   const TYPES=['video/mp4','video/quicktime','video/webm','video/x-m4v','video/3gpp'];
@@ -88,8 +89,15 @@
         +'<div class="academy-leader-cover-preview" id="academyLeaderCoverPreview" aria-label="معاينة الغلاف الموحد"></div>'
         +'<small>🖼️ الغلاف ثابت بصورتك المعتمدة، ويتغير العنوان تلقائياً دون مونتاج.</small>'
         +'<a class="academy-leader-preview-link" href="/academy-cover-preview.html" target="_blank" rel="noopener">👁️ افتح معاينة الغلاف للموبايل واللابتوب</a>'
-        +'<small>MP4 / MOV / WebM — الحد الحالي 50 ميغابايت. عند الضغط على النشر فقط سيُرفع الملف ويرسل إعلان للأعضاء.</small>'
+        +'<small id="academyLeaderUploadLimit">MP4 / MOV / WebM — حد الخطة الحالية 50 ميغابايت. تقنية الرفع تدعم حتى 100 ميغابايت بعد ترقية Supabase.</small>'
+        +'<small>عند الضغط على «نشر» فقط سيُرفع الملف ويُرسل الإعلان للأعضاء.</small>'
         +'</div>'
+        +'<div class="academy-leader-progress-wrap" id="academyLeaderProgressWrap" hidden role="status" aria-live="polite">'
+        +'<div class="academy-leader-progress-text" id="academyLeaderProgressText">0% — جاهز للرفع</div>'
+        +'<progress id="academyLeaderProgress" max="100" value="0" aria-label="نسبة رفع الفيديو"></progress>'
+        +'<button type="button" id="academyLeaderPauseUpload" hidden>⏸️ إيقاف مؤقت</button>'
+        +'</div>'
+        +'<p class="academy-leader-welcome-note">🎓 أول فيديو تنشره في «شروحات القائد» سيُعتمد تلقائياً دليلاً ترحيبياً للأعضاء الجدد. ويمكنك اختيار فيديو آخر لاحقاً.</p>'
         +'<button type="submit" id="academyLeaderPublishButton" disabled>⬆️ نشر الفيديو وإرسال الإعلان</button>'
         +'</form>':'')
       +'<div role="status" aria-live="polite" id="academyLeaderVideoMessage"></div>'
@@ -98,6 +106,11 @@
     const form=section.querySelector('#academyLeaderUploadForm');
     if(form){
       form.addEventListener('submit',function(event){event.preventDefault();uploadVideo()});
+      form.querySelector('#academyLeaderPauseUpload')?.addEventListener('click',async function(){
+        try{await window.__DXN_ACADEMY_RESUMABLE__?.togglePause()}
+        catch(e){showMessage(e.message||'تعذر إيقاف الرفع مؤقتاً.',true)}
+      });
+      academyLoadUploadLimits();
       form.querySelector('#academyLeaderVideoFile')?.addEventListener('change',academyPreviewSelectedFile);
       form.querySelector('#academyLeaderWriteTitle')?.addEventListener('click',function(){
         const player=form.querySelector('#academyLeaderLocalPlayer');
@@ -117,6 +130,22 @@
     tabs._buttons={guide,leader};
     setMode(mode);
   }
+  async function academyLoadUploadLimits(){
+    if(!isLeader())return;
+    try{
+      const info=await post('/api/academy-video-storage',{action:'limits',p_token:session()});
+      if(info.max_bytes===UPGRADE_MAX_BYTES)MAX_BYTES=UPGRADE_MAX_BYTES;
+      else MAX_BYTES=50*1024*1024;
+      const note=document.getElementById('academyLeaderUploadLimit');
+      if(note)note.textContent=MAX_BYTES===UPGRADE_MAX_BYTES
+        ?'MP4 / MOV / WebM — الحد المسموح حالياً: 100 ميغابايت. الرفع قابل للاستكمال عند انقطاع الإنترنت.'
+        :'MP4 / MOV / WebM — الحد الحالي 50 ميغابايت بسبب خطة Supabase المجانية. تقنية الرفع مجهزة حتى 100 ميغابايت بعد الترقية.';
+      const current=document.getElementById('academyLeaderVideoFile')?.files?.[0];
+      const publish=document.getElementById('academyLeaderPublishButton');
+      if(current&&publish&&!window.__DXN_ACADEMY_RESUMABLE__?.hasActive())
+        publish.disabled=current.size>MAX_BYTES;
+    }catch(e){console.warn('Unable to check Academy storage limit',e)}
+  }
   function setMode(next){
     mode=next==='leader'?'leader':'guide';
     const root=document.querySelector('.academy-root');
@@ -135,7 +164,7 @@
     if(!host||loading)return;
     loading=true;
     try{
-      const rows=await rpc('academy_leader_videos_list',{p_token:session()});
+      const rows=await rpc('academy_leader_videos_list_v2',{p_token:session()});
       if(!Array.isArray(rows))throw Error('البيانات الواردة غير صالحة');
       videos=rows.filter(item=>UUID.test(item.id));
       renderList();
@@ -159,6 +188,7 @@
     if(!videos.length){wrap.append(elem('p','academy-leader-empty','لا توجد شروحات منشورة في هذا القسم بعد.'));return}
     const grid=elem('div','academy-leader-grid');
     for(const v of videos){
+      const holder=elem('div','academy-leader-video-entry');
       const button=elem('button','academy-leader-card');
       button.type='button';
       button.append(coverElement(v.title));
@@ -169,9 +199,25 @@
       if(Number.isFinite(date.getTime()))copy.append(elem('time','',date.toLocaleDateString('ar-IQ')));
       button.append(copy);
       button.addEventListener('click',()=>selectVideo(v.id));
-      grid.append(button);
+      holder.append(button);
+      if(v.is_welcome)holder.append(elem('div','academy-leader-welcome-badge','🎓 دليل الترحيب للأعضاء الجدد'));
+      if(isLeader()&&!v.is_welcome){
+        const makeWelcome=elem('button','academy-leader-set-welcome','🎓 تعيين هذا الفيديو دليل الترحيب');
+        makeWelcome.type='button';
+        makeWelcome.addEventListener('click',()=>academySetWelcome(v.id));
+        holder.append(makeWelcome);
+      }
+      grid.append(holder);
     }
     wrap.append(grid);
+  }
+  async function academySetWelcome(id){
+    if(!isLeader()||!UUID.test(id))return;
+    try{
+      await rpc('academy_leader_video_set_welcome',{p_token:session(),p_video_id:id});
+      showMessage('✅ تم اعتماد الفيديو دليلاً ترحيبياً للأعضاء الجدد.');
+      await loadVideos();
+    }catch(e){showMessage('تعذر تعيين دليل الترحيب: '+(e.message||e),true)}
   }
   async function selectVideo(id){
     if(!UUID.test(id))return;
@@ -232,8 +278,8 @@
     if(meta)meta.hidden=true;
     if(publish)publish.disabled=true;
     if(!file)return;
-    if(file.size<1||file.size>MAX_BYTES){
-      showMessage('حجم الفيديو يتجاوز 50 ميغابايت أو أن الملف فارغ. اختر فيديو أصغر أولاً.',true);
+    if(file.size<1||file.size>UPGRADE_MAX_BYTES){
+      showMessage('حجم الملف غير صالح أو يتجاوز 100 ميغابايت. اختر ملفاً أصغر.',true);
       return;
     }
     if(!inferredType(file)){
@@ -253,8 +299,12 @@
       if(hint)hint.textContent='اضغط ▶ للتشغيل والاستماع. يمكنك الإيقاف والتقديم والتأخير، ثم كتابة العنوان في الحقول التالية.';
       if(panel)panel.hidden=false;
       if(meta)meta.hidden=false;
-      if(publish)publish.disabled=false;
-      showMessage('🎧 يمكنك الاستماع للفيديو الآن؛ لم يتم رفعه أو إرسال إعلان عنه.');
+      if(publish)publish.disabled=file.size>MAX_BYTES;
+      if(file.size>MAX_BYTES){
+        showMessage('🎧 يمكنك معاينة الفيديو، لكن نشر ملف أكبر من 50 ميغابايت يحتاج ترقية خطة Supabase أولاً.',true);
+      }else{
+        showMessage('🎧 يمكنك الاستماع للفيديو الآن؛ لم يتم رفعه أو إرسال إعلان عنه.');
+      }
     }catch(e){
       academyClearLocalPreview();
       showMessage('لم نتمكن من معاينة الملف على هذا الجهاز: '+(e.message||e),true);
@@ -268,7 +318,7 @@
     const file=document.getElementById('academyLeaderVideoFile')?.files?.[0];
     if(!localVideoPreviewUrl){showMessage('اختر الفيديو واستمع إليه قبل إدخال العنوان ونشره.',true);return}
     if(!button||!file||title.length<4||title.length>160||description.length<5){showMessage('اكتب عنوان الفيديو وموضوعه، ثم اختر ملف الفيديو.',true);return}
-    if(file.size>MAX_BYTES){showMessage('حجم الفيديو أكبر من 50 ميغابايت. اضغط الملف أولاً ثم حاول.',true);return}
+    if(file.size>MAX_BYTES){showMessage('حجم الفيديو أكبر من الحد الذي تسمح به خطة Supabase الحالية ('+Math.round(MAX_BYTES/1024/1024)+' ميغابايت).',true);return}
     const mime=inferredType(file);
     if(!mime){showMessage('صيغة الفيديو غير مدعومة. استخدم MP4 أو MOV أو WebM.',true);return}
     button.disabled=true;
@@ -276,22 +326,33 @@
     if(uploadInput)uploadInput.disabled=true;
     try{
       showMessage('🔐 جارٍ تجهيز رفع آمن للفيديو...');
-      const prepared=await post('/api/academy-video-storage',{
-        action:'prepare',p_token:session(),file_size:file.size,content_type:mime
+      if(!window.__DXN_ACADEMY_RESUMABLE__)throw Error('مكوّن الرفع المتتابع غير متاح. حدّث الصفحة.');
+      showMessage('⬆️ جارٍ رفع الفيديو على دفعات آمنة. إذا انقطع الاتصال يمكن استكمال الرفع.');
+      const progressWrap=document.getElementById('academyLeaderProgressWrap');
+      const progress=document.getElementById('academyLeaderProgress');
+      const progressText=document.getElementById('academyLeaderProgressText');
+      const pause=document.getElementById('academyLeaderPauseUpload');
+      if(progressWrap)progressWrap.hidden=false;
+      const uploaded=await window.__DXN_ACADEMY_RESUMABLE__.upload(file,{
+        p_token:session(),contentType:mime,request:post,
+        onProgress(percent,done,total){
+          if(progress)progress.value=percent;
+          if(progressText)progressText.textContent=percent+'% — '+(done/1024/1024).toFixed(1)+' / '+(total/1024/1024).toFixed(1)+' ميغابايت';
+        },
+        onState(state){
+          if(pause)pause.hidden=!['uploading','resuming','paused'].includes(state);
+          if(pause)pause.textContent=state==='paused'?'▶️ استكمال الرفع':'⏸️ إيقاف مؤقت';
+          if(state==='paused')showMessage('⏸️ الرفع متوقف مؤقتاً. اضغط «استكمال الرفع» عند الجاهزية.');
+          if(state==='resuming')showMessage('🔄 جارٍ استكمال الأجزاء المرفوعة سابقاً...');
+        }
       });
-      if(!window.supabase||typeof window.supabase.createClient!=='function')throw Error('مكتبة رفع الفيديو غير متاحة، حدث الصفحة');
-      const client=window.supabase.createClient(PROJECT,PUBLISHABLE);
-      showMessage('⬆️ جارٍ رفع الفيديو من هاتفك إلى التخزين الخاص... لا تغلق الصفحة.');
-      const upload=await client.storage.from(BUCKET).uploadToSignedUrl(prepared.path,prepared.upload_token,file,{
-        contentType:mime,upsert:false
-      });
-      if(upload.error)throw Error(upload.error.message||'فشل رفع الملف');
       showMessage('✅ اكتمل الرفع. جارٍ نشر الفيديو وإنشاء إعلان للأعضاء...');
       const published=await rpc('academy_leader_video_publish',{
         p_token:session(),p_title:title,p_description:description,
-        p_object_path:prepared.path,p_content_type:mime,p_file_size:file.size
+        p_object_path:uploaded.path,p_content_type:mime,p_file_size:file.size
       });
-      if(!published||!published.video_id)throw Error('الرفع تم لكن تعذر حفظ إعلان الفيديو. لا تعيد الرفع قبل المراجعة.');
+      if(!published||!published.video_id)throw Error('اكتمل رفع الملف لكن تعذر إرسال الإعلان. اضغط نشر مرة ثانية لإعادة محاولة الحفظ دون رفع الملف من البداية.');
+      window.__DXN_ACADEMY_RESUMABLE__?.clearDraft();
       document.getElementById('academyLeaderUploadForm')?.reset();
       academyClearLocalPreview();
       const panel=document.getElementById('academyLeaderLocalPreview');
@@ -354,6 +415,15 @@
     '#academyLeaderVideoMessage{font-weight:750;color:#22593e;line-height:1.8}',
     '#academyLeaderVideoMessage.error,.academy-leader-loading.error{color:#b42318}',
     '.academy-leader-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:16px}',
+    '.academy-leader-video-entry{display:grid;gap:8px;align-content:start}',
+    '.academy-leader-welcome-badge{border-radius:10px;padding:7px 10px;background:#e1f3e5;color:#15543d;font-weight:900;font-size:13px;text-align:center}',
+    '.academy-leader-set-welcome{border:1px solid #b7d4bd;background:#f2fbf4;color:#14563e;font:inherit;font-size:13px;font-weight:850;border-radius:10px;padding:10px;cursor:pointer}',
+    '.academy-leader-welcome-note{margin:0;background:#f3f9ec;border:1px solid #dfebc4;border-radius:12px;padding:10px;font-size:13px;line-height:1.8;color:#456338}',
+    '.academy-leader-progress-wrap{display:grid;gap:8px;border:1px solid #b5d6c0;background:#f2faf4;border-radius:13px;padding:12px}',
+    '.academy-leader-progress-wrap[hidden],.academy-leader-progress-wrap button[hidden]{display:none!important}',
+    '.academy-leader-progress-wrap progress{height:18px;width:100%;accent-color:#16734d}',
+    '.academy-leader-progress-text{font-weight:900;font-variant-numeric:tabular-nums;direction:ltr;text-align:center}',
+    '.academy-leader-progress-wrap button{background:#d6ecdb;color:#155039}',
     '.academy-leader-card{display:flex;flex-direction:column;align-items:stretch;gap:10px;direction:rtl;text-align:right;width:100%;padding:10px;background:#fff;border:1px solid #d9e9df;border-radius:16px;font:inherit;cursor:pointer;box-shadow:0 5px 18px rgba(12,77,48,.07);transition:border-color .15s,box-shadow .15s}',
     '.academy-leader-card:hover{border-color:#9bc8aa;box-shadow:0 9px 22px rgba(12,77,48,.12)}',
     '.academy-leader-card-copy{display:grid;gap:5px;min-width:0;flex:1}',

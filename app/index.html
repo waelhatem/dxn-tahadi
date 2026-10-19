@@ -1119,7 +1119,7 @@ window.DXNI18N={setLanguage:(l)=>{if(packs[l]){current=l;apply()}},getLanguage:(
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=86.44.8"></script><script src="academy.js?v=1"></script><script src="academy-leader-videos.js?v=20261019-3" defer></script><script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=86.44.8"></script><script src="academy.js?v=1"></script><script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js" defer></script><script src="academy-resumable.js?v=20261019-1" defer></script><script src="academy-leader-videos.js?v=20261019-5" defer></script><script>
 function validateDXNAge18(birthDate){
   if(!birthDate) return {ok:false, message:'يرجى إدخال تاريخ التولد.'};
   const d = new Date(birthDate + 'T00:00:00');
@@ -10143,8 +10143,8 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     var node=document.createElement('div');node.id='dxnGlobalAnnouncementModal';node.className='dxn-global-announcement-modal';
     var videoNotice=item.source==='video'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(String(item.video_id||''));
     node.innerHTML='<div class="dxn-global-announcement-panel '+typeClass(item.announcement_type)+(videoNotice?' ga-video-announcement':'')+'" role="dialog" aria-modal="true" aria-label="'+(videoNotice?'إشعار فيديو تعليمي جديد':'إعلان عام')+'">'+
-      '<div class="ga-type">'+(videoNotice?'🎬 فيديو تعليمي جديد في الأكاديمية':typeLabel(item.announcement_type))+'</div><h2>'+safeEsc(item.title)+'</h2><div class="ga-body">'+safeEsc(item.body)+'</div>'+
-      '<div class="ga-footer">'+(videoNotice?'<button type="button" class="primary ga-video-watch-btn" onclick="window.__DXN_GA_WATCH__()">▶ مشاهدة الفيديو الآن</button>':'')+'<button type="button" class="'+(videoNotice?'':'primary')+'" onclick="window.__DXN_GA_ACK__()">✓ فهمت</button><button type="button" onclick="window.__DXN_GA_CLOSE__()">إغلاق</button></div></div>';
+      '<div class="ga-type">'+(videoNotice?(item.is_welcome?'🎓 دليل الترحيب للأعضاء الجدد':'🎬 فيديو تعليمي جديد في الأكاديمية'):typeLabel(item.announcement_type))+'</div><h2>'+safeEsc(item.title)+'</h2><div class="ga-body">'+safeEsc(item.body)+'</div>'+
+      '<div class="ga-footer">'+(videoNotice?'<button type="button" class="primary ga-video-watch-btn" onclick="window.__DXN_GA_WATCH__()">'+(item.is_welcome?'▶ مشاهدة شرح التدريبات الأساسية':'▶ مشاهدة الفيديو الآن')+'</button>':'')+'<button type="button" class="'+(videoNotice?'':'primary')+'" onclick="window.__DXN_GA_ACK__()">✓ فهمت</button><button type="button" onclick="window.__DXN_GA_CLOSE__()">إغلاق</button></div></div>';
     document.body.appendChild(node);
     if(item.source==='daily_ai'&&window.__DXN_DAILY_PRESENTATION__){
       var panel=node.querySelector('.dxn-global-announcement-panel');
