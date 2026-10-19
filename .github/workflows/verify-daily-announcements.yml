@@ -6,6 +6,7 @@ on:
       - 'api/daily-announcement-preview.js'
       - 'server.js'
       - 'daily-announcement-leader.js'
+      - 'daily-announcement-presentation.js'
       - 'supabase/migrations/20261019080000_ai_daily_global_announcements.sql'
       - 'tests/daily-announcements.test.js'
       - 'tests/daily-announcement-preview.test.js'

@@ -50,3 +50,22 @@ test('leader control mounts in existing announcement card; member close acknowle
   assert.match(INDEX,/item\.source==='daily_ai'/);
   assert.match(fs.readFileSync(path.join(ROOT,'daily-announcement-leader.js'),'utf8'),/dxnGlobalAnnouncementCard/);
 });
+
+test('member AI broadcast uses visual formatter while manual announcements keep original body markup',()=>{
+  assert.match(INDEX,/item\.source==='daily_ai'&&window\.__DXN_DAILY_PRESENTATION__/);
+  assert.match(INDEX,/\/daily-announcement-presentation\.js/);
+  const presentation=require('../daily-announcement-presentation.js');
+  const sections=presentation.sectionsOf('🌿 فكرة اليوم: اعتن بنفسك\n\n💡 خطوة عملية: التزم بخطوة\n\n💬 ما الذي ستغيره اليوم؟');
+  assert.equal(sections.length,3);
+  assert.equal(sections[0].type,'lead');
+  assert.equal(sections[1].type,'tip');
+  assert.equal(sections[2].type,'question');
+  assert.equal(presentation.sectionsOf('مقدمة بلا إيموجي\n\nما هدفك اليوم؟')[0].icon,'🌿');
+  const source=fs.readFileSync(path.join(ROOT,'daily-announcement-presentation.js'),'utf8');
+  assert.match(source,/font-weight:800/);
+  assert.match(source,/font-weight:900/);
+  assert.match(source,/textContent=entry\.text/);
+  assert.doesNotMatch(source, /innerHTML/);
+  const cron=fs.readFileSync(path.join(ROOT,'api','daily-announcement-cron.js'),'utf8');
+  assert.match(cron,/قسّم body إلى ثلاث فقرات/);
+});

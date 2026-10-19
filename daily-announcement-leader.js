@@ -60,7 +60,7 @@
     modal.id='dxnDailyPreviewModal';
     modal.className='dxn-global-announcement-modal';
     const panel=document.createElement('div');
-    panel.className='dxn-global-announcement-panel ga-announcement';
+    panel.className='dxn-global-announcement-panel ga-announcement dxn-ga-daily-panel';
     panel.setAttribute('role','dialog');
     panel.setAttribute('aria-modal','true');
     panel.setAttribute('aria-label','معاينة إعلان صباحي للقائد فقط');
@@ -72,6 +72,7 @@
     const body=document.createElement('div');
     body.className='ga-body';
     body.textContent=String(message.body||'');
+    if(window.__DXN_DAILY_PRESENTATION__)window.__DXN_DAILY_PRESENTATION__.renderBody(body,message.body);
     const footer=document.createElement('div');
     footer.className='ga-footer';
     const understood=document.createElement('button');
@@ -93,7 +94,7 @@
   function showDesignSample(el){
     showTestModal({
       title:'🌅 صباح الصحة والثراء | نموذج بصري',
-      body:'💚 صحتك هي ثروتك الأولى.\n\nابدأ يومك بعادة بسيطة: كوب ماء، بعض الحركة، وخطوة صغيرة نحو هدفك. تطوير الذات ونشر المعرفة يقومان على الالتزام والصدق، لا على وعود غير واقعية.\n\n🌿 ما العادة الإيجابية التي تريد البدء بها اليوم؟'
+      body:'🌿 فكرة اليوم: صحتك هي ثروتك الأولى، والاهتمام بها يبدأ من عادات صغيرة تحافظ عليها باستمرار.\n\n💡 خطوة عملية: اختر اليوم عادة صحية بسيطة، مثل الحركة اليومية أو النوم المنتظم، وشارك تجربتك بصدق مع من حولك.\n\n💬 سؤال اليوم: ما العادة الجميلة التي تريد أن تبدأ بها من هذا الصباح؟'
     });
     el.querySelector('#dxnDailyPreviewStatus').textContent='👁️ هذه معاينة شكلية ثابتة للنافذة، وليست رسالة مولدة بالذكاء الاصطناعي. لم يُنشر شيء.';
   }
@@ -132,7 +133,8 @@
       '<small id="dxnDailyLast"></small>'+ 
       '<div id="dxnDailyArchive"></div>'+
       '<button type="button" id="dxnDailyToggle" class="primary" disabled>تحميل...</button>'+
-      '<button type="button" id="dxnDailyPreviewButton">✨ توليد رسالة بالذكاء الاصطناعي الآن</button>'+
+      '<p class="dxn-daily-note">🤖 النشر اليومي بعد تفعيله يعمل تلقائياً. الأزرار التالية للتجربة فقط، ولا ترسل أي شيء للأعضاء.</p>'+ 
+      '<button type="button" id="dxnDailyPreviewButton">✨ تجربة توليد رسالة الآن — دون نشر</button>'+
       '<button type="button" id="dxnDailyDesignSampleButton">👁️ معاينة شكل النافذة دون نشر</button>'+
       '<small>هذه معاينة حية لك فقط، لا تُرسل إلى الأعضاء ولا تحفظ إعلاناً في قاعدة البيانات.</small>'+
       '<div id="dxnDailyPreviewStatus" role="status" aria-live="polite"></div>'+

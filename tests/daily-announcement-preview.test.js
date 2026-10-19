@@ -95,6 +95,7 @@ test('leader preview is independent of the daily-settings migration',()=>{
   assert.match(source,/runTestPreview\(el\)/);
   assert.match(source,/showTestModal\(payload\)/);
   assert.match(source,/dxn-global-announcement-modal/);
+  assert.match(source,/__DXN_DAILY_PRESENTATION__\.renderBody/);
   assert.match(source,/textContent=String\(message\.body/);
   assert.match(source,/لم يتم نشر أي إعلان/);
   assert.match(server,/\/api\/daily-announcement-preview/);
