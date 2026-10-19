@@ -107,14 +107,16 @@ test('members get only a timed signed playable URL for an existing published vid
     });
   }finally{global.fetch=oldFetch}
 });
-test('upload has 50 MB limit and front end sends file directly via signed token',()=>{
-  assert.equal(api.__test.MAX_VIDEO,50*1024*1024);
-  assert.match(enhanced,/uploadToSignedUrl\(/);
-  assert.match(enhanced,/MAX_BYTES=50\*1024\*1024/);
-  assert.match(enhanced,/academy_leader_video_publish/);
-  assert.match(enhanced,/action:'prepare'/);
-  assert.match(enhanced,/action:'play'/);
-  assert.match(fs.readFileSync(path.join(ROOT,'server.js'),'utf8'),/\/api\/academy-video-storage/);
+test('Free plan stays capped at 50 MB; 100 MB code awaits paid-plan activation',()=>{
+  assert.equal(api.__test.MAX_VIDEO,100*1024*1024);
+  assert.equal(api.__test.FREE_MAX_VIDEO,50*1024*1024);
+  assert.equal(api.__test.effectiveMaxVideo(),50*1024*1024);
+  assert.ok(enhanced.includes('let MAX_BYTES=50*1024*1024'));
+  assert.ok(enhanced.includes('UPGRADE_MAX_BYTES=100*1024*1024'));
+  assert.ok(enhanced.includes('window.__DXN_ACADEMY_RESUMABLE__.upload'));
+  assert.ok(enhanced.includes('academyLeaderProgress'));
+  assert.ok(index.includes('academy-resumable.js'));
+  assert.ok(index.includes('tus-js-client@4.3.1'));
 });
 
 
@@ -245,4 +247,82 @@ test('video announcement button opens exactly the linked video without a follow-
   await queued.shift()();
   assert.equal(listCalls,oldCalls,'other announcements stay paused during playback');
   assert.equal(elems.dxnGlobalAnnouncementModal,undefined);
+});
+
+test('only the first uploaded video is welcome, while older messages remain excluded',()=>{
+ const sql=fs.readFileSync(path.join(ROOT,'supabase/migrations/20261019130000_academy_welcome_video_and_100mb_schema.sql'),'utf8');
+ for(const term of ['is_welcome boolean not null default false','pg_advisory_xact_lock','a.created_at>=registered_at',
+  'v.is_welcome=true and a.created_at<registered_at','academy_leader_video_set_welcome',
+  'not exists(select 1 from public.global_announcement_reads','academy_one_welcome_video',
+  'not exists(select 1 from public.academy_leader_videos)'])
+   assert.ok(sql.includes(term),term);
+ assert.ok(index.includes("item.is_welcome"));
+ assert.ok(enhanced.includes("academy_leader_videos_list_v2"));
+ assert.ok(enhanced.includes("academy_leader_video_set_welcome"));
+});
+test('Free plan rejects 60 MB even with signed upload and paid-ready override accepts 100 MB',async()=>{
+ const oldFetch=global.fetch;
+ global.fetch=async(url)=>{
+  if(url.endsWith('/rpc/bootstrap'))return fakeHttp({user_id:userId,role:'leader'});
+  if(url.includes('/object/upload/sign/'))return fakeHttp({token:'signed-token'});
+  throw Error('unexpected fetch '+url);
+ };
+ try{
+  await withEnv({SUPABASE_SECRET_KEY:'fake-secret-role',ACADEMY_VIDEO_100MB_ENABLED:'false'},async()=>{
+   let r=res();
+   await api({method:'POST',body:{action:'limits',p_token:token}},r);
+   assert.equal(r.body.max_bytes,50*1024*1024);
+   r=res();
+   await api({method:'POST',body:{action:'prepare',p_token:token,content_type:'video/mp4',file_size:60*1024*1024}},r);
+   assert.equal(r.code,400);
+  });
+  await withEnv({SUPABASE_SECRET_KEY:'fake-secret-role',ACADEMY_VIDEO_100MB_ENABLED:'true'},async()=>{
+   let r=res();
+   await api({method:'POST',body:{action:'limits',p_token:token}},r);
+   assert.equal(r.body.max_bytes,100*1024*1024);
+   r=res();
+   await api({method:'POST',body:{action:'prepare',p_token:token,content_type:'video/mp4',file_size:100*1024*1024}},r);
+   assert.equal(r.code,200);
+   assert.equal(r.body.upload_token,'signed-token');
+  });
+ }finally{global.fetch=oldFetch}
+});
+test('signed TUS uses chunked, resumable uploads with progress and no elevated keys',()=>{
+ const upload=fs.readFileSync(path.join(ROOT,'app/academy-resumable.js'),'utf8');
+ for(const term of ['storage/v1/upload/resumable/sign',"'x-signature':draft.upload_token",
+  'chunkSize:6*1024*1024','findPreviousUploads()','resumeFromPreviousUpload(previous[0])',
+  'onProgress(bytesUploaded,bytesTotal)','retryDelays:[0,3000,5000,10000,20000]',
+  'sessionStorage.setItem','togglePause','clearDraft'])assert.ok(upload.includes(term),term);
+ assert.ok(!upload.includes('SUPABASE_SECRET_KEY'));
+});
+test('TUS simulated upload reports progress and remembers successful bytes during publish retry',async()=>{
+ const vm=require('node:vm');
+ const js=fs.readFileSync(path.join(ROOT,'app/academy-resumable.js'),'utf8');
+ const store=new Map(),progress=[];
+ let prepared=0,started=0;
+ const file={name:'guide.mp4',size:5*1024*1024,lastModified:100};
+ class Upload{
+   constructor(blob,opts){this.opts=opts;assert.equal(opts.chunkSize,6*1024*1024);assert.equal(opts.headers['x-signature'],'signed-token')}
+   findPreviousUploads(){return Promise.resolve([])}
+   start(){started++;this.opts.onProgress(2*1024*1024,file.size);this.opts.onSuccess()}
+   abort(){return Promise.resolve()}
+ }
+ const ctx={
+  window:{tus:{Upload}},
+  sessionStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},
+  Date,JSON,Error,Promise,Math,console
+ };
+ vm.runInNewContext(js,ctx);
+ const uploader=ctx.window.__DXN_ACADEMY_RESUMABLE__;
+ const request=async()=>{prepared++;return{path:'leader/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/11111111-1111-4111-8111-111111111111.mp4',upload_token:'signed-token'}};
+ const item=await uploader.upload(file,{contentType:'video/mp4',p_token:token,request,onProgress:p=>progress.push(p)});
+ assert.equal(item.path.split('/').length,3);
+ assert.deepEqual(progress,[40,100]);
+ assert.equal(prepared,1);
+ const replay=await uploader.upload(file,{contentType:'video/mp4',p_token:token,request});
+ assert.equal(replay.path,item.path);
+ assert.equal(prepared,1);
+ assert.equal(started,1);
+ uploader.clearDraft();
+ assert.equal(store.size,0);
 });

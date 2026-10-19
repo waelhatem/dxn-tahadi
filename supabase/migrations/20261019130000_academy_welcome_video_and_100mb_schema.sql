@@ -5,6 +5,13 @@ alter table public.academy_leader_videos
   add column if not exists is_welcome boolean not null default false;
 create unique index if not exists academy_one_welcome_video
   on public.academy_leader_videos(is_welcome) where is_welcome=true;
+-- Backfill first lesson if the leader published it before this migration arrived.
+update public.academy_leader_videos
+  set is_welcome=true
+where id=(select id from public.academy_leader_videos
+          where status='published' order by published_at asc,id asc limit 1)
+  and not exists(select 1 from public.academy_leader_videos where is_welcome=true);
+
 alter table public.academy_leader_videos
   drop constraint if exists academy_leader_videos_file_size_check;
 alter table public.academy_leader_videos
