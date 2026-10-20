@@ -117,3 +117,50 @@ test('daily member popup shows real publish time in Baghdad, not a fixed 8 AM cl
   assert.match(script,/Asia\/Baghdad/);
   assert.match(script,/if\(!time\)return/);
 });
+
+
+test('leader receives only the daily announcement and may acknowledge only that type',()=>{
+  const migration=fs.readFileSync(path.join(ROOT,'supabase/migrations/20261020210000_daily_announcements_leader_access.sql'),'utf8');
+  assert.match(migration,/role_name not in \('member','leader'\)/);
+  assert.match(migration,/role_name='leader'\s+and a\.source='daily_ai'/);
+  assert.match(migration,/role_name='member'\s+and \(a\.created_at>=registered_at/);
+  assert.match(migration,/v\.is_welcome=true and a\.created_at<registered_at/);
+  assert.match(migration,/role_name='leader' and a\.source='daily_ai'/);
+  assert.match(migration,/a\.expires_at>now\(\)/);
+  assert.match(migration,/on conflict \(announcement_id,user_id\) do nothing/);
+  assert.match(INDEX,/role!=='member'&&role!=='leader'/);
+  assert.match(INDEX,/role==='member'\|\|role==='leader'/);
+  assert.match(INDEX,/acknowledge_global_announcement/);
+});
+
+test('AI daily generation retries incomplete output with a larger bounded budget',async()=>{
+  const oldKey=process.env.OPENAI_API_KEY,oldFetch=global.fetch;
+  process.env.OPENAI_API_KEY='test-key-not-real';
+  const attempts=[];
+  const good={
+    title:'فكرة صحية لهذا اليوم',
+    body:'لنبدأ صباحنا بعادة واقعية، مثل شرب الماء بانتظام أو إضافة حركة خفيفة في يومنا. وعند الحديث مع الآخرين عن المنتجات نلتزم بالصدق واحترام احتياجاتهم. ما هي العادة التي تنوي تحسينها هذا الأسبوع؟'
+  };
+  global.fetch=async(url,options)=>{
+    assert.equal(url,'https://api.openai.com/v1/responses');
+    const request=JSON.parse(options.body);
+    attempts.push(request.max_output_tokens);
+    return {ok:true,text:async()=>JSON.stringify(
+      attempts.length===1
+        ? {status:'incomplete',incomplete_details:{reason:'max_output_tokens'},output:[]}
+        : {status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify(good)}]}]}
+    )};
+  };
+  const warn=console.warn;
+  console.warn=()=>{};
+  try{
+    const result=await CRON.generateDailyDraft('2026-10-20','العادات الصحية',[]);
+    assert.deepEqual(result,good);
+    assert.deepEqual(attempts,[1600,2400]);
+    assert.ok(require('../vercel.json').functions['api/daily-announcement-cron.js'].maxDuration>=60);
+  }finally{
+    global.fetch=oldFetch;console.warn=warn;
+    if(oldKey===undefined)delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY=oldKey;
+  }
+});
