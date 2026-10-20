@@ -10192,13 +10192,13 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
   });
   async function loadMemberAnnouncements(){
     if(loadingMemberAnnouncements||memberAnnouncementShown||videoWatchPausedSession===tokenValue())return;
-    if(typeof role==='undefined'||role!=='member'||!tokenValue())return;
+    if(typeof role==='undefined'||(role!=='member'&&role!=='leader')||!tokenValue())return;
     loadingMemberAnnouncements=true;
     try{var rows=await gaRpc('list_global_announcements_for_member',{p_token:tokenValue()});if(Array.isArray(rows)&&rows.length&&videoWatchPausedSession!==tokenValue())await showMemberAnnouncement(rows[0])}
     catch(e){console.debug('global announcement load failed',e)}
     finally{loadingMemberAnnouncements=false}
   }
-  function observe(){injectLeaderCard();if(typeof role!=='undefined'&&role==='member')setTimeout(loadMemberAnnouncements,250)}
+  function observe(){injectLeaderCard();if(typeof role!=='undefined'&&(role==='member'||role==='leader'))setTimeout(loadMemberAnnouncements,250)}
   var observer=new MutationObserver(function(){setTimeout(observe,20)});observer.observe(document.body,{childList:true,subtree:true});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observe);else observe();
 })();
