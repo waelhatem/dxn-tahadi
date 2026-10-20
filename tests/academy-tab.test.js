@@ -37,7 +37,9 @@ test('render dispatch keeps every existing tab and routes academy before the lea
   const chain=(INDEX.match(/html\+=tab==='home'\?home\(\):[^;]*;/)||[''])[0];
   assert.ok(chain,'dispatch chain not found');
   for(const t of ['home','notifications','ch','teams','path','progress','training','community','advanced'])assert.match(chain,new RegExp(`tab==='${t}'`));
-  assert.match(chain,/tab==='advanced'\?advancedCenter\(\):tab==='academy'\?\(typeof academyPage==='function'\?academyPage\(\):''\):leader\(\);$/);
+  assert.match(chain,/tab==='advanced'\?advancedCenter\(\):/);
+  assert.ok(chain.indexOf("tab==='advanced'")<chain.indexOf("tab==='academy'"),'academy follows advanced with any newer tabs preserved');
+  assert.match(chain,/tab==='academy'\?\(typeof academyPage==='function'\?academyPage\(\):''\):leader\(\);$/);
 });
 
 test('saved UI state accepts the academy tab and still accepts every existing tab',()=>{
@@ -121,8 +123,9 @@ test('the three approved Academy introduction videos are embedded from YouTube',
   assert.match(html,/الواجهة الرئيسية للمجتمع/);
   assert.match(html,/شرح واجهة «زائر جديد»/);
   assert.match(html,/youtube\.com\/embed\/qcwkRlsYsIg/);
-  assert.match(html,/youtube\.com\/embed\/ttaazEGtqPk/);
-  assert.match(html,/youtube\.com\/embed\/WgCzWXYCrYg/);
+  // Only the selected video is embedded; later episodes keep thumbnail links until selected.
+  assert.match(html,/i\.ytimg\.com\/vi\/ttaazEGtqPk\/hqdefault\.jpg/);
+  assert.match(html,/i\.ytimg\.com\/vi\/WgCzWXYCrYg\/hqdefault\.jpg/);
   assert.equal((html.match(/academy-youtube-frame/g)||[]).length,1,'only the selected video is embedded in the main player');
   assert.equal((html.match(/data-academy-index="/g)||[]).length,3);
 });
@@ -210,7 +213,9 @@ test('the loading bar is clear and the error note never overlaps the next-video 
 });
 
 test('the next video never plays automatically',()=>{
-  assert.doesNotMatch(ACADEMY_JS,/autoplay/i);
+  // An iframe may allow the autoplay capability without actually starting playback.
+  assert.doesNotMatch(ACADEMY_JS,/<video[^>]*\sautoplay(?:\s|=|>)/i);
+  assert.doesNotMatch(ACADEMY_JS,/[?&]autoplay=1/i);
   assert.equal((ACADEMY_JS.match(/\.play\(\)/g)||[]).length,1,'only the replay button may call play()');
   const showUpNext=(ACADEMY_JS.match(/function academyShowUpNext\(index\)\{[\s\S]*?\n  \}/)||[''])[0];
   assert.ok(showUpNext,'academyShowUpNext not found');
