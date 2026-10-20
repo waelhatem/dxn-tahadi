@@ -67,7 +67,7 @@ async function rpc(name,body){
     method:'POST',
     headers:{'Content-Type':'application/json',apikey:key,Authorization:'Bearer '+key},
     body:JSON.stringify(body||{})
-  });
+  },8000);
 }
 async function generateOnce(day,topic,history,maxOutputTokens){
   const key=String(process.env.OPENAI_API_KEY||'').trim();
