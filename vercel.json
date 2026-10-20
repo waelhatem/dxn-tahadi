@@ -5,6 +5,9 @@
     },
     "api/daily-announcement-preview.js": {
       "maxDuration": 60
+    },
+    "api/daily-announcement-cron.js": {
+      "maxDuration": 60
     }
   },
   "crons": [
