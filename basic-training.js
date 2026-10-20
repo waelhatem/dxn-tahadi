@@ -134,6 +134,7 @@
  }
  function stopMovie(){
   if(!movie)return;
+  movie.assist?.remove();
   if(movie.session)movie.session.stop();
   try{movie.player?.destroy();}catch(_){}
   movie=null;
@@ -273,6 +274,55 @@
   if(bar){bar.querySelector('div').style.width=p.percent+'%';bar.setAttribute('aria-valuenow',String(p.percent));}
   const out=document.getElementById('basicWatchPct');if(out)out.textContent=p.label||p.percent+'%';
  }
+ // The second basic lecture has been reported as not playing on some phones.
+ // Keep an always accessible manual playback gesture and show YouTube's real error.
+ function basicSecondVideoAssist(m,host,videoId){
+  if(m.no!==2||!host)return;
+  const panel=document.createElement('div');
+  panel.className='basic-video-2-assist';
+  panel.setAttribute('role','status');
+  panel.setAttribute('aria-live','polite');
+  const button=document.createElement('button');
+  button.type='button';button.className='basic-video-2-play';
+  button.textContent='▶ تشغيل فيديو التدريب الثاني بالصوت';
+  const status=document.createElement('p');
+  status.textContent='إذا لم يبدأ تلقائياً، اضغط هذا الزر لتشغيله.';
+  const external=document.createElement('a');
+  external.href='https://www.youtube.com/watch?v='+encodeURIComponent(videoId);
+  external.target='_blank';external.rel='noopener noreferrer';
+  external.textContent='التحقق من الفيديو على YouTube (المشاهدة الخارجية لا تُحتسب)';
+  external.hidden=true;
+  panel.append(button,status,external);
+  host.appendChild(panel);
+  m.assist=panel;m.assistStatus=status;m.assistLink=external;
+  button.addEventListener('click',()=>{
+   if(movie!==m||authToken()!==trainingSession)return;
+   if(m.player&&m.ready&&!m.youtubeError){
+    try{m.player.playVideo();}catch(e){status.textContent='تعذر بدء التشغيل. أعد تحميل مشغّل الفيديو من الزر نفسه.';}
+   }else window.basicBagStartVideo(m.no);
+  });
+ }
+ function basicSecondVideoError(m,code){
+  if(movie!==m||m.no!==2)return;
+  m.youtubeError=Number(code)||-1;
+  if(m.assist){
+   m.assist.hidden=false;
+   m.assistStatus.textContent=([100,101,150].includes(m.youtubeError)
+    ?'تعذر عرض الفيديو من YouTube داخل الموقع (رمز '+m.youtubeError+'). أبلغ القائد؛ المشاهدة الخارجية لا تحتسب التقدم.'
+    :'فشل مشغّل الفيديو (رمز '+m.youtubeError+'). اضغط زر تشغيل الفيديو لإعادة المحاولة.');
+   m.assistLink.hidden=![100,101,150].includes(m.youtubeError);
+  }
+  watchMessage('تعذر تشغيل الفيديو الثاني. استخدم زر التشغيل الظاهر أو أبلغ القائد برمز الخطأ '+m.youtubeError+'.');
+ }
+ // Install once. Scoped to lesson two; other trainings retain existing UI.
+ const secondVideoStyle=document.createElement('style');
+ secondVideoStyle.textContent=
+ '.basic-video-2-assist{position:relative;z-index:15;background:#f1fbf4;border:2px solid #b8dabf;border-radius:12px;padding:10px;margin:10px 0;color:#174c3d;text-align:center;font-weight:800;display:grid;gap:8px}'+
+ '.basic-video-2-assist[hidden],.basic-video-2-assist a[hidden]{display:none!important}'+
+ '.basic-video-2-assist button{width:100%;min-height:48px;background:#0d6d50;color:#fff;border:0;border-radius:10px;padding:12px;font:inherit;font-weight:900;cursor:pointer}'+
+ '.basic-video-2-assist p{margin:0;font-size:13px;line-height:1.7}'+
+ '.basic-video-2-assist a{font-size:12px;text-decoration:underline;color:#145a80}';
+ document.head.appendChild(secondVideoStyle);
  /* V86.90 — Watching goes through the unified training engine: one attempt per viewing, from 0 s,
   * confirmed by the server; the old cumulative heartbeat is gone. Opening rules are unchanged. */
  window.basicBagStartVideo=async function(no){
@@ -296,8 +346,15 @@
     '<p class="basic-bag-description">'+esc(window.DXNTrainingEngine.POLICY_NOTE)+'</p>';
   }
   const saved=statusOf(item.no);
-  const m={no:item.no,inline:!!inline,box:inline,player:null,session:null,pct:0,preview:!backendReady,watching:false};
+  const m={no:item.no,inline:!!inline,box:inline,player:null,session:null,pct:0,preview:!backendReady,watching:false,ready:false,youtubeError:0,assist:null};
   movie=m;
+  basicSecondVideoAssist(m,inline||document.getElementById('basicBagModalBody'),item.video);
+  if(item.no===2)setTimeout(()=>{
+   if(movie===m&&!m.ready&&m.assist?.isConnected){
+    m.assistStatus.textContent='لم يكتمل تحميل مشغّل الفيديو. اضغط «تشغيل فيديو التدريب الثاني» لإعادة المحاولة.';
+    m.assist.hidden=false;
+   }
+  },8000);
   m.session=window.DXNTrainingEngine.createWatch({track:'basic',lessonNo:item.no,watchCompleted:!!saved.completed,preview:m.preview,
    quizReady:()=>quizPublished(item.no),
    onMessage:t=>{if(movie===m)watchMessage(t);},
@@ -314,11 +371,18 @@
    m.player=new window.YT.Player('basicBagYT',{
      videoId:item.video,playerVars:{rel:0,disablekb:1,playsinline:1,controls:1,cc_load_policy:1,cc_lang_pref:'ar',start:0},
      // The member pressed «ابدأ المشاهدة», so the video starts playing right away.
-     events:{onReady:()=>{if(movie!==m)return;m.session.attach(m.player);try{m.player.playVideo();}catch(_){}window.DXNTrainingAutoPlay?.ensurePlaying(m.player,inline);},
-      onStateChange:e=>{if(movie===m){m.session.onState(e.data);if(e.data===1)window.DXNTrainingAutoPlay?.playing(inline);}},
-      onPlaybackRateChange:e=>{if(movie===m)m.session.onRate(e.data);}}
+     events:{onReady:()=>{if(movie!==m)return;m.ready=true;m.session.attach(m.player);try{m.player.playVideo();}catch(_){}window.DXNTrainingAutoPlay?.ensurePlaying(m.player,inline);},
+      onStateChange:e=>{if(movie===m){m.session.onState(e.data);if(e.data===1){window.DXNTrainingAutoPlay?.playing(inline);if(m.assist)m.assist.hidden=true;}else if(e.data===2&&m.assist)m.assist.hidden=false;}},
+      onPlaybackRateChange:e=>{if(movie===m)m.session.onRate(e.data);},
+      onError:e=>{basicSecondVideoError(m,e?.data);}}
    });
-  }catch(e){watchMessage(e.message||'تعذر تحميل الفيديو');}
+  }catch(e){
+    watchMessage(e.message||'تعذر تحميل الفيديو');
+    if(item.no===2&&m.assist){
+      m.assist.hidden=false;
+      m.assistStatus.textContent='لم يتم تحميل الفيديو؛ اضغط زر التشغيل لإعادة المحاولة: '+(e.message||'خطأ اتصال');
+    }
+   }
  };
  window.basicBagStartQuiz=async function(no){
   autoInitialScheduled=true;window.DXNTrainingAutoPlay?.cancel('basic');
