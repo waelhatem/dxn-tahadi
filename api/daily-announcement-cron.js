@@ -51,8 +51,8 @@ function validateDraft(draft,history=[]){
   }
   return {title,body};
 }
-async function responseJson(url,options){
-  const r=await fetch(url,{...options,signal:AbortSignal.timeout(25000)});
+async function responseJson(url,options,timeoutMs=20000){
+  const r=await fetch(url,{...options,signal:AbortSignal.timeout(timeoutMs)});
   const text=await r.text();
   let data;
   try{data=JSON.parse(text)}catch(e){data=null}
@@ -69,7 +69,7 @@ async function rpc(name,body){
     body:JSON.stringify(body||{})
   });
 }
-async function generate(day,topic,history){
+async function generateOnce(day,topic,history,maxOutputTokens){
   const key=String(process.env.OPENAI_API_KEY||'').trim();
   if(!key)throw new Error('مفتاح OpenAI غير مضبوط');
   const data=await responseJson('https://api.openai.com/v1/responses',{
@@ -99,15 +99,31 @@ async function generate(day,topic,history){
         required:['title','body'],
         properties:{title:{type:'string'},body:{type:'string'}}
       }}},
-      max_output_tokens:1000
+      max_output_tokens:maxOutputTokens
     })
-  });
+  },19000);
+  if(data.status==='incomplete')throw new Error('استجابة OpenAI غير مكتملة: '+String(data.incomplete_details?.reason||'unknown'));
+  if(data.error)throw new Error('رفضت خدمة الذكاء الاصطناعي الطلب');
   const content=(data.output||[]).flatMap(item=>item.content||[])
     .filter(part=>part.type==='output_text').map(part=>part.text).join('');
   if(!content)throw new Error('لم تصل رسالة مكتملة من الذكاء الاصطناعي');
   let draft;
   try{draft=JSON.parse(content)}catch(e){throw new Error('تعذر تحليل الرسالة المولدة')}
   return validateDraft(draft,history);
+}
+// A model may spend its output budget on reasoning or return an invalid draft.
+// Retry once with a larger budget, without ever publishing unvalidated content.
+async function generate(day,topic,history){
+  let lastError;
+  for(const budget of [1600,2400]){
+    try{return await generateOnce(day,topic,history,budget)}
+    catch(e){
+      lastError=e;
+      if(/مفتاح OpenAI غير مضبوط/.test(String(e.message)))break;
+      console.warn('[daily-global-announcement] AI generation attempt failed:',String(e?.message||e));
+    }
+  }
+  throw lastError;
 }
 async function handler(req,res){
   if(req.method!=='GET')return res.status(405).json({error:'Method not allowed'});
