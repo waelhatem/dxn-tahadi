@@ -19,6 +19,7 @@
  let loaded=false,backendReady=false,loading=false,progress=[],published=[],scores=[],movie=null,exam=null,viewerRole='';
  let overviewError='';
  let autoInitialScheduled=false;
+ let checkingSecondQuiz=false;
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const fmt=n=>Number.isFinite(n)?Math.max(0,Math.floor(n)):0;
  const currentLesson=n=>lessons.find(x=>x.no===Number(n));
@@ -122,6 +123,15 @@
  function quizCtaHtml(v){
   return '<button type="button" class="name-list-btn unified-training__quiz-button" onclick="'+v.quiz+'" '+(v.quizEnabled?'':'disabled')+'>'+v.quizLabel+'</button>';
  }
+ // The second lesson can remain visually locked when its completion was saved in another
+ // tab or a completion RPC response was lost on a poor mobile connection. A manual
+ // server-only status check recovers that case; it never grants credit or opens the quiz
+ // without the server's completed flag.
+ function quizActionHtml(no,v){
+  const retry=no===2&&backendReady&&lessonUnlock(2)&&!v.quizEnabled
+   ?'<div class="basic-quiz-recheck"><button type="button" class="name-list-btn" onclick="basicBagRefreshSecondQuiz()" '+(checkingSecondQuiz?'disabled':'')+'>🔄 التحقق من فتح الاختبار الثاني</button><p class="basic-quiz-recheck-status" id="basicQuizRecoveryStatus" role="status" aria-live="polite">إذا شاهدت الفيديو ولم يفتح الاختبار، اضغط هنا للتحقق من حسابك.</p></div>':'';
+  return quizCtaHtml(v)+retry;
+ }
  function viewerHtml(item,v){
   const poster='<button type="button" class="unified-training__play" '+(v.play?'onclick="'+v.play+'"':'disabled')+'>'+esc(v.playLabel)+'</button>';
   return '<div id="basicBagViewerHead">'+headHtml(item,v)+'</div>'+
@@ -129,7 +139,7 @@
    '<div class="basic-bag-inline-progress unified-training__progress"><div id="basicWatchProgress" class="basic-bag-progress" role="progressbar" aria-label="'+v.pctLabel+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+v.pct+'"><div style="width:'+v.pct+'%"></div></div>'+
    '<strong id="basicWatchPct">'+esc(v.pctText||v.pct+'%')+'</strong></div>'+
    '<p id="basicWatchInfo" class="basic-bag-status">'+esc(v.status)+'</p>'+
-    '<div id="basicViewerQuizAction" class="unified-training__quiz-location">'+quizCtaHtml(v)+'</div>'+
+    '<div id="basicViewerQuizAction" class="unified-training__quiz-location">'+quizActionHtml(item.no,v)+'</div>'+
    '<div id="basicBagViewerInfo">'+infoHtml(v)+'</div>';
  }
  function stopMovie(){
@@ -149,7 +159,7 @@
  if(movie&&movie.inline&&movie.no===item.no){
   const list=document.getElementById('basicBagLessonList');if(list)list.innerHTML=listHtml();
   const head=document.getElementById('basicBagViewerHead');if(head)head.innerHTML=headHtml(item,v);
-   const action=document.getElementById('basicViewerQuizAction');if(action)action.innerHTML=quizCtaHtml(v);
+   const action=document.getElementById('basicViewerQuizAction');if(action)action.innerHTML=quizActionHtml(item.no,v);
   const info=document.getElementById('basicBagViewerInfo');if(info)info.innerHTML=infoHtml(v);
   return;
  }
@@ -342,7 +352,7 @@
    body.innerHTML='<div class="basic-bag-player"><div id="basicBagYT"></div></div>'+
     '<div class="basic-bag-inline-progress"><div id="basicWatchProgress" class="basic-bag-progress"><div></div></div>'+
     '<strong id="basicWatchPct">0%</strong></div><p id="basicWatchInfo" class="basic-bag-notice">جارٍ تحميل المشغل…</p>'+
-    '<div id="basicModalQuizAction" class="unified-training__quiz-location">'+quizCtaHtml(lessonView(item.no))+'</div>'+ 
+    '<div id="basicModalQuizAction" class="unified-training__quiz-location">'+quizActionHtml(item.no,lessonView(item.no))+'</div>'+ 
     '<p class="basic-bag-description">'+esc(window.DXNTrainingEngine.POLICY_NOTE)+'</p>';
   }
   const saved=statusOf(item.no);
@@ -363,7 +373,7 @@
     // Confirmed by the server: update the quiz below the video without replacing the player.
     const row=progress.find(x=>x.training_no===item.no);
     if(row)row.completed=true;else progress.push({training_no:item.no,watched:0,duration:0,completed:true,passed:false,best_score:null});
-    if(movie===m){const modalCta=document.getElementById('basicModalQuizAction');if(modalCta)modalCta.innerHTML=quizCtaHtml(lessonView(item.no));refreshCards();}
+    if(movie===m){const modalCta=document.getElementById('basicModalQuizAction');if(modalCta)modalCta.innerHTML=quizActionHtml(item.no,lessonView(item.no));refreshCards();}
    }});
   showProgress(m,{percent:0});watchMessage('جارٍ تحميل المشغل…');
   try{
@@ -372,7 +382,13 @@
      videoId:item.video,playerVars:{rel:0,disablekb:1,playsinline:1,controls:1,cc_load_policy:1,cc_lang_pref:'ar',start:0},
      // The member pressed «ابدأ المشاهدة», so the video starts playing right away.
      events:{onReady:()=>{if(movie!==m)return;m.ready=true;m.session.attach(m.player);try{m.player.playVideo();}catch(_){}window.DXNTrainingAutoPlay?.ensurePlaying(m.player,inline);},
-      onStateChange:e=>{if(movie===m){m.session.onState(e.data);if(e.data===1){window.DXNTrainingAutoPlay?.playing(inline);if(m.assist)m.assist.hidden=true;}else if(e.data===2&&m.assist)m.assist.hidden=false;}},
+      onStateChange:e=>{if(movie===m){m.session.onState(e.data);if(e.data===1){window.DXNTrainingAutoPlay?.playing(inline);if(m.assist)m.assist.hidden=true;}else if(e.data===2&&m.assist)m.assist.hidden=false;
+       // YouTube may end while the final completion acknowledgement is still in flight.
+       // Re-read the saved state after it settles; never infer completion from the player.
+       if(e.data===0&&item.no===2&&!statusOf(2).completed)setTimeout(()=>{
+        if(movie===m&&authToken()===trainingSession&&!statusOf(2).completed)window.basicBagRefreshSecondQuiz();
+       },2500);
+      }},
       onPlaybackRateChange:e=>{if(movie===m)m.session.onRate(e.data);},
       onError:e=>{basicSecondVideoError(m,e?.data);}}
    });
@@ -383,6 +399,37 @@
       m.assistStatus.textContent='لم يتم تحميل الفيديو؛ اضغط زر التشغيل لإعادة المحاولة: '+(e.message||'خطأ اتصال');
     }
    }
+ };
+ // Read-only recovery. The server remains the only authority for the 90% requirement.
+ window.basicBagRefreshSecondQuiz=async function(){
+  ensureTrainingSession();
+  if(!authToken()||checkingSecondQuiz)return;
+  checkingSecondQuiz=true;
+  const display=document.getElementById('basicQuizRecoveryStatus');
+  if(display)display.textContent='⏳ جارٍ التحقق من المشاهدة والاختبار في حسابك…';
+  try{
+   const requestedSession=trainingSession;
+   const r=await rpc('basic_training_overview');
+   if(requestedSession!==trainingSession||authToken()!==requestedSession)return;
+   if(!Array.isArray(r.progress)||!Array.isArray(r.scores)||!Array.isArray(r.published_quizzes))throw Error('تعذّر قراءة حالة التدريب من الخادم');
+   progress=r.progress;published=r.published_quizzes;scores=r.scores;viewerRole=String(r.role||'');
+   loaded=true;backendReady=true;overviewError='';
+   const ready=lessonUnlock(2)&&!!statusOf(2).completed&&quizPublished(2);
+   const message=ready?'✅ المشاهدة مؤكدة ومحفوظة في حسابك. اضغط «ابدأ اختبار الدرس» الآن.'
+    :!lessonUnlock(2)?'التدريب الثاني يحتاج أولًا إلى اجتياز اختبار التدريب الأول.'
+    :!quizPublished(2)?'اختبار التدريب الثاني غير منشور حاليًا؛ أبلغ القائد.'
+    :'لم يؤكد الخادم مشاهدة 90% في جلسة مكتملة لهذا العضو. المشاهدة غير المكتملة لا تفتح الاختبار؛ أكمل الفيديو في الموقع مع اتصال ثابت.';
+   refreshCards();
+   const modalAction=document.getElementById('basicModalQuizAction');
+   if(modalAction)modalAction.innerHTML=quizActionHtml(2,lessonView(2));
+   const out=document.getElementById('basicQuizRecoveryStatus');
+   if(out)out.textContent=message;
+   else safeToast(message);
+  }catch(e){
+   const out=document.getElementById('basicQuizRecoveryStatus');
+   const message='تعذر الاتصال للتحقق من الاختبار: '+(e.message||e)+'. أعد المحاولة بعد التأكد من الإنترنت.';
+   if(out)out.textContent=message;else safeToast(message);
+  }finally{checkingSecondQuiz=false;}
  };
  window.basicBagStartQuiz=async function(no){
   autoInitialScheduled=true;window.DXNTrainingAutoPlay?.cancel('basic');
