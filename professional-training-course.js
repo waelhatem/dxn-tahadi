@@ -9,11 +9,11 @@
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const token=()=>String(localStorage.getItem('dxn_session')||'').trim();
  const LABELS=['الأول','الثاني','الثالث','الرابع','الخامس','السادس','السابع','الثامن','التاسع','العاشر'];
- let lessons=[],loaded=false,loading=false,backendReady=false,session=token(),selected=1,selectedAuto=true,movie=null,exam=null;
+ let lessons=[],loaded=false,loading=false,backendReady=false,session=token(),selected=1,selectedAuto=true,movie=null,exam=null,autoInitialScheduled=false;
 
  function resetIfAccountChanged(){
   if(token()===session)return;
-  session=token();stopMovie();lessons=[];loaded=false;loading=false;backendReady=false;selected=1;selectedAuto=true;exam=null;
+  session=token();stopMovie();lessons=[];loaded=false;loading=false;backendReady=false;selected=1;selectedAuto=true;exam=null;autoInitialScheduled=false;window.DXNTrainingAutoPlay?.cancel('professional');
  }
  const lesson=n=>lessons.find(l=>l.lesson_no===n);
  const unlocked=n=>!!lesson(n)&&!!lesson(n).active&&(n===1||!!(lesson(n-1)&&lesson(n-1).completed&&lesson(n-1).passed));
@@ -32,6 +32,32 @@
   const open=lessons.filter(l=>unlocked(l.lesson_no));
   const next=open.find(l=>!l.passed)||open[open.length-1];
   return next?next.lesson_no:1;
+ }
+ function scheduleProfessionalFirst(){
+  const auto=window.DXNTrainingAutoPlay;
+  if(!auto||autoInitialScheduled||!backendReady)return;
+  if(typeof role!=='undefined'&&role!=='member')return;
+  const no=defaultLesson(),l=lesson(no);
+  if(!l||!unlocked(no)||l.completed||l.passed||movie)return;
+  const details=document.querySelector('#trainingProfessionalStart details');
+  const box=document.getElementById('professionalInlineBox');
+  if(!details||!box||Number(box.dataset.no)!==no)return;
+  details.open=true;
+  const account=session;
+  if(auto.schedule({track:'professional',container:box,
+    valid:()=>token()===account&&backendReady&&selected===no&&unlocked(no)&&!movie,
+    start:()=>window.professionalCourseWatch(no)}))autoInitialScheduled=true;
+ }
+ function scheduleProfessionalNext(no,result){
+  const auto=window.DXNTrainingAutoPlay;
+  if(!auto||!lesson(no)||!unlocked(no))return;
+  const account=session;
+  auto.schedule({track:'professional',container:result,
+   valid:()=>token()===account&&backendReady&&unlocked(no)&&!!document.getElementById('professionalQuizBody'),
+   start:()=>{
+    closeQuiz();selected=no;selectedAuto=false;render();
+    return window.professionalCourseWatch(no);
+   }});
  }
  function listHtml(){
   return lessons.map(l=>{
@@ -94,7 +120,7 @@
    if(!Array.isArray(r.lessons))throw Error('استجابة غير صحيحة');
    lessons=r.lessons;backendReady=true;
   }catch(_){if(requested!==session)return;backendReady=false;}
-  finally{if(requested===session){loaded=true;loading=false;render();}}
+  finally{if(requested===session){loaded=true;loading=false;render();if(backendReady&&!autoInitialScheduled)setTimeout(scheduleProfessionalFirst,0);}}
  }
  window.professionalTrainingCoursePage=function(){
   resetIfAccountChanged();
@@ -109,6 +135,7 @@
    '<div id="professionalCourseBody">'+(token()?'جارٍ تحميل التدريبات...':'سجّل الدخول لعرض التدريبات.')+'</div></div></details></section>';
  };
  window.professionalCourseSelect=function(n){
+  window.DXNTrainingAutoPlay?.cancel('professional');
   n=Number(n);if(!backendReady||!lesson(n)||!unlocked(n))return;
   selectedAuto=false;if(n===selected)return;
   stopMovie();selected=n;render();
@@ -129,6 +156,7 @@
   await window.__professionalYTPromise;
  }
  window.professionalCourseWatch=async function(n){
+  window.DXNTrainingAutoPlay?.cancel('professional');
   resetIfAccountChanged();
   const l=lesson(Number(n));if(!backendReady||!l||!unlocked(l.lesson_no))return;
   const box=document.getElementById('professionalInlineBox');
@@ -144,13 +172,14 @@
   try{
    await youtube();if(movie!==m)return;
    m.player=new window.YT.Player('professionalYT',{videoId:l.video_id,playerVars:{rel:0,disablekb:1,playsinline:1,controls:1,start:0},
-    events:{onReady:()=>{if(movie!==m)return;m.session.attach(m.player);try{m.player.playVideo();}catch(_){}},
-     onStateChange:e=>{if(movie===m)m.session.onState(e.data);},
+    events:{onReady:()=>{if(movie!==m)return;m.session.attach(m.player);try{m.player.playVideo();}catch(_){}window.DXNTrainingAutoPlay?.ensurePlaying(m.player,box);},
+     onStateChange:e=>{if(movie===m){m.session.onState(e.data);if(e.data===1)window.DXNTrainingAutoPlay?.playing(box);}},
      onPlaybackRateChange:e=>{if(movie===m)m.session.onRate(e.data);}}});
   }catch(e){message(e.message||'تعذر تحميل الفيديو');}
  };
- function closeQuiz(){exam=null;document.querySelectorAll('.professional-course-overlay').forEach(x=>x.remove());}
+ function closeQuiz(){window.DXNTrainingAutoPlay?.cancel('professional');exam=null;document.querySelectorAll('.professional-course-overlay').forEach(x=>x.remove());}
  window.professionalCourseQuiz=async function(n){
+  autoInitialScheduled=true;window.DXNTrainingAutoPlay?.cancel('professional');
   resetIfAccountChanged();
   const l=lesson(Number(n));if(!backendReady||!l)return;
   if(!unlocked(l.lesson_no)||!l.completed||!l.published)return;
@@ -187,6 +216,7 @@
      const h=document.createElement('h2');h.textContent='درجة الاختبار: '+Math.round(100*Number(g.score||0)/(Number(g.out_of)||20))+' / 100';box.appendChild(h);
      const p=document.createElement('p');p.textContent=g.passed?E().MESSAGES.passed:E().MESSAGES.failed;box.appendChild(p);
      body.appendChild(box);await load();
+     if(g.passed&&lesson(e.no+1)&&unlocked(e.no+1))scheduleProfessionalNext(e.no+1,box);
     }catch(err){const note=document.createElement('p');note.className='basic-bag-notice';note.textContent='تعذر التصحيح: '+err.message;body.prepend(note);e.busy=false;pager.finish.disabled=false;pager.finish.textContent='إنهاء الاختبار وتصحيحه';}
    }});
    body.appendChild(form);
