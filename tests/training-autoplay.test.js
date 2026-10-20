@@ -15,10 +15,10 @@ const page=read('app/index.html');
 test('the five-second autoplay helper loads before all three separate course scripts',()=>{
  new vm.Script(auto);
  for(const src of [basic,professional,advanced])new vm.Script(src);
- assert.match(page,/training-auto-play\.js\?v=20261020-autoplay5/);
+ assert.match(page,/training-auto-play\.js\?v=20261020-basic2-fix1/);
  assert.ok(page.indexOf('training-auto-play.js')<page.indexOf('training-engine.js'));
  const names=['training-engine.js','basic-training.js','professional-training-course.js','advanced-financial-training.js'];
- for(const n of names)assert.ok(page.includes(n+'?v=20261020-autoplay5'),n);
+ for(const n of names)assert.ok(page.includes(n+'?v=20261020-basic2-fix1'),n);
 });
 
 test('initial lesson and following passed quiz schedule five-second video without changing 90% or grades',()=>{
@@ -95,4 +95,34 @@ test('autoplay blocked by mobile browser gets an explicit sound-on play button',
  button.click();
  assert.equal(player.started,true);
  assert.equal(button.isConnected,false);
+});
+
+test('basic lesson two always provides a manual play action and a useful YouTube error code',async()=>{
+ const {setup}=require('./helpers/training-harness');
+ const env=setup();
+ Object.assign(env.server.row('member-a','basic',1),{completed:true,passed:true,best:18});
+ env.host.innerHTML=env.ctx.basicTrainingCourseHtml();
+ await env.flush();
+ assert.match(env.byId('basicBagVideoTitle').textContent,/التدريب الأساسي 2 من 8/);
+ await env.ctx.basicBagStartVideo(2);
+ await env.flush();
+ const box=env.byId('basicBagInlineBox');
+ const assist=box.querySelector('.basic-video-2-assist');
+ assert.ok(assist,'lesson 2 manual recovery is present even if YouTube never becomes ready');
+ const button=assist.querySelector('button');
+ assert.match(button.textContent,/تشغيل فيديو التدريب الثاني بالصوت/);
+ const player=env.players.at(-1);
+ player.opts.events.onReady();
+ player.opts.events.onStateChange({data:1});
+ assert.equal(assist.hidden,true,'no overlay on top of a playing video');
+ player.opts.events.onStateChange({data:2});
+ assert.equal(assist.hidden,false,'manual play reappears when playback is paused or blocked');
+ button.click();
+ assert.equal(player.state,1,'manual gesture calls YouTube playVideo');
+ player.opts.events.onError({data:150});
+ assert.match(assist.textContent,/YouTube|التدريب الثاني/);
+ assert.equal(assist.querySelector('a').hidden,false,'external diagnostic visible on embed error');
+ assert.match(assist.querySelector('a').textContent,/لا تُحتسب/);
+ env.ctx.basicBagSelectLesson(1);
+ assert.equal(assist.isConnected,false,'recovery UI is removed on lesson change');
 });
