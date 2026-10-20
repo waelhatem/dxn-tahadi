@@ -18,6 +18,7 @@
  ];
  let loaded=false,backendReady=false,loading=false,progress=[],published=[],scores=[],movie=null,exam=null,viewerRole='';
  let overviewError='';
+ let autoInitialScheduled=false;
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const fmt=n=>Number.isFinite(n)?Math.max(0,Math.floor(n)):0;
  const currentLesson=n=>lessons.find(x=>x.no===Number(n));
@@ -36,7 +37,8 @@
   trainingSession=current;
   if(movie)stopMovie();
   loaded=false;backendReady=false;loading=false;progress=[];published=[];scores=[];
-  viewerRole='';overviewError='';exam=null;selectedNo=0;selectedAuto=true;
+  viewerRole='';overviewError='';exam=null;selectedNo=0;selectedAuto=true;autoInitialScheduled=false;
+  window.DXNTrainingAutoPlay?.cancel('basic');
  }
  async function rpc(fn,args={}){
   const tok=authToken();
@@ -155,9 +157,37 @@
   '<div id="basicBagLessonList" class="advanced-profit-list" aria-label="دروس التدريبات الأساسية">'+listHtml()+'</div>'+
   '<div class="advanced-profit-viewer unified-training__viewer">'+viewerHtml(item,v)+'</div></div>';
 }
+ function scheduleBasicFirst(){
+  const auto=window.DXNTrainingAutoPlay;
+  if(!auto||autoInitialScheduled||!backendReady||viewerRole!=='member')return;
+  const no=defaultLesson(),saved=statusOf(no);
+  if(!lessonUnlock(no)||saved.completed||saved.passed||movie)return;
+  const details=document.querySelector('#trainingBasicBagStart details');
+  const box=document.getElementById('basicBagInlineBox');
+  if(!details||!box||Number(box.dataset.no)!==no)return;
+  details.open=true;
+  const account=trainingSession;
+  if(auto.schedule({track:'basic',container:box,
+   valid:()=>authToken()===account&&backendReady&&lessonUnlock(no)&&selectedNo===no&&!movie&&!!document.getElementById('basicBagInlineBox'),
+   start:()=>window.basicBagStartVideo(no)}))autoInitialScheduled=true;
+ }
+ function scheduleBasicNext(no,result){
+  const auto=window.DXNTrainingAutoPlay;
+  if(!auto||!currentLesson(no)||!lessonUnlock(no))return;
+  const account=trainingSession;
+  auto.schedule({track:'basic',container:result,
+   valid:()=>authToken()===account&&backendReady&&lessonUnlock(no)&&!!document.getElementById('basicBagModalBody'),
+   start:()=>{
+    close();
+    selectedNo=no;selectedAuto=false;
+    refreshCards();
+    return window.basicBagStartVideo(no);
+   }});
+ }
  window.basicBagSelectLesson=function(no){
   no=Number(no);if(!currentLesson(no)||!canSelect(no))return;
   selectedAuto=false;
+  window.DXNTrainingAutoPlay?.cancel('basic');
   if(no===selectedNo)return;
   if(movie&&movie.inline)stopMovie();
   selectedNo=no;refreshCards();
@@ -200,6 +230,7 @@
    const n=document.getElementById('basicBagNotice');
    if(n)n.textContent=noticeText();
    refreshCards();
+  if(backendReady&&!autoInitialScheduled)setTimeout(scheduleBasicFirst,0);
   }
  }
  function maybeLoad(){ensureTrainingSession();if(!loaded&&!loading&&authToken()){loading=true;setTimeout(loadOverview,0);}return courseHtml();}
@@ -225,6 +256,7 @@
   return cover;
  }
  function close(){
+  window.DXNTrainingAutoPlay?.cancel('basic');
   stopMovie();
   exam=null;
   document.querySelectorAll('.basic-bag-overlay').forEach(x=>x.remove());
@@ -244,6 +276,7 @@
  /* V86.90 — Watching goes through the unified training engine: one attempt per viewing, from 0 s,
   * confirmed by the server; the old cumulative heartbeat is gone. Opening rules are unchanged. */
  window.basicBagStartVideo=async function(no){
+  window.DXNTrainingAutoPlay?.cancel('basic');
   if(authToken()!==trainingSession){ensureTrainingSession();refreshCards();return safeToast('تم تغيير الحساب؛ افتح التدريب مجددًا.');}
   const item=currentLesson(no);if(!item||!item.video)return safeToast('رابط الفيديو غير متوفر');
   if(!lessonUnlock(Number(no))&&!((no===2&&window.__basicVideoTwoPreview)||(no===3&&window.__basicVideoThreePreview)||(no===4&&window.__basicVideoFourPreview)||(no===5&&window.__basicVideoFivePreview)||(no===6&&window.__basicVideoSixPreview)||(no===7&&window.__basicVideoSevenPreview)||(no===8&&window.__basicVideoEightPreview)))return safeToast('التدريب مغلق: أكمل مشاهدة التدريب السابق واختباره');
@@ -281,13 +314,14 @@
    m.player=new window.YT.Player('basicBagYT',{
      videoId:item.video,playerVars:{rel:0,disablekb:1,playsinline:1,controls:1,cc_load_policy:1,cc_lang_pref:'ar',start:0},
      // The member pressed «ابدأ المشاهدة», so the video starts playing right away.
-     events:{onReady:()=>{if(movie!==m)return;m.session.attach(m.player);try{m.player.playVideo();}catch(_){}},
-      onStateChange:e=>{if(movie===m)m.session.onState(e.data);},
+     events:{onReady:()=>{if(movie!==m)return;m.session.attach(m.player);try{m.player.playVideo();}catch(_){}window.DXNTrainingAutoPlay?.ensurePlaying(m.player,inline);},
+      onStateChange:e=>{if(movie===m){m.session.onState(e.data);if(e.data===1)window.DXNTrainingAutoPlay?.playing(inline);}},
       onPlaybackRateChange:e=>{if(movie===m)m.session.onRate(e.data);}}
    });
   }catch(e){watchMessage(e.message||'تعذر تحميل الفيديو');}
  };
  window.basicBagStartQuiz=async function(no){
+  autoInitialScheduled=true;window.DXNTrainingAutoPlay?.cancel('basic');
   if(authToken()!==trainingSession){ensureTrainingSession();refreshCards();return safeToast('تم تغيير الحساب؛ افتح التدريب مجددًا.');}
   const item=currentLesson(no),p=statusOf(Number(no));
   if(!item)return;
@@ -385,6 +419,7 @@
       result.appendChild(note);
     }
     body.appendChild(result);await loadOverview();
+     if(graded.passed&&currentLesson(e.no+1)&&lessonUnlock(e.no+1))scheduleBasicNext(e.no+1,result);
    }catch(err){safeToast(err.message||'تعذر التصحيح');submit.disabled=false;submit.textContent=BASIC_FINISH_LABEL;pager.update();e.busy=false;}
   }
   const sections=e.questions.map((q,i)=>{
