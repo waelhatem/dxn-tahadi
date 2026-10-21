@@ -1,8 +1,9 @@
 # Migration-history reconciliation — verified blockers (2026-10-21)
 
-**Status: incomplete, safely blocked; not ready to merge or run on production.**
-This is a no-data / no-production-write investigation. Only the isolated Free-tier
-Supabase project `xmzbibwfetbepzuxeffs` was used for replay attempts.
+**Status: schema-only baseline inspected; migration replay remains incomplete.**
+**Not ready to merge or run on production.** This is a no-data / no-production-write
+investigation. Only the isolated Free-tier Supabase project
+`xmzbibwfetbepzuxeffs` was used for earlier replay attempts.
 
 ## Observed inventory
 
@@ -18,6 +19,49 @@ Supabase project `xmzbibwfetbepzuxeffs` was used for replay attempts.
   migrations directory**. It is an old V30 snapshot, not a vetted baseline;
   it contains seed data including a fixed demonstration leader credential.
   **Never execute the entire file as a new migration.**
+
+## Actual production schema-only export received and verified
+
+The owner supplied `dxn_public_schema_20261021.sql` from `supabase db dump
+--linked --schema public` (SHA-256:
+`37d350543a4ce6655403960e270f1d817122922c21aa12ab58432c41fa6d90ba`).
+It contains no table-row dump instructions. **The file is deliberately NOT in
+this GitHub repository.** This repository is public; SQL function bodies and
+access-control definitions must not be indiscriminately published.
+
+Read-only inventory from the actual dump:
+
+| Check | Verified result |
+| --- | --- |
+| `public` tables | 65 |
+| Tables with RLS enabled | 65/65 |
+| Table-level RLS policies | 0 (RPC-based access model; not blanket browser access) |
+| `public` function definitions | 195 |
+| `public` views | 5 |
+| Tables present in production without any `CREATE TABLE` in active migration files | **25** |
+| Historical table-creation names absent from the live snapshot | 4; may reflect superseded objects, requiring review |
+| `training_questions` schema model | `lesson_no` in production, historical `assessment_id` in one migration; mismatch confirmed |
+
+The 25 absent historical table definitions include all four required bootstrap
+tables (`teams`, `members`, `app_users`, `sessions`) and several later training
+and challenge tables. **Merely fixing migration filenames cannot reconstruct
+these objects.**
+
+Actual schema-level service-role privileges also confirm that the required
+`SELECT` columns for backend fallbacks are missing: seven in `app_users` and
+two in `members`. This matches the already-staged *column-only* pending SQL,
+which must not be applied without separate approval. No browser-role grants
+were added.
+
+Reproduce this analysis without exposing the SQL in GitHub:
+
+```bash
+npm run audit:schema -- --file /secure/local/path/dxn_public_schema_20261021.sql
+```
+
+The command reads only the local file and prints structural counts, absent
+table-creation names, and the role-grant gaps. It does not print SQL function
+bodies, create a migration, or connect to production.
 
 ## Verified failure sequence on a separate database
 
@@ -43,19 +87,20 @@ These failures are sufficient to conclude that bulk renaming, blindly
 replaying the 128 files, or invoking `supabase migration repair --status applied`
 **does not repair the schema**.
 
-## Safe reconciliation strategy (pending actual schema-only export)
+## Safe reconciliation strategy (after actual schema-only export)
 
-1. Produce a **schema-only** dump of the current production schema using
-   Supabase CLI `db dump` / PostgreSQL `pg_dump --schema-only` with
-   the owner's already-authorized database connection, locally and securely.
-   Never dump real rows, credentials, or database connection secrets into
-   GitHub or chat. Review any function definitions for embedded sensitive
-   literals before sharing a schema snapshot.
-2. Compare the dump with the 65 live `public` tables, views, triggers,
-   functions, extensions, constraints, indexes, RLS and role grants. Pay
-   special attention to the token-based RPC authorization model.
-3. Construct a canonical baseline migration in a **new draft branch** from
-   that schema-only snapshot, without legacy demo seeds or secrets.
+1. **Completed:** extract a schema-only production dump, without real member
+   rows, and keep it out of the public repository. The owner retains the local
+   copy; this analysis uses the private attachment for inspection only.
+2. **Partially completed:** compare table/column definitions, RLS and role
+   grants against the live snapshot and historical migrations. A deeper
+   function-by-function and object/extension dependency audit is still needed.
+3. Construct a canonical baseline migration in a **separately reviewed draft
+   branch** from that schema-only snapshot, without legacy demo seeds or
+   secrets. Because this GitHub repository is public, **do not commit the raw
+   dump**. A safe location/distribution strategy for the full production
+   function definitions must be resolved before any canonical replay can be
+   considered reproducible.
    Archive historical, already-incorporated migration scripts as immutable
    reference material **outside** the active migration directory; do not
    delete them or rewrite their meaning.
