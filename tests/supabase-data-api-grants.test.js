@@ -16,7 +16,7 @@ function auditSql(sql) {
     const table = match[1];
     const name = 'public\\.' + table;
     const rls = new RegExp('\\balter\\s+table\\s+(?:if\\s+exists\\s+)?' + name + '\\s+enable\\s+row\\s+level\\s+security\\b', 'i');
-    const grant = new RegExp('\\bgrant\\s+(?:select|insert|update|delete|all)(?:\\s*\\([^;]*?\\))?[\\s\\S]*?\\bon\\s+(?:table\\s+)?' + name + '\\s+to\\s+(?:anon|authenticated|service_role)\\b', 'i');
+    const grant = new RegExp('\\bgrant\\s+(?:select|insert|update|delete|all)(?:\\s*\\([^;]*?\\))?[^;]*?\\bon\\s+(?:table\\s+)?' + name + '\\s+to\\s+(?:anon|authenticated|service_role)\\b', 'i');
     const privateMarker = new RegExp('--\\s*data-api:\\s*private\\s+public\\.' + table + '\\b', 'i');
     const explicitRevoke = new RegExp('\\brevoke\\s+all\\s+on\\s+(?:table\\s+)?' + name + '\\s+from\\s+public\\s*,\\s*anon\\s*,\\s*authenticated\\b', 'i');
 
@@ -64,4 +64,9 @@ test('accepts an intentionally RPC-only table with explicit revocations', () => 
 
 test('rejects broad public-schema grants', () => {
   assert.match(auditSql('grant all on all tables in schema public to anon;').join(' '), /bulk GRANT ALL/);
+});
+
+test('an unrelated table grant cannot authorize a new table', () => {
+  const sql = 'create table public.example(id bigint);\nalter table public.example enable row level security;\ngrant select on table public.other_table to service_role;';
+  assert.match(auditSql(sql).join(' '), /specify minimal GRANT/i);
 });
