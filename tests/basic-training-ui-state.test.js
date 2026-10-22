@@ -8,11 +8,12 @@ const vm=require('node:vm');
 const path=require('node:path');
 const read=f=>fs.readFileSync(path.join(__dirname,'..',f),'utf8');
 
-function makeContext({role='member',me={id:'m-1'},overview}){
+function makeContext({role='member',me={id:'m-1'},overview,previewMode=false}){
   const timers=[],calls=[],elements={};
   const el=id=>({id,innerHTML:'',textContent:'',style:{},dataset:{},isConnected:true,querySelector:()=>null});
   const ctx={
-    console,Math,Number,String,Array,Object,JSON,Error,Promise,Set,Date,
+    console,Math,Number,String,Array,Object,JSON,Error,Promise,Set,Date,URLSearchParams,
+    location:previewMode?{hostname:'dxn-tahadi-git-preview-basic-lesson2-20261022-waeldxn11-2298.vercel.app',search:'?basic2_preview=new'}:{hostname:'localhost',search:''},
     role,me,innerWidth:1200,
     localStorage:{getItem:k=>k==='dxn_session'?'tok':null},
     setTimeout:f=>{timers.push(f);return timers.length},
@@ -119,4 +120,40 @@ test('legacy learner keeps original second video title and prior score',async()=
   assert.match(html,/التدريب 2: التعريف بشركة DXN ومنتجاتها ونظامها التسويقي والأرباح/);
   assert.match(html,/التدريب 3:/);
   assert.match(read('basic-training.js'),/videoId:item.video/);
+});
+
+test('the academy preview URL shows new second lesson even to an already-graded account, without altering its grade',async()=>{
+ const historic=()=>({role:'member',
+   progress:[{training_no:1,watched:503,duration:503,completed:true,passed:true,best_score:20},
+     {training_no:2,watched:439,duration:439,completed:true,passed:true,best_score:17}],
+   scores:[{training_no:1,score:20,passed:true},{training_no:2,score:17,passed:true}],
+   published_quizzes:[1,2,3],
+   lesson_metadata:[{training_no:2,title:'التعريف بشركة DXN ومنتجاتها ونظامها التسويقي والأرباح',video_id:'K_N80xZlxXw'}]});
+ const e=makeContext({overview:historic,previewMode:true});
+ vm.runInContext(read('training-engine.js'),e.ctx);
+ vm.runInContext(read('basic-training.js'),e.ctx);
+ const first=e.ctx.basicTrainingCourseHtml();
+ assert.match(first,/معاينة التدريب الثاني الجديد/);
+ e.mount(first);await e.runTimers();
+ const display=e.elements.basicBagCards.innerHTML;
+ assert.match(display,/التدريب 2: خطوات العمل وكيف تبدأ مع DXN/);
+ assert.match(display,/تشغيل الفيديو الجديد/);
+ assert.match(display,/معاينة الأسئلة الجديدة/);
+ assert.doesNotMatch(display,/التدريب 2: التعريف بشركة DXN ومنتجاتها/);
+ assert.equal(e.calls.filter(x=>x!=='basic_training_overview').length,0,'preview must be read-only');
+ const source=read('basic-training.js');
+ assert.ok(source.indexOf('if(basic2VisualPreview&&Number(no)===2)',source.indexOf('window.basicBagStartVideo='))<
+   source.indexOf('createWatch({track:',source.indexOf('window.basicBagStartVideo=')),
+   'preview video bypasses recording a watch attempt');
+ assert.ok(source.indexOf('if(basic2VisualPreview&&Number(no)===2)',source.indexOf('window.basicBagStartQuiz='))<
+   source.indexOf("rpc('basic_training_get_quiz'",source.indexOf('window.basicBagStartQuiz=')),
+   'preview quiz bypasses the production question-scoring RPC');
+});
+
+test('the preview parameter cannot enable the new lesson on a non-preview hostname',async()=>{
+ const e=makeContext({overview:()=>({role:'member',progress:[],scores:[],published_quizzes:[1,2]})});
+ e.ctx.location.search='?basic2_preview=new';
+ vm.runInContext(read('training-engine.js'),e.ctx);vm.runInContext(read('basic-training.js'),e.ctx);
+ e.mount(e.ctx.basicTrainingCourseHtml());await e.runTimers();
+ assert.doesNotMatch(e.elements.basicBagCards.innerHTML,/معاينة الأسئلة الجديدة/);
 });
