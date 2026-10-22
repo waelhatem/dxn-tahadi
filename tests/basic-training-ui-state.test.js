@@ -91,3 +91,32 @@ test('opening the member tab sends one request even though switchTab also asks t
   await env.runTimers();
   assert.equal(env.calls.filter(f=>f==='basic_training_overview').length,1);
 });
+
+test('newcomer sees revision-2 lesson title from server metadata after passing lesson 1',async()=>{
+  const overview=()=>({role:'member',
+    progress:[{training_no:1,watched:503,duration:503,completed:true,passed:true,best_score:20}],
+    published_quizzes:[1,2,3],scores:[{training_no:1,score:20,passed:true}],
+    lesson_metadata:[{training_no:2,title:'خطوات العمل وكيف تبدأ مع DXN',video_id:'Ii4uTWezANs'}]});
+  const env=makeContext({overview});
+  vm.runInContext(read('training-engine.js'),env.ctx);vm.runInContext(read('basic-training.js'),env.ctx);
+  env.mount(env.ctx.basicTrainingCourseHtml());await env.runTimers();
+  const html=env.elements.basicBagCards.innerHTML;
+  assert.match(html,/التدريب 2: خطوات العمل وكيف تبدأ مع DXN/);
+  assert.match(html,/التدريب الأساسي 2 من 8/);
+});
+
+test('legacy learner keeps original second video title and prior score',async()=>{
+  const overview=()=>({role:'member',
+    progress:[{training_no:1,watched:503,duration:503,completed:true,passed:true,best_score:20},
+      {training_no:2,watched:439,duration:439,completed:true,passed:true,best_score:17}],
+    published_quizzes:[1,2,3],
+    scores:[{training_no:1,score:20,passed:true},{training_no:2,score:17,passed:true}],
+    lesson_metadata:[{training_no:2,title:'التعريف بشركة DXN ومنتجاتها ونظامها التسويقي والأرباح',video_id:'K_N80xZlxXw'}]});
+  const env=makeContext({overview});
+  vm.runInContext(read('training-engine.js'),env.ctx);vm.runInContext(read('basic-training.js'),env.ctx);
+  env.mount(env.ctx.basicTrainingCourseHtml());await env.runTimers();
+  const html=env.elements.basicBagCards.innerHTML;
+  assert.match(html,/التدريب 2: التعريف بشركة DXN ومنتجاتها ونظامها التسويقي والأرباح/);
+  assert.match(html,/التدريب 3:/);
+  assert.match(read('basic-training.js'),/videoId:item.video/);
+});

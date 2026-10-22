@@ -21,7 +21,23 @@
  let autoInitialScheduled=false;
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const fmt=n=>Number.isFinite(n)?Math.max(0,Math.floor(n)):0;
+ const originalLessons=lessons.map(x=>({...x}));
  const currentLesson=n=>lessons.find(x=>x.no===Number(n));
+ // Each user sees the lesson revision assigned by the server. A legacy learner can
+ // keep the original video and quiz while new entrants receive revision 2.
+ function resetLessonMetadata(){
+  originalLessons.forEach(seed=>{const lesson=currentLesson(seed.no);if(lesson){lesson.title=seed.title;lesson.video=seed.video;}});
+ }
+ function applyLessonMetadata(items){
+  resetLessonMetadata();
+  if(!Array.isArray(items))return;
+  for(const raw of items){
+   const no=Number(raw?.training_no),lesson=currentLesson(no);
+   if(!lesson || typeof raw?.title!=='string' || !/^[A-Za-z0-9_-]{11}$/.test(String(raw?.video_id||'')))continue;
+   lesson.title=raw.title;
+   lesson.video=raw.video_id;
+  }
+ }
  const statusOf=n=>progress.find(x=>x.training_no===n)||{watched:0,duration:0,completed:false};
  // Successful completion of the previous training means video + submitted exam.
  const quizPublished=no=>published.some(x=>Number(x)===Number(no));
@@ -36,6 +52,7 @@
   if(current===trainingSession)return;
   trainingSession=current;
   if(movie)stopMovie();
+  resetLessonMetadata();
   loaded=false;backendReady=false;loading=false;progress=[];published=[];scores=[];
   viewerRole='';overviewError='';exam=null;selectedNo=0;selectedAuto=true;autoInitialScheduled=false;
   window.DXNTrainingAutoPlay?.cancel('basic');
@@ -220,6 +237,7 @@
    if(requestedSession!==trainingSession||authToken()!==requestedSession)return;
    if(!Array.isArray(r.progress)||!Array.isArray(r.published_quizzes)||!Array.isArray(r.scores))throw Error('تنسيق الاستجابة غير صحيح');
    progress=r.progress; published=r.published_quizzes;scores=r.scores;viewerRole=String(r.role||'');
+   applyLessonMetadata(r.lesson_metadata);
    loaded=true;backendReady=true;
   }catch(e){
    if(requestedSession!==trainingSession||authToken()!==requestedSession)return;
