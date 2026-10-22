@@ -100,7 +100,7 @@ test('newcomer sees revision-2 lesson title from server metadata after passing l
   const env=makeContext({overview});
   vm.runInContext(read('training-engine.js'),env.ctx);vm.runInContext(read('basic-training.js'),env.ctx);
   env.mount(env.ctx.basicTrainingCourseHtml());await env.runTimers();
-  const html=env.ctx.basicTrainingCourseHtml();
+  const html=env.elements.basicBagCards.innerHTML;
   assert.match(html,/التدريب 2: خطوات العمل وكيف تبدأ مع DXN/);
   assert.match(html,/التدريب الأساسي 2 من 8/);
 });
@@ -115,7 +115,7 @@ test('legacy learner keeps original second video title and prior score',async()=
   const env=makeContext({overview});
   vm.runInContext(read('training-engine.js'),env.ctx);vm.runInContext(read('basic-training.js'),env.ctx);
   env.mount(env.ctx.basicTrainingCourseHtml());await env.runTimers();
-  const html=env.ctx.basicTrainingCourseHtml();
+  const html=env.elements.basicBagCards.innerHTML;
   assert.match(html,/التدريب 2: التعريف بشركة DXN ومنتجاتها ونظامها التسويقي والأرباح/);
   assert.match(html,/التدريب 3:/);
   assert.match(read('basic-training.js'),/videoId:item.video/);
