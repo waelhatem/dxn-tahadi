@@ -6,6 +6,12 @@
  'use strict';
  if(window.__DXN_BASIC_BAG__)return;
  window.__DXN_BASIC_BAG__=true;
+ // Branch-only visual demo, activated by an explicit preview URL parameter.
+ const basic2VisualPreview=!!(window.location &&
+  window.location.hostname==='dxn-tahadi-git-preview-basic-lesson2-20261022-waeldxn11-2298.vercel.app' &&
+  new URLSearchParams(window.location.search||'').get('basic2_preview')==='new');
+ const basic2PreviewTitle='خطوات العمل وكيف تبدأ مع DXN';
+ const basic2PreviewVideo='Ii4uTWezANs';
  const lessons=[
   {no:1,title:'التعريف بمشروع DXN ومنتجاتها ونظامها التسويقي',video:'lxhnkUov9sE'},
   {no:2,title:'التعريف بشركة DXN ومنتجاتها ونظامها التسويقي والأرباح',video:'K_N80xZlxXw'},
@@ -21,7 +27,31 @@
  let autoInitialScheduled=false;
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const fmt=n=>Number.isFinite(n)?Math.max(0,Math.floor(n)):0;
+ const originalLessons=lessons.map(x=>({...x}));
  const currentLesson=n=>lessons.find(x=>x.no===Number(n));
+ function forceDemoMetadata(){
+  if(!basic2VisualPreview)return;
+  const item=currentLesson(2);
+  if(item){item.title=basic2PreviewTitle;item.video=basic2PreviewVideo;}
+ }
+ forceDemoMetadata();
+ // Each user sees the lesson revision assigned by the server. A legacy learner can
+ // keep the original video and quiz while new entrants receive revision 2.
+ function resetLessonMetadata(){
+  originalLessons.forEach(seed=>{const lesson=currentLesson(seed.no);if(lesson){lesson.title=seed.title;lesson.video=seed.video;}});
+  forceDemoMetadata();
+ }
+ function applyLessonMetadata(items){
+  resetLessonMetadata();
+  if(!Array.isArray(items)){forceDemoMetadata();return;}
+  for(const raw of items){
+   const no=Number(raw?.training_no),lesson=currentLesson(no);
+   if(!lesson || typeof raw?.title!=='string' || !/^[A-Za-z0-9_-]{11}$/.test(String(raw?.video_id||'')))continue;
+   lesson.title=raw.title;
+   lesson.video=raw.video_id;
+  }
+  forceDemoMetadata();
+ }
  const statusOf=n=>progress.find(x=>x.training_no===n)||{watched:0,duration:0,completed:false};
  // Successful completion of the previous training means video + submitted exam.
  const quizPublished=no=>published.some(x=>Number(x)===Number(no));
@@ -36,6 +66,7 @@
   if(current===trainingSession)return;
   trainingSession=current;
   if(movie)stopMovie();
+  resetLessonMetadata();
   loaded=false;backendReady=false;loading=false;progress=[];published=[];scores=[];
   viewerRole='';overviewError='';exam=null;selectedNo=0;selectedAuto=true;autoInitialScheduled=false;
   window.DXNTrainingAutoPlay?.cancel('basic');
@@ -69,10 +100,17 @@
  const canPreviewQuiz=()=>viewerRole==='leader'&&window.innerWidth>=900;
  // Locked lessons stay unselectable for members, as in the reference; the leader can still open
  // them to reach the unsaved quiz preview that the old cards offered on every training.
- const canSelect=no=>!backendReady||lessonUnlock(no)||canPreviewQuiz();
+ const canSelect=no=>!backendReady||lessonUnlock(no)||canPreviewQuiz()||(basic2VisualPreview&&Number(no)===2);
  function previewPct(no){return movie&&movie.no===no&&movie.preview?movie.pct||0:0;}
  // Everything the page shows for one lesson; the calls are the ones the old cards used.
  function lessonView(no){
+  if(basic2VisualPreview&&Number(no)===2){
+   return {icon:'👁',pct:0,pctLabel:'معاينة فقط',pctText:'غير محفوظ',
+    play:'basicBagStartVideo(2)',playLabel:'▶ تشغيل الفيديو الجديد (معاينة)',
+    quiz:'basicBagStartQuiz(2)',quizEnabled:true,quizLabel:'📝 معاينة الأسئلة الجديدة (20 سؤالًا)',
+    preview:'',status:'👁 معاينة بصرية فقط — لا تُحفظ درجات أو مشاهدة',
+    score:'',note:'نتائجك السابقة باقية. هذه المعاينة لا تُحتسب تدريبًا جديدًا.'};
+  }
   if(!backendReady){
    return {icon:'▶',pct:previewPct(no),pctLabel:'نسبة المشاهدة التجريبية',
     play:no===1?'basicBagStartVideo(1)':PREVIEW_VIDEO[no]+'()',playLabel:no===1?'▶ بدء التدريب / إعادة المشاهدة':'👁 معاينة الفيديو',
@@ -143,6 +181,7 @@
  const host=document.getElementById('basicBagCards');if(!host)return;
  // The page was rebuilt (tab switch, re-render): an inline player left behind is gone with it.
  if(movie&&movie.inline&&!(movie.box&&movie.box.isConnected))stopMovie();
+ if(basic2VisualPreview&&selectedAuto){selectedNo=2;selectedAuto=false;}
  if(selectedAuto||!canSelect(selectedNo))selectedNo=defaultLesson();
  const item=currentLesson(selectedNo)||lessons[0],v=lessonView(item.no);
  // A playing inline video must not be rebuilt: refresh the texts around it only.
@@ -196,6 +235,7 @@
  // The notice is rebuilt on every render, so it must follow the saved-progress
  // state instead of a one-time text set after the first load.
  function noticeText(){
+  if(basic2VisualPreview)return '👁 أنت في معاينة التدريب الثاني الجديد داخل الأكاديمية؛ لا تُحفظ أي نتائج أو مشاهدات.';
   if(!loaded)return authToken()?'جارٍ التحقق من حفظ التقدم والنتائج…':'سجّل الدخول لحفظ التقدم والنتائج.';
   if(backendReady)return '✅ حفظ النتائج مفعل. شرط الاجتياز: مشاهدة 90% في جلسة مشاهدة واحدة تبدأ من بداية الفيديو، ثم درجة 80 / 100 في اختبار من 20 سؤالًا. المشاهدة غير المكتملة لا تُحفظ بين الجلسات.';
   return 'المعاينة متاحة؛ لكن حفظ التقدم والاختبارات يحتاج تفعيل ترحيل Supabase المراجع. '+overviewError;
@@ -205,7 +245,7 @@
   return '<section id="trainingBasicBagStart" class="card basic-bag-page"><div class="title">📘 التدريبات الأساسية — حقيبة المهندس محمود المصري</div>'+
    '<p class="muted">ثمانية تدريبات بالترتيب؛ لكل تدريب فيديو واختبار معتمد من 20 سؤالًا، ولا يُفتح التدريب التالي قبل اجتياز السابق.</p>'+
    '<p id="basicBagNotice" class="basic-bag-notice">'+esc(noticeText())+'</p>'+
-   '<details class="advanced-profit-course academy-camps-course unified-training"><summary><span class="advanced-profit-course-emoji">📘</span>'+
+   '<details class="advanced-profit-course academy-camps-course unified-training"'+(basic2VisualPreview?' open':'')+'><summary><span class="advanced-profit-course-emoji">📘</span>'+
    '<span class="advanced-profit-course-copy"><strong>التدريبات الأساسية: حقيبة المهندس محمود المصري</strong>'+
    '<small>8 تدريبات متتابعة — فيديو واختبار من 20 سؤالًا لكل تدريب</small></span>'+
    '<span class="academy-camps-open-hint"><span class="academy-camps-hint-closed">▶ اضغط لعرض التدريبات الثمانية</span>'+
@@ -220,6 +260,7 @@
    if(requestedSession!==trainingSession||authToken()!==requestedSession)return;
    if(!Array.isArray(r.progress)||!Array.isArray(r.published_quizzes)||!Array.isArray(r.scores))throw Error('تنسيق الاستجابة غير صحيح');
    progress=r.progress; published=r.published_quizzes;scores=r.scores;viewerRole=String(r.role||'');
+   applyLessonMetadata(r.lesson_metadata);
    loaded=true;backendReady=true;
   }catch(e){
    if(requestedSession!==trainingSession||authToken()!==requestedSession)return;
@@ -329,6 +370,17 @@
   window.DXNTrainingAutoPlay?.cancel('basic');
   if(authToken()!==trainingSession){ensureTrainingSession();refreshCards();return safeToast('تم تغيير الحساب؛ افتح التدريب مجددًا.');}
   const item=currentLesson(no);if(!item||!item.video)return safeToast('رابط الفيديو غير متوفر');
+  if(basic2VisualPreview&&Number(no)===2){
+   // Preview video never starts/saves a training-watch session.
+   close();
+   const modal=createModal('معاينة الفيديو: '+basic2PreviewTitle);
+   modal.querySelector('#basicBagModalBody').innerHTML='<p class="basic-bag-notice">👁 مشاهدة تجريبية دون احتساب التقدم أو تعديل النتائج.</p>'+
+    '<div class="basic-bag-player" style="aspect-ratio:16/9">'+
+    '<iframe title="فيديو التدريب الثاني الجديد" src="https://www.youtube-nocookie.com/embed/'+basic2PreviewVideo+'?autoplay=1&amp;playsinline=1&amp;rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen style="width:100%;height:100%;border:0"></iframe></div>'+
+    '<p class="basic-bag-description">إذا لم يبدأ تلقائيًا، اضغط تشغيل داخل الفيديو. المعاينة لا تُحفظ.</p>';
+   document.addEventListener('keydown',escapeClose);
+   return;
+  }
   if(!lessonUnlock(Number(no))&&!((no===2&&window.__basicVideoTwoPreview)||(no===3&&window.__basicVideoThreePreview)||(no===4&&window.__basicVideoFourPreview)||(no===5&&window.__basicVideoFivePreview)||(no===6&&window.__basicVideoSixPreview)||(no===7&&window.__basicVideoSevenPreview)||(no===8&&window.__basicVideoEightPreview)))return safeToast('التدريب مغلق: أكمل مشاهدة التدريب السابق واختباره');
   close();
   const box=document.getElementById('basicBagInlineBox');
@@ -389,6 +441,15 @@
   if(authToken()!==trainingSession){ensureTrainingSession();refreshCards();return safeToast('تم تغيير الحساب؛ افتح التدريب مجددًا.');}
   const item=currentLesson(no),p=statusOf(Number(no));
   if(!item)return;
+  if(basic2VisualPreview&&Number(no)===2){
+   // Preview questions omit the answer key; no quiz RPC, score, or grade updates.
+   close();
+   const modal=createModal('معاينة اختبار التدريب الثاني الجديد — دون حفظ');
+   modal.querySelector('#basicBagModalBody').innerHTML='<p class="basic-bag-notice">👁 اختبار تجريبي من 20 سؤالًا دون تصحيح أو حفظ درجات.</p>'+
+    '<iframe title="الأسئلة العشرون الجديدة" loading="lazy" src="/basic-training-2-preview.html#quizTitle" style="width:100%;height:min(78vh,740px);min-height:480px;border:1px solid #ddd;border-radius:12px"></iframe>';
+   document.addEventListener('keydown',escapeClose);
+   return;
+  }
   if(!lessonUnlock(Number(no)))return safeToast('التدريب مغلق: أكمل التدريب السابق أولًا');
   if(!backendReady)return safeToast('يجب تفعيل قاعدة البيانات قبل تقديم الاختبارات');
   if(!p.completed)return safeToast('أكمل مشاهدة الفيديو أولًا');
