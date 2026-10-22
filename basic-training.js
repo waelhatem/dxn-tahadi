@@ -6,6 +6,12 @@
  'use strict';
  if(window.__DXN_BASIC_BAG__)return;
  window.__DXN_BASIC_BAG__=true;
+ // Branch-only visual demo, activated by an explicit preview URL parameter.
+ const basic2VisualPreview=!!(window.location &&
+  window.location.hostname==='dxn-tahadi-git-preview-basic-lesson2-20261022-waeldxn11-2298.vercel.app' &&
+  new URLSearchParams(window.location.search||'').get('basic2_preview')==='new');
+ const basic2PreviewTitle='خطوات العمل وكيف تبدأ مع DXN';
+ const basic2PreviewVideo='Ii4uTWezANs';
  const lessons=[
   {no:1,title:'التعريف بمشروع DXN ومنتجاتها ونظامها التسويقي',video:'lxhnkUov9sE'},
   {no:2,title:'التعريف بشركة DXN ومنتجاتها ونظامها التسويقي والأرباح',video:'K_N80xZlxXw'},
@@ -23,20 +29,28 @@
  const fmt=n=>Number.isFinite(n)?Math.max(0,Math.floor(n)):0;
  const originalLessons=lessons.map(x=>({...x}));
  const currentLesson=n=>lessons.find(x=>x.no===Number(n));
+ function forceDemoMetadata(){
+  if(!basic2VisualPreview)return;
+  const item=currentLesson(2);
+  if(item){item.title=basic2PreviewTitle;item.video=basic2PreviewVideo;}
+ }
+ forceDemoMetadata();
  // Each user sees the lesson revision assigned by the server. A legacy learner can
  // keep the original video and quiz while new entrants receive revision 2.
  function resetLessonMetadata(){
   originalLessons.forEach(seed=>{const lesson=currentLesson(seed.no);if(lesson){lesson.title=seed.title;lesson.video=seed.video;}});
+  forceDemoMetadata();
  }
  function applyLessonMetadata(items){
   resetLessonMetadata();
-  if(!Array.isArray(items))return;
+  if(!Array.isArray(items)){forceDemoMetadata();return;}
   for(const raw of items){
    const no=Number(raw?.training_no),lesson=currentLesson(no);
    if(!lesson || typeof raw?.title!=='string' || !/^[A-Za-z0-9_-]{11}$/.test(String(raw?.video_id||'')))continue;
    lesson.title=raw.title;
    lesson.video=raw.video_id;
   }
+  forceDemoMetadata();
  }
  const statusOf=n=>progress.find(x=>x.training_no===n)||{watched:0,duration:0,completed:false};
  // Successful completion of the previous training means video + submitted exam.
@@ -86,10 +100,17 @@
  const canPreviewQuiz=()=>viewerRole==='leader'&&window.innerWidth>=900;
  // Locked lessons stay unselectable for members, as in the reference; the leader can still open
  // them to reach the unsaved quiz preview that the old cards offered on every training.
- const canSelect=no=>!backendReady||lessonUnlock(no)||canPreviewQuiz();
+ const canSelect=no=>!backendReady||lessonUnlock(no)||canPreviewQuiz()||(basic2VisualPreview&&Number(no)===2);
  function previewPct(no){return movie&&movie.no===no&&movie.preview?movie.pct||0:0;}
  // Everything the page shows for one lesson; the calls are the ones the old cards used.
  function lessonView(no){
+  if(basic2VisualPreview&&Number(no)===2){
+   return {icon:'👁',pct:0,pctLabel:'معاينة فقط',pctText:'غير محفوظ',
+    play:'basicBagStartVideo(2)',playLabel:'▶ تشغيل الفيديو الجديد (معاينة)',
+    quiz:'basicBagStartQuiz(2)',quizEnabled:true,quizLabel:'📝 معاينة الأسئلة الجديدة (20 سؤالًا)',
+    preview:'',status:'👁 معاينة بصرية فقط — لا تُحفظ درجات أو مشاهدة',
+    score:'',note:'نتائجك السابقة باقية. هذه المعاينة لا تُحتسب تدريبًا جديدًا.'};
+  }
   if(!backendReady){
    return {icon:'▶',pct:previewPct(no),pctLabel:'نسبة المشاهدة التجريبية',
     play:no===1?'basicBagStartVideo(1)':PREVIEW_VIDEO[no]+'()',playLabel:no===1?'▶ بدء التدريب / إعادة المشاهدة':'👁 معاينة الفيديو',
@@ -160,6 +181,7 @@
  const host=document.getElementById('basicBagCards');if(!host)return;
  // The page was rebuilt (tab switch, re-render): an inline player left behind is gone with it.
  if(movie&&movie.inline&&!(movie.box&&movie.box.isConnected))stopMovie();
+ if(basic2VisualPreview&&selectedAuto){selectedNo=2;selectedAuto=false;}
  if(selectedAuto||!canSelect(selectedNo))selectedNo=defaultLesson();
  const item=currentLesson(selectedNo)||lessons[0],v=lessonView(item.no);
  // A playing inline video must not be rebuilt: refresh the texts around it only.
@@ -213,6 +235,7 @@
  // The notice is rebuilt on every render, so it must follow the saved-progress
  // state instead of a one-time text set after the first load.
  function noticeText(){
+  if(basic2VisualPreview)return '👁 أنت في معاينة التدريب الثاني الجديد داخل الأكاديمية؛ لا تُحفظ أي نتائج أو مشاهدات.';
   if(!loaded)return authToken()?'جارٍ التحقق من حفظ التقدم والنتائج…':'سجّل الدخول لحفظ التقدم والنتائج.';
   if(backendReady)return '✅ حفظ النتائج مفعل. شرط الاجتياز: مشاهدة 90% في جلسة مشاهدة واحدة تبدأ من بداية الفيديو، ثم درجة 80 / 100 في اختبار من 20 سؤالًا. المشاهدة غير المكتملة لا تُحفظ بين الجلسات.';
   return 'المعاينة متاحة؛ لكن حفظ التقدم والاختبارات يحتاج تفعيل ترحيل Supabase المراجع. '+overviewError;
