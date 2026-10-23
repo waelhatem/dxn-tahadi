@@ -66,7 +66,7 @@ test('owner-approved training 4 can be privately imported after its key is confi
     assert.deepEqual(lessons,[4]);
     assert.deepEqual(missing,[1,2,3,5]);
     assert.deepEqual(draft,[]);
-    assert.match(sql,/import_bank\\(4,/);
+    assert.match(sql,/import_bank\(4,/);
   }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
 
