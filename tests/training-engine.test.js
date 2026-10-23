@@ -253,3 +253,43 @@ test('the six unified states are the same strings in every track',()=>{
   assert.equal(E.lessonState({unlocked:true,watchCompleted:true,attempted:true}),'failed');
   assert.equal(E.lessonState({unlocked:true,watchCompleted:true,attempted:true,passed:true}),'passed');
 });
+
+
+test('basic lesson two: recheck recovers a server-confirmed quiz unlock after lost acknowledgement',async()=>{
+  const env=setup();
+  Object.assign(env.server.row('member-a','basic',1),{completed:true,passed:true,best:17});
+  await TRACKS.basic.mount(env);await TRACKS.basic.open(env,2);
+  assert.equal(TRACKS.basic.quizOpen(env),false,'before the server confirms the watch');
+  assert.ok(env.byId('basicViewerQuizAction').querySelector('.basic-quiz-recheck'),'read-only recovery action is visible');
+  // Another tab or a late watch RPC has saved completion while this page is stale.
+  env.server.row('member-a','basic',2).completed=true;
+  const before=env.rpcs('training_watch_begin').length;
+  await env.ctx.basicBagRefreshSecondQuiz();await env.flush();
+  assert.equal(TRACKS.basic.quizOpen(env),true,'after rereading its member-scoped server status');
+  assert.equal(env.rpcs('training_watch_begin').length,before,'the recovery does not create a watch attempt');
+  assert.equal(env.rpcs('training_watch_report').length,0,'the recovery never grants watch credit');
+  await env.ctx.basicBagStartQuiz(2);await env.flush();
+  assert.equal(env.byId('basicBagModalBody').querySelectorAll('fieldset').length,20,'the second quiz can now be loaded');
+});
+
+test('basic lesson two: a genuinely unfinished watch remains locked after verification',async()=>{
+  const env=setup();
+  Object.assign(env.server.row('member-a','basic',1),{completed:true,passed:true,best:17});
+  await TRACKS.basic.mount(env);await TRACKS.basic.open(env,2);
+  await env.ctx.basicBagRefreshSecondQuiz();await env.flush();
+  assert.equal(TRACKS.basic.quizOpen(env),false);
+  assert.match(env.byId('basicQuizRecoveryStatus').textContent,/لم يؤكد الخادم مشاهدة 90%/);
+  assert.equal(env.rpcs('training_watch_report').length,0);
+});
+
+test('basic lesson two: a temporary overview error does not unlock the quiz without server confirmation',async()=>{
+  const env=setup();
+  Object.assign(env.server.row('member-a','basic',1),{completed:true,passed:true,best:17});
+  await TRACKS.basic.mount(env);await TRACKS.basic.open(env,2);
+  const original=env.server.handle;
+  env.server.handle=(fn,args)=>fn==='basic_training_overview'
+    ?{ok:false,body:{error:'تعذر الاتصال مؤقتًا'}}:original(fn,args);
+  await env.ctx.basicBagRefreshSecondQuiz();await env.flush();
+  assert.equal(TRACKS.basic.quizOpen(env),false);
+  assert.match(env.byId('basicQuizRecoveryStatus').textContent,/تعذر الاتصال/);
+});
