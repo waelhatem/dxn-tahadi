@@ -8,6 +8,25 @@ const api=require('../api/academy-video-storage.js');
 const sql=fs.readFileSync(path.join(ROOT,'supabase/migrations/20261019093000_academy_leader_videos.sql'),'utf8');
 const academy=fs.readFileSync(path.join(ROOT,'app/academy.js'),'utf8');
 const enhanced=fs.readFileSync(path.join(ROOT,'app/academy-leader-videos.js'),'utf8');
+const guideSql=fs.readFileSync(path.join(ROOT,'supabase/migrations/20261026150000_academy_guide_uploads.sql'),'utf8');
+
+test('leader can upload inside the guide independently from leader explanations',()=>{
+  assert.match(enhanced,/guideSlot\.id='academyGuideUploadSlot'/);
+  assert.match(enhanced,/mode==='guide'\)\{slot\.append\(form,status\)\}/);
+  assert.match(enhanced,/academy_guide_video_publish/);
+  assert.match(enhanced,/academy_leader_video_publish/);
+  assert.match(enhanced,/id="academyGuideVideoList"/);
+  assert.match(enhanced,/academy_guide_videos_list/);
+  assert.match(enhanced,/destination==='guide'\s*\?\s*'✅ أُضيف الفيديو إلى دليل استخدام المجتمع/);
+  assert.match(guideSql,/placement in \('leader','guide'\)/);
+  assert.match(guideSql,/v\.placement='leader'/);
+  assert.match(guideSql,/v\.placement='guide'/);
+  assert.match(guideSql,/public\.app_current_role\(p_token\)<>'leader'/);
+  assert.match(guideSql,/placement='leader' or not is_welcome/);
+  for(const k of ['academy-intro-community','academy-main-interface','academy-new-visitor']){
+    assert.ok(academy.includes(k),'original guide video missing: '+k);
+  }
+});
 const index=fs.readFileSync(path.join(ROOT,'app/index.html'),'utf8');
 
 const token='11111111-1111-4111-8111-111111111111';
