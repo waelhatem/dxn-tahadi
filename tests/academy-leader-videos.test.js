@@ -424,5 +424,5 @@ test('leader can preview the exact welcome notice layout without sending or read
  assert.match(preview,/function dismiss\(\)/);
  assert.match(preview,/selectVideo\(video\.id\)/);
  assert.doesNotMatch(preview,/acknowledge_global_announcement|create_global_announcement|gaRpc\(|rpc\(/);
- assert.match(index,/academy-leader-videos\.js\?v=20261019-welcome-preview-1/);
+ assert.match(index,/academy-leader-videos\.js\?v=20261026-guide-upload-1/);
 });
