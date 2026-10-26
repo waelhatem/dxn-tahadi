@@ -30,6 +30,10 @@
 .followup-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .followup-checkbox{display:flex!important;align-items:center;gap:8px}
 .followup-checkbox input{width:auto;min-width:18px;height:18px;margin:0}
+.followup-assignee{background:#f1f8f3;border:1px solid #cce5d4;border-radius:12px;padding:10px 12px;margin:12px 0}
+.followup-assignee input,.followup-assignee select{width:100%}
+.followup-assignee p{margin:4px 0 0;font-size:13px}
+.followup-self-assignee{background:#f1f8f3;border:1px solid #cce5d4;border-radius:12px;padding:12px;line-height:1.8}
 .followup-actions{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 2px}
 .followup-stage{border-radius:14px;background:#ebf7f0;border:1px solid #cde8d7;padding:13px;margin-top:12px;display:grid;gap:7px}
 .followup-shortnote{background:#f6f9f7;border-radius:10px;padding:8px;margin-top:8px;line-height:1.7}

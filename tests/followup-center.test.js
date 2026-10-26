@@ -8,6 +8,7 @@ const modulePath = path.join(root, 'app', 'followup-center.js');
 const index = fs.readFileSync(path.join(root, 'app', 'index.html'), 'utf8');
 const sql = fs.readFileSync(path.join(root, 'supabase', 'pending-review', '20261026_followup_center_draft.sql'), 'utf8');
 const followup = require(modulePath);
+const script = fs.readFileSync(modulePath, 'utf8');
 
 test('Arabic lead cards provide a structured name, country, phone and source', () => {
   const card = 'الاسم: علي أحمد\nالجنس: ذكر\nالدولة: العراق\nرقم الهاتف: +964 770 123 4567\nالإعلان: حملة أكتوبر';
@@ -46,4 +47,14 @@ test('database draft is private, session-scoped, and not a live migration', () =
   assert.match(sql, /for update;/);
   assert.doesNotMatch(sql, /auth\.uid\(\)/);
   assert.match(sql, /p_reminder_minutes integer default 30/);
+});
+
+test('an assignee must be explicitly selected and each case belongs to that member', () => {
+  assert.match(script, /العضو الذي أُحيل إليه المهتم/);
+  assert.match(script, /العضو الذي سُجّل معه العضو الجديد/);
+  assert.match(script, /ابحث بالاسم أو رقم العضوية/);
+  assert.match(script, /اختر العضو المسؤول عن هذه الحالة قبل الحفظ/);
+  assert.match(script, /المسؤول: \$\{escapeHtml\(contact\.assigned_name/);
+  assert.match(sql, /if v_role='leader' and p_assignee_user_id is null then/);
+  assert.match(sql, /where \(v_role='leader' or f\.assigned_user_id=v_uid\)/);
 });

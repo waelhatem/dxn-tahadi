@@ -74,7 +74,7 @@ begin
   into v_result
   from public.app_users u
   left join public.members m on m.id=u.member_id
-  where u.active and u.role='member';
+  where u.active and u.role in ('member','leader');
   return v_result;
 end;
 $$;
@@ -153,7 +153,10 @@ begin
     raise exception 'البيانات المدخلة طويلة جدًا';
   end if;
   if p_reminder_minutes not in (15,30) then raise exception 'وقت التذكير غير صحيح'; end if;
-  v_owner := case when v_role='leader' then coalesce(p_assignee_user_id,v_uid) else v_uid end;
+  if v_role='leader' and p_assignee_user_id is null then
+    raise exception 'اختر العضو المسؤول عن الحالة قبل الحفظ';
+  end if;
+  v_owner := case when v_role='leader' then p_assignee_user_id else v_uid end;
   if v_role='member' and p_assignee_user_id is not null and p_assignee_user_id<>v_uid then
     raise exception 'لا يمكن إسناد حالات إلى عضو آخر';
   end if;

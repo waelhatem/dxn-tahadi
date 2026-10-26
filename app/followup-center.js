@@ -137,7 +137,7 @@
     const name = escapeHtml(contact.name);
     return `<div class="followup-person">
       <div class="followup-person-main"><strong>${name}</strong><span>${escapeHtml(contact.country || '—')} · ${escapeHtml(stageLabel(contact))}</span>
-        <small>${escapeHtml(scheduled(contact))}</small></div>
+        <small>المسؤول: ${escapeHtml(contact.assigned_name || 'غير محدد')} · ${escapeHtml(scheduled(contact))}</small></div>
       <div class="followup-person-side"><span class="badge">${escapeHtml(dueLabel(contact) || 'محفوظ')}</span>
         <button type="button" class="primary" onclick="followupCenter.open('${escapeHtml(contact.id)}')">فتح البطاقة</button></div>
     </div>`;
@@ -211,11 +211,29 @@
     root.document.body.appendChild(el);
   }
   function close() { root.document?.getElementById('followupModal')?.remove(); }
+  function assigneeOptions(members, selectedId) {
+    const options = members.map(member => `<option value="${escapeHtml(member.id)}" ${member.id === selectedId ? 'selected' : ''}>${escapeHtml(member.name || 'عضو دون اسم')} — ${escapeHtml(member.member_no || 'لا يوجد رقم عضوية')}</option>`);
+    return `<option value="" ${!selectedId ? 'selected' : ''} disabled>اختر العضو المسؤول عن المتابعة</option>${options.join('')}`;
+  }
+  function searchAssignees() {
+    const input = root.document.getElementById('followupAssigneeSearch');
+    const select = root.document.getElementById('followupAssignee');
+    if (!input || !select) return;
+    const query = input.value.trim().toLocaleLowerCase();
+    const selectedId = select.value;
+    const matches = state.assignees.filter(member =>
+      `${member.name || ''} ${member.member_no || ''}`.toLocaleLowerCase().includes(query));
+    select.innerHTML = assigneeOptions(matches, matches.some(m => m.id === selectedId) ? selectedId : '');
+  }
   function add() {
     ensureSession();
-    const assigneeControl = root.followupSession?.role === 'leader' ? `<label>العضو المسؤول<select id="followupAssignee" required>
-      ${state.assignees.map(m => `<option value="${escapeHtml(m.id)}">${escapeHtml(m.name)} — ${escapeHtml(m.member_no || '')}</option>`).join('')}
-    </select></label>` : '';
+    const assigneeTitle = state.kind === 'prospect' ? 'العضو الذي أُحيل إليه المهتم' : 'العضو الذي سُجّل معه العضو الجديد (السبونسر)';
+    const assigneeControl = root.followupSession?.role === 'leader'
+      ? `<div class="followup-assignee"><label>${assigneeTitle} <span aria-hidden="true">*</span>
+        <input type="search" id="followupAssigneeSearch" oninput="followupCenter.searchAssignees()" placeholder="ابحث بالاسم أو رقم العضوية" autocomplete="off">
+        <select id="followupAssignee" required>${assigneeOptions(state.assignees, '')}</select></label>
+        <p class="muted">ستظهر هذه البطاقة للعضو المحدد في مركز المتابعة الخاص به.</p></div>`
+      : `<p class="followup-self-assignee"><b>${assigneeTitle}:</b> أنت — ستُحفظ هذه الحالة في قائمة متابعاتك الخاصة.</p>`;
     modal(`<form id="followupAddForm" onsubmit="followupCenter.save(event)">
       <h3>إضافة ${state.kind === 'prospect' ? 'مهتم' : 'عضو مسجل'}</h3>
       ${state.kind === 'prospect' ? '<label>الصق بطاقة المهتم كاملة<textarea id="followupCard" placeholder="الاسم: ...\nالدولة: ...\nرقم الهاتف: ..." oninput="followupCenter.fillFromCard()"></textarea></label>' : ''}
@@ -250,10 +268,14 @@
     if (due && Number.isNaN(new Date(due).getTime())) return root.toast('تأكد من صحة موعد المتابعة.');
     const card = parseLeadCard($('followupCard')?.value || '');
     const consent = !!$('followupConsent')?.checked;
+    const leader = root.followupSession?.role === 'leader';
+    const assigneeId = $('followupAssignee')?.value || null;
+    if (leader && (!assigneeId || !state.assignees.some(m => m.id === assigneeId)))
+      return root.toast('اختر العضو المسؤول عن هذه الحالة قبل الحفظ.');
     try {
       await root.rpc('followup_add', {
         p_token: root.followupSession.token, p_kind: state.kind, p_name: name,
-        p_assignee_user_id: $('followupAssignee')?.value || null,
+        p_assignee_user_id: assigneeId,
         p_phone: $('followupPhone')?.value.trim() || null,
         p_country: $('followupCountry')?.value.trim() || null,
         p_gender: card.gender || null,
@@ -371,7 +393,7 @@
     );
   }
 
-  root.followupCenter = { render, load, reload, changeKind, changeFilter, add, fillFromCard,
+  root.followupCenter = { render, load, reload, changeKind, changeFilter, add, searchAssignees, fillFromCard,
     save, open, close, record, copyTemplate, parseLeadCard, stageLabel, enableDeviceReminders };
   if (root.document && typeof root.setInterval === 'function') root.setInterval(checkReminders, 60000);
   if (typeof module !== 'undefined' && module.exports)
