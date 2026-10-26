@@ -12,7 +12,7 @@
   const COVER_SRC='/academy-leader-photo.avif';
   const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
   const TYPES=['video/mp4','video/quicktime','video/webm','video/x-m4v','video/3gpp'];
-  let mode='guide',videos=[],activeRoot=null,loading=false;
+  let mode='guide',videos=[],guideVideos=[],activeRoot=null,loading=false,guideLoading=false;
   let localVideoPreviewUrl='';
   function session(){try{return String(localStorage.getItem('dxn_session')||'').trim()}catch(_){return ''}}
   function isLeader(){try{return typeof role!=='undefined'&&role==='leader'}catch(_){return false}}
@@ -86,7 +86,7 @@
     section.hidden=true;
     section.innerHTML='<header class="academy-leader-header"><span>🎓 أكاديمية المجتمع</span><h2>🎬 شروحات القائد</h2><p>شروحات فيديو حديثة تساعدك على استخدام المجتمع والاستفادة من إمكاناته.</p></header>'
       +(isLeader()?'<form id="academyLeaderUploadForm" class="academy-leader-upload">'
-        +'<strong>👑 أضف شرحاً جديداً من هاتفك</strong>'
+        +'<strong id="academyUploadFormHeading">👑 أضف شرحاً جديداً من هاتفك</strong>'
         +'<label>1️⃣ اختر الفيديو أولاً<input type="file" id="academyLeaderVideoFile" accept="video/mp4,video/quicktime,video/webm,video/x-m4v,video/3gpp,.mp4,.mov,.webm,.m4v,.3gp" required></label>'
         +'<small>اختيار الملف لا يرفع الفيديو ولا ينشره. استمع إليه وشاهده أولاً من جهازك، ثم اختر العنوان المناسب.</small>'
         +'<section class="academy-leader-local-preview" id="academyLeaderLocalPreview" aria-label="معاينة الفيديو قبل النشر" hidden>'
@@ -110,12 +110,21 @@
         +'<progress id="academyLeaderProgress" max="100" value="0" aria-label="نسبة رفع الفيديو"></progress>'
         +'<button type="button" id="academyLeaderPauseUpload" hidden>⏸️ إيقاف مؤقت</button>'
         +'</div>'
-        +'<p class="academy-leader-welcome-note">🎓 أول فيديو تنشره في «شروحات القائد» سيُعتمد تلقائياً دليلاً ترحيبياً للأعضاء الجدد. ويمكنك اختيار فيديو آخر لاحقاً.</p>'
+        +'<p id="academyLeaderWelcomeNote" class="academy-leader-welcome-note">🎓 أول فيديو تنشره في «شروحات القائد» سيُعتمد تلقائياً دليلاً ترحيبياً للأعضاء الجدد. ويمكنك اختيار فيديو آخر لاحقاً.</p>'
         +'<button type="submit" id="academyLeaderPublishButton" disabled>⬆️ نشر الفيديو وإرسال الإعلان</button>'
         +'</form>':'')
       +'<div role="status" aria-live="polite" id="academyLeaderVideoMessage"></div>'
       +'<div id="academyLeaderVideoPlayer"></div><div id="academyLeaderVideoList"></div>';
     root.appendChild(section);
+    const guideSlot=elem('div','academy-guide-upload-slot');
+    guideSlot.id='academyGuideUploadSlot';
+    guideSlot.dataset.academyGuideElement='1';
+    root.insertBefore(guideSlot,root.querySelector('.academy-tour')||section);
+    const guideSection=elem('section','academy-guide-added');
+    guideSection.id='academyGuideAdded';
+    guideSection.dataset.academyGuideElement='1';
+    guideSection.innerHTML='<header class="academy-guide-added-header"><h3>📘 فيديوهات إضافية في دليل الاستخدام</h3><p>شروحات تُضاف إلى الدليل بجانب الفيديوهات الثلاثة الأساسية.</p></header><div id="academyGuideVideoList"></div>';
+    root.insertBefore(guideSection,section);
     const form=section.querySelector('#academyLeaderUploadForm');
     if(form){
       form.addEventListener('submit',function(event){event.preventDefault();uploadVideo()});
@@ -166,11 +175,59 @@
     const host=root.querySelector('#academyLeaderVideosHost');
     const tabs=root.querySelector('#academyLeaderTabSwitch');
     if(!host||!tabs)return;
+    const form=root.querySelector('#academyLeaderUploadForm');
+    const status=root.querySelector('#academyLeaderVideoMessage');
+    const slot=root.querySelector('#academyGuideUploadSlot');
+    const before=host.querySelector('#academyLeaderVideoPlayer');
+    if(isLeader()&&form&&status&&slot){
+      if(mode==='guide'){slot.append(form,status)}
+      else{host.insertBefore(form,before);host.insertBefore(status,before)}
+      const heading=root.querySelector('#academyUploadFormHeading');
+      const publish=root.querySelector('#academyLeaderPublishButton');
+      const welcome=root.querySelector('#academyLeaderWelcomeNote');
+      if(heading)heading.textContent=mode==='guide'?'👑 إضافة فيديو إلى دليل استخدام المجتمع':'👑 أضف شرحاً جديداً من هاتفك';
+      if(publish)publish.textContent=mode==='guide'?'⬆️ نشر الفيديو في الدليل وإرسال الإعلان':'⬆️ نشر الفيديو وإرسال الإعلان';
+      if(welcome)welcome.hidden=mode==='guide';
+    }
     root.querySelectorAll('[data-academy-guide-element]').forEach(n=>{n.hidden=mode==='leader'});
     host.hidden=mode!=='leader';
     tabs._buttons?.guide.classList.toggle('active',mode==='guide');
     tabs._buttons?.leader.classList.toggle('active',mode==='leader');
     if(mode==='leader')loadVideos();
+    else loadGuideVideos();
+  }
+  async function loadGuideVideos(){
+    if(!document.getElementById('academyGuideVideoList')||guideLoading)return;
+    guideLoading=true;
+    try{
+      const rows=await rpc('academy_guide_videos_list',{p_token:session()});
+      if(!Array.isArray(rows))throw Error('البيانات الواردة غير صالحة');
+      guideVideos=rows.filter(item=>UUID.test(item.id));
+      renderGuideVideos();
+    }catch(err){
+      const list=document.getElementById('academyGuideVideoList');
+      if(list)list.textContent='تعذّر تحميل إضافات الدليل: '+(err.message||err);
+    }finally{guideLoading=false}
+  }
+  function renderGuideVideos(){
+    const target=document.getElementById('academyGuideVideoList');
+    if(!target)return;
+    target.replaceChildren();
+    if(!guideVideos.length){target.append(elem('p','academy-leader-empty','لم تُضف فيديوهات جديدة إلى الدليل بعد.'));return}
+    const grid=elem('div','academy-leader-grid');
+    guideVideos.forEach((v,index)=>{
+      const btn=elem('button','academy-leader-card');
+      btn.type='button';
+      btn.setAttribute('aria-label','شاهد فيديو الدليل: '+v.title);
+      btn.append(videoThumbElement());
+      const copy=elem('span','academy-leader-card-copy');
+      copy.append(elem('strong','',String(index+4)+'. '+v.title));
+      if(v.description)copy.append(elem('small','',v.description));
+      btn.append(copy);
+      btn.addEventListener('click',()=>selectVideo(v.id));
+      grid.append(btn);
+    });
+    target.append(grid);
   }
   async function loadVideos(){
     const host=document.getElementById('academyLeaderVideosHost');
@@ -351,6 +408,7 @@
   }
   async function uploadVideo(){
     if(!isLeader())return;
+    const destination=mode;
     const button=document.getElementById('academyLeaderPublishButton');
     const title=String(document.getElementById('academyLeaderVideoTitle')?.value||'').trim();
     const description=String(document.getElementById('academyLeaderVideoDescription')?.value||'').trim();
@@ -386,7 +444,7 @@
         }
       });
       showMessage('✅ اكتمل الرفع. جارٍ نشر الفيديو وإنشاء إعلان للأعضاء...');
-      const published=await rpc('academy_leader_video_publish',{
+      const published=await rpc(destination==='guide'?'academy_guide_video_publish':'academy_leader_video_publish',{
         p_token:session(),p_title:title,p_description:description,
         p_object_path:uploaded.path,p_content_type:mime,p_file_size:file.size
       });
@@ -398,8 +456,10 @@
       const meta=document.getElementById('academyLeaderMetaFields');
       if(panel)panel.hidden=true;
       if(meta)meta.hidden=true;
-      await loadVideos();
-      showMessage('✅ تم نشر الفيديو وإنشاء إعلان تلقائي للأعضاء! بإمكانهم فتحه من الرسالة.');
+      if(destination==='guide')await loadGuideVideos();else await loadVideos();
+      showMessage(destination==='guide'
+        ?'✅ أُضيف الفيديو إلى دليل استخدام المجتمع، وأُرسل إعلان واحد للأعضاء.'
+        :'✅ تم نشر الفيديو وإنشاء إعلان تلقائي للأعضاء! بإمكانهم فتحه من الرسالة.');
     }catch(err){showMessage('تعذر النشر: '+err.message,true)}
     finally{
       if(uploadInput)uploadInput.disabled=false;
@@ -420,6 +480,11 @@
   window.academyLeaderVideoRefresh=loadVideos;
   const css=document.createElement('style');
   css.textContent=[
+    '.academy-guide-upload-slot{display:grid;gap:12px;margin:14px 0}',
+    '.academy-guide-added{margin-top:22px;border:1px solid #d7e5db;background:#f7fbf9;border-radius:17px;padding:17px;display:grid;gap:14px}',
+    '.academy-guide-added-header h3{margin:0 0 7px;color:#145840;font-size:20px}',
+    '.academy-guide-added-header p{margin:0;color:#506a5c}',
+    '.academy-leader-welcome-note[hidden]{display:none!important}',
     '.academy-leader-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}',
     '.academy-leader-tabs button{padding:12px 8px;border-radius:14px;border:1px solid #b9d2c6;background:#fff;color:#14533b;font:inherit;font-weight:900;cursor:pointer}',
     '.academy-leader-tabs button.active{background:#145840;color:#fff}',
