@@ -58,3 +58,16 @@ test('an assignee must be explicitly selected and each case belongs to that memb
   assert.match(sql, /if v_role='leader' and p_assignee_user_id is null then/);
   assert.match(sql, /where \(v_role='leader' or f\.assigned_user_id=v_uid\)/);
 });
+
+test('prospect registration atomically creates one linked member case without carrying old consent', () => {
+  assert.match(sql, /origin_contact_id uuid unique references public\.followup_contacts\(id\)/);
+  assert.match(sql, /create unique index if not exists followup_new_member_number_unique_idx/);
+  assert.match(sql, /if v_contact\.kind <> 'prospect' then/);
+  assert.match(sql, /where kind='new_member' and member_no=v_member_no/);
+  assert.match(sql, /v_contact\.assigned_user_id,v_uid,'new_member'/);
+  assert.match(sql, /v_contact\.source_label,v_contact\.timezone_name,v_contact\.contact_channel,\s*false,null,'consent_pending'/);
+  assert.match(sql, /v_contact\.id,\s*v_contact\.source_label/);
+  assert.match(sql, /new_member_contact_id',v_new_member_id/);
+  assert.match(sql, /p_registered_member_no text default null/);
+  assert.match(script, /result === 'registered'\) state\.kind = 'new_member'/);
+});

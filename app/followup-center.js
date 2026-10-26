@@ -312,7 +312,7 @@
         <button type="button" onclick="followupCenter.copyTemplate()">نسخ الرسالة</button>` : ''}
       ${!contact.consent_confirmed && !stopped ? '<p class="followup-error">لا يجوز بدء التواصل قبل التأكد من الموافقة المناسبة والقناة المسموح بها.</p>' : ''}
       ${!stopped ? `<form onsubmit="followupCenter.record(event)"><h4>نتيجة المتابعة</h4>
-        <label>ماذا حصل؟<select id="followupResult">
+        <label>ماذا حصل؟<select id="followupResult" onchange="followupCenter.toggleRegistrationField()">
           ${!contact.consent_confirmed ? option('consent_granted','تم التحقق من الموافقة') : ''}
           ${contact.consent_confirmed ? `${option('sent','تم إرسال رسالة المرحلة')}${option('no_reply','لم يرد')}
           ${option('interested','مهتم — موعد جديد')}${option('deferred','طلب التأجيل')}` : ''}
@@ -320,6 +320,11 @@
           ${option('refused','رفض التواصل')}${option('blocked','طلب إيقاف التواصل / حظر')}
           ${option('closed','إغلاق المتابعة')}
         </select></label>
+        ${contact.kind === 'prospect' ? `<div id="followupRegistrationField" hidden>
+          <label>رقم عضوية DXN الجديدة<input id="followupRegisteredMemberNo" inputmode="numeric"
+            pattern="[0-9]{6,15}" maxlength="15" placeholder="رقم عضويته بعد التسجيل"></label>
+          <p class="muted">سينتقل تلقائيًا إلى متابعة الأعضاء الجدد لدى المسؤول نفسه، مع التحقق من موافقته على المتابعة الجديدة.</p>
+        </div>` : ''}
         <label>موعد محدد للتواصل القادم (اختياري؛ إلزامي للتأجيل)<input type="datetime-local" id="followupNextDue"></label>
         <label>ملاحظة مختصرة<textarea id="followupActionNote" maxlength="2000"></textarea></label>
         <button type="submit" class="primary">حفظ النتيجة والموعد</button>
@@ -338,10 +343,21 @@
       if (el) el.textContent = 'تعذر تحميل سجل المتابعة.';
     }
   }
+  function toggleRegistrationField() {
+    const field = root.document?.getElementById('followupRegistrationField');
+    const number = root.document?.getElementById('followupRegisteredMemberNo');
+    const selected = root.document?.getElementById('followupResult')?.value === 'registered';
+    if (field) field.hidden = !selected;
+    if (number) number.required = selected;
+  }
   async function record(event) {
     event?.preventDefault();
     const result = root.document.getElementById('followupResult')?.value;
     const next = root.document.getElementById('followupNextDue')?.value || '';
+    const memberNo = root.document.getElementById('followupRegisteredMemberNo')?.value.trim() || '';
+    if (result === 'registered' && !/^[0-9]{6,15}$/.test(memberNo)) {
+      return root.toast('أدخل رقم عضوية DXN الجديدة بالأرقام (من 6 إلى 15 رقمًا).');
+    }
     if (['interested', 'deferred'].includes(result) && (!next || new Date(next).getTime() <= Date.now())) {
       return root.toast('حدد موعدًا مستقبليًا مناسبًا للشخص.');
     }
@@ -349,9 +365,15 @@
       await root.rpc('followup_record_action', {
         p_token: root.followupSession.token, p_contact_id: state.currentId, p_result: result,
         p_note: root.document.getElementById('followupActionNote')?.value.trim() || null,
-        p_next_due_at: next ? new Date(next).toISOString() : null
+        p_next_due_at: next ? new Date(next).toISOString() : null,
+        p_registered_member_no: result === 'registered' ? memberNo : null
       });
-      close(); root.toast('تم حفظ النتيجة وتحديث موعد المتابعة.'); await reload();
+      close();
+      if (result === 'registered') state.kind = 'new_member';
+      root.toast(result === 'registered'
+        ? 'تم التسجيل ونقل البطاقة إلى متابعة الأعضاء الجدد لدى المسؤول نفسه. تحقق من موافقته على المتابعة.'
+        : 'تم حفظ النتيجة وتحديث موعد المتابعة.');
+      await reload();
     } catch (error) { root.toast(error.message || 'تعذر تسجيل النتيجة'); }
   }
   async function copyTemplate() {
@@ -394,7 +416,7 @@
   }
 
   root.followupCenter = { render, load, reload, changeKind, changeFilter, add, searchAssignees, fillFromCard,
-    save, open, close, record, copyTemplate, parseLeadCard, stageLabel, enableDeviceReminders };
+    save, open, close, record, toggleRegistrationField, copyTemplate, parseLeadCard, stageLabel, enableDeviceReminders };
   if (root.document && typeof root.setInterval === 'function') root.setInterval(checkReminders, 60000);
   if (typeof module !== 'undefined' && module.exports)
     module.exports = { parseLeadCard, stageLabel, template, escapeHtml, prospectStages, memberStages };

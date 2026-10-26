@@ -12,6 +12,7 @@ create table if not exists public.followup_contacts (
   country text,
   phone text,
   member_no text,
+  origin_contact_id uuid unique references public.followup_contacts(id),
   source_label text,
   timezone_name text not null default 'Asia/Baghdad',
   contact_channel text,
@@ -37,6 +38,9 @@ create index if not exists followup_contacts_owner_due_idx
   where next_due_at is not null;
 create index if not exists followup_contacts_kind_status_idx
   on public.followup_contacts(kind, status);
+create unique index if not exists followup_new_member_number_unique_idx
+  on public.followup_contacts(member_no)
+  where kind='new_member' and member_no is not null;
 
 create table if not exists public.followup_actions (
   id uuid primary key default gen_random_uuid(),
@@ -194,7 +198,8 @@ create or replace function public.followup_record_action(
   p_contact_id uuid,
   p_result text,
   p_note text default null,
-  p_next_due_at timestamptz default null
+  p_next_due_at timestamptz default null,
+  p_registered_member_no text default null
 )
 returns json language plpgsql security definer set search_path = public as $$
 declare
@@ -206,6 +211,8 @@ declare
   v_next_due timestamptz;
   v_status text;
   v_days integer[];
+  v_member_no text := btrim(coalesce(p_registered_member_no,''));
+  v_new_member_id uuid;
 begin
   v_uid := public.app_current_user_id(p_token);
   v_role := public.app_current_role(p_token);
@@ -222,13 +229,25 @@ begin
                       'registered','refused','blocked','closed','consent_granted') then
     raise exception 'نتيجة متابعة غير صحيحة';
   end if;
+  if v_result='registered' then
+    if v_contact.kind <> 'prospect' then
+      raise exception 'تسجيل العضوية متاح للمهتمين فقط';
+    end if;
+    if v_member_no !~ '^[0-9]{6,15}$' then
+      raise exception 'رقم العضوية الجديدة يجب أن يتكون من 6 إلى 15 رقمًا';
+    end if;
+    if exists(select 1 from public.followup_contacts
+              where kind='new_member' and member_no=v_member_no) then
+      raise exception 'رقم العضوية موجود مسبقًا في متابعة الأعضاء الجدد';
+    end if;
+  end if;
   v_next_stage := v_contact.stage;
   v_next_due := v_contact.next_due_at;
   v_status := v_contact.status;
   if v_result = 'consent_granted' then
     v_status := 'active';
     v_next_due := coalesce(p_next_due_at,now());
-  elsif not v_contact.consent_confirmed and v_result not in ('refused','blocked','closed') then
+  elsif not v_contact.consent_confirmed and v_result not in ('refused','blocked','closed','registered') then
     raise exception 'لا يمكن التواصل قبل إثبات الموافقة المناسبة';
   elsif v_result in ('refused','blocked','closed','registered') then
     v_status := v_result;
@@ -263,13 +282,28 @@ begin
     v_contact.id,v_uid,v_result,v_contact.stage,v_next_stage,
     nullif(btrim(coalesce(p_note,'')),''),v_next_due
   );
+  if v_result='registered' then
+    -- Registration does not transfer the prospect's marketing consent to member onboarding.
+    -- Keep the original owner and link the new record to its source, atomically.
+    insert into public.followup_contacts (
+      assigned_user_id,created_by_user_id,kind,name,gender,country,phone,member_no,
+      origin_contact_id,source_label,timezone_name,contact_channel,
+      consent_confirmed,consent_note,status,stage,opened_at,next_due_at,reminder_minutes
+    ) values (
+      v_contact.assigned_user_id,v_uid,'new_member',v_contact.name,v_contact.gender,
+      v_contact.country,v_contact.phone,v_member_no,v_contact.id,
+      v_contact.source_label,v_contact.timezone_name,v_contact.contact_channel,
+      false,null,'consent_pending',0,now(),null,v_contact.reminder_minutes
+    ) returning id into v_new_member_id;
+  end if;
   return json_build_object('ok',true,'stage',v_next_stage,'status',v_status,
-                           'next_due_at',v_next_due);
+                           'next_due_at',v_next_due,
+                           'new_member_contact_id',v_new_member_id);
 end;
 $$;
-revoke all on function public.followup_record_action(uuid,uuid,text,text,timestamptz)
+revoke all on function public.followup_record_action(uuid,uuid,text,text,timestamptz,text)
   from public,anon,authenticated;
-grant execute on function public.followup_record_action(uuid,uuid,text,text,timestamptz)
+grant execute on function public.followup_record_action(uuid,uuid,text,text,timestamptz,text)
   to anon,authenticated;
 
 create or replace function public.followup_history(p_token uuid,p_contact_id uuid)
