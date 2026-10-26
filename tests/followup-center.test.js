@@ -39,7 +39,7 @@ test('app has one follow-up tab and keeps the full feature on an isolated branch
   assert.match(index, /followupSession/);
 });
 
-test('database draft is private, session-scoped, and not a live migration', () => {
+test('tracked database schema is private, session-scoped, and not an automatic migration', () => {
   assert.match(sql, /alter table public\.followup_contacts enable row level security/);
   assert.match(sql, /revoke all on public\.followup_contacts from public, anon, authenticated/);
   assert.match(sql, /public\.app_current_user_id\(p_token\)/);
@@ -70,4 +70,11 @@ test('prospect registration atomically creates one linked member case without ca
   assert.match(sql, /new_member_contact_id',v_new_member_id/);
   assert.match(sql, /p_registered_member_no text default null/);
   assert.match(script, /result === 'registered'\) state\.kind = 'new_member'/);
+});
+
+test('CRM foreign-key indexes support growing workloads without exposing data directly', () => {
+  assert.match(sql, /create index if not exists followup_contacts_created_by_idx/);
+  assert.match(sql, /create index if not exists followup_actions_actor_idx/);
+  assert.match(sql, /alter table public\.followup_actions enable row level security/);
+  assert.match(sql, /revoke all on public\.followup_actions from public, anon, authenticated/);
 });

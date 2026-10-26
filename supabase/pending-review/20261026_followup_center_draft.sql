@@ -1,4 +1,5 @@
--- DRAFT ONLY. Do not apply until the October backup/restore verification is complete.
+-- REVIEWED AND APPLIED on 2026-10-26 to DXN Tahadi production database.
+-- Tracked schema snapshot; this file is NOT an automatic migration.
 -- Member authentication is custom: public.sessions + public.app_users, NOT Supabase Auth.
 -- Direct table access is revoked; every RPC enforces app-session ownership.
 
@@ -38,6 +39,8 @@ create index if not exists followup_contacts_owner_due_idx
   where next_due_at is not null;
 create index if not exists followup_contacts_kind_status_idx
   on public.followup_contacts(kind, status);
+create index if not exists followup_contacts_created_by_idx
+  on public.followup_contacts(created_by_user_id);
 create unique index if not exists followup_new_member_number_unique_idx
   on public.followup_contacts(member_no)
   where kind='new_member' and member_no is not null;
@@ -55,6 +58,8 @@ create table if not exists public.followup_actions (
 );
 create index if not exists followup_actions_contact_created_idx
   on public.followup_actions(contact_id, created_at desc);
+create index if not exists followup_actions_actor_idx
+  on public.followup_actions(actor_user_id);
 
 alter table public.followup_contacts enable row level security;
 alter table public.followup_actions enable row level security;
