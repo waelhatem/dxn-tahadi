@@ -10,6 +10,7 @@ const sql = fs.readFileSync(path.join(root, 'supabase', 'pending-review', '20261
 const statusSql = fs.readFileSync(path.join(root, 'supabase', 'pending-review', '20261027_followup_prospect_status.sql'), 'utf8');
 const leaderSql = fs.readFileSync(path.join(root, 'supabase', 'pending-review', '20261027_followup_leader_notifications.sql'), 'utf8');
 const memberIdentitySql = fs.readFileSync(path.join(root, 'supabase', 'pending-review', '20261027_followup_new_member_identity.sql'), 'utf8');
+const stageFlowSql = fs.readFileSync(path.join(root, 'supabase', 'pending-review', '20261027_followup_stage_flow.sql'), 'utf8');
 const followup = require(modulePath);
 const script = fs.readFileSync(modulePath, 'utf8');
 
@@ -33,6 +34,22 @@ test('two simple follow-up paths have exact stages and distinct guidance', () =>
   assert.match(followup.stageLabel({ kind: 'new_member', status: 'new', consent_confirmed: true, stage: 5 }), /30/);
   assert.match(followup.stageLabel({ kind: 'prospect', status: 'blocked', consent_confirmed: true, stage: 1 }), /إيقاف/);
   assert.match(followup.template({ kind: 'new_member', name: 'نور', stage: 0 }), /نور/);
+  assert.equal(followup.stageCardsHtml({ kind: 'new_member', name: 'نور', stage: 0,
+    opened_at: '2026-10-20T08:00:00Z', consent_confirmed: true,
+    next_due_at: '2030-10-20T08:00:00Z' }).match(/followup-timeline-card /g).length, 6);
+  assert.equal(followup.stageCardsHtml({ kind: 'prospect', name: 'محمد', stage: 0,
+    opened_at: '2026-10-20T08:00:00Z', consent_confirmed: true,
+    next_due_at: '2030-10-20T08:00:00Z' }).match(/followup-timeline-card /g).length, 4);
+  assert.match(followup.template({ kind: 'prospect', name: 'علي', stage: 2 }), /علي/);
+});
+
+test('first prospect stage respects 10-minute minimum even when the server due time equals creation', () => {
+  const openedAt = new Date(Date.now() - 5 * 60000).toISOString();
+  const prospect = { kind: 'prospect', name: 'مهتم', stage: 0, status: 'active',
+    consent_confirmed: true, opened_at: openedAt, next_due_at: openedAt };
+  assert.equal(followup.stageReady(prospect, 0), false);
+  const expected = new Date(openedAt).getTime() + 10 * 60000;
+  assert.equal(followup.stageDueAt(prospect, 0).getTime(), expected);
 });
 
 test('app has one follow-up tab and keeps the full feature on an isolated branch', () => {
@@ -72,7 +89,7 @@ test('prospect registration atomically creates one linked member case without ca
   assert.match(sql, /v_contact\.id,\s*v_contact\.source_label/);
   assert.match(sql, /new_member_contact_id',v_new_member_id/);
   assert.match(sql, /p_registered_member_no text default null/);
-  assert.match(script, /result === 'registered'\) state\.kind = 'new_member'/);
+  assert.match(script, /reaction === 'registered'\) state\.kind = 'new_member'/);
 });
 
 test('CRM foreign-key indexes support growing workloads without exposing data directly', () => {
@@ -98,7 +115,7 @@ test('status history is structured, searchable and access-scoped', () => {
   assert.match(statusSql, /'status_updated'/);
   assert.match(statusSql, /where \(v_role='leader' or f\.assigned_user_id=v_uid\)/);
   assert.match(statusSql, /false,null,'consent_pending'/);
-  assert.match(script, /followup_set_prospect_status/);
+  assert.match(script, /followup_complete_stage/);
   assert.match(script, /followupStatusFilter/);
   assert.match(script, /followupSearch/);
   assert.doesNotMatch(statusSql, /delete from public\.followup_contacts/i);
@@ -127,8 +144,28 @@ test('new-member profiles retain real join dates and sponsor identity in leader 
   assert.match(memberIdentitySql, /p_join_date is null or p_join_date > current_date/);
   assert.match(script, /البطاقة التعريفية للعضو الجديد/);
   assert.match(script, /رقم عضوية الراعي/);
-  assert.match(script, /followupProspectJoinDate/);
+  assert.match(script, /followupStageJoinDate/);
   assert.match(leaderSql, /تاريخ الانضمام/);
   assert.match(leaderSql, /رقم عضوية الراعي/);
   assert.match(leaderSql, /after insert or update of join_date/);
+});
+
+test('staged recommendations are generated, time-locked, and never manually selected by sponsor', () => {
+  assert.match(script, /موعد التنفيذ بالتاريخ والوقت/);
+  assert.match(script, /followupStageTimeline/);
+  assert.match(script, /نسخ الرسالة/);
+  assert.match(script, /followupReaction\$\{index\}/);
+  assert.match(script, /followup_complete_stage/);
+  assert.doesNotMatch(script, /followupPlanType|followup_set_next_step/);
+  assert.match(stageFlowSql, /add column if not exists reaction_status text/);
+  assert.match(stageFlowSql, /create or replace function public\.followup_complete_stage/);
+  assert.match(stageFlowSql, /for update/);
+  assert.match(stageFlowSql, /v_role='leader' or assigned_user_id=v_uid/);
+  assert.match(stageFlowSql, /not v_contact\.consent_confirmed/);
+  assert.match(stageFlowSql, /p_stage is distinct from v_contact\.stage/);
+  assert.match(stageFlowSql, /v_now < v_due/);
+  assert.match(stageFlowSql, /'stage_completed'/);
+  assert.match(leaderSql, /الإجراء القادم/);
+  assert.match(leaderSql, /الموعد القادم/);
+  assert.doesNotMatch(stageFlowSql, /grant update on public\.followup_contacts/i);
 });

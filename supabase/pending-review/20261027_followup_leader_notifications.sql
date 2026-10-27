@@ -1,6 +1,7 @@
 -- REVIEW REQUIRED: do not apply to production before backup/restore sign-off.
 -- Depends on 20261026_followup_center_draft.sql,
--- 20261027_followup_prospect_status.sql and 20261027_followup_new_member_identity.sql.
+-- 20261027_followup_prospect_status.sql,
+-- 20261027_followup_new_member_identity.sql and 20261027_followup_stage_flow.sql.
 -- Reuses the existing private app_notifications inbox; no new public tables.
 -- Events are created by DB triggers, never trusted client claims.
 
@@ -79,6 +80,7 @@ declare
   v_join_date date;
   v_event_type text;
   v_actor_role text;
+  v_next_summary text;
 begin
   select role into v_actor_role from public.app_users where id=new.actor_user_id;
   if v_actor_role='leader' then return new; end if;
@@ -118,6 +120,10 @@ begin
   v_stage := case when v_contact.kind='prospect' then
     (array['التعارف الأول','المتابعة الأولى','المتابعة الثانية','المتابعة الختامية'])[least(greatest(v_contact.stage+1,1),4)]
     else (array['الترحيب','الاطمئنان','متابعة التدريب','مراجعة الاحتياجات','الدعم والتشجيع','مراجعة الشهر الأول'])[least(greatest(v_contact.stage+1,1),6)] end;
+  v_next_summary := case when v_contact.next_due_at is not null then
+    format(' | الإجراء القادم: رسالة المرحلة التالية | الموعد القادم: %s (بغداد)',
+      to_char(v_contact.next_due_at at time zone 'Asia/Baghdad','DD/MM/YYYY HH24:MI'))
+    else ' | الإجراء القادم: لا توجد رسالة مجدولة' end;
 
   -- The source_id stays the contact ID for deep-linking. Each action has its own
   -- stable event_type to avoid suppressing a later update on the same contact.
@@ -139,7 +145,7 @@ begin
       format('الاسم: %s | المسؤول: %s | الحالة: %s | المرحلة: %s | آخر إجراء: %s (بغداد)',
         v_contact.name,coalesce(v_assignee,'—'),v_status,v_stage,
         to_char(new.created_at at time zone 'Asia/Baghdad','DD/MM/YYYY HH24:MI'))
-    end,
+    end || v_next_summary,
     'followup','فتح البطاقة'
   from public.app_users u
   where u.role='leader' and u.active=true and u.id<>new.actor_user_id

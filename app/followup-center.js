@@ -17,6 +17,8 @@
     points_activated: 'فعّل نقاط', no_response: 'لا يرد نهائيًا',
     not_interested: 'لا يرغب بالعمل', blocked_me: 'عمل لي حظرًا'
   };
+  const stageDays = { prospect: [0, 1, 3, 7], new_member: [1, 3, 7, 14, 21, 30] };
+  const nextActionTypes = { text: '💬 رسالة نصية' };
   const prospectPaused = new Set(['no_response', 'not_interested', 'blocked_me']);
   const resultLabels = {
     sent: 'تم التواصل', no_reply: 'لم يرد', interested: 'مهتم — موعد آخر',
@@ -96,7 +98,7 @@
     const stages = contact.kind === 'prospect' ? prospectStages : memberStages;
     return stages[Math.min(Math.max(0, Number(contact.stage) || 0), stages.length - 1)];
   }
-  function template(contact) {
+  function template(contact, stageIndex = Number(contact.stage) || 0) {
     const name = String(contact.name || 'أستاذي الكريم').trim();
     if (contact.kind === 'new_member') {
       const templates = [
@@ -107,7 +109,9 @@
         `مرحبًا ${name} 🌷\nكيف تسير أمورك؟ إذا تحب نرتب لقاء قصير لمناقشة الأسئلة أو الصعوبات، أنا موجود.`,
         `أهلًا ${name} 🌿\nأكملنا تقريبًا الشهر الأول. أحب أعرف تقييمك للتجربة وما الخطوة المناسبة لك في الفترة القادمة.`
       ];
-      return templates[Math.min(Number(contact.stage) || 0, templates.length - 1)];
+      if (stageIndex > 0 && contact.latest_reaction === 'points_activated')
+        return `مرحبًا ${name} 🌿\nلاحظت أنك بدأت بتفعيل نقاطك في DXN. كيف تسير أمورك مع المنتجات والتدريبات؟ هل تحتاج إلى توضيح حول أي خطوة؟`;
+      return templates[Math.min(Math.max(0, stageIndex), templates.length - 1)];
     }
     const templates = [
       `مرحبًا ${name} 🌷\nمعك أحد أعضاء فريق وائل حاتم في DXN. وصلنا طلبك للتعرف على طبيعة نشاطنا من الإعلان الذي سجلت فيه اهتمامك. هل تفضل شرحًا مختصرًا بالرسائل أم موعدًا مناسبًا للمحادثة؟ وإذا لم تعد ترغب في المتابعة فلا مشكلة إطلاقًا.`,
@@ -115,7 +119,9 @@
       `مرحبًا ${name} 🌿\nنشاط DXN يقوم على التعرف على المنتجات ومهارات البيع المباشر والعمل التدريجي دون ضمان دخل محدد. إذا كان يهمك، يسعدني تقديم تعريف مختصر. هل ترغب بذلك؟`,
       `مرحبًا ${name} 🌷\nهذه رسالتي الأخيرة بخصوص طلب التعرف على DXN. سأغلق المتابعة احترامًا لوقتك، ولن أكرر التواصل بهذا الشأن. إذا رغبت مستقبلًا، يمكنك المبادرة بالتواصل. بالتوفيق دائمًا.`
     ];
-    return templates[Math.min(Number(contact.stage) || 0, templates.length - 1)];
+    if (stageIndex === 1 && contact.prospect_status === 'contacted')
+      return `مرحبًا ${name} 🌷\nأتابع معك بخصوص موضوع DXN الذي سبق أن تواصلنا بشأنه. هل لديك سؤال محدد أستطيع توضيحه، أم تفضل أن نترك الحديث إلى وقت يناسبك؟`;
+    return templates[Math.min(Math.max(0, stageIndex), templates.length - 1)];
   }
   function scheduled(contact) {
     if (!contact.next_due_at) return 'لا يوجد موعد';
@@ -140,7 +146,9 @@
   }
   function dueLabel(contact) {
     if (!contact.next_due_at) return '';
-    const left = new Date(contact.next_due_at).getTime() - Date.now();
+    const due = stageDueAt(contact, Number(contact.stage) || 0);
+    if (!due) return '';
+    const left = due.getTime() - Date.now();
     return left < 0 ? '⏰ متأخر' : left <= 3600000 ? '🔔 قريب' : '📅 مجدول';
   }
   function matchedContacts() {
@@ -156,13 +164,14 @@
       if (state.filter === 'closed') return isClosed(c);
       if (state.filter === 'today' && !c.consent_confirmed && !isClosed(c)) return true;
       if (isClosed(c) || !c.next_due_at) return false;
-      const due = new Date(c.next_due_at).getTime();
+      const due = stageDueAt(c, Number(c.stage) || 0)?.getTime() || Number.POSITIVE_INFINITY;
       if (state.filter === 'today') {
         const end = new Date(); end.setHours(23, 59, 59, 999);
         return due <= end.getTime();
       }
       return due > now;
-    }).sort((a, b) => new Date(a.next_due_at || 8640000000000000) - new Date(b.next_due_at || 8640000000000000));
+    }).sort((a, b) => (stageDueAt(a, Number(a.stage) || 0)?.getTime() || Number.POSITIVE_INFINITY) -
+      (stageDueAt(b, Number(b.stage) || 0)?.getTime() || Number.POSITIVE_INFINITY));
   }
   function row(contact) {
     const name = escapeHtml(contact.name);
@@ -188,6 +197,88 @@
     return Number.isFinite(parsed.getTime())
       ? parsed.toLocaleString('ar-IQ', { dateStyle: 'short', timeStyle: 'short' }) : '—';
   }
+  function formatExactDateTime(value) {
+    if (!value) return 'لم يُحدَّد الموعد بعد';
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return 'موعد غير صالح';
+    return date.toLocaleDateString('ar-IQ', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) +
+      ' — ' + date.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
+  }
+  function stageDueAt(contact, index) {
+    const opened = new Date(contact.sequence_started_at || contact.opened_at || contact.created_at).getTime();
+    const current = Math.max(0, Number(contact.stage) || 0);
+    const days = stageDays[contact.kind] || stageDays.prospect;
+    if (index === current && contact.next_due_at) {
+      const stored = new Date(contact.next_due_at).getTime();
+      // First introduction takes place 5–15 minutes after consent, not instantly.
+      if (Number.isFinite(stored)) return new Date(index === 0 && contact.kind === 'prospect' &&
+        Number.isFinite(opened) ? Math.max(stored, opened + 10 * 60000) : stored);
+    }
+    if (!Number.isFinite(opened) || index < 0 || index >= days.length) return null;
+    return new Date(opened + days[index] * 86400000 +
+      (contact.kind === 'prospect' && index === 0 ? 10 * 60000 : 0));
+  }
+  function stageReady(contact, index) {
+    const due = stageDueAt(contact, index);
+    return !isClosed(contact) && contact.consent_confirmed &&
+      index === (Number(contact.stage) || 0) && !!contact.next_due_at &&
+      !!due && due.getTime() <= Date.now();
+  }
+  function stageCardsHtml(contact, history = []) {
+    const stages = contact.kind === 'prospect' ? prospectStages : memberStages;
+    const current = Number(contact.stage) || 0;
+    const statusOptions = selected => Object.entries(prospectStatuses).map(([key, label]) =>
+      `<option value="${key}" ${key === selected ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('');
+    return `<div class="followup-timeline" aria-label="مراحل المتابعة المتسلسلة">${stages.map((label, index) => {
+      const recorded = history.find(h => Number(h.stage_before) === index &&
+        (h.result === 'stage_completed' || Number(h.stage_after) > index));
+      const finished = index < current || !!recorded;
+      const ready = stageReady(contact, index);
+      const due = contact.consent_confirmed && (index !== current || contact.next_due_at)
+        ? stageDueAt(contact, index) : null;
+      const status = finished ? 'مكتملة' : ready ? 'متاحة للتنفيذ' :
+        index === current && !isClosed(contact) ? 'بانتظار موعدها أو الموافقة' : 'مغلقة';
+      const selected = recorded?.reaction_status || recorded?.status_after ||
+        (index === current ? contact.prospect_status || 'new' : 'new');
+      const message = template(contact, index);
+      return `<article class="followup-timeline-card ${finished ? 'is-done' : ready ? 'is-ready' : 'is-locked'}">
+        <div class="followup-timeline-card-head"><strong>المرحلة ${index + 1}: ${escapeHtml(label)}</strong>
+          <span>${finished ? '✅' : ready ? '🔔' : '🔒'} ${status}</span></div>
+        <div class="followup-timeline-due"><b>📅 ${escapeHtml(finished ? 'موعد التنفيذ المسجل' : 'موعد التنفيذ')}</b>
+          <span>${escapeHtml(recorded?.created_at ? formatExactDateTime(recorded.created_at) : due ? formatExactDateTime(due) : 'بانتظار توثيق الموافقة والجدولة')}</span>
+          ${index > current ? '<small>توقيت متوقع، يتأكد بعد إكمال المراحل السابقة.</small>' : ''}</div>
+        <p><b>الإجراء:</b> إرسال رسالة متابعة نصية مناسبة لهذه المرحلة.</p>
+        <div class="followup-template">${escapeHtml(message).replace(/\n/g, '<br>')}</div>
+        <button type="button" ${!ready ? 'disabled' : ''} onclick="followupCenter.copyStage(${index})">📋 نسخ الرسالة</button>
+        <div class="followup-stage-reaction"><b>حالة الشخص وردة فعله</b>
+          ${ready ? `<form onsubmit="followupCenter.completeStage(event,${index})">
+            <select id="followupReaction${index}" onchange="followupCenter.toggleStageMembership(${index})" required>
+              ${statusOptions(contact.prospect_status || 'new')}</select>
+            ${contact.kind === 'prospect' ? `<div id="followupStageMembership${index}" hidden>
+              <label>رقم العضوية الجديدة<input id="followupStageMemberNo${index}" inputmode="numeric" pattern="[0-9]{6,15}" maxlength="15"></label>
+              <label>تاريخ الانضمام<input id="followupStageJoinDate${index}" type="date"></label></div>` : ''}
+            <label>ملاحظة الإجراء (اختياري)<textarea id="followupStageNote${index}" maxlength="2000"></textarea></label>
+            <button class="primary" type="submit">تأكيد التنفيذ وحفظ ردة الفعل</button></form>` :
+            `<select disabled aria-label="الحالة المسجلة للمرحلة ${index + 1}">${statusOptions(selected)}</select>`}
+          ${recorded ? `<small>سُجل الإجراء: ${escapeHtml(formatDate(recorded.created_at))}${recorded.note ? ` — ${escapeHtml(recorded.note)}` : ''}</small>` : ''}
+        </div></article>`;
+    }).join('')}</div>`;
+  }
+  function nextStepHtml(contact) {
+    const stopped = isClosed(contact);
+    const due = stageDueAt(contact, Math.max(0, Number(contact.stage) || 0));
+    const detail = template(contact);
+    const flag = stopped ? 'المتابعة متوقفة' : !contact.consent_confirmed ? 'بانتظار الموافقة على التواصل'
+      : stageReady(contact, Number(contact.stage) || 0) ? 'حان موعد التنفيذ' : 'بانتظار الموعد';
+    return `<aside class="followup-next-step" aria-label="الإجراء القادم">
+      <div class="followup-next-step-title"><b>📅 الخطوة القادمة</b><span>${escapeHtml(flag)}</span></div>
+      <div><b>المرحلة:</b> ${escapeHtml(actualStageLabel(contact))}</div>
+      <div><b>موعد التنفيذ بالتاريخ والوقت:</b><strong class="followup-next-step-date">${escapeHtml(stopped || !contact.consent_confirmed ? 'لا توجد متابعة مجدولة' : formatExactDateTime(due))}</strong>
+        <small>بتوقيت جهازك</small></div>
+      <div><b>نوع الإجراء:</b> ${escapeHtml(stopped ? 'لا يوجد' : nextActionTypes.text)}</div>
+      <div><b>الرسالة المحددة تلقائيًا:</b><p>${escapeHtml(stopped ? 'أُوقفت المتابعة لهذه الحالة.' : detail)}</p></div>
+    </aside>`;
+  }
   function formatJoinDate(value) {
     const date = String(value || '').slice(0, 10);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return 'بانتظار التوثيق';
@@ -201,8 +292,23 @@
       <h4>🪪 البطاقة التعريفية للعضو الجديد</h4>
       <div><span><b>الاسم:</b> ${escapeHtml(contact.name || '—')}</span>
       <span><b>رقم العضوية:</b> ${escapeHtml(contact.member_no || 'بانتظار التوثيق')}</span>
+      <span><b>رقم الهاتف:</b> ${escapeHtml(contact.phone || '—')}</span>
       <span><b>البلد:</b> ${escapeHtml(contact.country || 'بانتظار التوثيق')}</span>
       <span><b>تاريخ الانضمام:</b> ${escapeHtml(formatJoinDate(contact.join_date))}</span>
+      <span><b>تاريخ إدخال البطاقة:</b> ${escapeHtml(formatDate(contact.opened_at))}</span>
+      <span><b>الحالة الحالية:</b> ${escapeHtml(prospectStatuses[contact.latest_reaction] || memberStatusLabel(contact))}</span>
+      <span><b>اسم الراعي:</b> ${escapeHtml(contact.assigned_name || '—')}</span>
+      <span><b>رقم عضوية الراعي:</b> ${escapeHtml(contact.assigned_member_no || '—')}</span></div>
+    </section>`;
+  }
+  function prospectIdentityCard(contact) {
+    return `<section class="followup-member-identity" aria-label="البطاقة التعريفية للمهتم">
+      <h4>🪪 البطاقة التعريفية للمهتم</h4>
+      <div><span><b>الاسم:</b> ${escapeHtml(contact.name || '—')}</span>
+      <span><b>رقم الهاتف:</b> ${escapeHtml(contact.phone || '—')}</span>
+      <span><b>البلد:</b> ${escapeHtml(contact.country || '—')}</span>
+      <span><b>تاريخ تسجيل الاهتمام:</b> ${escapeHtml(formatDate(contact.opened_at))}</span>
+      <span><b>الحالة الحالية:</b> ${escapeHtml(prospectStatusLabel(contact))}</span>
       <span><b>اسم الراعي:</b> ${escapeHtml(contact.assigned_name || '—')}</span>
       <span><b>رقم عضوية الراعي:</b> ${escapeHtml(contact.assigned_member_no || '—')}</span></div>
     </section>`;
@@ -223,6 +329,7 @@
     const rows = leaderRows();
     const visible = rows.slice(0, state.leaderLimit);
     const cards = visible.map(c => `<article class="followup-leader-record">
+      <div class="followup-leader-record-grid"><div class="followup-leader-record-main">
       <div class="followup-leader-record-top"><strong>${escapeHtml(c.name)}</strong>
         <span class="badge">${c.kind === 'prospect' ? '🌱 مهتم' : '🤝 عضو جديد'}</span></div>
       <div><b>المسؤول:</b> ${escapeHtml(c.assigned_name || 'غير محدد')}</div>
@@ -232,6 +339,7 @@
       <div class="followup-leader-record-time"><span><b>وقت التسجيل:</b> ${escapeHtml(formatDate(c.opened_at || c.created_at))}</span>
         <span><b>آخر تحديث:</b> ${escapeHtml(formatDate(c.updated_at))}</span></div>
       <button type="button" class="primary" onclick="followupCenter.open('${escapeHtml(c.id)}')">عرض البطاقة والسجل</button>
+      </div>${nextStepHtml(c)}</div>
     </article>`).join('');
     return `<p class="muted">نتائج البحث: <b>${rows.length}</b></p>${cards || '<div class="empty">لا توجد نتائج مطابقة.</div>'}
       ${rows.length > state.leaderLimit ? '<button type="button" onclick="followupCenter.leaderMore()">عرض 50 سجلًا إضافيًا</button>' : ''}`;
@@ -278,8 +386,8 @@
     ensureSession();
     if (!state.loaded && !state.loading && root.document) root.setTimeout(load, 0);
     if (root.followupSession?.role === 'leader' && state.kind === 'leader_dashboard') return leaderDashboard();
-    const due = state.contacts.filter(c => !isClosed(c) && c.next_due_at &&
-      new Date(c.next_due_at).getTime() <= Date.now()).length;
+    const due = state.contacts.filter(c => !isClosed(c) && c.consent_confirmed && c.next_due_at &&
+      stageReady(c, Number(c.stage) || 0)).length;
     const rows = matchedContacts();
     const kindBtn = (kind, text) => `<button type="button" class="followup-choice ${state.kind === kind ? 'selected' : ''}"
       onclick="followupCenter.changeKind('${kind}')">${text}</button>`;
@@ -430,7 +538,7 @@
       ${assigneeControl}
       <div class="followup-form-grid"><label>القناة المسموح بها<input id="followupChannel" maxlength="80" placeholder="قناة متوافقة مع السياسات"></label>
       <label>تذكيري قبل الموعد<select id="followupReminder"><option value="30">30 دقيقة</option><option value="15">15 دقيقة</option></select></label></div>
-      <label>موعد التواصل (بتوقيت جهازك)<input type="datetime-local" id="followupDue"></label>
+      <p class="muted">يحسب النظام مواعيد رسائل المراحل آليًا من تاريخ إضافة البطاقة، دون تحديد يدوي من السبونسر.</p>
       <label class="followup-checkbox"><input id="followupConsent" type="checkbox"> تم التحقق من موافقته على التواصل بهذه القناة</label>
       <label>ملاحظة مختصرة (اختياري)<textarea id="followupNotes" maxlength="2000"></textarea></label>
       <p class="muted">إذا لم تتأكد من الموافقة، تُحفظ البطاقة دون جدولة رسائل.</p>
@@ -450,8 +558,6 @@
     const $ = id => root.document.getElementById(id);
     const name = $('followupName')?.value.trim();
     if (!name) return root.toast('اكتب اسم الشخص أولًا.');
-    const due = $('followupDue')?.value;
-    if (due && Number.isNaN(new Date(due).getTime())) return root.toast('تأكد من صحة موعد المتابعة.');
     const card = parseLeadCard($('followupCard')?.value || '');
     const consent = !!$('followupConsent')?.checked;
     const leader = root.followupSession?.role === 'leader';
@@ -485,7 +591,7 @@
         p_contact_channel: $('followupChannel')?.value.trim() || null,
         p_consent_confirmed: consent, p_consent_note: consent ? 'تأكيد مسؤول الحالة' : null,
         p_notes: $('followupNotes')?.value.trim() || null,
-        p_next_due_at: due ? new Date(due).toISOString() : null,
+        p_next_due_at: null,
         p_reminder_minutes: Number($('followupReminder')?.value || 30)
       });
       close(); root.toast('تم حفظ البطاقة.'); await reload();
@@ -496,65 +602,65 @@
     const contact = state.contacts.find(c => c.id === id);
     if (!contact) return;
     state.currentId = id;
+    state.history = [];
     const stopped = isClosed(contact);
-    const option = (result, label) => `<option value="${result}">${label}</option>`;
     modal(`<div class="followup-detail"><h3>${escapeHtml(contact.name)}</h3>
-      ${contact.kind === 'new_member' ? memberIdentityCard(contact) : ''}
+      ${contact.kind === 'new_member' ? memberIdentityCard(contact) : prospectIdentityCard(contact)}
       <div class="muted">الدولة: ${escapeHtml(contact.country || '—')} · الهاتف: ${escapeHtml(contact.phone || 'لا يوجد رقم')}<br>
       المسؤول: ${escapeHtml(contact.assigned_name || '—')} · القناة: ${escapeHtml(contact.contact_channel || 'غير محددة')}<br>
       ${contact.member_no ? `رقم العضوية: ${escapeHtml(contact.member_no)} · ` : ''}
       ${contact.gender ? `الجنس: ${escapeHtml(contact.gender)} · ` : ''}
       المصدر: ${escapeHtml(contact.source_label || '—')}
       ${contact.notes ? `<div class="followup-shortnote">ملاحظة: ${escapeHtml(contact.notes)}</div>` : ''}</div>
-      <div class="followup-stage"><b>${escapeHtml(stageLabel(contact))}</b><small>${escapeHtml(scheduled(contact))}</small></div>
-      ${contact.kind === 'prospect' ? `<form onsubmit="followupCenter.saveProspectStatus(event)" class="followup-status-form">
-        <h4>حالة المستقطَب</h4>
-        <label>اختر الحالة الحالية
-          <select id="followupProspectStatus" onchange="followupCenter.toggleProspectMembership()">
-            ${Object.entries(prospectStatuses).map(([value, label]) => `<option value="${value}" ${(contact.prospect_status || 'new') === value ? 'selected' : ''}>${label}</option>`).join('')}
-          </select>
-        </label>
-        <div id="followupProspectMembership" ${contact.prospect_status === 'registered' && contact.status !== 'registered' ? '' : 'hidden'}>
-          <label>رقم العضوية الجديدة عند أول تسجيل
-            <input id="followupProspectMemberNo" inputmode="numeric" pattern="[0-9]{6,15}" maxlength="15" placeholder="رقم عضوية DXN"></label>
-          <label>تاريخ الانضمام الفعلي للعضو الجديد
-            <input id="followupProspectJoinDate" type="date"></label>
+      ${nextStepHtml(contact)}
+      ${contact.kind === 'prospect' && !stopped ? `<form class="followup-status-form" onsubmit="followupCenter.convertToMember(event)">
+        <h4>🤝 تحوّل المهتم إلى عضو في DXN</h4>
+        <p class="muted">إذا سجّل المهتم عضوية بالفعل، انقل بطاقته إلى قسم الأعضاء الجدد فورًا، مع حفظ سجل المتابعة السابق.</p>
+        <div class="followup-form-grid">
+          <label>رقم عضوية DXN<input id="followupConvertMemberNo" inputmode="numeric" pattern="[0-9]{6,15}" maxlength="15" required></label>
+          <label>تاريخ الانضمام الفعلي<input id="followupConvertJoinDate" type="date" required></label>
         </div>
-        <label>ملاحظة حول تغيير الحالة (اختياري)<textarea id="followupProspectStatusNote" maxlength="2000"></textarea></label>
-        <button type="submit" class="primary">حفظ الحالة</button>
-        <p class="muted">تُحفظ الحالة في السجل، و«عمل لي حظرًا» مجرد تصنيف؛ لا يحظر هذا الزر أي شخص.</p>
+        <button type="submit" class="primary">تحويل إلى عضو جديد</button>
       </form>` : ''}
-      ${contact.consent_confirmed && !stopped ? `<h4>📝 رسالة المرحلة الحالية</h4>
-        <div class="followup-template">${escapeHtml(template(contact)).replace(/\n/g, '<br>')}</div>
-        <button type="button" onclick="followupCenter.copyTemplate()">نسخ الرسالة</button>` : ''}
-      ${!contact.consent_confirmed && !stopped ? '<p class="followup-error">لا يجوز بدء التواصل قبل التأكد من الموافقة المناسبة والقناة المسموح بها.</p>' : ''}
-      ${!stopped ? `<form onsubmit="followupCenter.record(event)"><h4>نتيجة المتابعة</h4>
-        <label>ماذا حصل؟<select id="followupResult" onchange="followupCenter.toggleRegistrationField()">
-          ${!contact.consent_confirmed ? option('consent_granted','تم التحقق من الموافقة') : ''}
-          ${contact.consent_confirmed ? `${option('sent','تم إرسال رسالة المرحلة')}${option('no_reply','لم يرد')}
-          ${option('interested','مهتم — موعد جديد')}${option('deferred','طلب التأجيل')}` : ''}
-          ${contact.kind === 'new_member' ? `${option('refused','لا يرغب بمواصلة المتابعة')}${option('blocked','طلب إيقاف التواصل')}${option('closed','إغلاق المتابعة')}` : ''}
-        </select></label>
-        ${contact.kind === 'prospect' ? `<div id="followupRegistrationField" hidden>
-          <label>رقم عضوية DXN الجديدة<input id="followupRegisteredMemberNo" inputmode="numeric"
-            pattern="[0-9]{6,15}" maxlength="15" placeholder="رقم عضويته بعد التسجيل"></label>
-          <p class="muted">سينتقل تلقائيًا إلى متابعة الأعضاء الجدد لدى المسؤول نفسه، مع التحقق من موافقته على المتابعة الجديدة.</p>
-        </div>` : ''}
-        <label>موعد محدد للتواصل القادم (اختياري؛ إلزامي للتأجيل)<input type="datetime-local" id="followupNextDue"></label>
-        <label>ملاحظة مختصرة<textarea id="followupActionNote" maxlength="2000"></textarea></label>
-        <button type="submit" class="primary">حفظ النتيجة والموعد</button>
-      </form>` : '<p class="muted">هذه الحالة مغلقة، ولن يصدر لها تذكير جديد.</p>'}
-      <div class="followup-history"><h4>سجل المتابعة</h4><div id="followupHistory">جارٍ تحميل السجل…</div></div></div>`);
+      <h4>📑 مراحل المتابعة والرسائل المخصصة</h4>
+      <p class="muted">الرسائل ظاهرة للمعاينة دائمًا. يُفتح زر النسخ وتسجيل ردة الفعل عند الموعد المحدد بعد إكمال المرحلة السابقة. لا تُرسل أي رسالة تلقائيًا.</p>
+      <div id="followupStageTimeline">${stageCardsHtml(contact)}</div>
+      ${!contact.consent_confirmed && !stopped ? `<form onsubmit="followupCenter.recordConsent(event)" class="followup-status-form">
+        <h4>إثبات الموافقة على التواصل</h4>
+        <p>لا تُفتح أي رسالة قبل إثبات الموافقة على القناة المسموح بها.</p>
+        <button type="submit" class="primary">تم التحقق من الموافقة</button></form>` : ''}
+      ${stopped ? '<p class="muted">توقفت هذه المتابعة، ولا يجوز نسخ الرسائل أو مواصلة الإرسال.</p>' : ''}
+      <div class="followup-history"><h4>سجل المتابعة</h4><div id="followupHistory">جارٍ تحميل السجل…</div></div>
+      ${contact.kind === 'new_member' && contact.origin_contact_id ?
+        '<div class="followup-history"><h4>📁 سجل المتابعة السابق عندما كان مهتمًا</h4><div id="followupOriginHistory">جارٍ تحميل السجل المرتبط…</div></div>' : ''}</div>`);
     try {
       const history = await root.rpc('followup_history', { p_token: root.followupSession.token, p_contact_id: id });
       if (state.currentId !== id) return;
+      state.history = Array.isArray(history) ? history : [];
       const el = root.document.getElementById('followupHistory');
       if (el) el.innerHTML = Array.isArray(history) && history.length ? history.map(h =>
         `<div class="followup-history-item"><b>${escapeHtml(h.result === 'status_updated' ?
           `${prospectStatuses[h.status_before] || 'غير محددة'} ← ${prospectStatuses[h.status_after] || 'غير محددة'}` :
           resultLabels[h.result] || h.result)}</b>
          <small>${escapeHtml(new Date(h.created_at).toLocaleString('ar-IQ'))}</small>
-         <span>${escapeHtml(h.note || '')}</span></div>`).join('') : '<p class="muted">لا توجد محاولات مسجلة بعد.</p>';
+         <span>${escapeHtml(h.reaction_status ? `ردة الفعل: ${prospectStatuses[h.reaction_status] || h.reaction_status} · ` : '')}${escapeHtml(h.note || '')}</span></div>`).join('') : '<p class="muted">لا توجد محاولات مسجلة بعد.</p>';
+      const timeline = root.document.getElementById('followupStageTimeline');
+      if (timeline) timeline.innerHTML = stageCardsHtml(contact, state.history);
+      if (contact.kind === 'new_member' && contact.origin_contact_id) {
+        const originEl = root.document.getElementById('followupOriginHistory');
+        if (originEl) {
+          try {
+            const oldHistory = await root.rpc('followup_history', {
+              p_token: root.followupSession.token, p_contact_id: contact.origin_contact_id
+            });
+            if (state.currentId === id) originEl.innerHTML = Array.isArray(oldHistory) && oldHistory.length
+              ? oldHistory.map(h => `<div class="followup-history-item"><b>${escapeHtml(resultLabels[h.result] || h.result)}</b>
+                  <small>${escapeHtml(formatDate(h.created_at))}</small>
+                  <span>${escapeHtml(h.reaction_status ? `${prospectStatuses[h.reaction_status] || h.reaction_status} — ` : '')}${escapeHtml(h.note || '')}</span></div>`).join('')
+              : '<p class="muted">لا توجد إجراءات سابقة مسجلة.</p>';
+          } catch (_error) { if (state.currentId === id) originEl.textContent = 'تعذر تحميل سجل المهتم السابق.'; }
+        }
+      }
     } catch (_error) {
       const el = root.document.getElementById('followupHistory');
       if (el) el.textContent = 'تعذر تحميل سجل المتابعة.';
@@ -569,86 +675,84 @@
     }
     return open(id);
   }
-  function toggleRegistrationField() {
-    const field = root.document?.getElementById('followupRegistrationField');
-    const number = root.document?.getElementById('followupRegisteredMemberNo');
-    const selected = root.document?.getElementById('followupResult')?.value === 'registered';
-    if (field) field.hidden = !selected;
-    if (number) number.required = selected;
-  }
-  function toggleProspectMembership() {
+  function toggleStageMembership(index) {
     const contact = state.contacts.find(c => c.id === state.currentId);
-    const selected = root.document?.getElementById('followupProspectStatus')?.value;
-    const field = root.document?.getElementById('followupProspectMembership');
-    const number = root.document?.getElementById('followupProspectMemberNo');
-    const date = root.document?.getElementById('followupProspectJoinDate');
-    const firstRegistration = selected === 'registered' && contact?.status !== 'registered';
-    if (field) field.hidden = !firstRegistration;
-    if (number) number.required = firstRegistration;
-    if (date) date.required = firstRegistration;
+    const reaction = root.document?.getElementById(`followupReaction${index}`)?.value;
+    const field = root.document?.getElementById(`followupStageMembership${index}`);
+    const number = root.document?.getElementById(`followupStageMemberNo${index}`);
+    const date = root.document?.getElementById(`followupStageJoinDate${index}`);
+    const needsMembership = contact?.kind === 'prospect' && reaction === 'registered';
+    if (field) field.hidden = !needsMembership;
+    if (number) number.required = needsMembership;
+    if (date) date.required = needsMembership;
   }
-  async function saveProspectStatus(event) {
+  async function completeStage(event, index) {
     event?.preventDefault();
     const contact = state.contacts.find(c => c.id === state.currentId);
-    if (!contact || contact.kind !== 'prospect') return;
-    const status = root.document.getElementById('followupProspectStatus')?.value;
-    if (!Object.hasOwn(prospectStatuses, status)) return root.toast('اختر حالة صحيحة.');
-    const memberNo = root.document.getElementById('followupProspectMemberNo')?.value.trim() || '';
-    const joinDate = root.document.getElementById('followupProspectJoinDate')?.value || '';
-    if (status === 'registered' && contact.status !== 'registered' && !/^[0-9]{6,15}$/.test(memberNo))
-      return root.toast('أدخل رقم العضوية عند تسجيل المستقطَب (6–15 رقمًا).');
-    if (status === 'registered' && contact.status !== 'registered' &&
-      (!/^\d{4}-\d{2}-\d{2}$/.test(joinDate) ||
-        !Number.isFinite(new Date(joinDate + 'T12:00:00').getTime()) ||
+    if (!contact || !stageReady(contact, index)) return root.toast('هذه المرحلة مغلقة حتى يحين موعدها وتُكمل المرحلة السابقة.');
+    const reaction = root.document.getElementById(`followupReaction${index}`)?.value;
+    if (!Object.hasOwn(prospectStatuses, reaction)) return root.toast('اختر حالة صحيحة من الحالات التسع.');
+    const memberNo = root.document.getElementById(`followupStageMemberNo${index}`)?.value.trim() || '';
+    const joinDate = root.document.getElementById(`followupStageJoinDate${index}`)?.value || '';
+    if (contact.kind === 'prospect' && reaction === 'registered' &&
+      (!/^[0-9]{6,15}$/.test(memberNo) || !/^\d{4}-\d{2}-\d{2}$/.test(joinDate) ||
         new Date(joinDate + 'T12:00:00').getTime() > Date.now()))
-      return root.toast('أدخل تاريخ الانضمام الفعلي للعضو الجديد.');
+      return root.toast('أدخل رقم العضوية وتاريخ الانضمام الفعلي قبل التحويل.');
+    try {
+      await root.rpc('followup_complete_stage', {
+        p_token: root.followupSession.token, p_contact_id: contact.id, p_stage: index,
+        p_reaction: reaction,
+        p_note: root.document.getElementById(`followupStageNote${index}`)?.value.trim() || null,
+        p_registered_member_no: contact.kind === 'prospect' && reaction === 'registered' ? memberNo : null,
+        p_join_date: contact.kind === 'prospect' && reaction === 'registered' ? joinDate : null
+      });
+      close();
+      if (contact.kind === 'prospect' && reaction === 'registered') state.kind = 'new_member';
+      root.toast(reaction === 'registered' && contact.kind === 'prospect'
+        ? 'انتقلت البطاقة إلى قسم الأعضاء الجدد مع حفظ تاريخها السابق.'
+        : 'تم توثيق الإجراء وردة الفعل واحتساب المرحلة التالية.');
+      await reload();
+    } catch (error) { root.toast(error.message || 'تعذر إكمال المرحلة.'); }
+  }
+  async function convertToMember(event) {
+    event?.preventDefault();
+    const contact = state.contacts.find(c => c.id === state.currentId);
+    if (!contact || contact.kind !== 'prospect' || isClosed(contact)) return root.toast('هذه البطاقة غير متاحة للتحويل.');
+    const memberNo = root.document.getElementById('followupConvertMemberNo')?.value.trim() || '';
+    const joinDate = root.document.getElementById('followupConvertJoinDate')?.value || '';
+    if (!/^[0-9]{6,15}$/.test(memberNo) || !/^\d{4}-\d{2}-\d{2}$/.test(joinDate) ||
+        !Number.isFinite(new Date(joinDate + 'T12:00:00').getTime()) ||
+        new Date(joinDate + 'T12:00:00').getTime() > Date.now())
+      return root.toast('أدخل رقم العضوية وتاريخ الانضمام الفعلي.');
     try {
       await root.rpc('followup_set_prospect_status', {
         p_token: root.followupSession.token, p_contact_id: contact.id,
-        p_status: status,
-        p_note: root.document.getElementById('followupProspectStatusNote')?.value.trim() || null,
-        p_registered_member_no: status === 'registered' && memberNo ? memberNo : null,
-        p_join_date: status === 'registered' && joinDate ? joinDate : null
+        p_status: 'registered', p_note: 'تحويل إلى عضو جديد بعد تسجيل عضوية DXN.',
+        p_registered_member_no: memberNo, p_join_date: joinDate
       });
-      close();
-      root.toast('تم حفظ حالة المستقطَب في سجل المتابعة.');
-      await reload();
-    } catch (error) { root.toast(error.message || 'تعذر حفظ حالة المستقطَب.'); }
+      close(); state.kind = 'new_member';
+      root.toast('تم تحويل المهتم إلى عضو جديد وحفظ السجل السابق.'); await reload();
+    } catch (error) { root.toast(error.message || 'تعذر تحويل البطاقة.'); }
   }
-  async function record(event) {
+  async function recordConsent(event) {
     event?.preventDefault();
-    const result = root.document.getElementById('followupResult')?.value;
-    const next = root.document.getElementById('followupNextDue')?.value || '';
-    const memberNo = root.document.getElementById('followupRegisteredMemberNo')?.value.trim() || '';
-    if (result === 'registered' && !/^[0-9]{6,15}$/.test(memberNo)) {
-      return root.toast('أدخل رقم عضوية DXN الجديدة بالأرقام (من 6 إلى 15 رقمًا).');
-    }
-    if (['interested', 'deferred'].includes(result) && (!next || new Date(next).getTime() <= Date.now())) {
-      return root.toast('حدد موعدًا مستقبليًا مناسبًا للشخص.');
-    }
+    const contact = state.contacts.find(c => c.id === state.currentId);
+    if (!contact || isClosed(contact) || contact.consent_confirmed) return;
     try {
-      await root.rpc('followup_record_action', {
-        p_token: root.followupSession.token, p_contact_id: state.currentId, p_result: result,
-        p_note: root.document.getElementById('followupActionNote')?.value.trim() || null,
-        p_next_due_at: next ? new Date(next).toISOString() : null,
-        p_registered_member_no: result === 'registered' ? memberNo : null
+      await root.rpc('followup_confirm_consent', {
+        p_token: root.followupSession.token, p_contact_id: contact.id
       });
-      close();
-      if (result === 'registered') state.kind = 'new_member';
-      root.toast(result === 'registered'
-        ? 'تم التسجيل ونقل البطاقة إلى متابعة الأعضاء الجدد لدى المسؤول نفسه. تحقق من موافقته على المتابعة.'
-        : 'تم حفظ النتيجة وتحديث موعد المتابعة.');
-      await reload();
-    } catch (error) { root.toast(error.message || 'تعذر تسجيل النتيجة'); }
+      close(); root.toast('تم توثيق الموافقة وتحديث موعد المرحلة الأولى.'); await reload();
+    } catch (error) { root.toast(error.message || 'تعذر إثبات الموافقة.'); }
   }
-  async function copyTemplate() {
+  async function copyStage(index) {
     ensureSession();
     const contact = state.contacts.find(c => c.id === state.currentId);
-    if (!contact || !contact.consent_confirmed || isClosed(contact)) return;
+    if (!contact || !stageReady(contact, index)) return root.toast('زر النسخ مغلق حتى موعد هذه المرحلة.');
     try {
-      await root.navigator.clipboard.writeText(template(contact));
-      root.toast('نُسخت الرسالة. راجعها قبل إرسالها عبر قناة مسموحة.');
-    } catch (_error) { root.toast('تعذر النسخ، حدّد النص يدويًا.'); }
+      await root.navigator.clipboard.writeText(template(contact, index));
+      root.toast('نُسخت رسالة هذه المرحلة باسم الشخص. أرسلها يدويًا بعد مراجعتها.');
+    } catch (_error) { root.toast('تعذر النسخ. تحقق من أذونات الحافظة في المتصفح.'); }
   }
   async function reload() { state.loaded = false; await load(); }
   function checkReminders() {
@@ -656,19 +760,27 @@
     const now = Date.now();
     state.contacts.forEach(c => {
       if (isClosed(c) || !c.consent_confirmed || !c.next_due_at) return;
-      const diff = new Date(c.next_due_at).getTime() - now;
+      const due = stageDueAt(c, Number(c.stage) || 0);
+      if (!due) return;
+      const diff = due.getTime() - now;
       const before = Number(c.reminder_minutes || 30) * 60000;
       if (diff > before || diff < -86400000) return;
-      const key = `${c.id}:${c.next_due_at}:${diff < 0 ? 'due' : 'before'}`;
+      if (diff <= 0 && state.currentId === c.id) {
+        const timeline = root.document?.getElementById('followupStageTimeline');
+        if (timeline && !timeline.querySelector?.('.is-ready'))
+          timeline.innerHTML = stageCardsHtml(c, state.history);
+      }
+      const key = `${c.id}:${due.toISOString()}:${diff < 0 ? 'due' : 'before'}`;
       if (notified.has(key)) return;
       notified.add(key);
-      const clock = new Date(c.next_due_at).toLocaleTimeString('ar-IQ', {
+      const clock = due.toLocaleTimeString('ar-IQ', {
         hour: 'numeric', minute: '2-digit'
       });
       const message = `${c.name}: ${stageLabel(c)} — الساعة ${clock} — ${diff < 0 ? 'حان موعد المتابعة' : `تبقى ${Math.max(1, Math.ceil(diff / 60000))} دقيقة`}`;
-      if (typeof root.toast === 'function') root.toast('🔔 ' + message);
+      const action = ` — ${nextActionTypes.text}: ${template(c)}`;
+      if (typeof root.toast === 'function') root.toast('🔔 ' + message + action);
       if (root.document?.hidden && root.Notification?.permission === 'granted') {
-        try { new root.Notification('تذكير من مركز المتابعة', { body: message }); } catch (_error) { /* In-app only. */ }
+        try { new root.Notification('تذكير من مركز المتابعة', { body: message + action }); } catch (_error) { /* In-app only. */ }
       }
     });
   }
@@ -709,11 +821,12 @@
 
   root.followupCenter = { render, load, reload, changeKind, changeFilter, changeStatusFilter, searchInput,
     leaderSearchInput, leaderSetKind, leaderSetAssignee, leaderSetStatus, leaderMore, openFromNotification,
-    add, searchAssignees, fillFromCard, save, open, close, record, toggleRegistrationField,
-    toggleProspectMembership, saveProspectStatus, copyTemplate, parseLeadCard, stageLabel, enableDeviceReminders };
+    add, searchAssignees, fillFromCard, save, open, close, recordConsent,
+    toggleStageMembership, completeStage, convertToMember, copyStage,
+    parseLeadCard, stageLabel, enableDeviceReminders };
   if (root.document && typeof root.setInterval === 'function') root.setInterval(checkReminders, 60000);
   if (root.document && typeof root.setInterval === 'function') root.setInterval(pollLeaderUpdates, 60000);
   if (typeof module !== 'undefined' && module.exports)
     module.exports = { parseLeadCard, stageLabel, template, escapeHtml, prospectStages, memberStages,
-      prospectStatuses, prospectStatusLabel };
+      prospectStatuses, prospectStatusLabel, nextActionTypes, stageDueAt, stageReady, stageCardsHtml };
 })(typeof window !== 'undefined' ? window : globalThis);
