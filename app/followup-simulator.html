@@ -71,6 +71,9 @@
     .stats strong{display:block;color:#086744;font-size:25px}
     .empty{text-align:center;padding:60px 15px;color:#617669}
     .finish{background:#e1f9e9;border:1px solid #a7ddbc;color:#095a3a;border-radius:11px;padding:12px;font-weight:800;margin:12px 0}
+    .restore-panel{margin-top:16px;padding:14px;background:#f2f8ff;border:1px solid #c6daee;border-radius:11px}
+    .restore-panel p{margin:4px 0 11px;color:#48617c;font-size:13px}
+    .restored-note{margin:10px 0;padding:10px 13px;background:#f2f8ff;border:1px solid #c6daee;border-radius:9px;color:#375b78;font-weight:700;font-size:13px}
     @media(max-width:1120px){.stage-grid{grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:minmax(265px,330px)}.stage-grid.members{grid-template-columns:none;grid-auto-columns:minmax(265px,330px)}}
     @media(max-width:750px){.container{padding:13px 11px 85px}.head h1{font-size:21px}.steps{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2,.formgrid,.detail{grid-template-columns:1fr}.card{padding:14px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.stage-grid,.stage-grid.members{grid-auto-columns:minmax(260px,86vw)}.site-nav a{font-size:12px;padding:9px 10px}.stage{min-height:400px}}
   </style>
@@ -94,6 +97,39 @@
     const reactionLabels = {new:'جديد',contacted:'تم التواصل',no_whatsapp:'لا يمتلك واتساب',already_dxn:'عضو في DXN',registered:'سجّل عضوية',points_activated:'فعّل نقاط',no_response:'لا يرد نهائيًا',not_interested:'لا يرغب بالعمل',blocked_me:'عمل لي حظرًا'};
     const stopReactions = new Set(['already_dxn','no_response','not_interested','blocked_me']);
     const blank = () => ({tab:'add',name:'',country:'',phone:'',sponsor:'',consent:false,prospectStage:0,prospectClosed:false,member:null,memberStage:0,memberClosed:false,history:[],copied:{}});
+
+    // Rebuilds the prior *simulated* run from the report supplied by the user.
+    // No real leads, members or Supabase data are created or changed.
+    const restoredSalem = () => {
+      const history=[];
+      const log=(clock,kind,title,details,index=null,reaction=null)=>{
+        const entry={kind,title,details,at:`2026-10-27T${clock}:00+03:00`};
+        if(index!==null){entry.index=index;entry.reaction=reaction;}
+        history.push(entry);
+      };
+      log('11:10','system','أُضيف المهتم التجريبي','المهتم: اختبار – سالم ضيف الله · الدولة: تونس · السبونسر: وائل حاتم سعيد');
+      log('11:13','prospect','نُسخت رسالة المهتم',`المرحلة 1: ${prospectStages[0]}`);
+      log('11:14','prospect',`اكتملت المرحلة 1: ${prospectStages[0]}`,'تم التواصل',0,'contacted');
+      log('11:16','prospect','نُسخت رسالة المهتم',`المرحلة 2: ${prospectStages[1]}`);
+      log('11:17','prospect',`اكتملت المرحلة 2: ${prospectStages[1]}`,'تم التواصل · أبدى المهتم اهتمامًا بالفكرة وطلب معرفة خطوات التسجيل.',1,'contacted');
+      log('11:21','prospect','نُسخت رسالة المهتم',`المرحلة 3: ${prospectStages[2]}`);
+      log('11:22','prospect',`اكتملت المرحلة 3: ${prospectStages[2]}`,'سجّل عضوية · منمز',2,'registered');
+      log('11:22','system','تحوّل المهتم إلى عضو جديد','رقم العضوية الافتراضي: 88888888 · تاريخ الانضمام: 2026-10-27 · احتُفظ بسجل المهتم السابق.');
+      log('11:34','member','تأكدت موافقة العضو الجديد','تفعيل مراحل المتابعة الافتراضية.');
+      log('11:36','member',`اكتملت المرحلة 1: ${memberStages[0]}`,'تم التواصل',0,'contacted');
+      log('11:40','member','نُسخت رسالة العضو',`المرحلة 2: ${memberStages[1]}`);
+      log('11:40','member',`اكتملت المرحلة 2: ${memberStages[1]}`,'تم التواصل',1,'contacted');
+      log('11:42','member','نُسخت رسالة العضو',`المرحلة 3: ${memberStages[2]}`);
+      log('11:42','member',`اكتملت المرحلة 3: ${memberStages[2]}`,'تم التواصل',2,'contacted');
+      log('11:43','member','نُسخت رسالة العضو',`المرحلة 4: ${memberStages[3]}`);
+      log('11:43','member',`اكتملت المرحلة 4: ${memberStages[3]}`,'تم التواصل · تمت مراجعة احتياجات العضو، وأفاد بأن التدريبات واضحة، ويرغب في تطوير مهارات التواصل والاستقطاب.',3,'contacted');
+      log('11:44','member','نُسخت رسالة العضو',`المرحلة 5: ${memberStages[4]}`);
+      log('11:45','member',`اكتملت المرحلة 5: ${memberStages[4]}`,'تم التواصل · تم التواصل مع العضو وتشجيعه على مواصلة التدريبات، وأبدى استعداده لحضور لقاء قصير لتطوير مهاراته.',4,'contacted');
+      log('11:46','member','نُسخت رسالة العضو',`المرحلة 6: ${memberStages[5]}`);
+      log('11:46','member',`اكتملت المرحلة 6: ${memberStages[5]}`,'تم التواصل · أكمل العضو شهره الأول، وأبدى رضاه عن تجربته واستعداده لمواصلة التدريب وتطوير مهاراته خلال الشهر القادم.',5,'contacted');
+      log('11:46','system','اكتملت/أُغلقت متابعة العضو','النتيجة: تم التواصل');
+      return {...blank(),tab:'results',name:'اختبار – سالم ضيف الله',country:'تونس',phone:'000000000',sponsor:'وائل حاتم سعيد',consent:true,prospectStage:3,prospectClosed:true,member:{number:'88888888',date:'2026-10-27',consent:true},memberStage:6,memberClosed:true,history,restoredFromReport:true};
+    };
     let data = blank();
     try {const v = JSON.parse(localStorage.getItem(KEY)); if(v&&Array.isArray(v.history)) data = {...blank(),...v};} catch(_){}
     const $ = id => document.getElementById(id);
@@ -128,7 +164,7 @@
       <div class="formgrid"><label>اسم المهتم<input id="name" required maxlength="100" value="${esc(data.name||'اختبار – سالم ضيف الله')}"></label><label>الدولة<input id="country" required value="${esc(data.country||'تونس')}"></label><label>رقم تجريبي غير مستخدم للتواصل<input id="phone" value="${esc(data.phone||'000000000')}"></label><label>السبونسر المسؤول<input id="sponsor" required value="${esc(data.sponsor||'وائل حاتم سعيد')}"></label></div>
       <p><label><input id="consent" type="checkbox" ${data.consent?'checked':''} required> تم التحقق افتراضيًا من الموافقة على المتابعة (للاختبار فقط).</label></p>
       <button type="submit" class="button">إضافة المهتم وفتح بطاقة المتابعة</button>
-    </form></section>`;
+    </form>${!data.name&&!data.history.length?'<div class="restore-panel"><b>📄 لديك تقرير اختبار سالم السابق؟</b><p>يمكن استعادة نتيجة الاختبار المكتمل (3 مراحل مهتم و6 مراحل عضو) من التقرير الذي زوّدتنا به يوم 27 أكتوبر 2026. هذه محاكاة وليست سجلًا فعليًا في قاعدة البيانات.</p><button type="button" class="button secondary" onclick="demo.restoreSalem()">استعادة اختبار سالم المكتمل</button></div>':''}</section>`;
     const identity = () => `<div class="grid2"><section class="card"><div class="row" style="justify-content:space-between"><h2>بيانات ${data.tab==='member'?'العضو الجديد':'المهتم'}</h2><span class="pill">${data.tab==='member'?'🤝 عضو جديد':'🌱 مهتم'}</span></div><div class="detail">
       <div><b>الاسم</b>${esc(data.name)}</div><div><b>الدولة</b>${esc(data.country)}</div><div><b>رقم التواصل التجريبي</b>${esc(data.phone)}</div><div><b>السبونسر</b>${esc(data.sponsor)}</div>
       ${data.tab==='member'&&data.member?`<div><b>رقم العضوية الافتراضي</b>${esc(data.member.number)}</div><div><b>تاريخ الانضمام الافتراضي</b>${esc(data.member.date)}</div>`:''}
@@ -159,6 +195,7 @@
     const historyHtml=()=>`<section class="card" style="margin-top:15px"><h2>📚 السجل الزمني للمتابعة</h2><div class="history">${data.history.length?data.history.slice().reverse().map(h=>`<div class="history-item"><div><b>${esc(h.title)}</b><div class="muted">${esc(h.details)}</div></div><small>${time(h.at)}</small></div>`).join(''):'<p class="muted">لم يُسجّل أي إجراء بعد.</p>'}</div></section>`;
     const results=()=>`<div class="stats"><div class="card"><span class="muted">الرسائل المنسوخة</span><strong>${data.history.filter(h=>h.title.startsWith('نُسخت')).length}</strong></div><div class="card"><span class="muted">مراحل المهتم المكتملة</span><strong>${phaseCount('prospect')} / 4</strong></div><div class="card"><span class="muted">مراحل العضو المكتملة</span><strong>${phaseCount('member')} / 6</strong></div><div class="card"><span class="muted">حالة التحويل</span><strong style="font-size:18px">${data.member?'تم التحويل ✅':'لم يتحوّل بعد'}</strong></div></div>
       <div class="card"><h2>نتيجة الاختبار</h2><p><b>الاسم:</b> ${esc(data.name)} · <b>السبونسر:</b> ${esc(data.sponsor)}</p>
+      ${data.restoredFromReport?'<p class="restored-note">📄 هذا السجل أُعيد بناؤه من تقرير المحاكاة السابق، وليس سجلًا مسترجعًا من قاعدة البيانات.</p>':''}
       <p><b>مسار المهتم:</b> ${data.prospectClosed?'مغلق':`المرحلة ${Math.min(data.prospectStage+1,4)}`}</p><p><b>مسار العضو:</b> ${data.memberClosed?'اكتمل الشهر الأول':data.member?`المرحلة ${Math.min(data.memberStage+1,6)}`:'لم يبدأ'}</p>
       ${data.memberClosed?'<div class="finish">✅ اكتمل المسار التجريبي من المهتم إلى العضو الجديد، وحُفظت جميع نتائج المتابعة محليًا.</div>':''}
       <div class="row"><button class="button" onclick="demo.copyReport()">📋 نسخ التقرير</button><button class="button secondary" onclick="demo.go('${data.member?'member':'prospect'}')">متابعة المراحل</button><button class="button danger" onclick="demo.reset()">بدء تجربة جديدة</button></div></div>${historyHtml()}`;
@@ -173,6 +210,11 @@
     }
     const copyText=async value => {try{await navigator.clipboard.writeText(value);return true;}catch(_){const el=document.createElement('textarea');el.value=value;el.style.position='fixed';el.style.opacity='0';document.body.append(el);el.select();const ok=document.execCommand('copy');el.remove();return !!ok;}};
     window.demo = {
+      restoreSalem(){
+        if(data.name||data.history.length)return alert('هذه المحاكاة تحتوي سجلًا حاليًا. لن يُستبدل تلقائيًا.');
+        if(!confirm('استعادة سجل سالم التجريبي المكتمل من التقرير السابق؟ لن يتغير أي سجل حقيقي في مركز المتابعة.'))return;
+        data=restoredSalem();save();render();window.scrollTo(0,0);
+      },
       go(tab){if(tab==='member'&&!data.member)return;if(tab!=='add'&&!data.name)return;data.tab=tab;save();render();window.scrollTo(0,0);},
       create(event){event.preventDefault();if(data.name){showError('بدأت التجربة بالفعل. استخدم إعادة التجربة لإنشاء سجل جديد.');return;}
         const name=$('name').value.trim(),country=$('country').value.trim(),sponsor=$('sponsor').value.trim();
