@@ -22,6 +22,11 @@ function harness(role, contacts = []) {
     followupResult: { value: 'registered' },
     followupRegisteredMemberNo: { value: '', required: false },
     followupRegistrationField: { hidden: true },
+    followupProspectStatus: { value: 'new' },
+    followupProspectMemberNo: { value: '', required: false },
+    followupProspectMembership: { hidden: true },
+    followupProspectStatusNote: { value: '' },
+    followupResults: { innerHTML: '' },
     followupNextDue: { value: '' },
     followupActionNote: { value: '' }
   };
@@ -44,6 +49,7 @@ function harness(role, contacts = []) {
       if (fn === 'followup_add') return 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa';
       if (fn === 'followup_history') return [];
       if (fn === 'followup_record_action') return { ok: true, new_member_contact_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb' };
+      if (fn === 'followup_set_prospect_status') return { ok: true, changed: true, new_member_contact_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb' };
       throw new Error('unexpected RPC: ' + fn);
     }
   };
@@ -91,7 +97,7 @@ test('member adds a registered member to their own follow-up list, without reass
   assert.equal(request.p_assignee_user_id, null);
 });
 
-test('registered prospect requires the DXN number, then switches to the new-member queue', async () => {
+test('registered prospect requires a membership number and saves its classified status', async () => {
   const prospectId = 'cccccccc-cccc-4ccc-cccc-cccccccccccc';
   const h = harness('member', [{
     id: prospectId, name: 'محمود علي', kind: 'prospect', stage: 1, status: 'active',
@@ -100,25 +106,57 @@ test('registered prospect requires the DXN number, then switches to the new-memb
   }]);
   await h.root.followupCenter.load();
   await h.root.followupCenter.open(prospectId);
-  assert.match(h.modal.innerHTML, /id="followupRegistrationField" hidden/);
-  assert.match(h.modal.innerHTML, /رقم عضوية DXN الجديدة/);
+  assert.match(h.modal.innerHTML, /id="followupProspectMembership" hidden/);
+  assert.match(h.modal.innerHTML, /حالة المستقطَب/);
+  assert.match(h.modal.innerHTML, /عمل لي حظرًا/);
+  assert.doesNotMatch(h.modal.innerHTML, /طلب إيقاف التواصل \/ حظر/);
 
-  h.root.followupCenter.toggleRegistrationField();
-  assert.equal(h.values.followupRegistrationField.hidden, false);
-  assert.equal(h.values.followupRegisteredMemberNo.required, true);
-  await h.root.followupCenter.record({ preventDefault() {} });
-  assert.equal(h.calls.filter(c => c.fn === 'followup_record_action').length, 0);
-  assert.match(h.toasts.at(-1), /أدخل رقم عضوية DXN/);
+  h.values.followupProspectStatus.value = 'registered';
+  h.root.followupCenter.toggleProspectMembership();
+  assert.equal(h.values.followupProspectMembership.hidden, false);
+  assert.equal(h.values.followupProspectMemberNo.required, true);
+  await h.root.followupCenter.saveProspectStatus({ preventDefault() {} });
+  assert.equal(h.calls.filter(c => c.fn === 'followup_set_prospect_status').length, 0);
+  assert.match(h.toasts.at(-1), /أدخل رقم العضوية/);
 
-  h.values.followupRegisteredMemberNo.value = '820469486';
-  await h.root.followupCenter.record({ preventDefault() {} });
-  const request = h.calls.find(c => c.fn === 'followup_record_action')?.args;
+  h.values.followupProspectMemberNo.value = '820469486';
+  await h.root.followupCenter.saveProspectStatus({ preventDefault() {} });
+  const request = h.calls.find(c => c.fn === 'followup_set_prospect_status')?.args;
   assert.ok(request);
   assert.equal(request.p_contact_id, prospectId);
-  assert.equal(request.p_result, 'registered');
+  assert.equal(request.p_status, 'registered');
   assert.equal(request.p_registered_member_no, '820469486');
-  assert.match(h.toasts.at(-1), /متابعة الأعضاء الجدد/);
-  assert.match(h.root.followupCenter.render(), /followup-choice selected[^>]*>🤝 الأعضاء الجدد/);
+  assert.match(h.toasts.at(-1), /تم حفظ حالة المستقطَب/);
+});
+
+test('blocked me is a saved classification, never a user-block action', async () => {
+  const prospectId = 'cccccccc-cccc-4ccc-cccc-cccccccccccc';
+  const h = harness('member', [{
+    id: prospectId, name: 'علي حسن', phone: '+9647000000000',
+    kind: 'prospect', status: 'active', prospect_status: 'contacted',
+    consent_confirmed: true
+  }]);
+  await h.root.followupCenter.load();
+  await h.root.followupCenter.open(prospectId);
+  h.values.followupProspectStatus.value = 'blocked_me';
+  await h.root.followupCenter.saveProspectStatus({ preventDefault() {} });
+  const calls = h.calls.filter(c => c.fn === 'followup_set_prospect_status');
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].args.p_status, 'blocked_me');
+  assert.equal(h.calls.some(c => /block|ban/i.test(c.fn)), false);
+});
+
+test('prospect classification filter and name or telephone search work together', async () => {
+  const h = harness('member', [
+    { id: 'a', kind: 'prospect', name: 'علي سالم', phone: '+964770000', prospect_status: 'no_whatsapp' },
+    { id: 'b', kind: 'prospect', name: 'أحمد حسن', phone: '+964780000', prospect_status: 'contacted' },
+    { id: 'c', kind: 'prospect', name: 'علي آخر', phone: '+964790000', prospect_status: 'contacted' }
+  ]);
+  await h.root.followupCenter.load();
+  h.root.followupCenter.changeStatusFilter('contacted');
+  h.root.followupCenter.searchInput('+964780');
+  assert.match(h.values.followupResults.innerHTML, /أحمد حسن/);
+  assert.doesNotMatch(h.values.followupResults.innerHTML, /علي سالم|علي آخر/);
 });
 
 test('non-registration follow-up does not forward any new membership number', async () => {

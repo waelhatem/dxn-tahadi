@@ -7,6 +7,7 @@ const root = path.join(__dirname, '..');
 const modulePath = path.join(root, 'app', 'followup-center.js');
 const index = fs.readFileSync(path.join(root, 'app', 'index.html'), 'utf8');
 const sql = fs.readFileSync(path.join(root, 'supabase', 'pending-review', '20261026_followup_center_draft.sql'), 'utf8');
+const statusSql = fs.readFileSync(path.join(root, 'supabase', 'pending-review', '20261027_followup_prospect_status.sql'), 'utf8');
 const followup = require(modulePath);
 const script = fs.readFileSync(modulePath, 'utf8');
 
@@ -77,4 +78,26 @@ test('CRM foreign-key indexes support growing workloads without exposing data di
   assert.match(sql, /create index if not exists followup_actions_actor_idx/);
   assert.match(sql, /alter table public\.followup_actions enable row level security/);
   assert.match(sql, /revoke all on public\.followup_actions from public, anon, authenticated/);
+});
+
+test('all nine prospect classifications have unambiguous labels', () => {
+  assert.deepEqual(Object.values(followup.prospectStatuses), [
+    'جديد','تم التواصل','لا يمتلك واتساب','عضو في DXN','سجّل عضوية',
+    'فعّل نقاط','لا يرد نهائيًا','لا يرغب بالعمل','عمل لي حظرًا'
+  ]);
+  assert.equal(followup.prospectStatusLabel({ kind: 'prospect', prospect_status: 'blocked_me' }), 'عمل لي حظرًا');
+});
+
+test('status history is structured, searchable and access-scoped', () => {
+  assert.match(statusSql, /add column if not exists prospect_status text not null default 'new'/);
+  assert.match(statusSql, /create index if not exists followup_contacts_prospect_status_idx/);
+  assert.match(statusSql, /status_before,status_after/);
+  assert.match(statusSql, /where id=p_contact_id and kind='prospect'\s+and \(v_role='leader' or assigned_user_id=v_uid\)/);
+  assert.match(statusSql, /'status_updated'/);
+  assert.match(statusSql, /where \(v_role='leader' or f\.assigned_user_id=v_uid\)/);
+  assert.match(statusSql, /false,null,'consent_pending'/);
+  assert.match(script, /followup_set_prospect_status/);
+  assert.match(script, /followupStatusFilter/);
+  assert.match(script, /followupSearch/);
+  assert.doesNotMatch(statusSql, /delete from public\.followup_contacts/i);
 });

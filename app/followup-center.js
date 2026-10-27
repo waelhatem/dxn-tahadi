@@ -10,12 +10,21 @@
   const memberStages = ['الترحيب — اليوم الأول', 'الاطمئنان — اليوم الثالث', 'متابعة التدريب — اليوم السابع',
     'مراجعة الاحتياجات — اليوم 14', 'الدعم والتشجيع — اليوم 21', 'مراجعة الشهر الأول — اليوم 30'];
   const terminal = new Set(['registered', 'refused', 'blocked', 'closed']);
+  // تصنيف المستقطب مستقل عن نتائج محاولات التواصل وعن حظر المستخدمين.
+  const prospectStatuses = {
+    new: 'جديد', contacted: 'تم التواصل', no_whatsapp: 'لا يمتلك واتساب',
+    already_dxn: 'عضو في DXN', registered: 'سجّل عضوية',
+    points_activated: 'فعّل نقاط', no_response: 'لا يرد نهائيًا',
+    not_interested: 'لا يرغب بالعمل', blocked_me: 'عمل لي حظرًا'
+  };
+  const prospectPaused = new Set(['no_response', 'not_interested', 'blocked_me']);
   const resultLabels = {
     sent: 'تم التواصل', no_reply: 'لم يرد', interested: 'مهتم — موعد آخر',
     deferred: 'طلب التأجيل', registered: 'تم التسجيل', refused: 'رفض',
-    blocked: 'أوقف التواصل', closed: 'إغلاق', consent_granted: 'تم تأكيد الموافقة'
+    blocked: 'طلب إيقاف التواصل', closed: 'إغلاق', consent_granted: 'تم تأكيد الموافقة',
+    status_updated: 'تغيير حالة المستقطَب'
   };
-  const state = { kind: 'prospect', filter: 'today', contacts: [], assignees: [], loaded: false,
+  const state = { kind: 'prospect', filter: 'all', statusFilter: 'all', search: '', contacts: [], assignees: [], loaded: false,
     loading: false, error: '', currentId: null, history: [], sessionToken: null };
   const notified = new Set();
 
@@ -111,14 +120,25 @@
     } catch (_error) { /* Timezone needs correction. */ }
     return `بتوقيتك: ${local}${theirs ? ` · توقيت بلد الشخص: ${theirs}` : ''}`;
   }
-  function isClosed(contact) { return terminal.has(contact.status); }
+  function prospectStatusLabel(contact) {
+    return prospectStatuses[contact.prospect_status || 'new'] || prospectStatuses.new;
+  }
+  function isClosed(contact) {
+    return terminal.has(contact.status) ||
+      (contact.kind === 'prospect' && prospectPaused.has(contact.prospect_status));
+  }
   function dueLabel(contact) {
     if (!contact.next_due_at) return '';
     const left = new Date(contact.next_due_at).getTime() - Date.now();
     return left < 0 ? '⏰ متأخر' : left <= 3600000 ? '🔔 قريب' : '📅 مجدول';
   }
   function matchedContacts() {
-    const rows = state.contacts.filter(c => c.kind === state.kind);
+    const query = state.search.trim().toLocaleLowerCase();
+    const rows = state.contacts.filter(c => c.kind === state.kind)
+      .filter(c => state.kind !== 'prospect' || state.statusFilter === 'all' ||
+        (c.prospect_status || 'new') === state.statusFilter)
+      .filter(c => !query || `${c.name || ''} ${c.phone || ''} ${c.member_no || ''}`
+        .toLocaleLowerCase().includes(query));
     const now = Date.now();
     return rows.filter(c => {
       if (state.filter === 'all') return true;
@@ -136,7 +156,7 @@
   function row(contact) {
     const name = escapeHtml(contact.name);
     return `<div class="followup-person">
-      <div class="followup-person-main"><strong>${name}</strong><span>${escapeHtml(contact.country || '—')} · ${escapeHtml(stageLabel(contact))}</span>
+      <div class="followup-person-main"><strong>${name}</strong><span>${escapeHtml(contact.country || '—')} · ${escapeHtml(contact.kind === 'prospect' ? prospectStatusLabel(contact) : stageLabel(contact))}</span>
         <small>المسؤول: ${escapeHtml(contact.assigned_name || 'غير محدد')} · ${escapeHtml(scheduled(contact))}</small></div>
       <div class="followup-person-side"><span class="badge">${escapeHtml(dueLabel(contact) || 'محفوظ')}</span>
         <button type="button" class="primary" onclick="followupCenter.open('${escapeHtml(contact.id)}')">فتح البطاقة</button></div>
@@ -159,9 +179,20 @@
       <div class="followup-overview"><div><b>${state.contacts.filter(c => c.kind === state.kind && !isClosed(c)).length}</b><span>حالات نشطة</span></div>
       <div><b>${due}</b><span>مواعيد مستحقة في القسمين</span></div></div>
       <div class="followup-filters">${filterBtn('today','اليوم والمتأخر')}${filterBtn('upcoming','القادمة')}${filterBtn('all','الجميع')}${filterBtn('closed','المغلقة')}</div>
+      <div class="followup-search-row">
+        <label>بحث بالاسم أو الهاتف أو رقم العضوية
+          <input type="search" id="followupSearch" value="${escapeHtml(state.search)}" placeholder="اكتب للبحث" oninput="followupCenter.searchInput(this.value)">
+        </label>
+        ${state.kind === 'prospect' ? `<label>تصنيف حالة المستقطَب
+          <select id="followupStatusFilter" onchange="followupCenter.changeStatusFilter(this.value)">
+            <option value="all">جميع الحالات</option>
+            ${Object.entries(prospectStatuses).map(([value, label]) =>
+              `<option value="${value}" ${state.statusFilter === value ? 'selected' : ''}>${label}</option>`).join('')}
+          </select></label>` : ''}
+      </div>
       ${state.loading ? '<p class="muted">جارٍ تحميل المهام…</p>' : ''}
       ${state.error ? `<p class="followup-error">${escapeHtml(state.error)}</p><button onclick="followupCenter.reload()">إعادة المحاولة</button>` : ''}
-      ${!state.loading && !state.error ? (rows.length ? rows.map(row).join('') : '<div class="empty">لا توجد متابعات في هذه القائمة.</div>') : ''}
+      <div id="followupResults">${!state.loading && !state.error ? (rows.length ? rows.map(row).join('') : '<div class="empty">لا توجد متابعات في هذه القائمة.</div>') : ''}</div>
       <p class="muted followup-footnote">التنبيهات هنا تذكّر العضو المسؤول فقط. لا تُرسل رسائل تلقائية إلى المهتمين. تحقق من الموافقة قبل التواصل.</p>
       <button type="button" onclick="followupCenter.enableDeviceReminders()">🔔 السماح بتنبيه الجهاز أثناء فتح الموقع</button>
     </section>`;
@@ -194,11 +225,25 @@
   }
   function changeKind(kind) {
     if (kind !== 'prospect' && kind !== 'new_member') return;
-    state.kind = kind; state.filter = 'today'; root.render();
+    state.kind = kind; state.filter = kind === 'prospect' ? 'all' : 'today';
+    state.statusFilter = 'all'; state.search = ''; root.render();
   }
   function changeFilter(filter) {
     if (!['today', 'upcoming', 'all', 'closed'].includes(filter)) return;
     state.filter = filter; root.render();
+  }
+  function changeStatusFilter(status) {
+    if (status !== 'all' && !Object.hasOwn(prospectStatuses, status)) return;
+    state.statusFilter = status;
+    if (status !== 'all') state.filter = 'all';
+    root.render();
+  }
+  function searchInput(value) {
+    state.search = String(value || '');
+    const results = root.document?.getElementById('followupResults');
+    if (!results) return;
+    const rows = matchedContacts();
+    results.innerHTML = rows.length ? rows.map(row).join('') : '<div class="empty">لا توجد نتائج مطابقة.</div>';
   }
   function modal(content) {
     if (!root.document) return;
@@ -236,6 +281,7 @@
       : `<p class="followup-self-assignee"><b>${assigneeTitle}:</b> أنت — ستُحفظ هذه الحالة في قائمة متابعاتك الخاصة.</p>`;
     modal(`<form id="followupAddForm" onsubmit="followupCenter.save(event)">
       <h3>إضافة ${state.kind === 'prospect' ? 'مهتم' : 'عضو مسجل'}</h3>
+      ${state.kind === 'prospect' ? '<p class="muted">الحالة الأولية: جديد — يمكنك تغييرها من بطاقة المستقطَب.</p>' : ''}
       ${state.kind === 'prospect' ? '<label>الصق بطاقة المهتم كاملة<textarea id="followupCard" placeholder="الاسم: ...\nالدولة: ...\nرقم الهاتف: ..." oninput="followupCenter.fillFromCard()"></textarea></label>' : ''}
       <label>الاسم<input id="followupName" required maxlength="160" placeholder="الاسم الكامل"></label>
       <div class="followup-form-grid"><label>الدولة<input id="followupCountry" maxlength="80"></label>
@@ -307,6 +353,21 @@
       المصدر: ${escapeHtml(contact.source_label || '—')}
       ${contact.notes ? `<div class="followup-shortnote">ملاحظة: ${escapeHtml(contact.notes)}</div>` : ''}</div>
       <div class="followup-stage"><b>${escapeHtml(stageLabel(contact))}</b><small>${escapeHtml(scheduled(contact))}</small></div>
+      ${contact.kind === 'prospect' ? `<form onsubmit="followupCenter.saveProspectStatus(event)" class="followup-status-form">
+        <h4>حالة المستقطَب</h4>
+        <label>اختر الحالة الحالية
+          <select id="followupProspectStatus" onchange="followupCenter.toggleProspectMembership()">
+            ${Object.entries(prospectStatuses).map(([value, label]) => `<option value="${value}" ${(contact.prospect_status || 'new') === value ? 'selected' : ''}>${label}</option>`).join('')}
+          </select>
+        </label>
+        <div id="followupProspectMembership" ${contact.prospect_status === 'registered' && contact.status !== 'registered' ? '' : 'hidden'}>
+          <label>رقم العضوية الجديدة عند أول تسجيل
+            <input id="followupProspectMemberNo" inputmode="numeric" pattern="[0-9]{6,15}" maxlength="15" placeholder="رقم عضوية DXN"></label>
+        </div>
+        <label>ملاحظة حول تغيير الحالة (اختياري)<textarea id="followupProspectStatusNote" maxlength="2000"></textarea></label>
+        <button type="submit" class="primary">حفظ الحالة</button>
+        <p class="muted">تُحفظ الحالة في السجل، و«عمل لي حظرًا» مجرد تصنيف؛ لا يحظر هذا الزر أي شخص.</p>
+      </form>` : ''}
       ${contact.consent_confirmed && !stopped ? `<h4>📝 رسالة المرحلة الحالية</h4>
         <div class="followup-template">${escapeHtml(template(contact)).replace(/\n/g, '<br>')}</div>
         <button type="button" onclick="followupCenter.copyTemplate()">نسخ الرسالة</button>` : ''}
@@ -316,9 +377,7 @@
           ${!contact.consent_confirmed ? option('consent_granted','تم التحقق من الموافقة') : ''}
           ${contact.consent_confirmed ? `${option('sent','تم إرسال رسالة المرحلة')}${option('no_reply','لم يرد')}
           ${option('interested','مهتم — موعد جديد')}${option('deferred','طلب التأجيل')}` : ''}
-          ${contact.kind === 'prospect' ? option('registered','تم تسجيل عضويته') : ''}
-          ${option('refused','رفض التواصل')}${option('blocked','طلب إيقاف التواصل / حظر')}
-          ${option('closed','إغلاق المتابعة')}
+          ${contact.kind === 'new_member' ? `${option('refused','لا يرغب بمواصلة المتابعة')}${option('blocked','طلب إيقاف التواصل')}${option('closed','إغلاق المتابعة')}` : ''}
         </select></label>
         ${contact.kind === 'prospect' ? `<div id="followupRegistrationField" hidden>
           <label>رقم عضوية DXN الجديدة<input id="followupRegisteredMemberNo" inputmode="numeric"
@@ -335,7 +394,9 @@
       if (state.currentId !== id) return;
       const el = root.document.getElementById('followupHistory');
       if (el) el.innerHTML = Array.isArray(history) && history.length ? history.map(h =>
-        `<div class="followup-history-item"><b>${escapeHtml(resultLabels[h.result] || h.result)}</b>
+        `<div class="followup-history-item"><b>${escapeHtml(h.result === 'status_updated' ?
+          `${prospectStatuses[h.status_before] || 'غير محددة'} ← ${prospectStatuses[h.status_after] || 'غير محددة'}` :
+          resultLabels[h.result] || h.result)}</b>
          <small>${escapeHtml(new Date(h.created_at).toLocaleString('ar-IQ'))}</small>
          <span>${escapeHtml(h.note || '')}</span></div>`).join('') : '<p class="muted">لا توجد محاولات مسجلة بعد.</p>';
     } catch (_error) {
@@ -349,6 +410,36 @@
     const selected = root.document?.getElementById('followupResult')?.value === 'registered';
     if (field) field.hidden = !selected;
     if (number) number.required = selected;
+  }
+  function toggleProspectMembership() {
+    const contact = state.contacts.find(c => c.id === state.currentId);
+    const selected = root.document?.getElementById('followupProspectStatus')?.value;
+    const field = root.document?.getElementById('followupProspectMembership');
+    const number = root.document?.getElementById('followupProspectMemberNo');
+    const firstRegistration = selected === 'registered' && contact?.status !== 'registered';
+    if (field) field.hidden = !firstRegistration;
+    if (number) number.required = firstRegistration;
+  }
+  async function saveProspectStatus(event) {
+    event?.preventDefault();
+    const contact = state.contacts.find(c => c.id === state.currentId);
+    if (!contact || contact.kind !== 'prospect') return;
+    const status = root.document.getElementById('followupProspectStatus')?.value;
+    if (!Object.hasOwn(prospectStatuses, status)) return root.toast('اختر حالة صحيحة.');
+    const memberNo = root.document.getElementById('followupProspectMemberNo')?.value.trim() || '';
+    if (status === 'registered' && contact.status !== 'registered' && !/^[0-9]{6,15}$/.test(memberNo))
+      return root.toast('أدخل رقم العضوية عند تسجيل المستقطَب (6–15 رقمًا).');
+    try {
+      await root.rpc('followup_set_prospect_status', {
+        p_token: root.followupSession.token, p_contact_id: contact.id,
+        p_status: status,
+        p_note: root.document.getElementById('followupProspectStatusNote')?.value.trim() || null,
+        p_registered_member_no: status === 'registered' && memberNo ? memberNo : null
+      });
+      close();
+      root.toast('تم حفظ حالة المستقطَب في سجل المتابعة.');
+      await reload();
+    } catch (error) { root.toast(error.message || 'تعذر حفظ حالة المستقطَب.'); }
   }
   async function record(event) {
     event?.preventDefault();
@@ -415,9 +506,11 @@
     );
   }
 
-  root.followupCenter = { render, load, reload, changeKind, changeFilter, add, searchAssignees, fillFromCard,
-    save, open, close, record, toggleRegistrationField, copyTemplate, parseLeadCard, stageLabel, enableDeviceReminders };
+  root.followupCenter = { render, load, reload, changeKind, changeFilter, changeStatusFilter, searchInput,
+    add, searchAssignees, fillFromCard, save, open, close, record, toggleRegistrationField,
+    toggleProspectMembership, saveProspectStatus, copyTemplate, parseLeadCard, stageLabel, enableDeviceReminders };
   if (root.document && typeof root.setInterval === 'function') root.setInterval(checkReminders, 60000);
   if (typeof module !== 'undefined' && module.exports)
-    module.exports = { parseLeadCard, stageLabel, template, escapeHtml, prospectStages, memberStages };
+    module.exports = { parseLeadCard, stageLabel, template, escapeHtml, prospectStages, memberStages,
+      prospectStatuses, prospectStatusLabel };
 })(typeof window !== 'undefined' ? window : globalThis);

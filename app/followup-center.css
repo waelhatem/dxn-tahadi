@@ -11,6 +11,9 @@
 .followup-overview span{font-size:12px;color:#65776b}
 .followup-filters{display:flex;gap:7px;flex-wrap:wrap;margin:15px 0}
 .followup-filters button{min-height:38px;padding:8px 12px}
+.followup-search-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
+.followup-search-row label{display:grid;gap:6px;color:#25513e;font-weight:700;font-size:13px}
+.followup-search-row input,.followup-search-row select{width:100%;min-width:0;padding:10px;border:1px solid #cbded2;border-radius:10px;background:#fff;color:#1a3829}
 .followup-person{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:16px 4px;border-bottom:1px solid #e1ebe4}
 .followup-person-main{display:flex;flex-direction:column;gap:5px;min-width:0}
 .followup-person-main strong{font-size:17px;color:#153b2d}
@@ -38,6 +41,10 @@
 .followup-stage{border-radius:14px;background:#ebf7f0;border:1px solid #cde8d7;padding:13px;margin-top:12px;display:grid;gap:7px}
 .followup-shortnote{background:#f6f9f7;border-radius:10px;padding:8px;margin-top:8px;line-height:1.7}
 .followup-stage small{font-size:12px;line-height:1.7;color:#3a624d}
+.followup-status-form{background:#f4f9f5;border:1px solid #d7e9dc;border-radius:14px;padding:13px;margin:12px 0}
+.followup-status-form h4{margin:3px 0 10px}
+.followup-status-form select,.followup-status-form textarea{width:100%}
+.followup-status-form .muted{font-size:12px;line-height:1.7}
 .followup-template{border-radius:13px;background:#f7faf8;border:1px solid #e0ebe5;padding:14px;line-height:1.9;margin:10px 0;user-select:text;white-space:normal}
 .followup-history{border-top:1px solid #e0ece4;margin-top:22px;padding-top:8px}
 .followup-history-item{border-bottom:1px solid #e7eee8;padding:9px 0;display:grid;gap:4px}
@@ -48,5 +55,6 @@
   .followup-person{align-items:flex-start;flex-direction:column}
   .followup-person-side{width:100%;justify-content:space-between}
   .followup-form-grid{grid-template-columns:1fr;gap:0}
+  .followup-search-row{grid-template-columns:1fr}
   .followup-modal-sheet{padding:14px}
 }
