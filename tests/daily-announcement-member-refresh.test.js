@@ -5,7 +5,7 @@ const path=require('node:path');
 const vm=require('node:vm');
 
 const page=fs.readFileSync(path.join(__dirname,'..','app','index.html'),'utf8');
-const script=page.match(/<script id="dxn-global-announcements-v1-script">([\\s\\S]*?)<\\/script>/);
+const script=page.match(/<script id="dxn-global-announcements-v1-script">([\s\S]*?)<\/script>/);
 assert.ok(script,'announcement script must be present');
 
 test('open member session receives the daily announcement without reloading the page',async()=>{
@@ -65,7 +65,7 @@ test('open member session receives the daily announcement without reloading the 
 });
 
 test('hidden pages skip background polling until visible again',async()=>{
-  assert.match(script[1],/if\\(document\\.visibilityState==='hidden'\\)return/);
-  assert.match(script[1],/document\\.addEventListener\\('visibilitychange',refreshAnnouncementsIfVisible\\)/);
-  assert.match(script[1],/window\\.addEventListener\\('online',refreshAnnouncementsIfVisible\\)/);
+  assert.match(script[1],/if\(document\.visibilityState==='hidden'\)return/);
+  assert.match(script[1],/document\.addEventListener\('visibilitychange',refreshAnnouncementsIfVisible\)/);
+  assert.match(script[1],/window\.addEventListener\('online',refreshAnnouncementsIfVisible\)/);
 });
