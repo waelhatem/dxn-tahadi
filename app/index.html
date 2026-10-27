@@ -10199,6 +10199,20 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     finally{loadingMemberAnnouncements=false}
   }
   function observe(){injectLeaderCard();if(typeof role!=='undefined'&&(role==='member'||role==='leader'))setTimeout(loadMemberAnnouncements,250)}
+  // A member may keep this page open across the 08:00 Baghdad publication.
+  // Recheck while visible; recover on tab return or after a network interruption.
+  function refreshAnnouncementsIfVisible(){
+    if(document.visibilityState==='hidden')return;
+    loadMemberAnnouncements();
+  }
+  setInterval(refreshAnnouncementsIfVisible,60*1000);
+  window.addEventListener('focus',refreshAnnouncementsIfVisible);
+  window.addEventListener('pageshow',refreshAnnouncementsIfVisible);
+  window.addEventListener('online',refreshAnnouncementsIfVisible);
+  document.addEventListener('visibilitychange',refreshAnnouncementsIfVisible);
+  window.addEventListener('storage',function(event){
+    if(event.key==='dxn_session')refreshAnnouncementsIfVisible();
+  });
   var observer=new MutationObserver(function(){setTimeout(observe,20)});observer.observe(document.body,{childList:true,subtree:true});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observe);else observe();
 })();
