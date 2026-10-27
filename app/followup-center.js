@@ -498,9 +498,17 @@
     root.document.getElementById('followupModal')?.remove();
     const el = root.document.createElement('div');
     el.id = 'followupModal'; el.className = 'followup-modal';
+    // Keep every existing application tab available from the full-screen card.
+    // Reuse the real navigation buttons so their destinations and permissions stay in sync.
+    const appTabs = root.document.querySelector?.('.tabs');
+    const completeNav = appTabs ? `<nav class="followup-modal-site-nav" aria-label="تبويبات مجتمع الصحة والثراء">${appTabs.innerHTML}</nav>` : '';
     el.innerHTML = `<div class="followup-modal-sheet" role="dialog" aria-modal="true" aria-label="تفاصيل المتابعة">
+      ${completeNav}
       <div class="followup-modal-top"><b>📋 مركز المتابعة</b><button type="button" onclick="followupCenter.close()" aria-label="إغلاق">✕</button></div>
       ${content}</div>`;
+    el.querySelector?.('.followup-modal-site-nav')?.addEventListener('click', (event) => {
+      if (event.target.closest('button')) close();
+    }, true);
     root.document.body.appendChild(el);
   }
   function close() { root.document?.getElementById('followupModal')?.remove(); }
@@ -604,25 +612,27 @@
     state.currentId = id;
     state.history = [];
     const stopped = isClosed(contact);
-    modal(`<div class="followup-detail"><h3>${escapeHtml(contact.name)}</h3>
-      ${contact.kind === 'new_member' ? memberIdentityCard(contact) : prospectIdentityCard(contact)}
-      <div class="muted">الدولة: ${escapeHtml(contact.country || '—')} · الهاتف: ${escapeHtml(contact.phone || 'لا يوجد رقم')}<br>
-      المسؤول: ${escapeHtml(contact.assigned_name || '—')} · القناة: ${escapeHtml(contact.contact_channel || 'غير محددة')}<br>
-      ${contact.member_no ? `رقم العضوية: ${escapeHtml(contact.member_no)} · ` : ''}
-      ${contact.gender ? `الجنس: ${escapeHtml(contact.gender)} · ` : ''}
-      المصدر: ${escapeHtml(contact.source_label || '—')}
-      ${contact.notes ? `<div class="followup-shortnote">ملاحظة: ${escapeHtml(contact.notes)}</div>` : ''}</div>
-      ${nextStepHtml(contact)}
-      ${contact.kind === 'prospect' && !stopped ? `<form class="followup-status-form" onsubmit="followupCenter.convertToMember(event)">
-        <h4>🤝 تحوّل المهتم إلى عضو في DXN</h4>
-        <p class="muted">إذا سجّل المهتم عضوية بالفعل، انقل بطاقته إلى قسم الأعضاء الجدد فورًا، مع حفظ سجل المتابعة السابق.</p>
-        <div class="followup-form-grid">
-          <label>رقم عضوية DXN<input id="followupConvertMemberNo" inputmode="numeric" pattern="[0-9]{6,15}" maxlength="15" required></label>
-          <label>تاريخ الانضمام الفعلي<input id="followupConvertJoinDate" type="date" required></label>
+    modal(`<div class="followup-detail followup-profile">
+      <header class="followup-profile-header"><div><span class="followup-profile-kicker">بطاقة متابعة ${contact.kind === 'prospect' ? 'المهتم' : 'العضو الجديد'}</span>
+        <h3>${escapeHtml(contact.name)}</h3><span class="followup-profile-badge">${contact.kind === 'prospect' ? '🌱 مهتم' : '🤝 عضو جديد'}</span></div>
+        ${contact.kind === 'prospect' && !stopped ? `<details class="followup-convert-box">
+          <summary>＋ تحويل إلى عضو جديد</summary>
+          <form class="followup-status-form" onsubmit="followupCenter.convertToMember(event)">
+            <p class="muted">تُنقل البطاقة إلى الأعضاء الجدد مع حفظ سجل المتابعة السابق.</p>
+            <div class="followup-form-grid">
+              <label>رقم عضوية DXN<input id="followupConvertMemberNo" inputmode="numeric" pattern="[0-9]{6,15}" maxlength="15" required></label>
+              <label>تاريخ الانضمام الفعلي<input id="followupConvertJoinDate" type="date" required></label>
+            </div><button type="submit" class="primary">تأكيد التحويل</button>
+          </form></details>` : ''}</header>
+      <div class="followup-profile-grid">
+        <div class="followup-profile-identity">
+          ${contact.kind === 'new_member' ? memberIdentityCard(contact) : prospectIdentityCard(contact)}
+          <div class="followup-profile-meta">القناة: ${escapeHtml(contact.contact_channel || 'غير محددة')} · المصدر: ${escapeHtml(contact.source_label || '—')}${contact.gender ? ` · الجنس: ${escapeHtml(contact.gender)}` : ''}
+          ${contact.notes ? `<div class="followup-shortnote">ملاحظة: ${escapeHtml(contact.notes)}</div>` : ''}</div>
         </div>
-        <button type="submit" class="primary">تحويل إلى عضو جديد</button>
-      </form>` : ''}
-      <h4>📑 مراحل المتابعة والرسائل المخصصة</h4>
+        ${nextStepHtml(contact)}
+      </div>
+      <div class="followup-stages-heading"><h4>📑 مراحل المتابعة والرسائل المخصصة</h4><span>تُفتح المرحلة عند حلول موعدها وإكمال السابقة</span></div>
       <p class="muted">الرسائل ظاهرة للمعاينة دائمًا. يُفتح زر النسخ وتسجيل ردة الفعل عند الموعد المحدد بعد إكمال المرحلة السابقة. لا تُرسل أي رسالة تلقائيًا.</p>
       <div id="followupStageTimeline">${stageCardsHtml(contact)}</div>
       ${!contact.consent_confirmed && !stopped ? `<form onsubmit="followupCenter.recordConsent(event)" class="followup-status-form">
