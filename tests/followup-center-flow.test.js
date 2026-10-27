@@ -14,6 +14,7 @@ function harness(role, contacts = []) {
     followupPhone: { value: '+9647700000000' },
     followupChannel: { value: 'قناة مصرح بها' },
     followupMemberNo: { value: '123456789' },
+    followupJoinDate: { value: '2026-10-20' },
     followupNotes: { value: '' },
     followupDue: { value: '2030-02-03T14:30' },
     followupConsent: { checked: true },
@@ -24,6 +25,7 @@ function harness(role, contacts = []) {
     followupRegistrationField: { hidden: true },
     followupProspectStatus: { value: 'new' },
     followupProspectMemberNo: { value: '', required: false },
+    followupProspectJoinDate: { value: '2026-10-20', required: false },
     followupProspectMembership: { hidden: true },
     followupProspectStatusNote: { value: '' },
     followupResults: { innerHTML: '' },
@@ -47,6 +49,7 @@ function harness(role, contacts = []) {
       if (fn === 'followup_list') return contacts;
       if (fn === 'followup_assignees') return assignees;
       if (fn === 'followup_add') return 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa';
+      if (fn === 'followup_add_new_member') return 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa';
       if (fn === 'followup_history') return [];
       if (fn === 'followup_record_action') return { ok: true, new_member_contact_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb' };
       if (fn === 'followup_set_prospect_status') return { ok: true, changed: true, new_member_contact_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb' };
@@ -60,6 +63,7 @@ function harness(role, contacts = []) {
 test('leader must select a real responsible member, with no default first member', async () => {
   const h = harness('leader');
   await h.root.followupCenter.load();
+  h.root.followupCenter.changeKind('prospect');
   h.root.followupCenter.add();
   assert.match(h.modal.innerHTML, /العضو الذي أُحيل إليه المهتم/);
   assert.match(h.modal.innerHTML, /ابحث بالاسم أو رقم العضوية/);
@@ -72,6 +76,7 @@ test('leader must select a real responsible member, with no default first member
 test('leader assigns a prospect to its selected member, not to another account', async () => {
   const h = harness('leader');
   await h.root.followupCenter.load();
+  h.root.followupCenter.changeKind('prospect');
   h.values.followupAssignee.value = memberId;
   await h.root.followupCenter.save({ preventDefault() {} });
   const request = h.calls.find(c => c.fn === 'followup_add')?.args;
@@ -90,10 +95,11 @@ test('member adds a registered member to their own follow-up list, without reass
   assert.match(h.modal.innerHTML, /ستُحفظ هذه الحالة في قائمة متابعاتك الخاصة/);
   assert.doesNotMatch(h.modal.innerHTML, /id="followupAssignee"/);
   await h.root.followupCenter.save({ preventDefault() {} });
-  const request = h.calls.find(c => c.fn === 'followup_add')?.args;
+  const request = h.calls.find(c => c.fn === 'followup_add_new_member')?.args;
   assert.ok(request);
-  assert.equal(request.p_kind, 'new_member');
+  assert.equal(request.p_join_date, '2026-10-20');
   assert.equal(request.p_member_no, '123456789');
+  assert.equal(request.p_country, 'العراق');
   assert.equal(request.p_assignee_user_id, null);
 });
 
@@ -126,6 +132,7 @@ test('registered prospect requires a membership number and saves its classified 
   assert.equal(request.p_contact_id, prospectId);
   assert.equal(request.p_status, 'registered');
   assert.equal(request.p_registered_member_no, '820469486');
+  assert.equal(request.p_join_date, '2026-10-20');
   assert.match(h.toasts.at(-1), /تم حفظ حالة المستقطَب/);
 });
 
@@ -157,6 +164,54 @@ test('prospect classification filter and name or telephone search work together'
   h.root.followupCenter.searchInput('+964780');
   assert.match(h.values.followupResults.innerHTML, /أحمد حسن/);
   assert.doesNotMatch(h.values.followupResults.innerHTML, /علي سالم|علي آخر/);
+});
+
+test('leader-only dashboard shows owner, current status, stage and timestamps', async () => {
+  const h = harness('leader', [
+    { id: 'a', kind: 'prospect', name: 'علي سالم', phone: '07701112233',
+      assigned_user_id: memberId, assigned_name: 'أحمد سالم',
+      prospect_status: 'contacted', stage: 2,
+      opened_at: '2026-10-25T08:00:00Z', updated_at: '2026-10-26T08:00:00Z' },
+    { id: 'b', kind: 'new_member', name: 'نور محمود', member_no: '820469486',
+      assigned_user_id: memberId, assigned_name: 'أحمد سالم', assigned_member_no: '820000001',
+      status: 'active', stage: 3,
+      country: 'العراق', join_date: '2026-10-23',
+      opened_at: '2026-10-24T08:00:00Z', updated_at: '2026-10-25T08:00:00Z' }
+  ]);
+  await h.root.followupCenter.load();
+  const html = h.root.followupCenter.render();
+  assert.match(html, /لوحة متابعة القائد/);
+  assert.match(html, /علي سالم/);
+  assert.match(html, /نور محمود/);
+  assert.match(html, /رقم عضوية الراعي/);
+  assert.match(html, /820000001/);
+  assert.match(html, /820469486/);
+  assert.match(html, /تاريخ الانضمام/);
+  assert.match(html, /أحمد سالم/);
+  assert.match(html, /تم التواصل/);
+  assert.match(html, /المتابعة الثانية/);
+  assert.match(html, /وقت التسجيل/);
+  assert.match(html, /آخر تحديث/);
+  h.root.followupCenter.leaderSetStatus('contacted');
+  assert.match(h.root.followupCenter.render(), /علي سالم/);
+  assert.doesNotMatch(h.root.followupCenter.render(), /نور محمود/);
+  await h.root.followupCenter.openFromNotification('a');
+  assert.match(h.modal.innerHTML, /علي سالم/);
+  await h.root.followupCenter.openFromNotification('b');
+  assert.match(h.modal.innerHTML, /البطاقة التعريفية للعضو الجديد/);
+  assert.match(h.modal.innerHTML, /اسم الراعي/);
+  assert.match(h.modal.innerHTML, /تاريخ الانضمام/);
+});
+
+test('member cannot access the leader-only oversight dashboard', async () => {
+  const h = harness('member');
+  await h.root.followupCenter.load();
+  h.root.followupCenter.changeKind('leader_dashboard');
+  assert.doesNotMatch(h.root.followupCenter.render(), /لوحة متابعة القائد/);
+  h.root.followupCenter.leaderSetStatus('contacted');
+  assert.doesNotMatch(h.root.followupCenter.render(), /لوحة متابعة القائد/);
+  await h.root.followupCenter.openFromNotification('any');
+  assert.equal(h.calls.filter(c => c.fn === 'followup_history').length, 0);
 });
 
 test('non-registration follow-up does not forward any new membership number', async () => {

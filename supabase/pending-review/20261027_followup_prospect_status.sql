@@ -5,6 +5,10 @@
 alter table public.followup_contacts
   add column if not exists prospect_status text not null default 'new';
 
+-- Actual DXN join date, separate from the follow-up record creation time.
+alter table public.followup_contacts
+  add column if not exists join_date date;
+
 do $$ begin
   if not exists (select 1 from pg_constraint
     where conrelid='public.followup_contacts'::regclass
@@ -44,7 +48,10 @@ begin
   into v_result
   from (
     select f.id, f.assigned_user_id, f.kind, f.name, f.gender, f.country,
-           f.phone, f.member_no, f.source_label, f.timezone_name,
+           f.phone, f.member_no, coalesce(f.join_date,d.join_date) as join_date,
+           coalesce(m.member_no,case when u.login_no ~ '^[0-9]{6,15}$'
+                then u.login_no end) as assigned_member_no,
+           f.source_label, f.timezone_name,
            f.contact_channel, f.consent_confirmed, f.consent_note,
            f.status, f.prospect_status, f.stage, f.opened_at, f.next_due_at,
            f.reminder_minutes, f.notes, f.updated_at, f.created_by_user_id,
@@ -53,6 +60,7 @@ begin
     from public.followup_contacts f
     join public.app_users u on u.id=f.assigned_user_id
     left join public.members m on m.id=u.member_id
+    left join public.dxn_team_members d on d.member_no=f.member_no and f.kind='new_member'
     where (v_role='leader' or f.assigned_user_id=v_uid)
   ) c;
   return v_result;
@@ -68,7 +76,8 @@ create or replace function public.followup_set_prospect_status(
   p_contact_id uuid,
   p_status text,
   p_note text default null,
-  p_registered_member_no text default null
+  p_registered_member_no text default null,
+  p_join_date date default null
 )
 returns json language plpgsql security definer set search_path = public as $$
 declare
@@ -113,17 +122,20 @@ begin
       if v_member_no !~ '^[0-9]{6,15}$' then
         raise exception 'أدخل رقم عضوية DXN الجديدة (6 إلى 15 رقمًا)';
       end if;
+      if p_join_date is null or p_join_date > current_date then
+        raise exception 'أدخل تاريخ الانضمام الفعلي للعضو الجديد';
+      end if;
       if exists(select 1 from public.followup_contacts
                 where kind='new_member' and member_no=v_member_no) then
         raise exception 'رقم العضوية موجود مسبقًا في متابعة الأعضاء الجدد';
       end if;
       insert into public.followup_contacts (
         assigned_user_id,created_by_user_id,kind,name,gender,country,phone,member_no,
-        origin_contact_id,source_label,timezone_name,contact_channel,
+        join_date,origin_contact_id,source_label,timezone_name,contact_channel,
         consent_confirmed,consent_note,status,stage,opened_at,next_due_at,reminder_minutes
       ) values (
         v_contact.assigned_user_id,v_uid,'new_member',v_contact.name,v_contact.gender,
-        v_contact.country,v_contact.phone,v_member_no,v_contact.id,
+        v_contact.country,v_contact.phone,v_member_no,p_join_date,v_contact.id,
         v_contact.source_label,v_contact.timezone_name,v_contact.contact_channel,
         false,null,'consent_pending',0,now(),null,v_contact.reminder_minutes
       ) returning id into v_new_member_id;
@@ -153,9 +165,9 @@ begin
                            'new_member_contact_id',v_new_member_id);
 end;
 $$;
-revoke all on function public.followup_set_prospect_status(uuid,uuid,text,text,text)
+revoke all on function public.followup_set_prospect_status(uuid,uuid,text,text,text,date)
   from public,anon,authenticated;
-grant execute on function public.followup_set_prospect_status(uuid,uuid,text,text,text)
+grant execute on function public.followup_set_prospect_status(uuid,uuid,text,text,text,date)
   to anon,authenticated;
 
 -- History includes a structured previous/current status for every classification change.

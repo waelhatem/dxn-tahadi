@@ -62,7 +62,7 @@ begin
   end if;
 
   v_result := public.followup_set_prospect_status(
-    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'::uuid,v_case,'registered',null,'990000077');
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'::uuid,v_case,'registered',null,'990000077','2026-10-25'::date);
   v_member := (v_result->>'new_member_contact_id')::uuid;
   if v_member is null or not exists (select 1 from public.followup_contacts
     where id=v_member and kind='new_member' and origin_contact_id=v_case

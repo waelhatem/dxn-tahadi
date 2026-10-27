@@ -2106,6 +2106,10 @@ function openNotificationDestination(n){
   const type=String(n?.event_type||'').trim();
   const sourceId=String(n?.source_id||'').trim();
   const fallbackTab=String(n?.action_tab||'notifications').trim()||'notifications';
+  if(role==='leader' && (type==='followup_contact_added' || type.startsWith('followup_action_'))){
+    switchTab('followup');
+    return Promise.resolve().then(()=>window.followupCenter?.openFromNotification(sourceId));
+  }
   if(type==='community_chat_message')return Promise.resolve().then(()=>communityChatOpen());
   if(type==='challenge_submission_pending' && role==='leader'){
     leaderSection='dashboard';
@@ -10224,7 +10228,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 <script src="/daily-announcement-leader.js?v=20261019-2" defer></script>
 <script src="leader-pin-security.js?v=20261025-preview1" defer></script>
 <!-- Follow-up center is developed on an isolated branch until backup restore verification is complete. -->
-<link rel="stylesheet" href="/app/followup-center.css?v=20261027-status1">
+<link rel="stylesheet" href="/app/followup-center.css?v=20261027-leader2">
 <script>
 window.followupSession={
   get token(){return token},
@@ -10232,7 +10236,7 @@ window.followupSession={
   get tab(){return tab}
 };
 </script>
-<script src="/app/followup-center.js?v=20261027-status1"></script>
+<script src="/app/followup-center.js?v=20261027-leader2"></script>
 </body>
 
 </html>

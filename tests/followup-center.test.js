@@ -8,6 +8,8 @@ const modulePath = path.join(root, 'app', 'followup-center.js');
 const index = fs.readFileSync(path.join(root, 'app', 'index.html'), 'utf8');
 const sql = fs.readFileSync(path.join(root, 'supabase', 'pending-review', '20261026_followup_center_draft.sql'), 'utf8');
 const statusSql = fs.readFileSync(path.join(root, 'supabase', 'pending-review', '20261027_followup_prospect_status.sql'), 'utf8');
+const leaderSql = fs.readFileSync(path.join(root, 'supabase', 'pending-review', '20261027_followup_leader_notifications.sql'), 'utf8');
+const memberIdentitySql = fs.readFileSync(path.join(root, 'supabase', 'pending-review', '20261027_followup_new_member_identity.sql'), 'utf8');
 const followup = require(modulePath);
 const script = fs.readFileSync(modulePath, 'utf8');
 
@@ -100,4 +102,33 @@ test('status history is structured, searchable and access-scoped', () => {
   assert.match(script, /followupStatusFilter/);
   assert.match(script, /followupSearch/);
   assert.doesNotMatch(statusSql, /delete from public\.followup_contacts/i);
+});
+
+test('leader notifications reuse the private inbox, include action context and do not spam self', () => {
+  assert.match(leaderSql, /create trigger followup_notify_leader_on_contact/);
+  assert.match(leaderSql, /create trigger followup_notify_leader_on_action/);
+  assert.match(leaderSql, /from public\.app_users u\s+where u\.role='leader' and u\.active=true/);
+  assert.match(leaderSql, /u\.id<>new\.actor_user_id/);
+  assert.match(leaderSql, /'followup_action_'\|\|new\.id::text/);
+  assert.match(leaderSql, /'followup','فتح البطاقة'/);
+  assert.match(leaderSql, /وقت التسجيل/);
+  assert.match(leaderSql, /آخر إجراء/);
+  assert.match(index, /type\.startsWith\('followup_action_'\)/);
+  assert.match(index, /followupCenter\?\.openFromNotification\(sourceId\)/);
+  assert.doesNotMatch(leaderSql, /grant select on public\.app_notifications/i);
+});
+
+test('new-member profiles retain real join dates and sponsor identity in leader cards and alerts', () => {
+  assert.match(statusSql, /add column if not exists join_date date/);
+  assert.match(statusSql, /coalesce\(f\.join_date,d\.join_date\) as join_date/);
+  assert.match(statusSql, /as assigned_member_no/);
+  assert.match(statusSql, /p_join_date date default null/);
+  assert.match(memberIdentitySql, /create or replace function public\.followup_add_new_member/);
+  assert.match(memberIdentitySql, /p_join_date is null or p_join_date > current_date/);
+  assert.match(script, /البطاقة التعريفية للعضو الجديد/);
+  assert.match(script, /رقم عضوية الراعي/);
+  assert.match(script, /followupProspectJoinDate/);
+  assert.match(leaderSql, /تاريخ الانضمام/);
+  assert.match(leaderSql, /رقم عضوية الراعي/);
+  assert.match(leaderSql, /after insert or update of join_date/);
 });

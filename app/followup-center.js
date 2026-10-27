@@ -24,9 +24,15 @@
     blocked: 'طلب إيقاف التواصل', closed: 'إغلاق', consent_granted: 'تم تأكيد الموافقة',
     status_updated: 'تغيير حالة المستقطَب'
   };
-  const state = { kind: 'prospect', filter: 'all', statusFilter: 'all', search: '', contacts: [], assignees: [], loaded: false,
+  const state = { kind: 'prospect', filter: 'all', statusFilter: 'all', search: '',
+    leaderKind: 'all', leaderAssignee: 'all', leaderStatus: 'all', leaderSearch: '', leaderLimit: 50,
+    contacts: [], assignees: [], loaded: false,
     loading: false, error: '', currentId: null, history: [], sessionToken: null };
   const notified = new Set();
+  let leaderNoticeInitialized = false;
+  let leaderPolling = false;
+  let leaderNoticeIds = new Set();
+  let activeLoad = null;
 
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, char => ({
@@ -71,10 +77,15 @@
     const current = root.followupSession?.token || '';
     if (state.sessionToken === current) return;
     state.sessionToken = current;
+    state.kind = root.followupSession?.role === 'leader' ? 'leader_dashboard' : 'prospect';
+    state.leaderKind = 'all'; state.leaderAssignee = 'all';
+    state.leaderStatus = 'all'; state.leaderSearch = ''; state.leaderLimit = 50;
     state.contacts = []; state.assignees = [];
     state.loaded = false; state.loading = false;
+    activeLoad = null;
     state.error = ''; state.currentId = null; state.history = [];
     notified.clear();
+    leaderNoticeInitialized = false; leaderNoticeIds = new Set();
     root.document?.getElementById('followupModal')?.remove();
   }
   function stageLabel(contact) {
@@ -162,9 +173,111 @@
         <button type="button" class="primary" onclick="followupCenter.open('${escapeHtml(contact.id)}')">فتح البطاقة</button></div>
     </div>`;
   }
+  function memberStatusLabel(contact) {
+    return ({ new: 'جديد', consent_pending: 'بانتظار تأكيد الموافقة', active: 'قيد المتابعة',
+      interested: 'مهتم بالمتابعة', deferred: 'مؤجل', registered: 'مسجّل',
+      refused: 'لا يرغب بالمتابعة', blocked: 'طلب إيقاف التواصل', closed: 'اكتملت المتابعة'
+    })[contact.status] || 'قيد المتابعة';
+  }
+  function actualStageLabel(contact) {
+    const stages = contact.kind === 'prospect' ? prospectStages : memberStages;
+    return stages[Math.min(Math.max(0, Number(contact.stage) || 0), stages.length - 1)];
+  }
+  function formatDate(value) {
+    const parsed = new Date(value);
+    return Number.isFinite(parsed.getTime())
+      ? parsed.toLocaleString('ar-IQ', { dateStyle: 'short', timeStyle: 'short' }) : '—';
+  }
+  function formatJoinDate(value) {
+    const date = String(value || '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return 'بانتظار التوثيق';
+    const parsed = new Date(date + 'T12:00:00');
+    return Number.isFinite(parsed.getTime())
+      ? parsed.toLocaleDateString('ar-IQ', { day: 'numeric', month: 'numeric', year: 'numeric' })
+      : 'بانتظار التوثيق';
+  }
+  function memberIdentityCard(contact) {
+    return `<section class="followup-member-identity" aria-label="البطاقة التعريفية للعضو الجديد">
+      <h4>🪪 البطاقة التعريفية للعضو الجديد</h4>
+      <div><span><b>الاسم:</b> ${escapeHtml(contact.name || '—')}</span>
+      <span><b>رقم العضوية:</b> ${escapeHtml(contact.member_no || 'بانتظار التوثيق')}</span>
+      <span><b>البلد:</b> ${escapeHtml(contact.country || 'بانتظار التوثيق')}</span>
+      <span><b>تاريخ الانضمام:</b> ${escapeHtml(formatJoinDate(contact.join_date))}</span>
+      <span><b>اسم الراعي:</b> ${escapeHtml(contact.assigned_name || '—')}</span>
+      <span><b>رقم عضوية الراعي:</b> ${escapeHtml(contact.assigned_member_no || '—')}</span></div>
+    </section>`;
+  }
+  function leaderRows() {
+    const query = state.leaderSearch.trim().toLocaleLowerCase();
+    return state.contacts.filter(c =>
+      (state.leaderKind === 'all' || c.kind === state.leaderKind) &&
+      (state.leaderAssignee === 'all' || c.assigned_user_id === state.leaderAssignee) &&
+      (state.leaderStatus === 'all' || (c.kind === 'prospect' &&
+        (c.prospect_status || 'new') === state.leaderStatus)) &&
+      (!query || `${c.name || ''} ${c.phone || ''} ${c.member_no || ''} ${c.assigned_name || ''}`
+        .toLocaleLowerCase().includes(query))
+    ).sort((a, b) => new Date(b.updated_at || b.opened_at || 0) -
+      new Date(a.updated_at || a.opened_at || 0));
+  }
+  function leaderRowsHtml() {
+    const rows = leaderRows();
+    const visible = rows.slice(0, state.leaderLimit);
+    const cards = visible.map(c => `<article class="followup-leader-record">
+      <div class="followup-leader-record-top"><strong>${escapeHtml(c.name)}</strong>
+        <span class="badge">${c.kind === 'prospect' ? '🌱 مهتم' : '🤝 عضو جديد'}</span></div>
+      <div><b>المسؤول:</b> ${escapeHtml(c.assigned_name || 'غير محدد')}</div>
+      <div><b>الحالة:</b> ${escapeHtml(c.kind === 'prospect' ? prospectStatusLabel(c) : memberStatusLabel(c))}</div>
+      <div><b>المرحلة:</b> ${escapeHtml(actualStageLabel(c))}</div>
+      ${c.kind === 'new_member' ? memberIdentityCard(c) : ''}
+      <div class="followup-leader-record-time"><span><b>وقت التسجيل:</b> ${escapeHtml(formatDate(c.opened_at || c.created_at))}</span>
+        <span><b>آخر تحديث:</b> ${escapeHtml(formatDate(c.updated_at))}</span></div>
+      <button type="button" class="primary" onclick="followupCenter.open('${escapeHtml(c.id)}')">عرض البطاقة والسجل</button>
+    </article>`).join('');
+    return `<p class="muted">نتائج البحث: <b>${rows.length}</b></p>${cards || '<div class="empty">لا توجد نتائج مطابقة.</div>'}
+      ${rows.length > state.leaderLimit ? '<button type="button" onclick="followupCenter.leaderMore()">عرض 50 سجلًا إضافيًا</button>' : ''}`;
+  }
+  function leaderDashboard() {
+    const prospects = state.contacts.filter(c => c.kind === 'prospect');
+    const members = state.contacts.filter(c => c.kind === 'new_member');
+    const memberChoices = [...new Map(state.contacts.map(c => [c.assigned_user_id,
+      { id: c.assigned_user_id, name: c.assigned_name || 'غير محدد' }])).values()]
+      .filter(c => c.id).sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+    const selector = (id, current, onChange, options) => `<select id="${id}" onchange="followupCenter.${onChange}(this.value)">
+      ${options.map(([value, label]) => `<option value="${escapeHtml(value)}" ${current === value ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}
+    </select>`;
+    return `<section class="followup-center card" aria-label="لوحة متابعة القائد">
+      <div class="followup-heading"><div><h2>📊 لوحة متابعة القائد</h2><p>تظهر الحالات المسجلة من أعضاء الفريق وتحديثاتها.</p></div>
+        <button type="button" onclick="followupCenter.reload()">↻ تحديث</button></div>
+      <div class="followup-type-tabs">
+        <button class="followup-choice selected" type="button">📊 لوحة القائد</button>
+        <button class="followup-choice" type="button" onclick="followupCenter.changeKind('prospect')">🌱 المهتمون</button>
+        <button class="followup-choice" type="button" onclick="followupCenter.changeKind('new_member')">🤝 الأعضاء الجدد</button>
+      </div>
+      <div class="followup-overview followup-leader-summary">
+        <div><b>${prospects.length}</b><span>إجمالي المهتمين</span></div>
+        <div><b>${members.length}</b><span>الأعضاء الجدد</span></div>
+        <div><b>${prospects.filter(c => c.prospect_status === 'registered').length}</b><span>سجلوا عضوية</span></div>
+      </div>
+      <div class="followup-leader-filters">
+        <label>بحث بالاسم أو الهاتف أو العضو المسؤول
+          <input type="search" value="${escapeHtml(state.leaderSearch)}" oninput="followupCenter.leaderSearchInput(this.value)" placeholder="بحث في جميع سجلات المتابعة"></label>
+        <label>نوع السجل
+          ${selector('followupLeaderKind',state.leaderKind,'leaderSetKind', [['all','الكل'],['prospect','المهتمون'],['new_member','الأعضاء الجدد']])}</label>
+        <label>العضو المسؤول
+          ${selector('followupLeaderAssignee',state.leaderAssignee,'leaderSetAssignee', [['all','جميع الأعضاء'],...memberChoices.map(c => [c.id,c.name])])}</label>
+        <label>حالة المستقطَب
+          ${selector('followupLeaderStatus',state.leaderStatus,'leaderSetStatus', [['all','جميع الحالات'], ...Object.entries(prospectStatuses)])}</label>
+      </div>
+      ${state.loading ? '<p class="muted">جارٍ تحميل بيانات المتابعة…</p>' : ''}
+      ${state.error ? `<p class="followup-error">${escapeHtml(state.error)}</p>` : ''}
+      <div id="followupLeaderRows">${!state.loading && !state.error ? leaderRowsHtml() : ''}</div>
+      <p class="muted followup-footnote">اللوحة مخصصة للقائد. لا تُرسل رسائل تلقائية إلى الأشخاص المسجلين.</p>
+    </section>`;
+  }
   function render() {
     ensureSession();
     if (!state.loaded && !state.loading && root.document) root.setTimeout(load, 0);
+    if (root.followupSession?.role === 'leader' && state.kind === 'leader_dashboard') return leaderDashboard();
     const due = state.contacts.filter(c => !isClosed(c) && c.next_due_at &&
       new Date(c.next_due_at).getTime() <= Date.now()).length;
     const rows = matchedContacts();
@@ -175,7 +288,7 @@
     return `<section class="followup-center card" aria-label="مركز المتابعة">
       <div class="followup-heading"><div><h2>📋 مركز المتابعة</h2><p>من أتابع؟ متى؟ وماذا أقول؟</p></div>
       <button type="button" class="primary" onclick="followupCenter.add()">＋ إضافة شخص</button></div>
-      <div class="followup-type-tabs">${kindBtn('prospect','🌱 المهتمون')}${kindBtn('new_member','🤝 الأعضاء الجدد')}</div>
+      <div class="followup-type-tabs">${root.followupSession?.role === 'leader' ? kindBtn('leader_dashboard','📊 لوحة القائد') : ''}${kindBtn('prospect','🌱 المهتمون')}${kindBtn('new_member','🤝 الأعضاء الجدد')}</div>
       <div class="followup-overview"><div><b>${state.contacts.filter(c => c.kind === state.kind && !isClosed(c)).length}</b><span>حالات نشطة</span></div>
       <div><b>${due}</b><span>مواعيد مستحقة في القسمين</span></div></div>
       <div class="followup-filters">${filterBtn('today','اليوم والمتأخر')}${filterBtn('upcoming','القادمة')}${filterBtn('all','الجميع')}${filterBtn('closed','المغلقة')}</div>
@@ -199,35 +312,62 @@
   }
   async function load() {
     ensureSession();
-    if (state.loading || !root.followupSession?.token) return;
+    if (state.loading) return activeLoad;
+    if (!root.followupSession?.token) return;
     const requestToken = root.followupSession.token;
     state.loading = true;
     state.error = '';
-    try {
-      const [contacts, assignees] = await Promise.all([
-        root.rpc('followup_list', { p_token: requestToken }),
-        root.followupSession.role === 'leader' ? root.rpc('followup_assignees', { p_token: requestToken }) : Promise.resolve([])
-      ]);
-      if (root.followupSession.token !== requestToken) return;
-      state.contacts = Array.isArray(contacts) ? contacts : [];
-      state.assignees = Array.isArray(assignees) ? assignees : [];
-      state.loaded = true;
-    } catch (error) {
-      if (root.followupSession.token === requestToken)
-        state.error = 'مركز المتابعة قيد التجهيز. لم نُغيّر بيانات أي شخص. ' + (error.message || '');
-    } finally {
-      if (root.followupSession.token === requestToken) {
-        state.loading = false;
-        if (root.followupSession.tab === 'followup') root.render();
-        checkReminders();
+    activeLoad = (async () => {
+      try {
+        const [contacts, assignees] = await Promise.all([
+          root.rpc('followup_list', { p_token: requestToken }),
+          root.followupSession.role === 'leader' ? root.rpc('followup_assignees', { p_token: requestToken }) : Promise.resolve([])
+        ]);
+        if (root.followupSession.token !== requestToken) return;
+        state.contacts = Array.isArray(contacts) ? contacts : [];
+        state.assignees = Array.isArray(assignees) ? assignees : [];
+        state.loaded = true;
+      } catch (error) {
+        if (root.followupSession.token === requestToken)
+          state.error = 'مركز المتابعة قيد التجهيز. لم نُغيّر بيانات أي شخص. ' + (error.message || '');
+      } finally {
+        if (root.followupSession.token === requestToken) {
+          state.loading = false;
+          if (root.followupSession.tab === 'followup') root.render();
+          checkReminders();
+        }
       }
-    }
+    })();
+    return activeLoad;
   }
   function changeKind(kind) {
-    if (kind !== 'prospect' && kind !== 'new_member') return;
+    if (kind !== 'prospect' && kind !== 'new_member' &&
+      !(kind === 'leader_dashboard' && root.followupSession?.role === 'leader')) return;
     state.kind = kind; state.filter = kind === 'prospect' ? 'all' : 'today';
     state.statusFilter = 'all'; state.search = ''; root.render();
   }
+  function leaderSearchInput(value) {
+    if (root.followupSession?.role !== 'leader') return;
+    state.leaderSearch = String(value || ''); state.leaderLimit = 50;
+    const panel = root.document?.getElementById('followupLeaderRows');
+    if (panel) panel.innerHTML = leaderRowsHtml();
+  }
+  function leaderSetKind(value) {
+    if (!['all','prospect','new_member'].includes(value) || root.followupSession?.role !== 'leader') return;
+    state.leaderKind = value; state.leaderStatus = 'all'; state.leaderLimit = 50; root.render();
+  }
+  function leaderSetAssignee(value) {
+    if (root.followupSession?.role !== 'leader') return;
+    state.leaderAssignee = value; state.leaderLimit = 50; root.render();
+  }
+  function leaderSetStatus(value) {
+    if (root.followupSession?.role !== 'leader' ||
+      (value !== 'all' && !Object.hasOwn(prospectStatuses, value))) return;
+    state.leaderStatus = value;
+    if (value !== 'all') state.leaderKind = 'prospect';
+    state.leaderLimit = 50; root.render();
+  }
+  function leaderMore() { state.leaderLimit += 50; root.render(); }
   function changeFilter(filter) {
     if (!['today', 'upcoming', 'all', 'closed'].includes(filter)) return;
     state.filter = filter; root.render();
@@ -284,9 +424,9 @@
       ${state.kind === 'prospect' ? '<p class="muted">الحالة الأولية: جديد — يمكنك تغييرها من بطاقة المستقطَب.</p>' : ''}
       ${state.kind === 'prospect' ? '<label>الصق بطاقة المهتم كاملة<textarea id="followupCard" placeholder="الاسم: ...\nالدولة: ...\nرقم الهاتف: ..." oninput="followupCenter.fillFromCard()"></textarea></label>' : ''}
       <label>الاسم<input id="followupName" required maxlength="160" placeholder="الاسم الكامل"></label>
-      <div class="followup-form-grid"><label>الدولة<input id="followupCountry" maxlength="80"></label>
+      <div class="followup-form-grid"><label>الدولة<input id="followupCountry" maxlength="80" ${state.kind === 'new_member' ? 'required' : ''}></label>
       <label>رقم التواصل<input id="followupPhone" maxlength="40" inputmode="tel"></label></div>
-      ${state.kind === 'new_member' ? '<label>رقم عضوية DXN<input id="followupMemberNo" maxlength="30"></label>' : ''}
+      ${state.kind === 'new_member' ? '<div class="followup-form-grid"><label>رقم عضوية DXN<input id="followupMemberNo" maxlength="15" inputmode="numeric" pattern="[0-9]{6,15}" required></label><label>تاريخ الانضمام الفعلي<input id="followupJoinDate" type="date" required></label></div>' : ''}
       ${assigneeControl}
       <div class="followup-form-grid"><label>القناة المسموح بها<input id="followupChannel" maxlength="80" placeholder="قناة متوافقة مع السياسات"></label>
       <label>تذكيري قبل الموعد<select id="followupReminder"><option value="30">30 دقيقة</option><option value="15">15 دقيقة</option></select></label></div>
@@ -316,17 +456,30 @@
     const consent = !!$('followupConsent')?.checked;
     const leader = root.followupSession?.role === 'leader';
     const assigneeId = $('followupAssignee')?.value || null;
+    const isNewMember = state.kind === 'new_member';
+    const memberNo = $('followupMemberNo')?.value.trim() || '';
+    const country = $('followupCountry')?.value.trim() || '';
+    const joinDate = $('followupJoinDate')?.value || '';
+    if (isNewMember && !/^[0-9]{6,15}$/.test(memberNo))
+      return root.toast('أدخل رقم عضوية DXN الصحيح (6–15 رقمًا).');
+    if (isNewMember && country.length < 2) return root.toast('أدخل بلد العضو الجديد.');
+    if (isNewMember && (!/^\d{4}-\d{2}-\d{2}$/.test(joinDate) ||
+      !Number.isFinite(new Date(joinDate + 'T12:00:00').getTime()) ||
+      new Date(joinDate + 'T12:00:00').getTime() > Date.now()))
+      return root.toast('أدخل تاريخ الانضمام الفعلي للعضو الجديد.');
     if (leader && (!assigneeId || !state.assignees.some(m => m.id === assigneeId)))
       return root.toast('اختر العضو المسؤول عن هذه الحالة قبل الحفظ.');
     try {
-      await root.rpc('followup_add', {
-        p_token: root.followupSession.token, p_kind: state.kind, p_name: name,
+      await root.rpc(isNewMember ? 'followup_add_new_member' : 'followup_add', {
+        p_token: root.followupSession.token,
+        ...(!isNewMember ? { p_kind: state.kind } : {}), p_name: name,
         p_assignee_user_id: assigneeId,
         p_phone: $('followupPhone')?.value.trim() || null,
-        p_country: $('followupCountry')?.value.trim() || null,
-        p_gender: card.gender || null,
-        p_member_no: $('followupMemberNo')?.value.trim() || null,
-        p_source_label: card.source || 'إحالة يدوية',
+        p_country: country || null,
+        ...(!isNewMember ? { p_gender: card.gender || null,
+          p_source_label: card.source || 'إحالة يدوية' } : {}),
+        p_member_no: isNewMember ? memberNo : null,
+        ...(isNewMember ? { p_join_date: joinDate } : {}),
         p_timezone_name: countryTimezone($('followupCountry')?.value) ||
           Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Baghdad',
         p_contact_channel: $('followupChannel')?.value.trim() || null,
@@ -346,6 +499,7 @@
     const stopped = isClosed(contact);
     const option = (result, label) => `<option value="${result}">${label}</option>`;
     modal(`<div class="followup-detail"><h3>${escapeHtml(contact.name)}</h3>
+      ${contact.kind === 'new_member' ? memberIdentityCard(contact) : ''}
       <div class="muted">الدولة: ${escapeHtml(contact.country || '—')} · الهاتف: ${escapeHtml(contact.phone || 'لا يوجد رقم')}<br>
       المسؤول: ${escapeHtml(contact.assigned_name || '—')} · القناة: ${escapeHtml(contact.contact_channel || 'غير محددة')}<br>
       ${contact.member_no ? `رقم العضوية: ${escapeHtml(contact.member_no)} · ` : ''}
@@ -363,6 +517,8 @@
         <div id="followupProspectMembership" ${contact.prospect_status === 'registered' && contact.status !== 'registered' ? '' : 'hidden'}>
           <label>رقم العضوية الجديدة عند أول تسجيل
             <input id="followupProspectMemberNo" inputmode="numeric" pattern="[0-9]{6,15}" maxlength="15" placeholder="رقم عضوية DXN"></label>
+          <label>تاريخ الانضمام الفعلي للعضو الجديد
+            <input id="followupProspectJoinDate" type="date"></label>
         </div>
         <label>ملاحظة حول تغيير الحالة (اختياري)<textarea id="followupProspectStatusNote" maxlength="2000"></textarea></label>
         <button type="submit" class="primary">حفظ الحالة</button>
@@ -404,6 +560,15 @@
       if (el) el.textContent = 'تعذر تحميل سجل المتابعة.';
     }
   }
+  async function openFromNotification(id) {
+    if (root.followupSession?.role !== 'leader') return;
+    if (!state.loaded) await load();
+    if (!state.contacts.some(c => c.id === id)) {
+      root.toast('لم تعد هذه البطاقة متاحة أو ليست لديك صلاحية لعرضها.');
+      return;
+    }
+    return open(id);
+  }
   function toggleRegistrationField() {
     const field = root.document?.getElementById('followupRegistrationField');
     const number = root.document?.getElementById('followupRegisteredMemberNo');
@@ -416,9 +581,11 @@
     const selected = root.document?.getElementById('followupProspectStatus')?.value;
     const field = root.document?.getElementById('followupProspectMembership');
     const number = root.document?.getElementById('followupProspectMemberNo');
+    const date = root.document?.getElementById('followupProspectJoinDate');
     const firstRegistration = selected === 'registered' && contact?.status !== 'registered';
     if (field) field.hidden = !firstRegistration;
     if (number) number.required = firstRegistration;
+    if (date) date.required = firstRegistration;
   }
   async function saveProspectStatus(event) {
     event?.preventDefault();
@@ -427,14 +594,21 @@
     const status = root.document.getElementById('followupProspectStatus')?.value;
     if (!Object.hasOwn(prospectStatuses, status)) return root.toast('اختر حالة صحيحة.');
     const memberNo = root.document.getElementById('followupProspectMemberNo')?.value.trim() || '';
+    const joinDate = root.document.getElementById('followupProspectJoinDate')?.value || '';
     if (status === 'registered' && contact.status !== 'registered' && !/^[0-9]{6,15}$/.test(memberNo))
       return root.toast('أدخل رقم العضوية عند تسجيل المستقطَب (6–15 رقمًا).');
+    if (status === 'registered' && contact.status !== 'registered' &&
+      (!/^\d{4}-\d{2}-\d{2}$/.test(joinDate) ||
+        !Number.isFinite(new Date(joinDate + 'T12:00:00').getTime()) ||
+        new Date(joinDate + 'T12:00:00').getTime() > Date.now()))
+      return root.toast('أدخل تاريخ الانضمام الفعلي للعضو الجديد.');
     try {
       await root.rpc('followup_set_prospect_status', {
         p_token: root.followupSession.token, p_contact_id: contact.id,
         p_status: status,
         p_note: root.document.getElementById('followupProspectStatusNote')?.value.trim() || null,
-        p_registered_member_no: status === 'registered' && memberNo ? memberNo : null
+        p_registered_member_no: status === 'registered' && memberNo ? memberNo : null,
+        p_join_date: status === 'registered' && joinDate ? joinDate : null
       });
       close();
       root.toast('تم حفظ حالة المستقطَب في سجل المتابعة.');
@@ -498,6 +672,33 @@
       }
     });
   }
+  async function pollLeaderUpdates() {
+    ensureSession();
+    if (leaderPolling || root.followupSession?.role !== 'leader' ||
+        !root.followupSession?.token || typeof root.loadServerNotifications !== 'function') return;
+    leaderPolling = true;
+    try {
+      await root.loadServerNotifications();
+      const items = (typeof root.notificationItems === 'function' ? root.notificationItems() : [])
+        .filter(n => n.event_type === 'followup_contact_added' ||
+          String(n.event_type || '').startsWith('followup_action_'));
+      const currentIds = new Set(items.map(n => String(n.id)));
+      if (leaderNoticeInitialized) {
+        const fresh = items.filter(n => !leaderNoticeIds.has(String(n.id)));
+        if (fresh.length) {
+          const title = fresh.length === 1 ? fresh[0].title : `لديك ${fresh.length} تحديثات جديدة في مركز المتابعة`;
+          root.toast?.('🔔 ' + title);
+          if (root.document?.hidden && root.Notification?.permission === 'granted') {
+            try { new root.Notification('تنبيه للقائد', { body: title }); } catch (_error) { /* In-app only. */ }
+          }
+          if (root.followupSession.tab === 'followup') await reload();
+        }
+      }
+      leaderNoticeInitialized = true;
+      leaderNoticeIds = currentIds;
+    } catch (_error) { /* The leader can use manual refresh if offline. */ }
+    finally { leaderPolling = false; }
+  }
   function enableDeviceReminders() {
     if (!root.Notification || typeof root.Notification.requestPermission !== 'function')
       return root.toast('تنبيهات الجهاز غير متاحة في هذا المتصفح.');
@@ -507,9 +708,11 @@
   }
 
   root.followupCenter = { render, load, reload, changeKind, changeFilter, changeStatusFilter, searchInput,
+    leaderSearchInput, leaderSetKind, leaderSetAssignee, leaderSetStatus, leaderMore, openFromNotification,
     add, searchAssignees, fillFromCard, save, open, close, record, toggleRegistrationField,
     toggleProspectMembership, saveProspectStatus, copyTemplate, parseLeadCard, stageLabel, enableDeviceReminders };
   if (root.document && typeof root.setInterval === 'function') root.setInterval(checkReminders, 60000);
+  if (root.document && typeof root.setInterval === 'function') root.setInterval(pollLeaderUpdates, 60000);
   if (typeof module !== 'undefined' && module.exports)
     module.exports = { parseLeadCard, stageLabel, template, escapeHtml, prospectStages, memberStages,
       prospectStatuses, prospectStatusLabel };
