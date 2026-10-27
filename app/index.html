@@ -10203,7 +10203,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
   // Recheck while visible; recover on tab return or after a network interruption.
   function refreshAnnouncementsIfVisible(){
     if(document.visibilityState==='hidden')return;
-    loadMemberAnnouncements();
+    return loadMemberAnnouncements();
   }
   setInterval(refreshAnnouncementsIfVisible,60*1000);
   window.addEventListener('focus',refreshAnnouncementsIfVisible);
