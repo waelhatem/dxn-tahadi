@@ -225,6 +225,7 @@ test('video announcement button opens exactly the linked video without a follow-
     localStorage:{getItem(k){return k==='dxn_session'?session:null}},
     document:{
       readyState:'complete',body,
+      addEventListener(){},
       createElement(){return {id:'',className:'',innerHTML:'',parentNode:null}},
       getElementById(id){return elems[id]||null}
     },
@@ -233,6 +234,7 @@ test('video announcement button opens exactly the linked video without a follow-
       observe(){}
     },
     setTimeout(fn){queued.push(fn)},
+    setInterval(){},
     fetch:async (_url,options)=>{
       const {fn,args}=JSON.parse(options.body);
       let result;
