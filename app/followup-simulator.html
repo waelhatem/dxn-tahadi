@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>محاكاة مركز المتابعة | مجتمع الصحة والثراء</title>
+  <style>
+    :root{font-family:Tahoma,Arial,sans-serif;color:#183a2b;background:#f4f8f5;line-height:1.65}
+    *{box-sizing:border-box}
+    body{margin:0}
+    button,input,select,textarea{font:inherit}
+    button{cursor:pointer}
+    button:disabled{cursor:not-allowed;opacity:.55}
+    a{color:inherit;text-decoration:none}
+    .site-nav{background:#07533c;color:#fff;display:flex;gap:5px;align-items:center;overflow-x:auto;padding:9px max(12px,calc((100vw - 1480px)/2));scrollbar-width:thin;position:sticky;top:0;z-index:10}
+    .site-nav a{flex:none;white-space:nowrap;font-weight:800;font-size:13px;padding:9px 12px;border-radius:8px}
+    .site-nav a:hover,.site-nav a:focus-visible,.site-nav .active{background:#ffffff24;outline-color:#c5eeda}
+    .container{max-width:1470px;margin:auto;padding:18px 20px 75px}
+    .head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+    .head h1{margin:0;color:#07583e;font-size:26px}
+    .head p{margin:3px 0;color:#63786b}
+    .ghost-link{border:1px solid #b9d8c6;background:white;border-radius:10px;padding:9px 14px;font-weight:800}
+    .notice{background:#fef7df;border:1px solid #efdf9e;color:#76550a;padding:12px 16px;border-radius:12px;margin:14px 0;font-size:14px;font-weight:700}
+    .steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:18px 0}
+    .steps button{padding:13px 9px;background:white;border:1px solid #d4e5db;border-radius:12px;color:#25543c;font-weight:900;min-height:54px}
+    .steps button.active{background:#08704c;color:#fff;border-color:#08704c;box-shadow:0 5px 12px #08704c22}
+    .steps button:disabled{opacity:.5}
+    .card{background:white;border:1px solid #d8e6dd;border-radius:16px;padding:18px;box-shadow:0 3px 16px #12553708}
+    .card h2,.card h3{margin:0 0 12px;color:#165d42}
+    .card h2{font-size:21px}
+    .grid2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(320px,1fr);gap:13px;margin-bottom:16px}
+    .detail{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .detail div{background:#f7faf8;border-radius:8px;padding:10px 12px}
+    .detail b{color:#607c69;display:block;font-size:12px}
+    .next{background:#edfaf2;border-color:#a2d8bc}
+    .next h3{font-size:19px}
+    .next strong{font-size:16px}
+    .muted{color:#657d6b;font-size:13px}
+    .pill{background:#dff8e9;color:#08704b;padding:4px 11px;border-radius:99px;font-size:12px;font-weight:900;display:inline-block}
+    .button{border:0;background:#0c744f;color:white;border-radius:9px;padding:10px 16px;font-weight:900;min-height:43px}
+    .button.secondary{background:#e9f3ed;color:#1a6246;border:1px solid #c7dfd0}
+    .button.danger{background:#fff0ec;color:#9b4331;border:1px solid #f3c8bd}
+    .row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+    .full{width:100%}
+    .formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+    label{display:block;font-weight:800;color:#315843;font-size:13px}
+    input,select,textarea{display:block;width:100%;margin-top:5px;background:#fff;border:1px solid #c7d9cd;border-radius:9px;padding:10px;min-width:0;color:#1c3d2d}
+    textarea{min-height:69px;resize:vertical}
+    input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:#0c744f;display:inline-block;vertical-align:middle}
+    .form-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+    .stage-grid{display:grid;grid-template-columns:repeat(4,minmax(250px,1fr));gap:12px;overflow-x:auto;padding:5px 2px 15px}
+    .stage-grid.members{grid-template-columns:repeat(6,minmax(268px,1fr))}
+    .stage{border:1px solid #d5e4db;border-radius:15px;padding:15px;background:#fbfdfb;display:flex;flex-direction:column;gap:11px;min-height:430px}
+    .stage.current{border:2px solid #158058;background:#f5fff9;box-shadow:0 0 0 2px #15805811}
+    .stage.done{background:#eaf7ee;border-color:#b2dcc1}
+    .stage.locked{background:#f7f8f7;opacity:.74}
+    .stage h3{font-size:15px;margin:0;color:#164f38}
+    .stage-top{display:flex;justify-content:space-between;gap:6px;align-items:start}
+    .message{padding:13px;background:white;border:1px solid #e1eae3;border-radius:11px;white-space:pre-line;font-size:13px;flex:1;line-height:1.9}
+    .stage-due{font-size:12px;color:#537160;background:#edf3ee;border-radius:8px;padding:8px}
+    .action-form{display:grid;gap:10px}
+    .action-form label{font-size:12px}
+    .hint{font-size:13px;color:#63786b;margin:10px 0}
+    .alert{background:#fff1ef;color:#9d3730;padding:10px;border-radius:9px;border:1px solid #f4c9c3;display:none;margin-top:10px}
+    .history{display:grid;gap:8px}
+    .history-item{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start;border:1px solid #e2eee6;border-radius:10px;padding:10px 12px;background:#fafdfa}
+    .history-item small{color:#68806e}
+    .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+    .stats .card{text-align:center}
+    .stats strong{display:block;color:#086744;font-size:25px}
+    .empty{text-align:center;padding:60px 15px;color:#617669}
+    .finish{background:#e1f9e9;border:1px solid #a7ddbc;color:#095a3a;border-radius:11px;padding:12px;font-weight:800;margin:12px 0}
+    @media(max-width:1120px){.stage-grid{grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:minmax(265px,330px)}.stage-grid.members{grid-template-columns:none;grid-auto-columns:minmax(265px,330px)}}
+    @media(max-width:750px){.container{padding:13px 11px 85px}.head h1{font-size:21px}.steps{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2,.formgrid,.detail{grid-template-columns:1fr}.card{padding:14px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.stage-grid,.stage-grid.members{grid-auto-columns:minmax(260px,86vw)}.site-nav a{font-size:12px;padding:9px 10px}.stage{min-height:400px}}
+  </style>
+</head>
+<body>
+  <nav class="site-nav" aria-label="تبويبات مجتمع الصحة والثراء">
+    <a href="/app/index.html">الرئيسية</a><a href="/app/index.html">الإشعارات</a><a href="/app/index.html">التحديات</a><a href="/app/index.html">الأعضاء والفرق</a><a href="/app/index.html">فريقي</a><a href="/app/index.html" class="active" aria-current="page">مركز المتابعة</a><a href="/app/index.html">ملفي التدريبي</a><a href="/app/index.html">الشروحات والتدريبات</a><a href="/app/index.html">إدارة القائد</a><a href="/app/index.html">أكاديمية المجتمع</a><a href="/app/index.html">المجتمع</a>
+  </nav>
+  <main class="container">
+    <div class="head"><div><h1>📋 اختبار مركز المتابعة</h1><p>مسار المهتم ← التحويل إلى عضو ← الشهر الأول ← النتائج</p></div><a class="ghost-link" href="/app/index.html">العودة إلى الموقع</a></div>
+    <div class="notice">🧪 وضع محاكاة مستقل: البيانات محفوظة على هذا الجهاز فقط، ولا تُرسل رسائل أو تُضاف سجلات إلى قاعدة بيانات الفريق. المواعيد تُعتبر مستحقة فورًا للاختبار.</div>
+    <div id="app" aria-live="polite"></div>
+  </main>
+  <script>
+  (() => {
+    'use strict';
+    const KEY = 'dxn_followup_simulator_20261027_v1';
+    const prospectStages = ['رسالة التعارف الأولى', 'المتابعة الأولى — 24 ساعة', 'المتابعة الثانية — اليوم الثالث', 'رسالة الإغلاق — اليوم السابع'];
+    const memberStages = ['الترحيب — اليوم الأول', 'الاطمئنان — اليوم الثالث', 'متابعة التدريب — اليوم السابع', 'مراجعة الاحتياجات — اليوم 14', 'الدعم والتشجيع — اليوم 21', 'مراجعة الشهر الأول — اليوم 30'];
+    const dueText = {prospect:['بعد 10 دقائق','بعد 24 ساعة','في اليوم الثالث','في اليوم السابع'],member:['في اليوم الأول','في اليوم الثالث','في اليوم السابع','في اليوم 14','في اليوم 21','في اليوم 30']};
+    const reactionLabels = {new:'جديد',contacted:'تم التواصل',no_whatsapp:'لا يمتلك واتساب',already_dxn:'عضو في DXN',registered:'سجّل عضوية',points_activated:'فعّل نقاط',no_response:'لا يرد نهائيًا',not_interested:'لا يرغب بالعمل',blocked_me:'عمل لي حظرًا'};
+    const stopReactions = new Set(['already_dxn','no_response','not_interested','blocked_me']);
+    const blank = () => ({tab:'add',name:'',country:'',phone:'',sponsor:'',consent:false,prospectStage:0,prospectClosed:false,member:null,memberStage:0,memberClosed:false,history:[],copied:{}});
+    let data = blank();
+    try {const v = JSON.parse(localStorage.getItem(KEY)); if(v&&Array.isArray(v.history)) data = {...blank(),...v};} catch(_){}
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const save = () => { try {localStorage.setItem(KEY,JSON.stringify(data));} catch(_){} };
+    const record = (kind,title,details='') => { data.history.push({kind,title,details,at:new Date().toISOString()});save(); };
+    const time = iso => new Date(iso).toLocaleString('ar-IQ',{dateStyle:'short',timeStyle:'short'});
+    const showError = message => {const error=$('error');if(error){error.textContent=message;error.style.display='block';}else alert(message);};
+    const options = (selected='contacted',isMember=false) => Object.entries(reactionLabels).filter(([key])=>isMember?key!=='registered':true).map(([key,label])=>`<option value="${key}" ${key===selected?'selected':''}>${esc(label)}</option>`).join('');
+    const message = (kind,index) => {
+      const n=data.name||'أستاذي الكريم';
+      if(kind==='member') return [
+        `مرحبًا ${n} 🌷\nأهلًا بك في فريقنا. أود الاطمئنان إلى أن دخولك إلى مجتمع الصحة والثراء والتدريبات الأساسية واضح. هل تحتاج مساعدتي في أي خطوة؟`,
+        `أهلًا ${n} 🌿\nكيف كانت بدايتك معنا؟ هل تمكنت من فتح التدريبات، وهل واجهتك صعوبة أستطيع مساعدتك فيها؟`,
+        `مرحبًا ${n} 🌷\nأطمئن عليك بخصوص خطوات التدريب لهذا الأسبوع. هل لديك سؤال أو جزء تحب أن نشرحه معًا؟`,
+        `أهلًا ${n} 🌿\nمر أسبوعان على بداية رحلتك. أحب سماع رأيك بالتدريبات وما الدعم الذي تحتاجه حاليًا.`,
+        `مرحبًا ${n} 🌷\nكيف تسير أمورك؟ إذا رغبت يمكننا ترتيب لقاء قصير لمناقشة أي أسئلة أو صعوبات.`,
+        `أهلًا ${n} 🌿\nأكملنا تقريبًا الشهر الأول. أحب معرفة تقييمك للتجربة وما الخطوة المناسبة لك في الفترة القادمة.`
+      ][index];
+      return [
+        `مرحبًا ${n} 🌷\nمعك أحد أعضاء فريق وائل حاتم في DXN. وصلنا طلبك للتعرف على طبيعة نشاطنا. هل تفضل شرحًا مختصرًا بالرسائل أم موعدًا مناسبًا للمحادثة؟ وإذا لم تعد ترغب في المتابعة فلا مشكلة إطلاقًا.`,
+        `مرحبًا ${n} 🌷\nأتمنى أن تكون بخير. تواصلت معك بخصوص طلبك للتعرف على DXN؛ ربما لم يكن الوقت مناسبًا. هل ما زلت ترغب بمعرفة الفكرة؟`,
+        `مرحبًا ${n} 🌿\nنشاط DXN يقوم على التعرف على المنتجات ومهارات البيع المباشر والعمل التدريجي دون ضمان دخل محدد. إذا كان يهمك، يسعدني تقديم تعريف مختصر. هل ترغب بذلك؟`,
+        `مرحبًا ${n} 🌷\nهذه رسالتي الأخيرة بخصوص طلب التعرف على DXN. سأغلق المتابعة احترامًا لوقتك، ولن أكرر التواصل بهذا الشأن. إذا رغبت مستقبلًا، يمكنك المبادرة بالتواصل.`
+      ][index];
+    };
+    const phaseCount = kind => data.history.filter(h=>h.kind===kind&&h.title.startsWith('اكتملت المرحلة')).length;
+    const tabs = () => `<div class="steps">${[
+      ['add','① إضافة المهتم',true],['prospect','② متابعة المهتم',!!data.name],['member','③ العضو الجديد',!!data.member],['results','④ نتائج المتابعة',!!data.name]
+    ].map(([id,label,enabled])=>`<button type="button" class="${data.tab===id?'active':''}" ${enabled?'':'disabled'} onclick="demo.go('${id}')">${label}</button>`).join('')}</div>`;
+    const formAdd = () => `<section class="card"><h2>الخطوة الأولى: إضافة مهتم تجريبي</h2><p class="muted">بيانات افتراضية معدّة للاختبار فقط. لا تستخدم رقم هاتف حقيقي.</p><form onsubmit="demo.create(event)">
+      <div class="formgrid"><label>اسم المهتم<input id="name" required maxlength="100" value="${esc(data.name||'اختبار – سالم ضيف الله')}"></label><label>الدولة<input id="country" required value="${esc(data.country||'تونس')}"></label><label>رقم تجريبي غير مستخدم للتواصل<input id="phone" value="${esc(data.phone||'000000000')}"></label><label>السبونسر المسؤول<input id="sponsor" required value="${esc(data.sponsor||'وائل حاتم سعيد')}"></label></div>
+      <p><label><input id="consent" type="checkbox" ${data.consent?'checked':''} required> تم التحقق افتراضيًا من الموافقة على المتابعة (للاختبار فقط).</label></p>
+      <button type="submit" class="button">إضافة المهتم وفتح بطاقة المتابعة</button>
+    </form></section>`;
+    const identity = () => `<div class="grid2"><section class="card"><div class="row" style="justify-content:space-between"><h2>بيانات ${data.tab==='member'?'العضو الجديد':'المهتم'}</h2><span class="pill">${data.tab==='member'?'🤝 عضو جديد':'🌱 مهتم'}</span></div><div class="detail">
+      <div><b>الاسم</b>${esc(data.name)}</div><div><b>الدولة</b>${esc(data.country)}</div><div><b>رقم التواصل التجريبي</b>${esc(data.phone)}</div><div><b>السبونسر</b>${esc(data.sponsor)}</div>
+      ${data.tab==='member'&&data.member?`<div><b>رقم العضوية الافتراضي</b>${esc(data.member.number)}</div><div><b>تاريخ الانضمام الافتراضي</b>${esc(data.member.date)}</div>`:''}
+    </div></section><aside class="card next"><h3>📅 الخطوة القادمة</h3>${data.tab==='member'&&!data.member?.consent?'<strong>تأكيد الموافقة الافتراضية للعضو الجديد</strong>':`<strong>${esc(nextTitle())}</strong>`}<p class="muted">⏰ الموعد مستحق الآن — الزمن متسارع في المحاكاة</p><p>نسخ الرسالة لا يعني إرسالها. سجّل ردة الفعل بعد محاكاة التواصل.</p>${!data.prospectClosed&&!data.member&&data.tab==='prospect'?'<span class="pill">تحويله إلى عضو ممكن عند اختيار «سجّل عضوية»</span>':''}</aside></div>`;
+    const nextTitle = () => {if(data.tab==='member')return data.memberClosed?'اكتملت متابعة الشهر الأول':memberStages[Math.min(data.memberStage,5)];return data.prospectClosed?'متابعة المهتم مغلقة':prospectStages[Math.min(data.prospectStage,3)];};
+    const stageGrid = kind => {
+      const stages=kind==='member'?memberStages:prospectStages;
+      const index=kind==='member'?data.memberStage:data.prospectStage;
+      const closed=kind==='member'?data.memberClosed:data.prospectClosed;
+      const records=data.history.filter(h=>h.kind===kind&&h.title.startsWith('اكتملت المرحلة'));
+      return `<section class="card"><h2>مراحل ${kind==='member'?'العضو الجديد':'المهتم'} (${stages.length})</h2><p class="hint">المراحل بالتسلسل من اليمين إلى اليسار. مرر الشريط أفقيًا لعرض المراحل الأخرى في الهاتف.</p>
+      <div class="stage-grid ${kind==='member'?'members':''}">${stages.map((title,i)=>{
+        const done=!!records.find(h=>h.index===i);
+        const current=!closed&&i===index&&!done;
+        const recordDone=records.find(h=>h.index===i);
+        return `<article class="stage ${done?'done':current?'current':'locked'}"><div class="stage-top"><h3>${i+1}. ${esc(title)}</h3><span class="pill">${done?'✅ مكتملة':current?'● متاحة':'🔒 مغلقة'}</span></div>
+          <div class="stage-due">📅 الموعد الحقيقي: ${dueText[kind][i]}<br>🧪 موعد المحاكاة: الآن</div>
+          <p style="margin:0;font-size:13px"><b>مطلوب من السبونسر:</b> ${kind==='member'?'الاطمئنان ومساعدة العضو ومتابعة التدريب.':'متابعة اهتمام الشخص بلطف واحترام اختياره.'}</p>
+          <div class="message">${esc(message(kind,i))}</div>
+          <button type="button" class="button ${done?'secondary':''}" ${current?'':'disabled'} onclick="demo.copy('${kind}',${i})">📋 نسخ الرسالة</button>
+          ${current?`<div class="action-form"><label>ردة فعل ${kind==='member'?'العضو':'المهتم'}<select id="reaction${kind}${i}" onchange="demo.reactionChanged('${kind}',${i})">${options('contacted',kind==='member')}</select></label>
+            ${kind==='prospect'?`<div id="membershipFields${i}" hidden><label>رقم عضوية تجريبي<input id="membershipNo${i}" inputmode="numeric" pattern="[0-9]{6,15}" maxlength="15" placeholder="مثال: 888888888"></label><label>تاريخ انضمام افتراضي<input id="joinDate${i}" type="date" value="${new Date().toISOString().slice(0,10)}"></label></div>`:''}
+            <label>ملاحظة المتابعة (اختياري)<textarea id="note${kind}${i}" maxlength="800" placeholder="مثال: أجاب بأنه مهتم وسأل عن طريقة التسجيل"></textarea></label><button type="button" class="button full" onclick="demo.complete('${kind}',${i})">تأكيد المرحلة وحفظ النتيجة</button></div>`:recordDone?`<p class="muted">النتيجة المسجلة: ${esc(reactionLabels[recordDone.reaction]||'—')}</p>`:'<p class="muted">تُفتح بعد إنهاء المرحلة السابقة.</p>'}
+        </article>`;
+      }).join('')}</div><div id="error" class="alert" role="alert"></div></section>`;
+    };
+    const consentCard=()=>`<section class="card"><h2>تأكيد متابعة العضو الجديد</h2><p>تم إنشاء عضوية تجريبية، مع الاحتفاظ بسجل المهتم السابق. قبل بدء المتابعة الجديدة، أكد الموافقة الافتراضية.</p><button class="button" onclick="demo.consentMember()">تأكيد الموافقة وبدء متابعة الشهر الأول</button></section>`;
+    const historyHtml=()=>`<section class="card" style="margin-top:15px"><h2>📚 السجل الزمني للمتابعة</h2><div class="history">${data.history.length?data.history.slice().reverse().map(h=>`<div class="history-item"><div><b>${esc(h.title)}</b><div class="muted">${esc(h.details)}</div></div><small>${time(h.at)}</small></div>`).join(''):'<p class="muted">لم يُسجّل أي إجراء بعد.</p>'}</div></section>`;
+    const results=()=>`<div class="stats"><div class="card"><span class="muted">الرسائل المنسوخة</span><strong>${data.history.filter(h=>h.title.startsWith('نُسخت')).length}</strong></div><div class="card"><span class="muted">مراحل المهتم المكتملة</span><strong>${phaseCount('prospect')} / 4</strong></div><div class="card"><span class="muted">مراحل العضو المكتملة</span><strong>${phaseCount('member')} / 6</strong></div><div class="card"><span class="muted">حالة التحويل</span><strong style="font-size:18px">${data.member?'تم التحويل ✅':'لم يتحوّل بعد'}</strong></div></div>
+      <div class="card"><h2>نتيجة الاختبار</h2><p><b>الاسم:</b> ${esc(data.name)} · <b>السبونسر:</b> ${esc(data.sponsor)}</p>
+      <p><b>مسار المهتم:</b> ${data.prospectClosed?'مغلق':`المرحلة ${Math.min(data.prospectStage+1,4)}`}</p><p><b>مسار العضو:</b> ${data.memberClosed?'اكتمل الشهر الأول':data.member?`المرحلة ${Math.min(data.memberStage+1,6)}`:'لم يبدأ'}</p>
+      ${data.memberClosed?'<div class="finish">✅ اكتمل المسار التجريبي من المهتم إلى العضو الجديد، وحُفظت جميع نتائج المتابعة محليًا.</div>':''}
+      <div class="row"><button class="button" onclick="demo.copyReport()">📋 نسخ التقرير</button><button class="button secondary" onclick="demo.go('${data.member?'member':'prospect'}')">متابعة المراحل</button><button class="button danger" onclick="demo.reset()">بدء تجربة جديدة</button></div></div>${historyHtml()}`;
+    function render(){
+      const app=$('app');
+      let content='';
+      if(data.tab==='add')content=formAdd();
+      if(data.tab==='prospect') content=data.name?identity()+stageGrid('prospect')+historyHtml():'<div class="empty">ابدأ بإضافة مهتم أولًا.</div>';
+      if(data.tab==='member') content=data.member?identity()+(data.member.consent?stageGrid('member'):consentCard())+historyHtml():'<div class="empty">اختر «سجّل عضوية» عند إحدى مراحل المهتم لتحويله إلى عضو.</div>';
+      if(data.tab==='results')content=results();
+      app.innerHTML=tabs()+content;
+    }
+    const copyText=async value => {try{await navigator.clipboard.writeText(value);return true;}catch(_){const el=document.createElement('textarea');el.value=value;el.style.position='fixed';el.style.opacity='0';document.body.append(el);el.select();const ok=document.execCommand('copy');el.remove();return !!ok;}};
+    window.demo = {
+      go(tab){if(tab==='member'&&!data.member)return;if(tab!=='add'&&!data.name)return;data.tab=tab;save();render();window.scrollTo(0,0);},
+      create(event){event.preventDefault();if(data.name){showError('بدأت التجربة بالفعل. استخدم إعادة التجربة لإنشاء سجل جديد.');return;}
+        const name=$('name').value.trim(),country=$('country').value.trim(),sponsor=$('sponsor').value.trim();
+        if(!name||!country||!sponsor||!$('consent').checked){showError('أكمل الحقول المطلوبة وتحقق من الموافقة الافتراضية.');return;}
+        data={...blank(),name,country,phone:$('phone').value.trim(),sponsor,consent:true,tab:'prospect'};record('system','أُضيف المهتم التجريبي',`المهتم: ${name} · الدولة: ${country} · السبونسر: ${sponsor}`);render();window.scrollTo(0,0);
+      },
+      async copy(kind,index){if((kind==='member'&&!data.member?.consent)||(kind==='prospect'&&!data.consent))return;
+        const current=kind==='member'?data.memberStage:data.prospectStage;
+        if(index!==current)return;
+        const msg=message(kind,index);const ok=await copyText(msg);
+        if(!ok){showError('تعذر النسخ. يرجى السماح للمتصفح باستخدام الحافظة.');return;}
+        record(kind,`نُسخت رسالة ${kind==='member'?'العضو':'المهتم'}`,`المرحلة ${index+1}: ${kind==='member'?memberStages[index]:prospectStages[index]}`);
+        const toast=document.createElement('div');toast.textContent='✅ نُسخت الرسالة. لم تُرسل تلقائيًا.';toast.style.cssText='position:fixed;bottom:20px;right:20px;background:#075f40;color:white;padding:12px 17px;border-radius:9px;z-index:50';document.body.append(toast);setTimeout(()=>toast.remove(),2400);
+      },
+      reactionChanged(kind,index){const fields=$(`membershipFields${index}`);if(fields&&kind==='prospect')fields.hidden=$(`reaction${kind}${index}`).value!=='registered';},
+      complete(kind,index){if(kind==='member'&&!data.member?.consent)return;
+        const current=kind==='member'?data.memberStage:data.prospectStage;
+        if(index!==current)return showError('يجب إكمال المرحلة السابقة أولًا.');
+        const reaction=$(`reaction${kind}${index}`).value, note=$(`note${kind}${index}`).value.trim();
+        if(kind==='prospect'&&reaction==='registered'){
+          const number=$(`membershipNo${index}`).value.trim(),date=$(`joinDate${index}`).value;
+          if(!/^\d{6,15}$/.test(number)||!date)return showError('أدخل رقم عضوية افتراضيًا من 6 إلى 15 رقمًا وتاريخ الانضمام.');
+          if(date>new Date().toISOString().slice(0,10))return showError('لا يجوز أن يكون تاريخ الانضمام في المستقبل.');
+          record(kind,`اكتملت المرحلة ${index+1}: ${prospectStages[index]}`,`${reactionLabels[reaction]}${note?` · ${note}`:''}`);
+          data.history[data.history.length-1].index=index;data.history[data.history.length-1].reaction=reaction;
+          data.prospectStage=index+1;data.prospectClosed=true;data.member={number,date,consent:false};data.memberStage=0;data.tab='member';
+          record('system','تحوّل المهتم إلى عضو جديد',`رقم العضوية الافتراضي: ${number} · تاريخ الانضمام: ${date} · احتُفظ بسجل المهتم السابق.`);
+          save();render();window.scrollTo(0,0);return;
+        }
+        record(kind,`اكتملت المرحلة ${index+1}: ${kind==='member'?memberStages[index]:prospectStages[index]}`,`${reactionLabels[reaction]}${note?` · ${note}`:''}`);
+        data.history[data.history.length-1].index=index;data.history[data.history.length-1].reaction=reaction;
+        if(kind==='prospect'){
+          data.prospectStage=index+1;
+          if(index===3||stopReactions.has(reaction)){data.prospectClosed=true;record('system','أُغلقت متابعة المهتم',`السبب: ${reactionLabels[reaction]}`);}
+        } else {
+          data.memberStage=index+1;
+          if(index===5||stopReactions.has(reaction)){data.memberClosed=true;record('system','اكتملت/أُغلقت متابعة العضو',`النتيجة: ${reactionLabels[reaction]}`);}
+        }
+        save();if(data.memberClosed)data.tab='results';render();window.scrollTo(0,0);
+      },
+      consentMember(){if(!data.member)return;data.member.consent=true;record('member','تأكدت موافقة العضو الجديد','تفعيل مراحل المتابعة الافتراضية.');save();render();},
+      async copyReport(){const text=['تقرير اختبار مركز المتابعة',`الاسم: ${data.name}`,`السبونسر: ${data.sponsor}`,`مراحل المهتم: ${phaseCount('prospect')} من 4`,`مراحل العضو: ${phaseCount('member')} من 6`,data.member?'تم تحويل المهتم إلى عضو':'لم يتم التحويل',...data.history.map(h=>`${time(h.at)} — ${h.title} — ${h.details}`)].join('\n');const ok=await copyText(text);if(ok)alert('تم نسخ التقرير التجريبي.');else alert('لم ينجح نسخ التقرير.');},
+      reset(){if(!confirm('هل تريد حذف بيانات هذه المحاكاة من جهازك وبدء تجربة جديدة؟'))return;data=blank();save();render();window.scrollTo(0,0);}
+    };
+    render();
+  })();
+  </script>
+</body>
+</html>
