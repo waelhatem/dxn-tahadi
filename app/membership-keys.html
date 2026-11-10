@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+  <title>مفاتيح العضوية | مجتمع الصحة والثراء</title>
+  <style>
+    :root { --ink:#132e30; --muted:#657c7d; --deep:#0d3934; --green:#16856c; --mint:#e8f7ef; --gold:#d4ad64; --line:#dbe7e2; --bg:#f3f7f5; --warn:#9b5c04; --red:#b7383a; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Tahoma,Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.65; }
+    button,input,select { font:inherit; }
+    button { cursor:pointer; }
+    button:disabled { cursor:not-allowed; opacity:.48; }
+    :focus-visible { outline:3px solid #69a2e8; outline-offset:2px; }
+    .wrap { max-width:1190px; margin:0 auto; padding:0 22px; }
+    header { background:linear-gradient(118deg,#092c2b,#14564a 75%,#17674d); color:#fff; border-bottom:4px solid var(--gold); }
+    .header-line { padding:26px 0 25px; display:flex; align-items:center; justify-content:space-between; gap:18px; }
+    .brand { display:flex; align-items:center; gap:16px; }
+    .brand-mark { width:58px; height:58px; border:1px solid #ffffff52; background:#ffffff16; border-radius:19px; display:grid; place-items:center; font-size:29px; }
+    h1 { font-size:26px; letter-spacing:-.5px; margin:0; }
+    .brand p { margin:0; color:#cde7dc; font-size:13px; }
+    .header-flag { border:1px solid #ffffff50; border-radius:100px; padding:6px 13px; color:#e1f6eb; font-size:12px; white-space:nowrap; }
+    main { padding-top:26px; padding-bottom:46px; }
+    .notice { display:flex; gap:11px; align-items:flex-start; background:#eaf4fb; border:1px solid #c4dcec; border-radius:13px; padding:12px 17px; font-size:13px; color:#315168; margin-bottom:20px; }
+    .card { background:#fff; border:1px solid var(--line); box-shadow:0 7px 26px #133a2d0a; border-radius:18px; padding:23px; }
+    h2 { margin:0 0 14px; font-size:19px; }
+    h3 { margin:0 0 8px; font-size:15px; }
+    p { margin:0 0 12px; }
+    .muted { color:var(--muted); font-size:13px; }
+    .label { display:block; margin-bottom:5px; color:#2c4948; font-size:13px; font-weight:bold; }
+    input,select { border:1px solid #c7d8d1; color:var(--ink); background:#fff; border-radius:10px; padding:11px 12px; width:100%; min-height:45px; transition:border-color .2s; }
+    input:focus,select:focus { border-color:var(--green); outline:2px solid #1b9c7420; }
+    input[readonly] { background:#f6f9f7; }
+    .field { min-width:0; }
+    .grid2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .grid3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+    .full { grid-column:1/-1; }
+    .buttons { display:flex; gap:9px; flex-wrap:wrap; align-items:center; }
+    .btn { border:1px solid transparent; border-radius:10px; min-height:43px; padding:9px 17px; font-size:13px; font-weight:bold; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+    .primary { background:var(--deep); color:#fff; }
+    .primary:hover { background:#14564b; }
+    .secondary { background:#e9f5ee; border-color:#c6e6d5; color:#115b49; }
+    .plain { background:#fff; border-color:#d6e1da; color:var(--ink); }
+    .danger { background:#fff2f1; border-color:#f1c6c6; color:var(--red); }
+    .small { min-height:32px; padding:5px 9px; border-radius:8px; font-size:12px; }
+    #locked { max-width:650px; margin:26px auto 0; }
+    #locked .card { padding:29px; }
+    .lock-icon { width:57px; height:57px; border-radius:18px; background:var(--mint); color:var(--green); display:grid; place-items:center; font-size:27px; margin-bottom:14px; }
+    .auth-tip { margin:15px 0; padding:12px; background:#fff9e8; border:1px solid #eedba4; border-radius:10px; font-size:12px; color:#795a17; }
+    .auth-actions { margin-top:14px; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:18px; }
+    .topbar .buttons { flex:1; justify-content:flex-end; }
+    .tag { display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:bold; border-radius:100px; padding:5px 11px; }
+    .tag.green { background:#e2f5eb; color:#16674c; }
+    .tag.amber { background:#fff2d8; color:#8a580b; }
+    .tag.gray { background:#eef1f0; color:#5a6c68; }
+    .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:18px; }
+    .stat { padding:14px 18px; border:1px solid var(--line); background:#fff; border-radius:15px; }
+    .stat b { font-size:25px; display:block; line-height:1.4; }
+    .stat span { color:var(--muted); font-size:12px; }
+    .columns { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.05fr); gap:18px; align-items:start; }
+    .section-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:13px; }
+    .section-head h2 { margin:0; }
+    .password-row { display:flex; gap:7px; }
+    .password-row input { flex:1; min-width:0; direction:ltr; text-align:left; font-family:Consolas,monospace; letter-spacing:1px; font-size:16px; }
+    .password-help { font-size:12px; margin-top:6px; color:var(--muted); }
+    .form-actions { margin-top:17px; border-top:1px solid var(--line); padding-top:17px; }
+    .records { min-height:430px; }
+    .searchbar { margin-bottom:12px; }
+    .records-list { display:grid; gap:10px; }
+    .entry { padding:14px; border:1px solid #d9e6df; border-radius:13px; background:#fcfefd; }
+    .entry-head { display:flex; justify-content:space-between; gap:8px; align-items:start; }
+    .entry-name { font-size:15px; font-weight:bold; word-break:break-word; }
+    .entry-meta { display:flex; gap:7px 15px; flex-wrap:wrap; color:var(--muted); font-size:12px; margin-top:6px; }
+    .entry-meta b { color:#2c4a45; }
+    .entry-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; }
+    .photo-note { color:#3a7259; font-size:12px; margin-top:8px; }
+    .image-dialog { width:min(940px,calc(100vw - 32px)); }
+    .image-dialog .modal-body { padding:17px; }
+    .image-dialog-head { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:12px; }
+    .image-dialog-head h2 { margin:0; overflow-wrap:anywhere; }
+    .image-frame { display:grid; place-items:center; border:1px solid var(--line); background:#f7faf8; border-radius:12px; padding:9px; max-height:68vh; overflow:auto; }
+    .image-frame img { display:block; max-width:100%; max-height:65vh; height:auto; width:auto; object-fit:contain; }
+    .revealed { background:#fff7db; padding:9px 11px; border-radius:8px; direction:ltr; text-align:left; font-family:Consolas,monospace; margin-top:9px; letter-spacing:1px; border:1px solid #e3cc8b; word-break:break-all; }
+    .empty { text-align:center; padding:50px 18px; background:#f7faf8; border:1px dashed #c4d8cf; border-radius:13px; color:var(--muted); }
+    .footer-note { margin-top:18px; padding:14px; border-radius:12px; border:1px solid #d9e9dc; color:#48635d; background:#f5fbf6; font-size:12px; }
+    .backup-warning { background:#fff5e4; border:1px solid #f0d3a0; color:#85520a; border-radius:11px; padding:10px 13px; font-size:13px; margin-bottom:17px; }
+    .hidden { display:none !important; }
+    #toast { position:fixed; left:18px; bottom:18px; max-width:min(460px,calc(100vw - 36px)); z-index:20; background:#113b35; color:#fff; padding:12px 17px; border-radius:11px; box-shadow:0 9px 35px #0002; display:none; font-size:13px; }
+    dialog { padding:0; border:0; border-radius:18px; width:min(485px,calc(100vw - 32px)); max-height:90vh; box-shadow:0 30px 100px #0018; }
+    dialog::backdrop { background:#132c2dbb; }
+    .modal-body { padding:23px; }
+    .modal-body .buttons { margin-top:17px; }
+    .details { font-size:12px; color:var(--muted); border-top:1px solid var(--line); padding-top:13px; margin-top:12px; }
+    @media (max-width:940px) { .columns { grid-template-columns:1fr; } }
+    @media (max-width:620px) { .wrap { padding:0 13px; } .header-line { padding:21px 0; } h1 { font-size:21px; } .header-flag { display:none; } .card { padding:16px; } .grid2,.grid3,.stats { grid-template-columns:1fr; } .topbar .buttons { justify-content:flex-start; } .buttons .btn { flex-grow:1; } .brand-mark { width:47px; height:47px; font-size:24px; } }
+    @media print { header,button,.notice,.backup-warning,#locked,.topbar { display:none !important; } }
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap header-line">
+    <div class="brand"><div class="brand-mark" aria-hidden="true">🔐</div><div><h1>مفاتيح العضوية</h1><p>مجتمع الصحة والثراء · إدارة القائد فقط</p></div></div>
+    <span class="header-flag">الإصدار 1.3 · خزنة مشفرة داخل إدارة القائد</span>
+  </div>
+</header>
+<main class="wrap">
+  <div class="notice"><span aria-hidden="true">ⓘ</span><span>هذه الخزنة مخصصة لكلمات مرور الأعضاء <strong>الجدد فقط</strong>. لا تُسجِّل العضوية لدى DXN تلقائياً؛ أكمل التسجيل في DXN ثم أضف رقم العضوية وصورة نجاح التسجيل. السجلات والصور مشفّرة بكلمة رئيسية، وتُحفظ <strong>في المتصفح الحالي فقط</strong>، ولا تُزامَن تلقائياً مع قاعدة بيانات المجتمع أو الأجهزة الأخرى. صدّر نسخة احتياطية مشفرة بعد كل تغيير مهم.</span></div>
+  <section id="unsupported" class="card hidden" role="alert"><h2>المتصفح لا يدعم التخزين الآمن المطلوب</h2><p>استخدم Chrome أو Edge حديثين على جهاز موثوق، وتأكد من تفعيل التخزين المحلي وواجهة التشفير الآمنة.</p></section>
+
+  <section id="locked" class="hidden">
+    <div class="card">
+      <div class="lock-icon" aria-hidden="true">🔒</div>
+      <h2 id="authTitle">فتح الخزنة المشفرة</h2>
+      <p id="authIntro" class="muted">أدخل الكلمة الرئيسية للوصول إلى سجل الأعضاء الجدد.</p>
+      <form id="authForm" autocomplete="off">
+        <div class="field"><label class="label" for="master">كلمة المرور الرئيسية</label><input id="master" type="password" autocomplete="off" minlength="14" required></div>
+        <div id="confirmWrap" class="field hidden" style="margin-top:13px"><label class="label" for="masterConfirm">إعادة كلمة المرور الرئيسية</label><input id="masterConfirm" type="password" autocomplete="off"></div>
+        <div class="auth-tip"><strong>تنبيه:</strong> الكلمة الرئيسية لا تُخزَّن على الجهاز، ولا يستطيع أحد استعادتها لك. احفظها في مدير كلمات مرور موثوق. فقدانها يعني تعذّر فتح السجلات والنسخ الاحتياطية.</div>
+        <div class="buttons auth-actions"><button id="authSubmit" class="btn primary" type="submit">فتح الخزنة</button><button id="importLocked" class="btn plain" type="button">استعادة نسخة مشفرة</button></div>
+      </form>
+    </div>
+  </section>
+
+  <section id="app" class="hidden">
+    <div class="topbar">
+      <span class="tag green">● إدارة القائد · الخزنة مفتوحة</span>
+      <div class="buttons"><button class="btn secondary" id="backupBtn" type="button">⬇ حفظ نسخة احتياطية مشفرة</button><button class="btn plain" id="mergeBtn" type="button">↺ دمج نسخة احتياطية</button><button class="btn plain" id="csvBtn" type="button">تصدير أسماء وأرقام فقط</button><button class="btn danger" id="lockBtn" type="button">قفل</button></div>
+    </div>
+    <div id="backupNotice" class="backup-warning hidden">⚠ لديك تغييرات لم تُصدَّر في نسخة احتياطية مشفرة. بعد كل تسجيل، اضغط «حفظ نسخة احتياطية مشفرة» واحفظ الملف في مكان آمن.</div>
+    <div class="stats"><div class="stat"><b id="totalCount">0</b><span>أعضاء جدد في السجل المؤقت</span></div><div class="stat"><b id="pendingCount">0</b><span>بانتظار رقم العضوية</span></div><div class="stat"><b id="unlinkedCount">0</b><span>بانتظار الربط بالمجتمع</span></div></div>
+    <div class="columns">
+      <section class="card">
+        <div class="section-head"><h2 id="formTitle">إضافة عضو جديد</h2><span class="tag gray">الأرقام الإنجليزية فقط</span></div>
+        <form id="entryForm" autocomplete="off">
+          <div class="grid2">
+            <div class="field full"><label class="label" for="memberName">اسم العضو الكامل *</label><input id="memberName" required maxlength="140" placeholder="الاسم كما سُجّل في DXN"></div>
+            <div class="field"><label class="label" for="memberCode">رقم العضوية الصادر من DXN</label><input id="memberCode" inputmode="numeric" dir="ltr" maxlength="15" placeholder="أضفه بعد نجاح التسجيل"><div class="password-help">يمكن تركه فارغاً مؤقتاً، ثم إضافته لاحقاً.</div></div>
+            <div class="field"><label class="label" for="country">الدولة</label><input id="country" maxlength="70" value="العراق" placeholder="الدولة"></div>
+            <div class="field"><label class="label" for="sponsor">اسم الراعي (السبونسر)</label><input id="sponsor" maxlength="140" placeholder="اسم الراعي الذي سجل العضو"></div>
+            <div class="field"><label class="label" for="sponsorCode">رقم عضوية الراعي</label><input id="sponsorCode" inputmode="numeric" dir="ltr" maxlength="15" placeholder="بالأرقام الإنجليزية فقط"></div>
+            <div class="field full"><label class="label" for="memberPassword">كلمة المرور الأولية *</label><div class="password-row"><input id="memberPassword" type="password" required minlength="9" maxlength="9" autocomplete="new-password" spellcheck="false" aria-describedby="passwordHelp"><button id="showNewPassword" type="button" class="btn plain" aria-label="إظهار أو إخفاء كلمة المرور">◉</button></div><div class="password-help" id="passwordHelp">9 خانات بالضبط: 3 أحرف إنجليزية كبيرة (A–Z)، و3 صغيرة (a–z)، و3 أرقام (0–9)، بترتيب عشوائي، دون رموز خاصة. تحقّق من قبولها في DXN.</div></div>
+          </div>
+          <div class="buttons" style="margin-top:12px"><button id="generateBtn" type="button" class="btn secondary">✦ توليد كلمة مرور معقدة (3+3+3)</button><button id="copyNewBtn" type="button" class="btn plain">نسخ كلمة المرور</button></div>
+          <div class="form-actions"><label class="label" for="deliveryStatus">حالة التسليم</label><select id="deliveryStatus"><option value="not_delivered">لم تُسلَّم بعد</option><option value="delivered">سُلِّمت إلى العضو</option><option value="changed" hidden>غيّرها العضو، وحُذفت الكلمة القديمة</option></select><div class="buttons" style="margin-top:13px"><button type="submit" class="btn primary" id="saveEntryBtn">حفظ العضو مشفراً</button><button type="button" class="btn plain hidden" id="cancelEditBtn">إلغاء التعديل</button></div></div>
+        </form>
+      </section>
+      <section class="card records">
+        <div class="section-head"><h2>سجل العضويات المؤقت</h2><span class="tag amber">غير مزامن مع سجل DXN</span></div>
+        <div class="searchbar"><label class="label" for="search">بحث باسم العضو أو رقم عضويته أو اسم الراعي أو رقم عضوية الراعي</label><input id="search" type="search" placeholder="اكتب أي اسم أو رقم عضوية للبحث..."><p class="muted" style="margin:7px 1px 0">بعد حفظ العضو، اضغط «إضافة صورة التسجيل» في بطاقته لإرفاق صورة نجاح التسجيل من DXN بما فيها بيانات العضو والراعي والبريد الإلكتروني.</p></div>
+        <div id="recordsList" class="records-list" aria-live="polite"></div>
+      </section>
+    </div>
+    <div class="footer-note"><strong>الحماية:</strong> يتم تشفير السجل بأكمله، <strong>بما في ذلك صور تأكيد التسجيل المرفقة</strong>، داخل هذا المتصفح باستخدام AES-GCM، ومفتاح مشتق من الكلمة الرئيسية عبر PBKDF2. لا تُرفع هذه البيانات إلى الخادم أو قاعدة بيانات المجتمع. النسخة الاحتياطية مشفرة وتشمل الصور، بينما ملف «الأسماء والأرقام فقط» لا يتضمن كلمات المرور أو الصور. عند تغيير الجهاز أو المتصفح أو الانتقال إلى رابط مختلف، استورد النسخة المشفرة. انتبه إلى مساحة التخزين المحدودة؛ احتفظ بنسخة احتياطية بعد إرفاق الصور.</div>
+  </section>
+</main>
+
+<dialog id="secretDialog"><div class="modal-body"><h2 id="secretTitle">التحقق قبل كشف كلمة المرور</h2><p class="muted" id="secretDescription">أدخل الكلمة الرئيسية لإثبات الصلاحية.</p><form id="secretForm"><label class="label" for="secretMaster">كلمة المرور الرئيسية</label><input id="secretMaster" type="password" autocomplete="off" required><div class="buttons"><button class="btn primary" type="submit" id="secretConfirm">تأكيد</button><button class="btn plain" type="button" id="secretCancel">إلغاء</button></div></form></div></dialog>
+<dialog id="registrationImageDialog" class="image-dialog" aria-labelledby="registrationImageTitle"><div class="modal-body"><div class="image-dialog-head"><h2 id="registrationImageTitle">صورة تأكيد التسجيل</h2><button class="btn plain" type="button" id="closeRegistrationImage">إغلاق الصورة</button></div><div class="image-frame"><img id="registrationImagePreview" alt="صورة تأكيد تسجيل العضوية من DXN بما تتضمنه من بيانات العضو والراعي"></div><p class="muted" style="margin:12px 2px 0">تظهر هذه الصورة فقط داخل الخزنة المفتوحة. بياناتها محفوظة مشفّرة مع سجل العضو، ومشمولة بالنسخة الاحتياطية المشفرة.</p></div></dialog>
+<input type="file" id="fileInput" accept=".json,application/json" class="hidden">
+<input type="file" id="registrationImageInput" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" class="hidden" aria-label="اختيار صورة تأكيد التسجيل">
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  'use strict';
+  // The hosted page may only run within the same-origin leader administration panel.
+  // This is a UI access check; the actual records are protected by vault encryption.
+  try {
+    if (window.parent === window ||
+        window.parent.location.origin !== window.location.origin ||
+        typeof window.parent.__dxnMembershipKeysLeaderAllowed !== 'function' ||
+        !window.parent.__dxnMembershipKeysLeaderAllowed()) {
+      document.body.textContent = 'هذا القسم متاح من داخل إدارة القائد فقط.';
+      return;
+    }
+  } catch (_) {
+    document.body.textContent = 'هذا القسم متاح من داخل إدارة القائد فقط.';
+    return;
+  }
+  const STORE = 'mafatih_vault_v1';
+  const BACKUP_MARK = 'mafatih_backup_mark_v1';
+  const ITERATIONS = 600000;
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  const $ = id => document.getElementById(id);
+  let vault = null, key = null, salt = null, editingId = null, revealId = null, attachingImageId = null, imageBusy = false;
+  let pendingBackup = null, authBusy = false, idleTimer = null, toastTimer = null, revealTimer = null;
+  const dateISO = () => new Date().toISOString();
+  const randomBytes = n => crypto.getRandomValues(new Uint8Array(n));
+  const uid = () => crypto.randomUUID();
+  function b64(bytes) { let s = ''; for (let i = 0; i < bytes.length; i += 8192) s += String.fromCharCode(...bytes.subarray(i, i+8192)); return btoa(s); }
+  const unb64 = x => Uint8Array.from(atob(x), c => c.charCodeAt(0));
+  function notify(msg, err = false) { const e = $('toast'); e.textContent = msg; e.style.background = err ? '#932c2d' : '#113b35'; e.style.display = 'block'; clearTimeout(toastTimer); toastTimer = setTimeout(() => e.style.display = 'none', 5000); }
+  function checkEnv(env) { return env && env.format === 'mafatih-dxn' && env.version === 1 && env.iterations === ITERATIONS && typeof env.salt === 'string' && typeof env.iv === 'string' && typeof env.data === 'string'; }
+  function currentEnvelope() { try { const x = localStorage.getItem(STORE); if (!x) return null; const e = JSON.parse(x); if (!checkEnv(e)) throw Error('unsupported'); return e; } catch { throw Error('تعذر قراءة ملف الخزنة المخزن؛ لا تحذف بيانات المتصفح. حاول الاستعادة من نسخة احتياطية.'); } }
+  async function derive(password, s) { const km = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveKey']); return crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt:s,iterations:ITERATIONS},km,{name:'AES-GCM',length:256},false,['encrypt','decrypt']); }
+  async function seal(plain, useKey, useSalt) { const iv = randomBytes(12); const data = await crypto.subtle.encrypt({name:'AES-GCM',iv},useKey,encoder.encode(JSON.stringify(plain))); return {format:'mafatih-dxn',version:1,iterations:ITERATIONS,salt:b64(useSalt),iv:b64(iv),data:b64(new Uint8Array(data))}; }
+  async function open(env, useKey) { const raw = await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(env.iv)},useKey,unb64(env.data)); const parsed = JSON.parse(decoder.decode(raw)); if (parsed.schema !== 1 || !Array.isArray(parsed.entries)) throw Error('invalid-data'); return parsed; }
+  function setBackupFlag(value) { try { localStorage.setItem(BACKUP_MARK,value?'needed':'done'); } catch {} $('backupNotice').classList.toggle('hidden',!value); }
+  function refreshBackupFlag() { $('backupNotice').classList.toggle('hidden',localStorage.getItem(BACKUP_MARK)!=='needed'); }
+  async function commit(change) { if (!vault || !key) throw Error('الخزنة مقفلة'); const next = structuredClone(vault); change(next); next.updatedAt = dateISO(); const packed = await seal(next,key,salt); localStorage.setItem(STORE,JSON.stringify(packed)); vault = next; setBackupFlag(true); render(); }
+  function showLocked() { $('app').classList.add('hidden'); $('locked').classList.remove('hidden'); const first = !localStorage.getItem(STORE); $('authTitle').textContent = first ? 'إنشاء الخزنة المشفرة' : 'فتح الخزنة المشفرة'; $('authIntro').textContent = first ? 'أنشئ كلمة رئيسية خاصة بإدارة القائد، لحماية جميع سجلات العضويات الجديدة.' : 'أدخل الكلمة الرئيسية لفك تشفير السجل الموجود على هذا الجهاز.'; $('confirmWrap').classList.toggle('hidden',!first); $('authSubmit').textContent = first ? 'إنشاء الخزنة' : 'فتح الخزنة'; $('master').value = ''; $('masterConfirm').value = ''; }
+  function lock(silent = false) { vault = null; key = null; salt = null; editingId = null; revealId = null; attachingImageId = null; clearTimeout(idleTimer); clearTimeout(revealTimer); $('entryForm').reset(); $('memberPassword').value = ''; $('country').value='العراق'; $('search').value=''; $('registrationImageInput').value=''; if ($('registrationImageDialog').open) $('registrationImageDialog').close(); $('registrationImagePreview').removeAttribute('src'); if ($('secretDialog').open) $('secretDialog').close(); showLocked(); if(!silent)notify('تم قفل الخزنة.'); }
+  function touch() { if (!vault) return; clearTimeout(idleTimer); idleTimer = setTimeout(() => lock(true),15*60*1000); }
+  function enter(nextVault,nextKey,nextSalt) { vault=nextVault; key=nextKey; salt=nextSalt; $('locked').classList.add('hidden'); $('app').classList.remove('hidden'); resetForm(); refreshBackupFlag(); render(); touch(); notify('تم فتح الخزنة بنجاح.'); }
+  $('authForm').addEventListener('submit',async event=>{ event.preventDefault(); if(authBusy)return; const pass=$('master').value; const isNew=!localStorage.getItem(STORE); if(isNew && (pass.length<14 || pass!==$('masterConfirm').value)) { notify('اختر كلمة رئيسية لا تقل عن 14 حرفاً، وتأكد من تطابق الحقلين.',true); return; } authBusy=true; $('authSubmit').disabled=true; try { if(isNew) { const newSalt=randomBytes(16), newKey=await derive(pass,newSalt); const data={schema:1,createdAt:dateISO(),updatedAt:dateISO(),entries:[]}; const env=await seal(data,newKey,newSalt); localStorage.setItem(STORE,JSON.stringify(env)); setBackupFlag(true); enter(data,newKey,newSalt); } else { const env=currentEnvelope(), newSalt=unb64(env.salt), newKey=await derive(pass,newSalt), data=await open(env,newKey); enter(data,newKey,newSalt); } } catch {notify('كلمة المرور غير صحيحة، أو تعذر فتح الخزنة. لا تحذف بيانات المتصفح.',true);} finally {authBusy=false;$('authSubmit').disabled=false;$('master').value='';$('masterConfirm').value='';} });
+  function unbiased(chars) { const len=chars.length; const max=Math.floor(256/len)*len; while(true) { const b=randomBytes(1)[0]; if(b<max)return chars[b%len]; } }
+  function randomIndex(bound) { const limit=Math.floor(4294967296/bound)*bound;let n;do{n=crypto.getRandomValues(new Uint32Array(1))[0];}while(n>=limit);return n%bound; }
+  function newPassword() { const up='ABCDEFGHJKLMNPQRSTUVWXYZ',low='abcdefghjkmnpqrstuvwxyz',num='23456789';const list=[];for(let i=0;i<3;i++)list.push(unbiased(up),unbiased(low),unbiased(num));for(let i=list.length-1;i>0;i--){const j=randomIndex(i+1);[list[i],list[j]]=[list[j],list[i]];}return list.join(''); }
+  $('generateBtn').addEventListener('click',()=>{$('memberPassword').value=newPassword();$('memberPassword').type='text';touch();notify('تم توليد كلمة مرور. انسخها إلى حقلي كلمة المرور والتأكيد في DXN.');});
+  $('showNewPassword').addEventListener('click',()=>{$('memberPassword').type=$('memberPassword').type==='password'?'text':'password';touch();});
+  async function copyText(s) { if(!s) { notify('لا توجد كلمة مرور لنسخها.',true); return; } try { await navigator.clipboard.writeText(s); notify('تم النسخ. ألصق كلمة المرور في الحقلين على موقع DXN.'); } catch { const t=document.createElement('textarea');t.value=s;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();const ok=document.execCommand('copy');t.remove();notify(ok?'تم النسخ.':'تعذر النسخ؛ استخدم إظهار كلمة المرور والنسخ يدوياً.',!ok); } touch(); }
+  $('copyNewBtn').addEventListener('click',()=>copyText($('memberPassword').value));
+  function validateName(name) { return name.length>=3 && name.length<=140; }
+  const validCode = code => code==='' || /^[0-9]{5,15}$/.test(code);
+  const validPassword = pass => /^[A-Za-z0-9]{9}$/.test(pass) && (pass.match(/[A-Z]/g)||[]).length===3 && (pass.match(/[a-z]/g)||[]).length===3 && (pass.match(/[0-9]/g)||[]).length===3;
+  function resetForm(){editingId=null;$('entryForm').reset();$('country').value='العراق';$('memberPassword').type='password';$('memberPassword').required=true;$('formTitle').textContent='إضافة عضو جديد';$('saveEntryBtn').textContent='حفظ العضو مشفراً';$('cancelEditBtn').classList.add('hidden');}
+  $('cancelEditBtn').addEventListener('click',resetForm);
+  $('entryForm').addEventListener('submit',async event=>{
+    event.preventDefault();touch();
+    const name=$('memberName').value.trim(),code=$('memberCode').value.trim(),country=$('country').value.trim();
+    const sponsor=$('sponsor').value.trim(),sponsorCode=$('sponsorCode').value.trim(),password=$('memberPassword').value,status=$('deliveryStatus').value;
+    const old=editingId?vault.entries.find(e=>e.id===editingId):null,legacyUnchanged=old&&old.password===password;
+    if(!validateName(name)){notify('اكتب الاسم الكامل للعضو (3 أحرف على الأقل).',true);return;}
+    if(!validCode(code)){notify('رقم العضوية يجب أن يتكون من 5–15 رقماً إنجليزياً فقط.',true);return;}
+    if(!validCode(sponsorCode)){notify('رقم عضوية الراعي يجب أن يتكون من 5–15 رقماً إنجليزياً فقط.',true);return;}
+    if(status!=='changed'&&!validPassword(password)&&!legacyUnchanged){notify('كلمة المرور يجب أن تتكون من 9 خانات بالضبط: 3 أحرف كبيرة و3 صغيرة و3 أرقام إنجليزية، دون رموز.',true);return;}
+    if(status==='changed'&&password){notify('احذف كلمة المرور القديمة عند تغييرها من DXN.',true);return;}
+    if(code && vault.entries.some(e=>e.code===code&&e.id!==editingId)){notify('رقم العضوية مسجل بالفعل؛ لن ننشئ سجلاً مكرراً.',true);return;}
+    const now=dateISO();
+    try{
+      await commit(v=>{
+        if(editingId){const e=v.entries.find(x=>x.id===editingId);if(!e)throw Error('missing');Object.assign(e,{name,code,country,sponsor,sponsorCode,password,status,updatedAt:now});}
+        else{v.entries.push({id:uid(),name,code,country,sponsor,sponsorCode,password,status,createdAt:now,updatedAt:now});}
+      });
+      notify(editingId?'تم تحديث العضو مشفراً.':'تم حفظ العضو الجديد مشفراً. صدّر نسخة احتياطية الآن.');resetForm();
+    }catch(e){notify('لم يتم الحفظ. تأكد من وجود مساحة تخزين محلية: '+e.message,true);}
+  });
+  function badge(status) { if(status==='changed')return ['كلمة المرور حُذفت','gray'];if(status==='delivered')return ['سُلِّمت للعضو','green'];return ['لم تُسلَّم','amber']; }
+  function make(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e;}
+  function action(title,style,fn){const b=make('button','btn small '+style,title);b.type='button';b.addEventListener('click',fn);return b;}
+  function dateText(d){try{return new Intl.DateTimeFormat('ar-IQ',{dateStyle:'medium'}).format(new Date(d));}catch{return '—';}}
+  const imageAvailable = e => e && e.registrationImage && /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(e.registrationImage.dataUrl||'');
+  function chooseImage(id){
+    if(!vault||!vault.entries.some(e=>e.id===id)||imageBusy)return;
+    attachingImageId=id;
+    $('registrationImageInput').value='';
+    $('registrationImageInput').click();
+    touch();
+  }
+  function showRegistrationImage(id){
+    const e=vault?.entries.find(x=>x.id===id);
+    if(!imageAvailable(e)){notify('لا توجد صورة تسجيل محفوظة لهذا العضو.',true);return;}
+    $('registrationImageTitle').textContent='صورة تأكيد التسجيل · '+e.name;
+    $('registrationImagePreview').src=e.registrationImage.dataUrl;
+    $('registrationImageDialog').showModal();
+    touch();
+  }
+  $('closeRegistrationImage').addEventListener('click',()=>$('registrationImageDialog').close());
+  $('registrationImageDialog').addEventListener('close',()=>$('registrationImagePreview').removeAttribute('src'));
+  function imageType(bytes){
+    if(bytes.length>=8&&[137,80,78,71,13,10,26,10].every((b,i)=>bytes[i]===b))return 'image/png';
+    if(bytes.length>=3&&bytes[0]===255&&bytes[1]===216&&bytes[2]===255)return 'image/jpeg';
+    if(bytes.length>=12&&String.fromCharCode(...bytes.slice(0,4))==='RIFF'&&String.fromCharCode(...bytes.slice(8,12))==='WEBP')return 'image/webp';
+    return null;
+  }
+  function readImage(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(Error('تعذرت قراءة الصورة.'));reader.readAsDataURL(file);});}
+  async function prepareImage(file){
+    if(file.size>8*1024*1024)throw Error('الصورة أكبر من 8 ميغابايت. اختر صورة أصغر.');
+    const mime=imageType(new Uint8Array(await file.slice(0,12).arrayBuffer()));
+    if(!mime)throw Error('صيغة الصورة غير مدعومة. استخدم PNG أو JPG أو WebP فقط.');
+    const original=await readImage(file);
+    if(typeof original!=='string'||!original.startsWith('data:'+mime+';base64,'))throw Error('تعذرت قراءة الصورة بصيغة آمنة.');
+    const MAX_STORED_CHARS=500000;
+    if(original.length<=MAX_STORED_CHARS)return {dataUrl:original, mime, name:file.name.slice(0,120), addedAt:dateISO()};
+    const img=new Image();
+    await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(Error('تعذر فتح الصورة.'));img.src=original;});
+    if(!img.naturalWidth||!img.naturalHeight)throw Error('أبعاد الصورة غير صالحة.');
+    const ratio=Math.min(1,2200/Math.max(img.naturalWidth,img.naturalHeight));
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.round(img.naturalWidth*ratio));canvas.height=Math.max(1,Math.round(img.naturalHeight*ratio));
+    const context=canvas.getContext('2d');if(!context)throw Error('المتصفح لا يدعم تجهيز الصورة.');
+    context.fillStyle='#ffffff';context.fillRect(0,0,canvas.width,canvas.height);
+    context.drawImage(img,0,0,canvas.width,canvas.height);
+    let result=canvas.toDataURL('image/png'),resultMime='image/png';
+    if(result.length>MAX_STORED_CHARS){for(const quality of [0.92,0.86,0.78]){result=canvas.toDataURL('image/jpeg',quality);resultMime='image/jpeg';if(result.length<=MAX_STORED_CHARS)break;}}
+    canvas.width=canvas.height=0;
+    if(result.length>MAX_STORED_CHARS)throw Error('الصورة كبيرة بعد تحسين حجمها. التقط صورة أقرب أو قص المساحة غير الضرورية قبل إرفاقها.');
+    return {dataUrl:result,mime:resultMime,name:file.name.slice(0,120),addedAt:dateISO()};
+  }
+  $('registrationImageInput').addEventListener('change',async event=>{
+    const file=event.target.files?.[0],id=attachingImageId;
+    attachingImageId=null;
+    if(!file||!id||imageBusy)return;
+    const current=vault?.entries.find(e=>e.id===id);if(!current)return;
+    imageBusy=true;touch();
+    try{
+      const picture=await prepareImage(file);
+      if(!vault||!vault.entries.some(e=>e.id===id))throw Error('الخزنة مقفلة أو السجل غير موجود. افتحها وأعد الإرفاق.');
+      await commit(v=>{const e=v.entries.find(x=>x.id===id);e.registrationImage=picture;e.updatedAt=dateISO();});
+      notify('حُفظت صورة تأكيد التسجيل مشفّرة ضمن سجل '+current.name+'. احفظ نسخة احتياطية مشفّرة الآن.');
+    }catch(error){notify('لم تُحفظ الصورة: '+(error?.name==='QuotaExceededError'?'امتلأ تخزين المتصفح. احتفظ بنسخة احتياطية مشفرة، ثم قلّص حجم الصور.':error.message),true);}
+    finally{imageBusy=false;$('registrationImageInput').value='';touch();}
+  });
+  async function removeRegistrationImage(id){
+    const e=vault?.entries.find(x=>x.id===id);
+    if(!imageAvailable(e)||!confirm('هل تريد حذف صورة تأكيد التسجيل لـ '+e.name+'؟ سيبقى سجل العضوية وكلمة المرور كما هما.'))return;
+    try{await commit(v=>{const x=v.entries.find(y=>y.id===id);delete x.registrationImage;x.updatedAt=dateISO();});if($('registrationImageDialog').open)$('registrationImageDialog').close();notify('حُذفت الصورة فقط وبقي سجل العضو.');}
+    catch{notify('تعذر حذف صورة التسجيل.',true);}
+  }
+  function render(){
+    if(!vault)return;
+    const entries=vault.entries;
+    $('totalCount').textContent=entries.length;
+    $('pendingCount').textContent=entries.filter(e=>!e.code).length;
+    $('unlinkedCount').textContent=entries.filter(e=>!!e.code).length;
+    const q=$('search').value.trim().toLocaleLowerCase();
+    const filtered=entries.filter(e=>[e.name,e.code,e.sponsor,e.sponsorCode].some(value=>String(value||'').toLocaleLowerCase().includes(q))).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+    const list=$('recordsList');list.replaceChildren();
+    if(!filtered.length){list.appendChild(make('div','empty',entries.length?'لا توجد نتائج مطابقة للبحث.':'لم تُسجل أي عضوية جديدة بعد. ابدأ من النموذج المجاور.'));return;}
+    for(const e of filtered){
+      const box=make('article','entry'),head=make('div','entry-head',undefined),name=make('div','entry-name',e.name),tags=make('div','','');
+      const status=badge(e.status),s=make('span','tag '+status[1],status[0]);
+      tags.appendChild(s);head.append(name,tags);box.appendChild(head);
+      const meta=make('div','entry-meta');
+      for(const [label,value] of [['رقم العضوية',e.code||'بانتظار الإصدار'],['الدولة',e.country||'—'],['اسم الراعي',e.sponsor||'—'],['رقم عضوية الراعي',e.sponsorCode||'—'],['أُضيف',dateText(e.createdAt)]]){
+        const span=make('span','');span.append(make('b','',label+': '),document.createTextNode(value));meta.appendChild(span);
+      }
+      box.appendChild(meta);
+      const actions=make('div','entry-actions');actions.appendChild(action('تعديل','plain',()=>edit(e.id)));
+      if(imageAvailable(e)){
+        box.appendChild(make('div','photo-note','✓ صورة تأكيد التسجيل محفوظة مشفّرة'));
+        actions.appendChild(action('عرض الصورة','secondary',()=>showRegistrationImage(e.id)));
+        actions.appendChild(action('تغيير الصورة','plain',()=>chooseImage(e.id)));
+        actions.appendChild(action('حذف الصورة','danger',()=>removeRegistrationImage(e.id)));
+      }else{actions.appendChild(action('إضافة صورة التسجيل','secondary',()=>chooseImage(e.id)));}
+      if(e.password&&e.status!=='changed'){
+        actions.appendChild(action('كشف مؤقت','secondary',()=>askReveal(e.id)));
+        actions.appendChild(action('نسخ كلمة المرور','plain',()=>copyText(e.password)));
+        actions.appendChild(action('حذف كلمة المرور','danger',()=>erasePassword(e.id)));
+      }
+      actions.appendChild(action('حذف السجل','danger',()=>deleteEntry(e.id)));box.appendChild(actions);
+      if(revealId===e.id&&e.password){const r=make('div','revealed',e.password);r.setAttribute('aria-label','كلمة المرور المؤقتة');box.appendChild(r);}
+      list.appendChild(box);
+    }
+  }
+  function edit(id){const e=vault.entries.find(x=>x.id===id);if(!e)return;editingId=id;$('memberName').value=e.name;$('memberCode').value=e.code;$('country').value=e.country;$('sponsor').value=e.sponsor;$('sponsorCode').value=e.sponsorCode||'';$('memberPassword').value=e.password;$('memberPassword').required=e.status!=='changed';$('deliveryStatus').value=e.status;$('formTitle').textContent='تعديل سجل العضو';$('saveEntryBtn').textContent='حفظ التغييرات مشفرة';$('cancelEditBtn').classList.remove('hidden');window.scrollTo({top:0,behavior:'smooth'});touch();}
+  async function erasePassword(id){const e=vault.entries.find(x=>x.id===id);if(!e||!confirm('هل تريد حذف كلمة المرور المحفوظة لـ '+e.name+'؟ سيبقى سجل العضو ورقم عضويته.'))return;try{await commit(v=>{const x=v.entries.find(y=>y.id===id);x.password='';x.status='changed';x.updatedAt=dateISO();});if(editingId===id)resetForm();revealId=null;notify('حُذفت كلمة المرور وبقي سجل العضو.');}catch{notify('تعذر الحذف.',true);}}
+  async function deleteEntry(id){const e=vault.entries.find(x=>x.id===id);if(!e||!confirm('حذف سجل '+e.name+' بالكامل من هذا الجهاز؟ لا يمكن التراجع إلا باستعادة نسخة احتياطية سابقة.'))return;try{await commit(v=>v.entries=v.entries.filter(x=>x.id!==id));if(editingId===id)resetForm();revealId=null;notify('حُذف السجل المحلي.');}catch{notify('تعذر حذف السجل.',true);}}
+  function askReveal(id){revealId=null;pendingBackup=null;$('secretTitle').textContent='التحقق قبل كشف كلمة المرور';$('secretDescription').textContent='أدخل الكلمة الرئيسية لكشف كلمة المرور لفترة قصيرة.';$('secretMaster').value='';$('secretDialog').showModal();$('secretMaster').focus();$('secretForm').onsubmit=async event=>{event.preventDefault();const pass=$('secretMaster').value;$('secretConfirm').disabled=true;try{const env=currentEnvelope(),k=await derive(pass,unb64(env.salt));await open(env,k);revealId=id;$('secretDialog').close();render();clearTimeout(revealTimer);revealTimer=setTimeout(()=>{revealId=null;render();},20000);notify('تظهر كلمة المرور لمدة 20 ثانية فقط.');}catch{notify('الكلمة الرئيسية غير صحيحة.',true);}finally{$('secretMaster').value='';$('secretConfirm').disabled=false;}};}
+  $('secretCancel').addEventListener('click',()=>{$('secretDialog').close();$('secretMaster').value='';});
+  $('secretDialog').addEventListener('close',()=>{$('secretMaster').value='';});
+  $('search').addEventListener('input',()=>{render();touch();});
+  $('lockBtn').addEventListener('click',()=>lock());
+  function download(filename,content,mime){const blob=new Blob([content],{type:mime}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+  $('backupBtn').addEventListener('click',()=>{try{const env=localStorage.getItem(STORE);if(!env)throw Error('missing');download('Mafateeh_DXN_Encrypted_'+new Date().toISOString().slice(0,10)+'.json',env,'application/json');setBackupFlag(false);notify('بدأ تنزيل النسخة المشفرة. تحقق من حفظ الملف في مكان آمن قبل حذف أي بيانات.');touch();}catch{notify('تعذر تصدير النسخة المشفرة.',true);}});
+  $('csvBtn').addEventListener('click',()=>{if(!vault)return;const rows=[['الاسم','رقم العضوية','الدولة','اسم الراعي','رقم عضوية الراعي','تاريخ الإضافة','حالة التسليم'],...vault.entries.map(e=>[e.name,e.code,e.country,e.sponsor,e.sponsorCode||'',e.createdAt,e.status])],csv=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');download('Mafateeh_DXN_Members_Without_Passwords.csv','\uFEFF'+csv,'text/csv;charset=utf-8');notify('تم تصدير الأسماء والأرقام فقط، دون كلمات المرور.');touch();});
+  $('importLocked').addEventListener('click',()=>{$('fileInput').value='';$('fileInput').click();});
+  $('mergeBtn').addEventListener('click',()=>{$('fileInput').value='';$('fileInput').click();touch();});
+  $('fileInput').addEventListener('change',async event=>{const file=event.target.files?.[0];if(!file)return;if(file.size>30*1024*1024){notify('ملف النسخة الاحتياطية كبير على نحو غير متوقع.',true);return;}try{const env=JSON.parse(await file.text());if(!checkEnv(env))throw Error('invalid');pendingBackup=env;$('secretTitle').textContent='استعادة نسخة احتياطية مشفرة';$('secretDescription').textContent=vault?'أدخل الكلمة الرئيسية للنسخة المستوردة. سنضيف السجلات غير الموجودة فقط، ولن نستبدل أي سجل حالي.':'أدخل الكلمة الرئيسية للنسخة المستوردة لاستعادتها على هذا الجهاز.';$('secretMaster').value='';$('secretDialog').showModal();$('secretMaster').focus();$('secretForm').onsubmit=restoreBackup;}catch{notify('هذا ليس ملف نسخة احتياطية صالحاً.',true);}});
+  async function restoreBackup(event){event.preventDefault();const pass=$('secretMaster').value;$('secretConfirm').disabled=true;try{const env=pendingBackup,otherSalt=unb64(env.salt),otherKey=await derive(pass,otherSalt),other=await open(env,otherKey);for(const x of other.entries){if(!x||typeof x.name!=='string'||typeof x.id!=='string'||typeof x.code!=='string'||typeof x.password!=='string'||(x.registrationImage&&!imageAvailable(x)))throw Error('invalid-entry');}if(!vault){if(localStorage.getItem(STORE))throw Error('vault-exists');localStorage.setItem(STORE,JSON.stringify(env));setBackupFlag(false);$('secretDialog').close();pendingBackup=null;enter(other,otherKey,otherSalt);notify('تمت استعادة الخزنة المشفرة على هذا الجهاز مع صور التسجيل المحفوظة.');}else{let added=0,skipped=0,photos=0;await commit(v=>{for(const x of other.entries){const existing=v.entries.find(e=>e.id===x.id||(x.code&&e.code===x.code));if(existing){if(!imageAvailable(existing)&&imageAvailable(x)){existing.registrationImage=structuredClone(x.registrationImage);existing.updatedAt=dateISO();photos++;}skipped++;continue;}v.entries.push(structuredClone(x));added++;}});$('secretDialog').close();pendingBackup=null;notify('دُمجت '+added+' سجلات جديدة و'+photos+' صور مفقودة، وتُجاوز '+skipped+' سجل مكرر. صدّر نسخة احتياطية حديثة.');}touch();}catch{notify('تعذرت الاستعادة؛ تحقق من الكلمة الرئيسية وصحة الملف والمساحة المتاحة.',true);}finally{$('secretMaster').value='';$('secretConfirm').disabled=false;}}
+  document.addEventListener('pointerdown',touch,{passive:true});document.addEventListener('keydown',touch);
+  function init(){try{if(!window.isSecureContext||!crypto?.subtle||!crypto.randomUUID)throw Error('crypto');const probe='mafatih_probe';localStorage.setItem(probe,'1');localStorage.removeItem(probe);currentEnvelope();showLocked();}catch(e){if(e.message==='crypto'||e.name==='SecurityError'||e.name==='QuotaExceededError'){$('unsupported').classList.remove('hidden');$('locked').classList.add('hidden');}else{$('unsupported').classList.remove('hidden');$('unsupported').querySelector('p').textContent=e.message;}}}
+  init();
+})();
+</script>
+</body>
+</html>
