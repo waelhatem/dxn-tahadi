@@ -32,7 +32,7 @@
     return result.length >= 5 && result.length <= 140 ? result : '';
   }
 
-  function arabicName(line) {
+  function arabicName(line, allowSingleWord) {
     // The Arabic UI puts labels and the actual name on the same line. Strip
     // known labels, but preserve the spelling and word order in the name.
     var value = String(line || '')
@@ -46,20 +46,53 @@
       .replace(/[\u064b-\u065f\u0670]/g, '')
       .replace(/\s+/g, ' ').trim();
     var words = value.split(' ').filter(Boolean);
-    if (words.length < 2 || words.length > 9 || value.length < 5 || value.length > 140) return '';
+    if (words.length < (allowSingleWord ? 1 : 2) || words.length > 9 || value.length < (allowSingleWord ? 3 : 5) || value.length > 140) return '';
     if (/(?:تم التسجيل|التسجيل بنجاح|رسالة تفعيل|البريد الإلكتروني|صندوق الوارد|لقد أرسلنا|الدخول إلى)/.test(value)) return '';
     return value;
   }
 
+  function latinNameFragment(line) {
+    var full = upperName(line);
+    if (full && !/\b(?:GMAIL|EMAIL|LOGIN|SUCCESS|WELCOME)\b/.test(full)) return full;
+    // DXN sometimes wraps a surname onto its own line: "AL-ALOUSH".
+    // Also accept a single first line if the OCR separated every name word.
+    var match = String(line || '').match(/(?:^|[^A-Za-z'-])([A-Z][A-Z'-]{2,})(?=[^A-Za-z'-]|$)/);
+    if (!match || /^(?:GMAIL|EMAIL|DXN|LOGIN|MEMBER|SPONSOR|SUCCESS|WORLD|HOME)$/.test(match[1])) return '';
+    return match[1];
+  }
+
   function findNextName(lines, index) {
-    for (var i = index + 1; i < Math.min(lines.length, index + 4); i++) {
-      if (extractCodes(lines[i]).length) break;
-      var arabic = arabicName(lines[i]);
-      if (arabic) return arabic;
-      var name = upperName(lines[i]);
-      if (name && !name.includes('GMAIL') && !name.includes('EMAIL')) return name;
+    var parts = [];
+    var language = '';
+    // Read all adjacent name rows, stopping at the following membership code.
+    // A single line is not necessarily the complete name on the mobile DXN screen.
+    for (var i = index; i < Math.min(lines.length, index + 9); i++) {
+      var line = lines[i];
+      if (i !== index && extractCodes(line).length) break;
+      if (/@|(?:رسالة تفعيل|صندوق الوارد|تم التسجيل بنجاح|التسجيل بنجاح)/.test(line)) break;
+      if (i === index) line = line.replace(/(?:^|[^\d])[0-9]{9}(?!\d)/g, ' ');
+
+      if (!language) {
+        var firstArabic = arabicName(line);
+        var firstLatin = upperName(line);
+        if (firstArabic) { language = 'ar'; parts.push(firstArabic); }
+        else if (firstLatin && !/\b(?:GMAIL|EMAIL)\b/.test(firstLatin)) { language = 'en'; parts.push(firstLatin); }
+        else {
+          // One-word starts are kept only if subsequent rows complete the name.
+          var loneLatin = latinNameFragment(line);
+          var loneArabic = arabicName(line, true);
+          if (loneLatin) { language = 'en'; parts.push(loneLatin); }
+          else if (loneArabic) { language = 'ar'; parts.push(loneArabic); }
+        }
+      } else {
+        var continuation = language === 'ar' ? arabicName(line, true) : latinNameFragment(line);
+        if (continuation && parts.join(' ').split(/\s+/).length + continuation.split(/\s+/).length <= 9) {
+          parts.push(continuation);
+        }
+      }
     }
-    return '';
+    var value = parts.join(' ').replace(/\s+/g, ' ').trim();
+    return value.split(' ').length >= 2 && value.length <= 140 ? value : '';
   }
 
   function parseSuccessText(rawText) {
