@@ -7816,6 +7816,24 @@ function openDxnSync(){
   leaderSection='dxn_sync';
   render();
 }
+function openMembershipKeys(){
+  if(role!=='leader')return;
+  leaderSection='membership_keys';
+  render();
+}
+// The embedded vault checks its same-origin leader context before initializing.
+// Records remain encrypted in this browser; this check does not replace server authorization.
+window.__dxnMembershipKeysLeaderAllowed=function(){
+  return role==='leader' && leaderSection==='membership_keys';
+};
+function membershipKeysPanel(){
+  return '<div class="card leaderbox">'+
+    '<div class="title">🔐 مفاتيح العضوية</div>'+
+    '<p class="muted" style="line-height:1.9">إنشاء كلمات مرور الأعضاء الجدد وحفظ بياناتهم وصور تأكيد تسجيلهم داخل خزنة مشفّرة. تتطلب الخزنة كلمة رئيسية، وتُحفظ البيانات في المتصفح الحالي فقط؛ احفظ نسخة احتياطية مشفّرة بانتظام.</p>'+
+    '<div class="admin-toolbar"><button onclick="backToLeaderDashboard()">↩ العودة إلى إدارة القائد</button></div>'+
+  '</div>'+
+  '<iframe id="membershipKeysFrame" src="/app/membership-keys.html?v=20261110-1" title="خزنة مفاتيح العضوية" style="display:block;width:100%;height:1450px;max-width:100%;border:1px solid #d7e8dc;border-radius:16px;background:#fff" loading="eager" referrerpolicy="same-origin"></iframe>';
+}
 function dxnSyncPanel(){
   return '<div class="card leaderbox">'+
     '<div class="title">📥 مزامنة سجل DXN</div>'+
@@ -8002,6 +8020,7 @@ function teamRegistryPanel(){
 function leader(){
  if(leaderSection==='team_registry') return teamRegistryPanel();
  if(leaderSection==='dxn_sync') return dxnSyncPanel();
+ if(leaderSection==='membership_keys') return membershipKeysPanel();
  const members=data.members||[], teams=data.teams||[], challenges=data.challenges||[], subs=data.my_submissions||[], answers=data.my_answers||[], pendingRegs=data.pending_registrations||[], monthly=data.monthly||[];
  const showProspectRequests=leaderSection==='prospects';
  if(leaderSection==='prospect_log') return prospectRequestsLogPanel();
@@ -8059,7 +8078,7 @@ function leader(){
  </div>`+siteVisitStatsPanel()+aiUsageStatsPanel()+leaderDailyPlan()+`<div class="card leaderbox">
    <div class="title">👑 مركز القيادة — تحليل وإدارة الموقع</div>
    <p class="muted">من هنا تتابع حالة الموقع، الأعضاء والفرق، التحديات، التارجت، الطلبات، وحركة الإنجازات. أدوات الإدارة تبقى للقائد فقط.</p>
-   <div class="admin-toolbar"><button class="primary" onclick="refresh()">🔄 تحديث البيانات</button><button onclick="createMemberForm()">➕ عضو</button><button onclick="createTeamForm()">🏆 فريق</button><button onclick="openChallengeEditor()">🎯 تحدٍ</button>${prospectRequestsButton()}<button onclick="openProspectLog()">📋 سجل الطلبات (${prospectRequests.length})</button>${dxnMembershipRequestsButton()}<button onclick="openTeamRegistry()">👥 سجل أعضاء الفريق</button><button class="primary" onclick="openDxnSync()">📥 مزامنة سجل DXN</button><button onclick="openTrainingManager()">📚 إدارة التدريبات</button><button onclick="changePin()">🔐 PIN القائد</button></div>
+   <div class="admin-toolbar"><button class="primary" onclick="refresh()">🔄 تحديث البيانات</button><button onclick="createMemberForm()">➕ عضو</button><button onclick="createTeamForm()">🏆 فريق</button><button onclick="openChallengeEditor()">🎯 تحدٍ</button>${prospectRequestsButton()}<button onclick="openProspectLog()">📋 سجل الطلبات (${prospectRequests.length})</button>${dxnMembershipRequestsButton()}<button onclick="openTeamRegistry()">👥 سجل أعضاء الفريق</button><button class="primary" onclick="openDxnSync()">📥 مزامنة سجل DXN</button><button onclick="openMembershipKeys()">🔐 مفاتيح العضوية</button><button onclick="openTrainingManager()">📚 إدارة التدريبات</button><button onclick="changePin()">🔐 PIN القائد</button></div>
  </div>
  ${showProspectRequests?prospectRequestsPanel():""}
  <div class="admin-grid">
