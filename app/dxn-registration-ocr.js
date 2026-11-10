@@ -14,7 +14,10 @@
   var modalGeneration = 0;
 
   function cleanedLine(line) {
-    return String(line || '').normalize('NFKC').replace(/[\u200e\u200f]/g, '').trim();
+    return String(line || '').normalize('NFKC')
+      .replace(/[٠-٩]/g, function (digit) { return String(digit.charCodeAt(0) - 0x660); })
+      .replace(/[۰-۹]/g, function (digit) { return String(digit.charCodeAt(0) - 0x6f0); })
+      .replace(/[\u200e\u200f]/g, '').trim();
   }
 
   function extractCodes(line) {
@@ -29,9 +32,30 @@
     return result.length >= 5 && result.length <= 140 ? result : '';
   }
 
+  function arabicName(line) {
+    // The Arabic UI puts labels and the actual name on the same line. Strip
+    // known labels, but preserve the spelling and word order in the name.
+    var value = String(line || '')
+      .replace(/(?:اسم|إسم|الاسم)\s*(?:العضو|الراعي|الدليل)/g, ' ')
+      .replace(/(?:الراعي|العضو|الدليل)\s*(?:اسم|إسم|الاسم)/g, ' ')
+      .replace(/(?:رقم|رمز)\s*(?:العضو|الراعي|الدليل)/g, ' ')
+      .replace(/الراعي\s*أو\s*الدليل/g, ' ')
+      .replace(/(?:^|\s)(?:اسم|إسم|الاسم|العضو|الراعي|الدليل|أو|رقم|رمز)(?=\s|$)/g, ' ')
+      .replace(/[0-9@._%+\-]/g, ' ')
+      .replace(/[^\u0621-\u064a\u0671-\u06d3\s]/g, ' ')
+      .replace(/[\u064b-\u065f\u0670]/g, '')
+      .replace(/\s+/g, ' ').trim();
+    var words = value.split(' ').filter(Boolean);
+    if (words.length < 2 || words.length > 9 || value.length < 5 || value.length > 140) return '';
+    if (/(?:تم التسجيل|التسجيل بنجاح|رسالة تفعيل|البريد الإلكتروني|صندوق الوارد|لقد أرسلنا|الدخول إلى)/.test(value)) return '';
+    return value;
+  }
+
   function findNextName(lines, index) {
     for (var i = index + 1; i < Math.min(lines.length, index + 4); i++) {
       if (extractCodes(lines[i]).length) break;
+      var arabic = arabicName(lines[i]);
+      if (arabic) return arabic;
       var name = upperName(lines[i]);
       if (name && !name.includes('GMAIL') && !name.includes('EMAIL')) return name;
     }
@@ -137,10 +161,12 @@
       if (preview) { preview.src = currentObjectURL; preview.hidden = false; }
       status('جارٍ تجهيز محرك القراءة على جهازك. قد يستغرق أول تشغيل وقتاً أطول...');
       await ensureLibrary();
-      var worker = await window.Tesseract.createWorker('eng');
+      // DXN registration confirmations may contain names in Arabic or Latin.
+      // Loading both models avoids transliterating Arabic names into gibberish.
+      var worker = await window.Tesseract.createWorker(['eng', 'ara']);
       var result;
       try {
-        status('جارٍ استخراج الأسماء والأرقام من الصورة...');
+        status('جارٍ استخراج الأسماء العربية والإنجليزية وأرقام العضوية من الصورة...');
         result = await worker.recognize(file);
       } finally {
         await worker.terminate();
@@ -149,8 +175,8 @@
       var parsed = parseSuccessText(result && result.data && result.data.text);
       fillFromImage(parsed);
       status(parsed.needsReview
-        ? 'تمت القراءة جزئياً. بعض الحقول غير واضحة؛ أكملها من الصورة وراجع الأرقام قبل الحفظ.'
-        : 'تم استخراج البيانات الأساسية. راجعها مع الصورة وحدد تأكيد المراجعة قبل إضافة العضو.');
+        ? 'تمت القراءة جزئياً. أدخل أي اسم أو رقم لم يُقرأ بدقة من الصورة، ولا تحفظ قبل مطابقة الاسم حرفياً.'
+        : 'تم استخراج البيانات الأساسية بالعربية أو الإنجليزية. طابق الاسم حرفياً مع الصورة قبل تأكيد الحفظ.');
     } catch (err) {
       status(err && err.message ? err.message : 'تعذر تحليل الصورة. يمكنك إدخال البيانات يدوياً.', true);
     } finally {
@@ -182,7 +208,7 @@
         '<div id="dxnOcrSponsorName" class="muted"></div>' +
         '<div id="dxnOcrEmail" class="muted"></div>' +
         '<label style="display:flex;align-items:center;gap:8px;margin:11px 0 2px;font-weight:700">' +
-          '<input id="dxnOcrReviewed" type="checkbox" style="width:18px;height:18px;min-height:18px"> راجعت الاسم ورقمي العضوية والراعي وتاريخ الانضمام قبل الحفظ' +
+          '<input id="dxnOcrReviewed" type="checkbox" style="width:18px;height:18px;min-height:18px"> طابقت كتابة اسم العضو كما في الصورة، وراجعت رقمي العضوية والراعي وتاريخ الانضمام قبل الحفظ' +
         '</label>' +
         '<p class="muted" style="margin:5px 0 0">البريد المعروض لا يُرسل إلى سجل DXN، وصورة التسجيل لا تُحفظ فيه. يمكن إرفاقها لاحقاً في «مفاتيح العضوية».</p>' +
       '</div>';
