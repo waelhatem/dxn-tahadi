@@ -10027,6 +10027,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 })();
 </script>
 <style id="dxn-global-announcements-v1">
+@font-face{font-family:'DXN Cairo';src:url('./fonts/Cairo-variable.ttf') format('truetype');font-style:normal;font-weight:200 1000;font-display:swap}
 .dxn-global-announcement-card{margin:0 0 14px;background:linear-gradient(135deg,#fffdf4,#fff);border:1px solid #ead9a7;border-radius:20px;padding:18px;box-shadow:0 8px 24px rgba(15,81,63,.08)}
 .dxn-global-announcement-card .ga-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .dxn-global-announcement-card .ga-kicker{font-size:12px;font-weight:950;color:#8a5a00}
@@ -10039,18 +10040,18 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 .dxn-global-announcement-panel.ga-important .ga-type{background:#fee4e2;color:#9f2118}
 .dxn-global-announcement-panel.ga-warning .ga-type{background:#fff4d5;color:#7a5300}
 .dxn-global-announcement-panel.ga-announcement .ga-type{background:#eef8f2;color:#0f513f}
-.dxn-global-announcement-panel h2{margin:0 0 10px;font-size:25px}
-.dxn-global-announcement-panel .ga-body{white-space:pre-wrap;line-height:1.9;color:#34443e}
+.dxn-global-announcement-panel h2{margin:0 0 12px;font-family:'DXN Cairo',Tahoma,Arial,sans-serif;font-size:26px;font-weight:900;line-height:1.55;color:#0f513f}
+.dxn-global-announcement-panel .ga-body{font-family:'DXN Cairo',Tahoma,Arial,sans-serif;font-size:22px;font-weight:800;white-space:pre-wrap;line-height:1.7;color:#142f27;text-align:right;overflow-wrap:break-word}
 .dxn-global-announcement-panel .ga-footer{display:flex;justify-content:flex-start;gap:8px;flex-wrap:wrap;margin-top:18px}
 /* Video notices use the established popup, with a prominent direct-watch action. */
 .dxn-global-announcement-panel.ga-video-announcement{border:2px solid #bbd9c8;background:linear-gradient(180deg,#f4fbf6,#fff 34%);text-align:right}
 .dxn-global-announcement-panel.ga-video-announcement .ga-type{background:#e1f3e8;color:#0b5f43;font-weight:950}
 .dxn-global-announcement-panel.ga-video-announcement h2{font-weight:950;color:#114b39;overflow-wrap:anywhere}
-.dxn-global-announcement-panel.ga-video-announcement .ga-body{font-weight:650;overflow-wrap:anywhere}
+.dxn-global-announcement-panel.ga-video-announcement .ga-body{font-weight:800;overflow-wrap:anywhere}
 .dxn-global-announcement-panel .ga-video-watch-btn{min-height:48px;padding:12px 21px;font-size:15px;font-weight:950;border-radius:12px;background:#156849;color:#fff}
 .dxn-global-announcement-panel.ga-video-announcement .ga-footer{align-items:stretch}
 @media(max-width:650px){.dxn-global-announcement-panel.ga-video-announcement .ga-footer{display:grid;grid-template-columns:1fr 1fr}.dxn-global-announcement-panel.ga-video-announcement .ga-video-watch-btn{grid-column:1/-1;width:100%}}
-@media(max-width:650px){.dxn-global-announcement-panel{padding:18px;border-radius:20px;width:96vw}.dxn-global-announcement-card .ga-actions button{flex:1;min-width:150px}}
+@media(max-width:650px){.dxn-global-announcement-panel{padding:18px;border-radius:20px;width:96vw}.dxn-global-announcement-panel h2{font-size:24px}.dxn-global-announcement-panel .ga-body{font-size:22px;line-height:1.65}.dxn-global-announcement-card .ga-actions button{flex:1;min-width:150px}}
 
 /* Advanced course catalogue: one course, ten nested lessons. */
 /* Four main training choices: spacious two-column cards rather than four compressed squares. */
@@ -10104,6 +10105,8 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 
   function tokenValue(){try{return String(localStorage.getItem('dxn_session')||'').trim()}catch(e){return ''}}
   function safeEsc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  // Keep paragraph breaks readable without changing the announcement stored in the database.
+  function displayAnnouncementText(value){return safeEsc(String(value==null?'':value).replace(/\r\n?/g,'\n').replace(/\n[ \t]*\n(?:[ \t]*\n)+/g,'\n\n'))}
   function typeLabel(type){return type==='important'?'🔴 مهم':type==='warning'?'🟠 تنبيه':'🔵 إعلان'}
   function typeClass(type){return type==='important'?'ga-important':type==='warning'?'ga-warning':'ga-announcement'}
   async function gaRpc(fn,args){
@@ -10123,7 +10126,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     closePreview();
     previewNode=document.createElement('div');previewNode.className='dxn-global-announcement-preview';
     previewNode.innerHTML='<div class="dxn-global-announcement-panel '+typeClass(k)+'" role="dialog" aria-modal="true">'+
-      '<div class="ga-type">'+typeLabel(k)+'</div><h2>'+safeEsc(t)+'</h2><div class="ga-body">'+safeEsc(b)+'</div>'+
+      '<div class="ga-type">'+typeLabel(k)+'</div><h2>'+safeEsc(t)+'</h2><div class="ga-body">'+displayAnnouncementText(b)+'</div>'+
       '<div class="ga-footer"><button type="button" onclick="window.__DXN_GA_CLOSE_PREVIEW__()">↩️ تعديل</button><button type="button" class="primary" onclick="window.__DXN_GA_CONFIRM_SEND__()">📢 تأكيد الإرسال للجميع</button></div></div>';
     document.body.appendChild(previewNode);
     window.__DXN_GA_CONFIRM_SEND__=sendAnnouncement;window.__DXN_GA_CLOSE_PREVIEW__=closePreview;
@@ -10163,7 +10166,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     var node=document.createElement('div');node.id='dxnGlobalAnnouncementModal';node.className='dxn-global-announcement-modal';
     var videoNotice=item.source==='video'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(String(item.video_id||''));
     node.innerHTML='<div class="dxn-global-announcement-panel '+typeClass(item.announcement_type)+(videoNotice?' ga-video-announcement':'')+'" role="dialog" aria-modal="true" aria-label="'+(videoNotice?'إشعار فيديو تعليمي جديد':'إعلان عام')+'">'+
-      '<div class="ga-type">'+(videoNotice?(item.is_welcome?'🎓 دليل الترحيب للأعضاء الجدد':'🎬 فيديو تعليمي جديد في الأكاديمية'):typeLabel(item.announcement_type))+'</div><h2>'+safeEsc(item.title)+'</h2><div class="ga-body">'+safeEsc(item.body)+'</div>'+
+      '<div class="ga-type">'+(videoNotice?(item.is_welcome?'🎓 دليل الترحيب للأعضاء الجدد':'🎬 فيديو تعليمي جديد في الأكاديمية'):typeLabel(item.announcement_type))+'</div><h2>'+safeEsc(item.title)+'</h2><div class="ga-body">'+displayAnnouncementText(item.body)+'</div>'+
       '<div class="ga-footer">'+(videoNotice?'<button type="button" class="primary ga-video-watch-btn" onclick="window.__DXN_GA_WATCH__()">'+(item.is_welcome?'▶ مشاهدة شرح التدريبات الأساسية':'▶ مشاهدة الفيديو الآن')+'</button>':'')+'<button type="button" class="'+(videoNotice?'':'primary')+'" onclick="window.__DXN_GA_ACK__()">✓ فهمت</button><button type="button" onclick="window.__DXN_GA_CLOSE__()">إغلاق</button></div></div>';
     document.body.appendChild(node);
     if(item.source==='daily_ai'&&window.__DXN_DAILY_PRESENTATION__){
