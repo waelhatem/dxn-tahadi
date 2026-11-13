@@ -99,8 +99,14 @@ video:fullscreen,video:-webkit-full-screen{width:100vw;height:100vh;object-fit:c
    let token='';try{token=String(localStorage.getItem('dxn_session')||'').trim()}catch(_){}
    if(!UUID.test(token)){message('يرجى فتح الفيديو من حسابك المسجّل داخل مجتمع الصحة والثراء.',true);return;}
    try{
-     const rows=await request('/api/rpc',{fn:'academy_leader_videos_list_v2',args:{p_token:token}});
-     const item=Array.isArray(rows)?rows.find(function(v){return v.id===id}):null;
+     // The Academy has two published collections: Leader Explanations and Community Guide.
+     // Try both without widening database visibility; each RPC checks the active session.
+     const leaderRows=await request('/api/rpc',{fn:'academy_leader_videos_list_v2',args:{p_token:token}});
+     let item=Array.isArray(leaderRows)?leaderRows.find(function(v){return v.id===id}):null;
+     if(!item){
+       const guideRows=await request('/api/rpc',{fn:'academy_guide_videos_list',args:{p_token:token}});
+       item=Array.isArray(guideRows)?guideRows.find(function(v){return v.id===id}):null;
+     }
      if(!item)throw Error('الفيديو غير منشور أو غير متاح لهذا الحساب.');
      title.textContent='🎬 '+item.title;
      const stream=await request('/api/academy-video-storage',{action:'play',p_token:token,video_id:id});
