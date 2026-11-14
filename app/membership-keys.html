@@ -76,6 +76,11 @@
     .entry-meta b { color:#2c4a45; }
     .entry-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; }
     .photo-note { color:#3a7259; font-size:12px; margin-top:8px; }
+    .photo-input-wrap { padding:12px; border:1px dashed #b4d5c5; background:#f5fbf7; border-radius:12px; }
+    .photo-input-wrap input[type=file] { font-size:12px; background:#fff; padding:9px; min-height:42px; }
+    .photo-form-preview { display:flex; flex-direction:column; gap:8px; margin-top:9px; align-items:flex-start; }
+    .photo-form-preview img { max-width:200px; max-height:250px; width:auto; object-fit:contain; border-radius:8px; border:1px solid #c9ded2; }
+    .photo-note { overflow-wrap:anywhere; }
     .image-dialog { width:min(940px,calc(100vw - 32px)); }
     .image-dialog .modal-body { padding:17px; }
     .image-dialog-head { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:12px; }
@@ -144,6 +149,12 @@
             <div class="field"><label class="label" for="sponsor">اسم الراعي (السبونسر)</label><input id="sponsor" maxlength="140" placeholder="اسم الراعي الذي سجل العضو"></div>
             <div class="field"><label class="label" for="sponsorCode">رقم عضوية الراعي</label><input id="sponsorCode" inputmode="numeric" dir="ltr" maxlength="15" placeholder="بالأرقام الإنجليزية فقط"></div>
             <div class="field full"><label class="label" for="memberPassword">كلمة المرور الأولية *</label><div class="password-row"><input id="memberPassword" type="password" required minlength="9" maxlength="9" autocomplete="new-password" spellcheck="false" aria-describedby="passwordHelp"><button id="showNewPassword" type="button" class="btn plain" aria-label="إظهار أو إخفاء كلمة المرور">◉</button></div><div class="password-help" id="passwordHelp">9 خانات بالضبط: 3 أحرف إنجليزية كبيرة (A–Z)، و3 صغيرة (a–z)، و3 أرقام (0–9)، بترتيب عشوائي، دون رموز خاصة. تحقّق من قبولها في DXN.</div></div>
+            <div class="field full photo-input-wrap">
+              <label class="label" for="newRegistrationImageInput">📷 صورة اكتمال العضوية (اختيارية)</label>
+              <input id="newRegistrationImageInput" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" aria-describedby="registrationPhotoHelp">
+              <div class="password-help" id="registrationPhotoHelp">أرفق لقطة شاشة من صفحة DXN التي تحمل عبارة «تم التسجيل بنجاح» ورمز العضو. تُحفظ الصورة مشفّرة ضمن سجل هذا العضو وتظهر على الهاتف والحاسوب.</div>
+              <div id="newRegistrationImagePreview" class="photo-form-preview hidden"><img id="newRegistrationImagePreviewImg" alt="معاينة صورة اكتمال العضوية المختارة"><button id="removeNewRegistrationImage" class="btn plain small" type="button">إلغاء الصورة المختارة</button></div>
+            </div>
           </div>
           <div class="buttons" style="margin-top:12px"><button id="generateBtn" type="button" class="btn secondary">✦ توليد كلمة مرور معقدة (3+3+3)</button><button id="copyNewBtn" type="button" class="btn plain">نسخ بيانات العضو كاملة</button></div>
           <div class="form-actions"><label class="label" for="deliveryStatus">حالة التسليم</label><select id="deliveryStatus"><option value="not_delivered">لم تُسلَّم بعد</option><option value="delivered">سُلِّمت إلى العضو</option><option value="changed" hidden>غيّرها العضو، وحُذفت الكلمة القديمة</option></select><div class="buttons" style="margin-top:13px"><button type="submit" class="btn primary" id="saveEntryBtn">حفظ العضو مشفراً</button><button type="button" class="btn plain hidden" id="cancelEditBtn">إلغاء التعديل</button></div></div>
@@ -151,7 +162,7 @@
       </section>
       <section class="card records">
         <div class="section-head"><h2>سجل العضويات المؤقت</h2><span class="tag amber">غير مزامن مع سجل DXN</span></div>
-        <div class="searchbar"><label class="label" for="search">بحث باسم العضو أو رقم عضويته أو بريده الإلكتروني أو بيانات الراعي</label><input id="search" type="search" placeholder="اكتب أي اسم أو رقم عضوية للبحث..."><p class="muted" style="margin:7px 1px 0">بعد حفظ العضو، اضغط «إضافة صورة التسجيل» في بطاقته لإرفاق صورة نجاح التسجيل من DXN بما فيها بيانات العضو والراعي والبريد الإلكتروني.</p></div>
+        <div class="searchbar"><label class="label" for="search">بحث باسم العضو أو رقم عضويته أو بريده الإلكتروني أو بيانات الراعي</label><input id="search" type="search" placeholder="اكتب أي اسم أو رقم عضوية للبحث..."><p class="muted" style="margin:7px 1px 0">يمكنك إرفاق صورة «تم التسجيل بنجاح» أثناء إضافة العضو أو من بطاقته لاحقاً؛ تُحفظ الصورة مشفّرة بصورة مستقلة حتى مع زيادة عدد الأعضاء.</p></div>
         <div id="recordsList" class="records-list" aria-live="polite"></div>
       </section>
     </div>
@@ -193,6 +204,8 @@
   let vault = null, key = null, salt = null, editingId = null, revealId = null, attachingImageId = null, imageBusy = false;
   let pendingBackup = null, authBusy = false, idleTimer = null, toastTimer = null, revealTimer = null;
   let remoteEnvelope = null, remoteRevision = 0, remoteChecked = false;
+  let pendingFormImage = null;
+  let cloudImageRevisions = new Map(), cloudImageCache = new Map();
   let savingBusy = false, refreshingBusy = false;
   const dateISO = () => new Date().toISOString();
   const randomBytes = n => crypto.getRandomValues(new Uint8Array(n));
@@ -341,7 +354,7 @@
   }
   function lock(silent = false) { vault = null; key = null; salt = null; editingId = null; revealId = null; attachingImageId = null; clearTimeout(idleTimer); clearTimeout(revealTimer); $('entryForm').reset(); $('memberPassword').value = ''; $('country').value='العراق'; $('search').value=''; $('registrationImageInput').value=''; if ($('registrationImageDialog').open) $('registrationImageDialog').close(); $('registrationImagePreview').removeAttribute('src'); if ($('secretDialog').open) $('secretDialog').close(); showLocked(); if(!silent)notify('تم قفل الخزنة.'); }
   function touch() { if (!vault) return; clearTimeout(idleTimer); idleTimer = setTimeout(() => lock(true),15*60*1000); }
-  function enter(nextVault,nextKey,nextSalt) { vault=nextVault; key=nextKey; salt=nextSalt; $('locked').classList.add('hidden'); $('app').classList.remove('hidden'); resetForm(); refreshBackupFlag(); render(); touch(); notify('تم فتح الخزنة بنجاح.'); }
+  function enter(nextVault,nextKey,nextSalt) { vault=nextVault; key=nextKey; salt=nextSalt; $('locked').classList.add('hidden'); $('app').classList.remove('hidden'); resetForm(); refreshBackupFlag(); render(); touch(); notify('تم فتح الخزنة بنجاح.'); refreshCloudImageIndex().catch(()=>{syncLabel('تعذر تحميل فهرس الصور. أعد المحاولة عند استقرار الاتصال.',true);}); }
   $('authForm').addEventListener('submit',async event=>{
     event.preventDefault();
     if(authBusy||!remoteChecked)return;
@@ -422,7 +435,7 @@
   function validateName(name) { return name.length>=3 && name.length<=140; }
   const validCode = code => code==='' || /^[0-9]{5,15}$/.test(code);
   const validPassword = pass => /^[A-Za-z0-9]{9}$/.test(pass) && (pass.match(/[A-Z]/g)||[]).length===3 && (pass.match(/[a-z]/g)||[]).length===3 && (pass.match(/[0-9]/g)||[]).length===3;
-  function resetForm(){editingId=null;$('entryForm').reset();$('country').value='العراق';$('memberPassword').type='password';$('memberPassword').required=true;$('formTitle').textContent='إضافة عضو جديد';$('saveEntryBtn').textContent='حفظ العضو مشفراً';$('cancelEditBtn').classList.add('hidden');}
+  function resetForm(){editingId=null;pendingFormImage=null;$('entryForm').reset();$('newRegistrationImagePreview').classList.add('hidden');$('newRegistrationImagePreviewImg').removeAttribute('src');$('country').value='العراق';$('memberPassword').type='password';$('memberPassword').required=true;$('formTitle').textContent='إضافة عضو جديد';$('saveEntryBtn').textContent='حفظ العضو مشفراً';$('cancelEditBtn').classList.add('hidden');}
   $('cancelEditBtn').addEventListener('click',resetForm);
   $('entryForm').addEventListener('submit',async event=>{
     event.preventDefault();touch();
@@ -437,13 +450,28 @@
     if(status==='changed'&&password){notify('احذف كلمة المرور القديمة عند تغييرها من DXN.',true);return;}
     if(code && vault.entries.some(e=>e.code===code&&e.id!==editingId)){notify('رقم العضوية مسجل بالفعل؛ لن ننشئ سجلاً مكرراً.',true);return;}
     const now=dateISO();
+    const targetId=editingId||uid();
+    const photo=pendingFormImage;
+    const button=$('saveEntryBtn');
+    button.disabled=true;
     try{
       await commit(v=>{
-        if(editingId){const e=v.entries.find(x=>x.id===editingId);if(!e)throw Error('missing');Object.assign(e,{name,code,country,email,sponsor,sponsorCode,password,status,updatedAt:now});}
-        else{v.entries.push({id:uid(),name,code,country,email,sponsor,sponsorCode,password,status,createdAt:now,updatedAt:now});}
+        if(editingId){const e=v.entries.find(x=>x.id===targetId);if(!e)throw Error('missing');Object.assign(e,{name,code,country,email,sponsor,sponsorCode,password,status,updatedAt:now});}
+        else{v.entries.push({id:targetId,name,code,country,email,sponsor,sponsorCode,password,status,createdAt:now,updatedAt:now});}
       });
-      notify(editingId?'تم تحديث العضو مشفراً على الخادم.':'تم حفظ العضو الجديد مشفراً على الخادم.');resetForm();
+      if(photo){
+        try{
+          await saveCloudImage(targetId,photo);
+          notify('حُفظت بيانات العضو وصورة اكتمال العضوية مشفّرتين على الخادم.');
+        }catch(imageError){
+          notify('حُفظ العضو بنجاح، لكن تعذر إرفاق الصورة: '+imageError.message+'. يمكنك إضافتها من بطاقة العضو.',true);
+        }
+      }else{
+        notify(editingId?'تم تحديث العضو مشفراً على الخادم.':'تم حفظ العضو الجديد مشفراً على الخادم.');
+      }
+      resetForm();
     }catch(e){notify('لم يُحفظ التعديل على الخادم: '+e.message,true);}
+    finally{button.disabled=false;}
   });
   function badge(status) { if(status==='changed')return ['كلمة المرور حُذفت','gray'];if(status==='delivered')return ['سُلِّمت للعضو','green'];return ['لم تُسلَّم','amber']; }
   function make(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e;}
