@@ -272,18 +272,18 @@
   async function derive(password, s) { const km = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveKey']); return crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt:s,iterations:ITERATIONS},km,{name:'AES-GCM',length:256},false,['encrypt','decrypt']); }
   async function seal(plain, useKey, useSalt) { const iv = randomBytes(12); const data = await crypto.subtle.encrypt({name:'AES-GCM',iv},useKey,encoder.encode(JSON.stringify(plain))); return {format:'mafatih-dxn',version:1,iterations:ITERATIONS,salt:b64(useSalt),iv:b64(iv),data:b64(new Uint8Array(data))}; }
   async function open(env, useKey) { const raw = await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(env.iv)},useKey,unb64(env.data)); const parsed = JSON.parse(decoder.decode(raw)); if (parsed.schema !== 1 || !Array.isArray(parsed.entries)) throw Error('invalid-data'); return parsed; }
-  function setBackupFlag(value) { try { localStorage.setItem(BACKUP_MARK,value?'needed':'done'); } catch {} $('backupNotice').classList.toggle('hidden',!value); }
-  function refreshBackupFlag() { try { $('backupNotice').classList.toggle('hidden',localStorage.getItem(BACKUP_MARK)!=='needed'); } catch { $('backupNotice').classList.add('hidden'); } }
+  function setBackupFlag(value) { /* Cloud persistence is authoritative; manual export is optional. */ $('backupNotice').classList.add('hidden'); }
+  function refreshBackupFlag() { $('backupNotice').classList.add('hidden'); }
   async function commit(change) {
     if(!vault||!key||!remoteChecked||!remoteEnvelope)throw Error('الخزنة غير متصلة بالخادم');
     if(savingBusy)throw Error('يجري حفظ تعديل سابق؛ حاول مجدداً بعد اكتماله');
     savingBusy=true;
-    const next=structuredClone(vault);
-    change(next);
-    next.updatedAt=dateISO();
-    const packed=await seal(next,key,salt);
     // Never claim the change was saved until the server commits it.
     try {
+      const next=structuredClone(vault);
+      change(next);
+      next.updatedAt=dateISO();
+      const packed=await seal(next,key,salt);
       await publishEncrypted(packed,remoteRevision);
       vault=next;
       setBackupFlag(true);
@@ -329,7 +329,6 @@
   function showLocked() {
     $('app').classList.add('hidden');
     $('locked').classList.remove('hidden');
-    const first=false;
     const needsRestore=remoteChecked&&!remoteEnvelope&&!localBackup();
     $('authTitle').textContent=needsRestore?'استعادة الخزنة المشفرة':'فتح الخزنة المشفرة';
     $('authIntro').textContent=needsRestore?'لا توجد خزنة على الخادم. استخدم «استعادة نسخة مشفرة» لاستيراد بياناتك القديمة؛ لن ننشئ خزنة فارغة فوق سجلاتك.':
