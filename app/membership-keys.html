@@ -389,7 +389,7 @@
       'رقم عضوية الراعي: '+absent(e.sponsorCode),
       'كلمة المرور: '+(e.status==='changed'?'تم تغييرها وحذف الكلمة القديمة':absent(e.password,'غير مدخلة')),
       'حالة التسليم: '+status
-    ].join('\\n');
+    ].join('\n');
   }
   async function copyMemberDetails(member) {
     if(!member||!String(member.name||'').trim()){
