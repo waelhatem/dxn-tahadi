@@ -5,6 +5,7 @@ const {EventEmitter} = require('node:events');
 const https = require('node:https');
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 
 test('membership vault: leader-only encrypted persistence and optimistic locking', async t=>{
   process.env.SUPABASE_SECRET_KEY = 'only-for-unit-test';
@@ -130,6 +131,11 @@ test('membership vault: leader-only encrypted persistence and optimistic locking
 test('membership vault: page integrates encrypted cloud loading and safe recovery',()=>{
   const html=fs.readFileSync(path.join(__dirname,'../app/membership-keys.html'),'utf8');
   const host=fs.readFileSync(path.join(__dirname,'../app/index.html'),'utf8');
+  assert.match(html,/connect-src 'self'/);
+  assert.doesNotMatch(html,/connect-src 'none'/);
+  const inline=html.match(/<script>([\s\S]*?)<\/script>/);
+  assert.ok(inline,'the inline vault script must be present');
+  assert.doesNotThrow(()=>new vm.Script(inline[1]),'vault script must parse');
   assert.match(html,/cloud\('load'\)/);
   assert.match(html,/cloud\('save'/);
   assert.match(html,/await publishEncrypted\(env,0\)/);
