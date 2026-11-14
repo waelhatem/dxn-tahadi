@@ -269,5 +269,5 @@ test('membership vault: DXN completion screenshots are selected at creation, sav
   assert.match(api,/body\.action==='image_list'/);
   assert.match(api,/body\.action==='image_get'/);
   assert.match(api,/body\.action==='image_save'/);
-  assert.match(api,/body\.action==='image_delete'/);
+  assert.match(api,/\['image_get','image_save','image_delete'\]\.includes\(body\.action\)/);
 });
