@@ -353,9 +353,28 @@
     $('authSubmit').disabled=needsRestore;
     $('master').value='';$('masterConfirm').value='';
   }
-  function lock(silent = false) { vault = null; key = null; salt = null; editingId = null; revealId = null; attachingImageId = null; clearTimeout(idleTimer); clearTimeout(revealTimer); $('entryForm').reset(); $('memberPassword').value = ''; $('country').value='العراق'; $('search').value=''; $('registrationImageInput').value=''; if ($('registrationImageDialog').open) $('registrationImageDialog').close(); $('registrationImagePreview').removeAttribute('src'); if ($('secretDialog').open) $('secretDialog').close(); showLocked(); if(!silent)notify('تم قفل الخزنة.'); }
+  function lock(silent=false){
+    vault=null;key=null;salt=null;editingId=null;revealId=null;attachingImageId=null;
+    pendingFormImage=null;cloudImageRevisions.clear();cloudImageCache.clear();
+    clearTimeout(idleTimer);clearTimeout(revealTimer);
+    $('entryForm').reset();$('memberPassword').value='';$('country').value='العراق';$('search').value='';
+    $('newRegistrationImageInput').value='';$('newRegistrationImagePreview').classList.add('hidden');$('newRegistrationImagePreviewImg').removeAttribute('src');
+    $('registrationImageInput').value='';
+    if($('registrationImageDialog').open)$('registrationImageDialog').close();
+    $('registrationImagePreview').removeAttribute('src');
+    if($('secretDialog').open)$('secretDialog').close();
+    showLocked();if(!silent)notify('تم قفل الخزنة.');
+  }
   function touch() { if (!vault) return; clearTimeout(idleTimer); idleTimer = setTimeout(() => lock(true),15*60*1000); }
-  function enter(nextVault,nextKey,nextSalt) { vault=nextVault; key=nextKey; salt=nextSalt; $('locked').classList.add('hidden'); $('app').classList.remove('hidden'); resetForm(); refreshBackupFlag(); render(); touch(); notify('تم فتح الخزنة بنجاح.'); refreshCloudImageIndex().catch(()=>{syncLabel('تعذر تحميل فهرس الصور. أعد المحاولة عند استقرار الاتصال.',true);}); }
+  async function enter(nextVault,nextKey,nextSalt) {
+    vault=nextVault;key=nextKey;salt=nextSalt;
+    cloudImageRevisions.clear();cloudImageCache.clear();
+    $('locked').classList.add('hidden');$('app').classList.remove('hidden');
+    resetForm();refreshBackupFlag();render();touch();
+    notify('تم فتح الخزنة بنجاح.');
+    try{await refreshCloudImageIndex();}
+    catch{syncLabel('تعذر تحميل فهرس الصور. أعد المحاولة عند استقرار الاتصال.',true);}
+  }
   $('authForm').addEventListener('submit',async event=>{
     event.preventDefault();
     if(authBusy||!remoteChecked)return;
@@ -372,7 +391,7 @@
       }else{
         mirrorToBrowser(env);
       }
-      enter(data,newKey,newSalt);
+      await enter(data,newKey,newSalt);
     }catch(error){
       notify(error.status?'تعذرت المزامنة: '+error.message:
         'تعذر فتح الخزنة. تأكد من كلمة المرور والاتصال بالخادم.',true);
