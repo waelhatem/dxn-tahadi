@@ -502,9 +502,9 @@
     if(!validImageId(id)||!imageAvailable({registrationImage:picture}))throw Error('الصورة أو رقم السجل غير صالح');
     return seal({schema:1,kind:'membership-completion',memberId:id,registrationImage:picture},key,salt);
   }
-  async function decodeCloudImage(id,env){
+  async function decodeCloudImage(id,env,useKey=key){
     if(!checkEnv(env)||!key)throw Error('ملف الصورة المشفرة غير صالح');
-    const bytes=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(env.iv)},key,unb64(env.data));
+    const bytes=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(env.iv)},useKey,unb64(env.data));
     const payload=JSON.parse(decoder.decode(bytes));
     if(payload.schema!==1||payload.kind!=='membership-completion'||payload.memberId!==id||
        !imageAvailable({registrationImage:payload.registrationImage}))throw Error('محتوى الصورة غير متطابق مع العضوية');
@@ -675,59 +675,134 @@
   }
   function edit(id){const e=vault.entries.find(x=>x.id===id);if(!e)return;editingId=id;$('memberName').value=e.name;$('memberCode').value=e.code;$('country').value=e.country;$('memberEmail').value=e.email||'';$('sponsor').value=e.sponsor;$('sponsorCode').value=e.sponsorCode||'';$('memberPassword').value=e.password;$('memberPassword').required=e.status!=='changed';$('deliveryStatus').value=e.status;$('formTitle').textContent='تعديل سجل العضو';$('saveEntryBtn').textContent='حفظ التغييرات مشفرة';$('cancelEditBtn').classList.remove('hidden');window.scrollTo({top:0,behavior:'smooth'});touch();}
   async function erasePassword(id){const e=vault.entries.find(x=>x.id===id);if(!e||!confirm('هل تريد حذف كلمة المرور المحفوظة لـ '+e.name+'؟ سيبقى سجل العضو ورقم عضويته.'))return;try{await commit(v=>{const x=v.entries.find(y=>y.id===id);x.password='';x.status='changed';x.updatedAt=dateISO();});if(editingId===id)resetForm();revealId=null;notify('حُذفت كلمة المرور وبقي سجل العضو.');}catch{notify('تعذر الحذف.',true);}}
-  async function deleteEntry(id){const e=vault.entries.find(x=>x.id===id);if(!e||!confirm('حذف سجل '+e.name+' بالكامل من هذا الجهاز؟ لا يمكن التراجع إلا باستعادة نسخة احتياطية سابقة.'))return;try{await commit(v=>v.entries=v.entries.filter(x=>x.id!==id));if(editingId===id)resetForm();revealId=null;notify('حُذف السجل المحلي.');}catch{notify('تعذر حذف السجل.',true);}}
+  async function deleteEntry(id){
+    const e=vault.entries.find(x=>x.id===id);
+    if(!e||!confirm('حذف سجل '+e.name+' نهائياً من الخزنة المشتركة وجميع الأجهزة؟ لا يمكن استعادته إلا من نسخة احتياطية سابقة.'))return;
+    try {
+      await commit(v=>v.entries=v.entries.filter(x=>x.id!==id));
+      if(cloudImageRevisions.has(id)){
+        try{await deleteCloudImage(id);}
+        catch(error){notify('حُذف السجل، ولكن تعذر حذف الصورة المرتبطة من الخادم: '+error.message,true);return;}
+      }
+      if(editingId===id)resetForm();
+      revealId=null;
+      notify('حُذف سجل العضو وصورته من الخزنة المشتركة.');
+    }catch(error){notify('تعذر حذف السجل: '+error.message,true);}
+  }
   function askReveal(id){revealId=null;pendingBackup=null;$('secretTitle').textContent='التحقق قبل كشف كلمة المرور';$('secretDescription').textContent='أدخل الكلمة الرئيسية لكشف كلمة المرور لفترة قصيرة.';$('secretMaster').value='';$('secretDialog').showModal();$('secretMaster').focus();$('secretForm').onsubmit=async event=>{event.preventDefault();const pass=$('secretMaster').value;$('secretConfirm').disabled=true;try{const env=remoteEnvelope;if(!env)throw Error('missing');const k=await derive(pass,unb64(env.salt));await open(env,k);revealId=id;$('secretDialog').close();render();clearTimeout(revealTimer);revealTimer=setTimeout(()=>{revealId=null;render();},20000);notify('تظهر كلمة المرور لمدة 20 ثانية فقط.');}catch{notify('الكلمة الرئيسية غير صحيحة.',true);}finally{$('secretMaster').value='';$('secretConfirm').disabled=false;}};}
   $('secretCancel').addEventListener('click',()=>{$('secretDialog').close();$('secretMaster').value='';});
   $('secretDialog').addEventListener('close',()=>{$('secretMaster').value='';});
   $('search').addEventListener('input',()=>{render();touch();});
   $('lockBtn').addEventListener('click',()=>lock());
   function download(filename,content,mime){const blob=new Blob([content],{type:mime}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-  $('backupBtn').addEventListener('click',()=>{
+  $('backupBtn').addEventListener('click',async()=>{
+    const button=$('backupBtn');
+    if(button.disabled)return;
+    button.disabled=true;
     try{
-      if(!remoteEnvelope)throw Error('missing');
-      download('Mafateeh_DXN_Encrypted_'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify(remoteEnvelope),'application/json');
+      if(!remoteEnvelope||!vault)throw Error('يجب فتح الخزنة أولاً');
+      // The backup contains only independently encrypted payloads, never plaintext.
+      const index=await cloud('image_list');
+      if(!Array.isArray(index.images))throw Error('تعذر قراءة فهرس الصور');
+      const ids=new Set(vault.entries.map(e=>e.id));
+      const images=[];
+      for(const row of index.images){
+        if(!ids.has(row.member_id))continue;
+        const response=await cloud('image_get',{memberId:row.member_id});
+        if(!checkEnv(response.envelope))throw Error('تعذر التحقق من صورة مشفرة');
+        images.push({memberId:row.member_id,envelope:response.envelope});
+      }
+      const backup={format:'mafatih-dxn-backup',version:2,vault:remoteEnvelope,images};
+      download('Mafateeh_DXN_Encrypted_'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify(backup),'application/json');
       setBackupFlag(false);
-      notify('تم تنزيل نسخة مشفرة من الخزنة المحفوظة على الخادم.');
+      notify('بدأ تنزيل النسخة الاحتياطية المشفرة، وتشمل صور اكتمال العضوية ('+images.length+').');
       touch();
-    }catch{notify('تعذر تصدير النسخة المشفرة.',true);}
+    }catch(error){notify('تعذر تصدير النسخة الاحتياطية: '+error.message,true);}
+    finally{button.disabled=false;}
   });
   $('csvBtn').addEventListener('click',()=>{if(!vault)return;const rows=[['الاسم','رقم العضوية','الدولة','البريد الإلكتروني','اسم الراعي','رقم عضوية الراعي','تاريخ الإضافة','حالة التسليم'],...vault.entries.map(e=>[e.name,e.code,e.country,e.email||'',e.sponsor,e.sponsorCode||'',e.createdAt,e.status])],csv=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');download('Mafateeh_DXN_Members_Without_Passwords.csv','\uFEFF'+csv,'text/csv;charset=utf-8');notify('تم تصدير الأسماء والأرقام فقط، دون كلمات المرور.');touch();});
   $('importLocked').addEventListener('click',()=>{$('fileInput').value='';$('fileInput').click();});
   $('mergeBtn').addEventListener('click',()=>{$('fileInput').value='';$('fileInput').click();touch();});
-  $('fileInput').addEventListener('change',async event=>{const file=event.target.files?.[0];if(!file)return;if(file.size>30*1024*1024){notify('ملف النسخة الاحتياطية كبير على نحو غير متوقع.',true);return;}try{const env=JSON.parse(await file.text());if(!checkEnv(env))throw Error('invalid');pendingBackup=env;$('secretTitle').textContent='استعادة نسخة احتياطية مشفرة';$('secretDescription').textContent=vault?'أدخل الكلمة الرئيسية للنسخة المستوردة. سنضيف السجلات غير الموجودة فقط، ولن نستبدل أي سجل حالي.':'أدخل الكلمة الرئيسية للنسخة المستوردة لاستعادتها على هذا الجهاز.';$('secretMaster').value='';$('secretDialog').showModal();$('secretMaster').focus();$('secretForm').onsubmit=restoreBackup;}catch{notify('هذا ليس ملف نسخة احتياطية صالحاً.',true);}});
+  $('fileInput').addEventListener('change',async event=>{
+    const file=event.target.files?.[0];if(!file)return;
+    if(file.size>100*1024*1024){notify('ملف النسخة الاحتياطية كبير على نحو غير متوقع.',true);return;}
+    try {
+      const parsed=JSON.parse(await file.text());
+      const backup=checkEnv(parsed)?{vault:parsed,images:[]}:
+        parsed?.format==='mafatih-dxn-backup'&&parsed.version===2&&checkEnv(parsed.vault)&&Array.isArray(parsed.images)?
+          {vault:parsed.vault,images:parsed.images}:null;
+      if(!backup||backup.images.length>5000)throw Error('invalid');
+      for(const item of backup.images){
+        if(!item||!validImageId(item.memberId)||!checkEnv(item.envelope))throw Error('invalid-image');
+      }
+      pendingBackup=backup;
+      $('secretTitle').textContent='استعادة نسخة احتياطية مشفرة';
+      $('secretDescription').textContent=vault?
+        'أدخل كلمة المرور الخاصة بالنسخة لإضافة السجلات والصور الناقصة فقط، دون استبدال السجلات الموجودة.':
+        'أدخل كلمة المرور القديمة لاستعادة السجلات وصور اكتمال العضوية على الخادم.';
+      $('secretMaster').value='';$('secretDialog').showModal();$('secretMaster').focus();$('secretForm').onsubmit=restoreBackup;
+    }catch{notify('هذا ليس ملف نسخة احتياطية مشفرة صالحاً.',true);}
+  });
   async function restoreBackup(event) {
     event.preventDefault();
     const pass=$('secretMaster').value;
     $('secretConfirm').disabled=true;
     try {
-      const env=pendingBackup,otherSalt=unb64(env.salt),otherKey=await derive(pass,otherSalt),other=await open(env,otherKey);
+      if(!pendingBackup)throw Error('لم تُحدَّد نسخة احتياطية');
+      const env=pendingBackup.vault,images=pendingBackup.images||[];
+      const otherSalt=unb64(env.salt),otherKey=await derive(pass,otherSalt);
+      const other=await open(env,otherKey);
+      const sourceIds=new Set();
       for(const x of other.entries){
-        if(!x||typeof x.name!=='string'||typeof x.id!=='string'||typeof x.code!=='string'||typeof x.password!=='string'||(x.registrationImage&&!imageAvailable(x)))throw Error('invalid-entry');
+        if(!x||typeof x.name!=='string'||!validImageId(x.id)||
+           typeof x.code!=='string'||typeof x.password!=='string'||
+           (x.registrationImage&&!imageAvailable(x)))throw Error('ملف السجلات غير صالح');
+        sourceIds.add(x.id);
       }
+      // Validate and decrypt every image using the backup's own key before writing.
+      const prepared=[];
+      for(const item of images){
+        if(!sourceIds.has(item.memberId))throw Error('تحتوي النسخة على صورة لا تتبع سجلاً معروفاً');
+        const picture=await decodeCloudImage(item.memberId,item.envelope,otherKey);
+        prepared.push({id:item.memberId,picture});
+      }
+      const idMap=new Map();
+      let added=0,skipped=0,embeddedImages=0;
       if(!vault) {
         if(remoteEnvelope)throw Error('الخزنة موجودة على الخادم. افتحها أولاً ثم استخدم دمج نسخة احتياطية.');
-        await publishEncrypted(env,0); // never overwrite a remote vault
-        setBackupFlag(false);$('secretDialog').close();pendingBackup=null;
-        enter(other,otherKey,otherSalt);
-        notify('تمت استعادة الخزنة المشفرة إلى قاعدة البيانات؛ يمكن فتحها من جميع أجهزتك.');
-      } else {
-        let added=0,skipped=0,photos=0;
+        await publishEncrypted(env,0);
+        for(const x of other.entries)idMap.set(x.id,x.id);
+        await enter(other,otherKey,otherSalt);
+      }else{
         await commit(v=>{
           for(const x of other.entries){
             const existing=v.entries.find(e=>e.id===x.id||(x.code&&e.code===x.code));
             if(existing){
+              idMap.set(x.id,existing.id);
               if(!imageAvailable(existing)&&imageAvailable(x)){
                 existing.registrationImage=structuredClone(x.registrationImage);
-                existing.updatedAt=dateISO();photos++;
+                existing.updatedAt=dateISO();embeddedImages++;
               }
               skipped++;continue;
             }
-            v.entries.push(structuredClone(x));added++;
+            v.entries.push(structuredClone(x));
+            idMap.set(x.id,x.id);
+            added++;
           }
         });
-        $('secretDialog').close();pendingBackup=null;
-        notify('دُمج '+added+' سجل مشفر جديد و'+photos+' صورة. وتُجاوز '+skipped+' مكرر.');
       }
+      let savedPhotos=0,failedPhotos=0;
+      for(const image of prepared){
+        const id=idMap.get(image.id);
+        if(!id||cloudImageRevisions.has(id))continue; // never overwrite an existing photo
+        try{await saveCloudImage(id,image.picture);savedPhotos++;}
+        catch{failedPhotos++;}
+      }
+      $('secretDialog').close();
+      pendingBackup=null;
+      notify('تمت استعادة/دمج السجلات مشفّرة: '+added+' سجل جديد، '+savedPhotos+
+        ' صورة مستقلة، '+embeddedImages+' صورة قديمة، '+skipped+' سجل موجود.'+
+        (failedPhotos?' تعذر نقل '+failedPhotos+' صورة؛ أعد استيراد النسخة لاستكمالها.':''),failedPhotos>0);
       touch();
     }catch(error){
       notify(error.message||'تعذرت الاستعادة؛ تحقق من كلمة المرور وصحة الملف والاتصال.',true);
