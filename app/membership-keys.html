@@ -323,7 +323,7 @@
         return;
       }
       const newer=Number(result.revision);
-      if(newer===remoteRevision)return;
+      if(newer===remoteRevision){await refreshCloudImageIndex();return;}
       if(!Number.isSafeInteger(newer)||newer<remoteRevision){
         syncLabel('إصدار غير متوقع من الخادم؛ لم نستبدل السجلات.',true);return;
       }
@@ -335,7 +335,8 @@
       remoteRevision=newer;
       mirrorToBrowser(remoteEnvelope);
       render();
-      syncLabel('تحدّثت السجلات تلقائياً من قاعدة البيانات.');
+      await refreshCloudImageIndex();
+      syncLabel('تحدّثت السجلات والصور تلقائياً من قاعدة البيانات.');
     }catch{
       syncLabel('تعذر تحديث السجلات تلقائياً. تبقى النسخة المشفرة على الخادم دون تغيير.',true);
     }finally{refreshingBusy=false;}
@@ -478,6 +479,85 @@
   function action(title,style,fn){const b=make('button','btn small '+style,title);b.type='button';b.addEventListener('click',fn);return b;}
   function dateText(d){try{return new Intl.DateTimeFormat('ar-IQ',{dateStyle:'medium'}).format(new Date(d));}catch{return '—';}}
   const imageAvailable = e => e && e.registrationImage && /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(e.registrationImage.dataUrl||'');
+  const validImageId = id => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id||'');
+  async function refreshCloudImageIndex(){
+    if(!vault)return;
+    const response=await cloud('image_list');
+    if(!Array.isArray(response.images))throw Error('invalid-image-index');
+    const next=new Map();
+    for(const row of response.images){
+      if(validImageId(row.member_id)&&Number.isSafeInteger(Number(row.revision))&&Number(row.revision)>0){
+        next.set(row.member_id,Number(row.revision));
+      }
+    }
+    let changed=next.size!==cloudImageRevisions.size;
+    for(const [id,version] of next) {
+      if(cloudImageRevisions.get(id)!==version){changed=true;cloudImageCache.delete(id);}
+    }
+    for(const id of cloudImageRevisions.keys())if(!next.has(id))cloudImageCache.delete(id);
+    cloudImageRevisions=next;
+    if(changed)render();
+  }
+  async function encodeCloudImage(id,picture){
+    if(!validImageId(id)||!imageAvailable({registrationImage:picture}))throw Error('الصورة أو رقم السجل غير صالح');
+    return seal({schema:1,kind:'membership-completion',memberId:id,registrationImage:picture},key,salt);
+  }
+  async function decodeCloudImage(id,env){
+    if(!checkEnv(env)||!key)throw Error('ملف الصورة المشفرة غير صالح');
+    const bytes=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(env.iv)},key,unb64(env.data));
+    const payload=JSON.parse(decoder.decode(bytes));
+    if(payload.schema!==1||payload.kind!=='membership-completion'||payload.memberId!==id||
+       !imageAvailable({registrationImage:payload.registrationImage}))throw Error('محتوى الصورة غير متطابق مع العضوية');
+    return payload.registrationImage;
+  }
+  async function saveCloudImage(id,picture){
+    if(!vault||!vault.entries.some(e=>e.id===id))throw Error('احفظ بيانات العضو أولاً');
+    const envelope=await encodeCloudImage(id,picture);
+    const baseRevision=cloudImageRevisions.get(id)||0;
+    const result=await cloud('image_save',{memberId:id,envelope,baseRevision});
+    cloudImageRevisions.set(id,result.revision);
+    cloudImageCache.set(id,picture);
+    render();
+  }
+  async function loadCloudImage(id){
+    if(cloudImageCache.has(id))return cloudImageCache.get(id);
+    const result=await cloud('image_get',{memberId:id});
+    const picture=await decodeCloudImage(id,result.envelope);
+    cloudImageRevisions.set(id,result.revision);
+    cloudImageCache.set(id,picture);
+    return picture;
+  }
+  async function deleteCloudImage(id){
+    const revision=cloudImageRevisions.get(id)||0;
+    if(!revision)return;
+    await cloud('image_delete',{memberId:id,baseRevision:revision});
+    cloudImageRevisions.delete(id);
+    cloudImageCache.delete(id);
+  }
+  $('newRegistrationImageInput').addEventListener('change',async event=>{
+    const file=event.target.files?.[0];
+    pendingFormImage=null;
+    $('newRegistrationImagePreview').classList.add('hidden');
+    $('newRegistrationImagePreviewImg').removeAttribute('src');
+    if(!file)return;
+    $('newRegistrationImageInput').disabled=true;
+    try{
+      const picture=await prepareImage(file);
+      pendingFormImage=picture;
+      $('newRegistrationImagePreviewImg').src=picture.dataUrl;
+      $('newRegistrationImagePreview').classList.remove('hidden');
+      notify('صورة اكتمال العضوية جاهزة؛ ستُحفظ مشفّرة عند حفظ العضو.');
+    }catch(error){
+      $('newRegistrationImageInput').value='';
+      notify('تعذر تجهيز صورة اكتمال العضوية: '+error.message,true);
+    }finally{$('newRegistrationImageInput').disabled=false;}
+  });
+  $('removeNewRegistrationImage').addEventListener('click',()=>{
+    pendingFormImage=null;
+    $('newRegistrationImageInput').value='';
+    $('newRegistrationImagePreviewImg').removeAttribute('src');
+    $('newRegistrationImagePreview').classList.add('hidden');
+  });
   function chooseImage(id){
     if(!vault||!vault.entries.some(e=>e.id===id)||imageBusy)return;
     attachingImageId=id;
@@ -485,13 +565,17 @@
     $('registrationImageInput').click();
     touch();
   }
-  function showRegistrationImage(id){
+  async function showRegistrationImage(id){
     const e=vault?.entries.find(x=>x.id===id);
-    if(!imageAvailable(e)){notify('لا توجد صورة تسجيل محفوظة لهذا العضو.',true);return;}
-    $('registrationImageTitle').textContent='صورة تأكيد التسجيل · '+e.name;
-    $('registrationImagePreview').src=e.registrationImage.dataUrl;
-    $('registrationImageDialog').showModal();
-    touch();
+    if(!e)return;
+    try{
+      const picture=cloudImageRevisions.has(id)?await loadCloudImage(id):e.registrationImage;
+      if(!imageAvailable({registrationImage:picture}))throw Error('لا توجد صورة محفوظة لهذا العضو');
+      $('registrationImageTitle').textContent='صورة اكتمال العضوية · '+e.name;
+      $('registrationImagePreview').src=picture.dataUrl;
+      $('registrationImageDialog').showModal();
+      touch();
+    }catch(error){notify('تعذر عرض صورة اكتمال العضوية: '+error.message,true);}
   }
   $('closeRegistrationImage').addEventListener('click',()=>$('registrationImageDialog').close());
   $('registrationImageDialog').addEventListener('close',()=>$('registrationImagePreview').removeAttribute('src'));
@@ -534,16 +618,24 @@
     try{
       const picture=await prepareImage(file);
       if(!vault||!vault.entries.some(e=>e.id===id))throw Error('الخزنة مقفلة أو السجل غير موجود. افتحها وأعد الإرفاق.');
-      await commit(v=>{const e=v.entries.find(x=>x.id===id);e.registrationImage=picture;e.updatedAt=dateISO();});
-      notify('حُفظت صورة تأكيد التسجيل مشفّرة على الخادم ضمن سجل '+current.name+'.');
+      await saveCloudImage(id,picture);
+      notify('حُفظت صورة اكتمال العضوية مشفّرة ضمن سجل '+current.name+' على الخادم.');
     }catch(error){notify('لم تُحفظ الصورة على الخادم: '+error.message,true);}
     finally{imageBusy=false;$('registrationImageInput').value='';touch();}
   });
   async function removeRegistrationImage(id){
     const e=vault?.entries.find(x=>x.id===id);
-    if(!imageAvailable(e)||!confirm('هل تريد حذف صورة تأكيد التسجيل لـ '+e.name+'؟ سيبقى سجل العضوية وكلمة المرور كما هما.'))return;
-    try{await commit(v=>{const x=v.entries.find(y=>y.id===id);delete x.registrationImage;x.updatedAt=dateISO();});if($('registrationImageDialog').open)$('registrationImageDialog').close();notify('حُذفت الصورة فقط وبقي سجل العضو.');}
-    catch{notify('تعذر حذف صورة التسجيل.',true);}
+    if(!e || (!cloudImageRevisions.has(id)&&!imageAvailable(e)))return;
+    if(!confirm('هل تريد حذف صورة اكتمال العضوية لـ '+e.name+'؟ سيبقى سجل العضوية وكلمة المرور كما هما.'))return;
+    try {
+      if(cloudImageRevisions.has(id))await deleteCloudImage(id);
+      if(imageAvailable(e))await commit(v=>{
+        const x=v.entries.find(y=>y.id===id);if(!x)throw Error('missing');
+        delete x.registrationImage;x.updatedAt=dateISO();
+      });
+      if($('registrationImageDialog').open)$('registrationImageDialog').close();
+      render();notify('حُذفت صورة اكتمال العضوية وبقي سجل العضو.');
+    }catch(error){notify('تعذر إكمال حذف الصورة: '+error.message,true);}
   }
   function render(){
     if(!vault)return;
@@ -565,12 +657,12 @@
       }
       box.appendChild(meta);
       const actions=make('div','entry-actions');actions.appendChild(action('تعديل','plain',()=>edit(e.id)));
-      if(imageAvailable(e)){
-        box.appendChild(make('div','photo-note','✓ صورة تأكيد التسجيل محفوظة مشفّرة'));
-        actions.appendChild(action('عرض الصورة','secondary',()=>showRegistrationImage(e.id)));
-        actions.appendChild(action('تغيير الصورة','plain',()=>chooseImage(e.id)));
+      if(cloudImageRevisions.has(e.id)||imageAvailable(e)){
+        box.appendChild(make('div','photo-note','✓ صورة اكتمال العضوية محفوظة مشفّرة'));
+        actions.appendChild(action('عرض صورة اكتمال العضوية','secondary',()=>showRegistrationImage(e.id)));
+        actions.appendChild(action('استبدال الصورة','plain',()=>chooseImage(e.id)));
         actions.appendChild(action('حذف الصورة','danger',()=>removeRegistrationImage(e.id)));
-      }else{actions.appendChild(action('إضافة صورة التسجيل','secondary',()=>chooseImage(e.id)));}
+      }else{actions.appendChild(action('إرفاق صورة اكتمال العضوية','secondary',()=>chooseImage(e.id)));}
       if(e.password&&e.status!=='changed'){
         actions.appendChild(action('كشف مؤقت','secondary',()=>askReveal(e.id)));
         actions.appendChild(action('حذف كلمة المرور','danger',()=>erasePassword(e.id)));
