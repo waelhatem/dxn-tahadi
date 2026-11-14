@@ -12,6 +12,7 @@ test('membership vault: leader-only encrypted persistence and optimistic locking
   const original = https.request;
   const handler = require('../api/membership-vault.js');
   let saved = null, calls = 0;
+  const images=new Map();
   const ciphertext = (saltChar='a')=>({
     format:'mafatih-dxn',version:1,iterations:600000,
     salt:Buffer.alloc(16,saltChar).toString('base64'),
@@ -49,6 +50,28 @@ test('membership vault: leader-only encrypted persistence and optimistic locking
               data=[saved];
             } else data=[];
           }else {code=405;data={};}
+        }else if(pathname==='/rest/v1/membership_keys_images'){
+          const memberId=(params.get('member_id')||'').replace('eq.','');
+          const revision=Number((params.get('revision')||'').replace('eq.',''));
+          const existing=images.get(memberId);
+          if(options.method==='GET'){
+            if(!memberId){
+              data=[...images.values()].map(row=>({member_id:row.member_id,revision:row.revision}));
+            }else{
+              data=existing?[{encrypted_envelope:existing.encrypted_envelope,revision:existing.revision}]:[];
+            }
+          }else if(options.method==='POST'){
+            if(images.has(parsed.member_id)){code=409;data={code:'23505'};}
+            else{images.set(parsed.member_id,{...parsed});code=201;data=[parsed];}
+          }else if(options.method==='PATCH'){
+            if(existing&&existing.revision===revision){
+              const next={...existing,...parsed};
+              images.set(memberId,next);data=[next];
+            }else data=[];
+          }else if(options.method==='DELETE'){
+            if(existing&&existing.revision===revision){images.delete(memberId);data=[existing];}
+            else data=[];
+          }else{code=405;data={};}
         }else {code=404;data={};}
         const response=new EventEmitter();
         response.statusCode=code;
@@ -125,6 +148,44 @@ test('membership vault: leader-only encrypted persistence and optimistic locking
       assert.equal(stale.code,409);
       assert.deepEqual(saved.encrypted_envelope,ciphertext('c'));
     });
+
+    await t.test('screenshot access requires a leader session',async()=>{
+      const read=await invoke({action:'image_list',token:'member-test-token'});
+      assert.equal(read.code,403);
+      const upload=await invoke({action:'image_save',token:'member-test-token',memberId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',baseRevision:0,envelope:ciphertext()});
+      assert.equal(upload.code,403);
+    });
+    await t.test('stores independently encrypted screenshots per member',async()=>{
+      const one='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+      const two='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+      const invalid=await invoke({action:'image_save',token:'leader-test-token',memberId:one,baseRevision:0,envelope:{registrationImage:'data:image/png;base64,aabb'}});
+      assert.equal(invalid.code,400,'plain image data must be refused');
+      const a=await invoke({action:'image_save',token:'leader-test-token',memberId:one,baseRevision:0,envelope:ciphertext('a')});
+      const b=await invoke({action:'image_save',token:'leader-test-token',memberId:two,baseRevision:0,envelope:ciphertext('b')});
+      assert.equal(a.code,200);assert.equal(b.code,200);
+      assert.equal(images.size,2);
+      assert.deepEqual(images.get(one).encrypted_envelope,ciphertext('a'));
+      const index=await invoke({action:'image_list',token:'leader-test-token'});
+      assert.equal(index.code,200);
+      assert.equal(index.data.images.length,2);
+      assert.ok(index.data.images.every(item=>!('encrypted_envelope' in item)),'image list must not include ciphertext');
+      const read=await invoke({action:'image_get',token:'leader-test-token',memberId:one});
+      assert.deepEqual(read.data.envelope,ciphertext('a'));
+      const overwrite=await invoke({action:'image_save',token:'leader-test-token',memberId:one,baseRevision:0,envelope:ciphertext('c')});
+      assert.equal(overwrite.code,409,'second first-write must not overwrite');
+      const edit=await invoke({action:'image_save',token:'leader-test-token',memberId:one,baseRevision:1,envelope:ciphertext('c')});
+      assert.equal(edit.code,200);assert.equal(edit.data.revision,2);
+      const stale=await invoke({action:'image_save',token:'leader-test-token',memberId:one,baseRevision:1,envelope:ciphertext('d')});
+      assert.equal(stale.code,409);
+      assert.deepEqual(images.get(one).encrypted_envelope,ciphertext('c'));
+      const deleteStale=await invoke({action:'image_delete',token:'leader-test-token',memberId:one,baseRevision:1});
+      assert.equal(deleteStale.code,409);
+      const removed=await invoke({action:'image_delete',token:'leader-test-token',memberId:one,baseRevision:2});
+      assert.equal(removed.code,200);
+      assert.equal(images.size,1);
+      assert.equal((await invoke({action:'image_get',token:'leader-test-token',memberId:one})).code,404);
+      assert.deepEqual(images.get(two).encrypted_envelope,ciphertext('b'),'other members must not be affected');
+    });
   }finally{https.request=original;}
 });
 
@@ -173,10 +234,40 @@ test('membership vault: complete member clipboard text, optional encrypted email
   assert.doesNotMatch(changed,/كلمة المرور: غير مدخلة/);
   assert.match(html,/id="memberEmail" type="email"/);
   assert.match(html,/Object.assign\(e,\{name,code,country,email,sponsor/);
-  assert.match(html,/v\.entries\.push\(\{id:uid\(\),name,code,country,email,sponsor/);
+  assert.match(html,/v\.entries\.push\(\{id:targetId,name,code,country,email,sponsor/);
   assert.match(html,/e\.email\|\|''/);
   assert.match(html,/action\('نسخ بيانات العضو كاملة'/);
   assert.match(html,/id="copyNewBtn"[^>]*>نسخ بيانات العضو كاملة/);
   assert.match(html,/await navigator\.clipboard\.writeText\(output\)/);
   assert.doesNotMatch(html,/copyText\(e\.password\)/);
+});
+
+test('membership vault: DXN completion screenshots are selected at creation, saved encrypted and backed up',()=>{
+  const html=fs.readFileSync(path.join(__dirname,'../app/membership-keys.html'),'utf8');
+  const api=fs.readFileSync(path.join(__dirname,'../api/membership-vault.js'),'utf8');
+  assert.match(html,/id="newRegistrationImageInput" type="file"/);
+  assert.match(html,/id="newRegistrationImagePreview"/);
+  assert.match(html,/تم التسجيل بنجاح/);
+  assert.match(html,/pendingFormImage=picture/);
+  assert.match(html,/await saveCloudImage\(targetId,photo\)/);
+  assert.match(html,/async function encodeCloudImage\(id,picture\)/);
+  assert.match(html,/kind:'membership-completion'/);
+  assert.match(html,/await crypto\.subtle\.decrypt/);
+  assert.match(html,/cloud\('image_save'/);
+  assert.match(html,/cloud\('image_get'/);
+  assert.match(html,/cloud\('image_list'/);
+  assert.match(html,/cloud\('image_delete'/);
+  assert.match(html,/عرض صورة اكتمال العضوية/);
+  assert.match(html,/إرفاق صورة اكتمال العضوية/);
+  assert.match(html,/file\.size>8\*1024\*1024/);
+  assert.match(html,/imageAvailable\(e\)/,'legacy photos remain accessible');
+  assert.match(html,/format:'mafatih-dxn-backup',version:2/);
+  assert.match(html,/images:parsed\.images/);
+  assert.match(html,/decodeCloudImage\(item\.memberId,item\.envelope,otherKey\)/);
+  assert.match(api,/const IMAGE_PATH = '\/rest\/v1\/membership_keys_images'/);
+  assert.match(api,/function validImageEnvelope/);
+  assert.match(api,/body\.action==='image_list'/);
+  assert.match(api,/body\.action==='image_get'/);
+  assert.match(api,/body\.action==='image_save'/);
+  assert.match(api,/body\.action==='image_delete'/);
 });
