@@ -82,9 +82,15 @@ module.exports=async function handler(req,res) {
       return reply(res,200,{exists:true,revision:Number(row.revision),envelope:row.encrypted_envelope});
     }
     if(body.action==='image_list'){
-      const found=await sb('GET',IMAGE_PATH+'?select=member_id,revision&order=member_id.asc');
-      if(!found.ok || !Array.isArray(found.data))return reply(res,503,{error:'تعذر قراءة فهرس صور العضويات'});
-      return reply(res,200,{images:found.data});
+      const images=[];
+      // Supabase REST often caps result pages; paginate so every saved member is visible.
+      for(let offset=0;offset<=10000;offset+=1000){
+        const found=await sb('GET',IMAGE_PATH+'?select=member_id,revision&order=member_id.asc&limit=1000&offset='+offset);
+        if(!found.ok || !Array.isArray(found.data))return reply(res,503,{error:'تعذر قراءة فهرس صور العضويات'});
+        images.push(...found.data);
+        if(found.data.length<1000)return reply(res,200,{images});
+      }
+      return reply(res,503,{error:'فهرس صور العضويات كبير جداً ويتطلب تقسيم الطلب'});
     }
     if(['image_get','image_save','image_delete'].includes(body.action)){
       const memberId=String(body.memberId||'').toLowerCase();
