@@ -140,21 +140,22 @@
             <div class="field full"><label class="label" for="memberName">اسم العضو الكامل *</label><input id="memberName" required maxlength="140" placeholder="الاسم كما سُجّل في DXN"></div>
             <div class="field"><label class="label" for="memberCode">رقم العضوية الصادر من DXN</label><input id="memberCode" inputmode="numeric" dir="ltr" maxlength="15" placeholder="أضفه بعد نجاح التسجيل"><div class="password-help">يمكن تركه فارغاً مؤقتاً، ثم إضافته لاحقاً.</div></div>
             <div class="field"><label class="label" for="country">الدولة</label><input id="country" maxlength="70" value="العراق" placeholder="الدولة"></div>
+            <div class="field full"><label class="label" for="memberEmail">البريد الإلكتروني للعضو (اختياري)</label><input id="memberEmail" type="email" inputmode="email" dir="ltr" maxlength="254" autocomplete="off" spellcheck="false" placeholder="name@example.com"></div>
             <div class="field"><label class="label" for="sponsor">اسم الراعي (السبونسر)</label><input id="sponsor" maxlength="140" placeholder="اسم الراعي الذي سجل العضو"></div>
             <div class="field"><label class="label" for="sponsorCode">رقم عضوية الراعي</label><input id="sponsorCode" inputmode="numeric" dir="ltr" maxlength="15" placeholder="بالأرقام الإنجليزية فقط"></div>
             <div class="field full"><label class="label" for="memberPassword">كلمة المرور الأولية *</label><div class="password-row"><input id="memberPassword" type="password" required minlength="9" maxlength="9" autocomplete="new-password" spellcheck="false" aria-describedby="passwordHelp"><button id="showNewPassword" type="button" class="btn plain" aria-label="إظهار أو إخفاء كلمة المرور">◉</button></div><div class="password-help" id="passwordHelp">9 خانات بالضبط: 3 أحرف إنجليزية كبيرة (A–Z)، و3 صغيرة (a–z)، و3 أرقام (0–9)، بترتيب عشوائي، دون رموز خاصة. تحقّق من قبولها في DXN.</div></div>
           </div>
-          <div class="buttons" style="margin-top:12px"><button id="generateBtn" type="button" class="btn secondary">✦ توليد كلمة مرور معقدة (3+3+3)</button><button id="copyNewBtn" type="button" class="btn plain">نسخ كلمة المرور</button></div>
+          <div class="buttons" style="margin-top:12px"><button id="generateBtn" type="button" class="btn secondary">✦ توليد كلمة مرور معقدة (3+3+3)</button><button id="copyNewBtn" type="button" class="btn plain">نسخ بيانات العضو كاملة</button></div>
           <div class="form-actions"><label class="label" for="deliveryStatus">حالة التسليم</label><select id="deliveryStatus"><option value="not_delivered">لم تُسلَّم بعد</option><option value="delivered">سُلِّمت إلى العضو</option><option value="changed" hidden>غيّرها العضو، وحُذفت الكلمة القديمة</option></select><div class="buttons" style="margin-top:13px"><button type="submit" class="btn primary" id="saveEntryBtn">حفظ العضو مشفراً</button><button type="button" class="btn plain hidden" id="cancelEditBtn">إلغاء التعديل</button></div></div>
         </form>
       </section>
       <section class="card records">
         <div class="section-head"><h2>سجل العضويات المؤقت</h2><span class="tag amber">غير مزامن مع سجل DXN</span></div>
-        <div class="searchbar"><label class="label" for="search">بحث باسم العضو أو رقم عضويته أو اسم الراعي أو رقم عضوية الراعي</label><input id="search" type="search" placeholder="اكتب أي اسم أو رقم عضوية للبحث..."><p class="muted" style="margin:7px 1px 0">بعد حفظ العضو، اضغط «إضافة صورة التسجيل» في بطاقته لإرفاق صورة نجاح التسجيل من DXN بما فيها بيانات العضو والراعي والبريد الإلكتروني.</p></div>
+        <div class="searchbar"><label class="label" for="search">بحث باسم العضو أو رقم عضويته أو بريده الإلكتروني أو بيانات الراعي</label><input id="search" type="search" placeholder="اكتب أي اسم أو رقم عضوية للبحث..."><p class="muted" style="margin:7px 1px 0">بعد حفظ العضو، اضغط «إضافة صورة التسجيل» في بطاقته لإرفاق صورة نجاح التسجيل من DXN بما فيها بيانات العضو والراعي والبريد الإلكتروني.</p></div>
         <div id="recordsList" class="records-list" aria-live="polite"></div>
       </section>
     </div>
-    <div class="footer-note"><strong>الحماية:</strong> يتم تشفير السجل بأكمله، <strong>بما في ذلك صور تأكيد التسجيل المرفقة</strong>، داخل هذا المتصفح باستخدام AES-GCM، ومفتاح مشتق من الكلمة الرئيسية عبر PBKDF2. لا تُرفع هذه البيانات إلى الخادم أو قاعدة بيانات المجتمع. النسخة الاحتياطية مشفرة وتشمل الصور، بينما ملف «الأسماء والأرقام فقط» لا يتضمن كلمات المرور أو الصور. عند تغيير الجهاز أو المتصفح أو الانتقال إلى رابط مختلف، استورد النسخة المشفرة. انتبه إلى مساحة التخزين المحدودة؛ احتفظ بنسخة احتياطية بعد إرفاق الصور.</div>
+    <div class="footer-note"><strong>الحماية:</strong> يتم تشفير السجل بأكمله، <strong>بما في ذلك البريد الإلكتروني وصور تأكيد التسجيل</strong>، باستخدام AES-GCM ومفتاح مشتق من الكلمة الرئيسية عبر PBKDF2. تحفظ قاعدة بيانات المجتمع البيانات المشفرة فقط، وتبقى كلمة المرور الرئيسية خارج الخادم. تعمل الخزنة على الهاتف والحاسوب بعد فتحها بالكلمة الرئيسية نفسها. النسخة الاحتياطية الإضافية مشفرة وتشمل الصور، وملف «الأسماء والأرقام فقط» لا يتضمن كلمات المرور أو الصور. <strong>تنبيه:</strong> زر نسخ بيانات العضو ينسخ كلمة المرور كنص واضح إلى الحافظة؛ ألصق البيانات في مكان موثوق فقط.</div>
   </section>
 </main>
 
@@ -372,8 +373,52 @@
   function newPassword() { const up='ABCDEFGHJKLMNPQRSTUVWXYZ',low='abcdefghjkmnpqrstuvwxyz',num='23456789';const list=[];for(let i=0;i<3;i++)list.push(unbiased(up),unbiased(low),unbiased(num));for(let i=list.length-1;i>0;i--){const j=randomIndex(i+1);[list[i],list[j]]=[list[j],list[i]];}return list.join(''); }
   $('generateBtn').addEventListener('click',()=>{$('memberPassword').value=newPassword();$('memberPassword').type='text';touch();notify('تم توليد كلمة مرور. انسخها إلى حقلي كلمة المرور والتأكيد في DXN.');});
   $('showNewPassword').addEventListener('click',()=>{$('memberPassword').type=$('memberPassword').type==='password'?'text':'password';touch();});
-  async function copyText(s) { if(!s) { notify('لا توجد كلمة مرور لنسخها.',true); return; } try { await navigator.clipboard.writeText(s); notify('تم النسخ. ألصق كلمة المرور في الحقلين على موقع DXN.'); } catch { const t=document.createElement('textarea');t.value=s;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();const ok=document.execCommand('copy');t.remove();notify(ok?'تم النسخ.':'تعذر النسخ؛ استخدم إظهار كلمة المرور والنسخ يدوياً.',!ok); } touch(); }
-  $('copyNewBtn').addEventListener('click',()=>copyText($('memberPassword').value));
+  function memberClipboardText(e) {
+    const clean=value=>String(value??'').trim();
+    const absent=(value,placeholder='غير مدخل')=>clean(value)||placeholder;
+    const status=e.status==='changed'?'تم تغيير كلمة المرور من العضو':
+      e.status==='delivered'?'سُلِّمت للعضو':'لم تُسلَّم بعد';
+    // Keep the source text reusable for both the saved record and the unsaved form.
+    return [
+      'بيانات عضوية DXN',
+      'الاسم الكامل: '+absent(e.name),
+      'رقم العضوية: '+absent(e.code,'بانتظار الإصدار'),
+      'الدولة: '+absent(e.country),
+      'البريد الإلكتروني: '+absent(e.email),
+      'اسم الراعي: '+absent(e.sponsor),
+      'رقم عضوية الراعي: '+absent(e.sponsorCode),
+      'كلمة المرور: '+(e.status==='changed'?'تم تغييرها وحذف الكلمة القديمة':absent(e.password,'غير مدخلة')),
+      'حالة التسليم: '+status
+    ].join('\\n');
+  }
+  async function copyMemberDetails(member) {
+    if(!member||!String(member.name||'').trim()){
+      notify('أدخل اسم العضو قبل نسخ بياناته.',true);return;
+    }
+    const output=memberClipboardText(member);
+    try{
+      await navigator.clipboard.writeText(output);
+    }catch{
+      const t=document.createElement('textarea');
+      t.value=output;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();
+      const ok=document.execCommand('copy');t.remove();
+      if(!ok){notify('تعذر نسخ البيانات. تحقق من صلاحية الحافظة.',true);return;}
+    }
+    notify('نُسخت بيانات العضو كاملة، بما فيها كلمة المرور إن كانت محفوظة. ألصقها في مكان موثوق فقط.');
+    touch();
+  }
+  $('copyNewBtn').addEventListener('click',()=>{
+    copyMemberDetails({
+      name:$('memberName').value,
+      code:$('memberCode').value,
+      country:$('country').value,
+      email:$('memberEmail').value,
+      sponsor:$('sponsor').value,
+      sponsorCode:$('sponsorCode').value,
+      password:$('memberPassword').value,
+      status:$('deliveryStatus').value
+    });
+  });
   function validateName(name) { return name.length>=3 && name.length<=140; }
   const validCode = code => code==='' || /^[0-9]{5,15}$/.test(code);
   const validPassword = pass => /^[A-Za-z0-9]{9}$/.test(pass) && (pass.match(/[A-Z]/g)||[]).length===3 && (pass.match(/[a-z]/g)||[]).length===3 && (pass.match(/[0-9]/g)||[]).length===3;
@@ -382,19 +427,20 @@
   $('entryForm').addEventListener('submit',async event=>{
     event.preventDefault();touch();
     const name=$('memberName').value.trim(),code=$('memberCode').value.trim(),country=$('country').value.trim();
-    const sponsor=$('sponsor').value.trim(),sponsorCode=$('sponsorCode').value.trim(),password=$('memberPassword').value,status=$('deliveryStatus').value;
+    const email=$('memberEmail').value.trim(),sponsor=$('sponsor').value.trim(),sponsorCode=$('sponsorCode').value.trim(),password=$('memberPassword').value,status=$('deliveryStatus').value;
     const old=editingId?vault.entries.find(e=>e.id===editingId):null,legacyUnchanged=old&&old.password===password;
     if(!validateName(name)){notify('اكتب الاسم الكامل للعضو (3 أحرف على الأقل).',true);return;}
     if(!validCode(code)){notify('رقم العضوية يجب أن يتكون من 5–15 رقماً إنجليزياً فقط.',true);return;}
     if(!validCode(sponsorCode)){notify('رقم عضوية الراعي يجب أن يتكون من 5–15 رقماً إنجليزياً فقط.',true);return;}
+    if(email && (email.length>254 || !$('memberEmail').checkValidity())){notify('يرجى إدخال بريد إلكتروني صحيح للعضو.',true);return;}
     if(status!=='changed'&&!validPassword(password)&&!legacyUnchanged){notify('كلمة المرور يجب أن تتكون من 9 خانات بالضبط: 3 أحرف كبيرة و3 صغيرة و3 أرقام إنجليزية، دون رموز.',true);return;}
     if(status==='changed'&&password){notify('احذف كلمة المرور القديمة عند تغييرها من DXN.',true);return;}
     if(code && vault.entries.some(e=>e.code===code&&e.id!==editingId)){notify('رقم العضوية مسجل بالفعل؛ لن ننشئ سجلاً مكرراً.',true);return;}
     const now=dateISO();
     try{
       await commit(v=>{
-        if(editingId){const e=v.entries.find(x=>x.id===editingId);if(!e)throw Error('missing');Object.assign(e,{name,code,country,sponsor,sponsorCode,password,status,updatedAt:now});}
-        else{v.entries.push({id:uid(),name,code,country,sponsor,sponsorCode,password,status,createdAt:now,updatedAt:now});}
+        if(editingId){const e=v.entries.find(x=>x.id===editingId);if(!e)throw Error('missing');Object.assign(e,{name,code,country,email,sponsor,sponsorCode,password,status,updatedAt:now});}
+        else{v.entries.push({id:uid(),name,code,country,email,sponsor,sponsorCode,password,status,createdAt:now,updatedAt:now});}
       });
       notify(editingId?'تم تحديث العضو مشفراً على الخادم.':'تم حفظ العضو الجديد مشفراً على الخادم.');resetForm();
     }catch(e){notify('لم يُحفظ التعديل على الخادم: '+e.message,true);}
@@ -478,7 +524,7 @@
     $('pendingCount').textContent=entries.filter(e=>!e.code).length;
     $('unlinkedCount').textContent=entries.filter(e=>!!e.code).length;
     const q=$('search').value.trim().toLocaleLowerCase();
-    const filtered=entries.filter(e=>[e.name,e.code,e.sponsor,e.sponsorCode].some(value=>String(value||'').toLocaleLowerCase().includes(q))).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+    const filtered=entries.filter(e=>[e.name,e.code,e.email,e.sponsor,e.sponsorCode].some(value=>String(value||'').toLocaleLowerCase().includes(q))).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
     const list=$('recordsList');list.replaceChildren();
     if(!filtered.length){list.appendChild(make('div','empty',entries.length?'لا توجد نتائج مطابقة للبحث.':'لم تُسجل أي عضوية جديدة بعد. ابدأ من النموذج المجاور.'));return;}
     for(const e of filtered){
@@ -486,7 +532,7 @@
       const status=badge(e.status),s=make('span','tag '+status[1],status[0]);
       tags.appendChild(s);head.append(name,tags);box.appendChild(head);
       const meta=make('div','entry-meta');
-      for(const [label,value] of [['رقم العضوية',e.code||'بانتظار الإصدار'],['الدولة',e.country||'—'],['اسم الراعي',e.sponsor||'—'],['رقم عضوية الراعي',e.sponsorCode||'—'],['أُضيف',dateText(e.createdAt)]]){
+      for(const [label,value] of [['رقم العضوية',e.code||'بانتظار الإصدار'],['الدولة',e.country||'—'],['البريد الإلكتروني',e.email||'—'],['اسم الراعي',e.sponsor||'—'],['رقم عضوية الراعي',e.sponsorCode||'—'],['أُضيف',dateText(e.createdAt)]]){
         const span=make('span','');span.append(make('b','',label+': '),document.createTextNode(value));meta.appendChild(span);
       }
       box.appendChild(meta);
@@ -499,18 +545,18 @@
       }else{actions.appendChild(action('إضافة صورة التسجيل','secondary',()=>chooseImage(e.id)));}
       if(e.password&&e.status!=='changed'){
         actions.appendChild(action('كشف مؤقت','secondary',()=>askReveal(e.id)));
-        actions.appendChild(action('نسخ كلمة المرور','plain',()=>copyText(e.password)));
         actions.appendChild(action('حذف كلمة المرور','danger',()=>erasePassword(e.id)));
       }
+      actions.appendChild(action('نسخ بيانات العضو كاملة','plain',()=>copyMemberDetails(e)));
       actions.appendChild(action('حذف السجل','danger',()=>deleteEntry(e.id)));box.appendChild(actions);
       if(revealId===e.id&&e.password){const r=make('div','revealed',e.password);r.setAttribute('aria-label','كلمة المرور المؤقتة');box.appendChild(r);}
       list.appendChild(box);
     }
   }
-  function edit(id){const e=vault.entries.find(x=>x.id===id);if(!e)return;editingId=id;$('memberName').value=e.name;$('memberCode').value=e.code;$('country').value=e.country;$('sponsor').value=e.sponsor;$('sponsorCode').value=e.sponsorCode||'';$('memberPassword').value=e.password;$('memberPassword').required=e.status!=='changed';$('deliveryStatus').value=e.status;$('formTitle').textContent='تعديل سجل العضو';$('saveEntryBtn').textContent='حفظ التغييرات مشفرة';$('cancelEditBtn').classList.remove('hidden');window.scrollTo({top:0,behavior:'smooth'});touch();}
+  function edit(id){const e=vault.entries.find(x=>x.id===id);if(!e)return;editingId=id;$('memberName').value=e.name;$('memberCode').value=e.code;$('country').value=e.country;$('memberEmail').value=e.email||'';$('sponsor').value=e.sponsor;$('sponsorCode').value=e.sponsorCode||'';$('memberPassword').value=e.password;$('memberPassword').required=e.status!=='changed';$('deliveryStatus').value=e.status;$('formTitle').textContent='تعديل سجل العضو';$('saveEntryBtn').textContent='حفظ التغييرات مشفرة';$('cancelEditBtn').classList.remove('hidden');window.scrollTo({top:0,behavior:'smooth'});touch();}
   async function erasePassword(id){const e=vault.entries.find(x=>x.id===id);if(!e||!confirm('هل تريد حذف كلمة المرور المحفوظة لـ '+e.name+'؟ سيبقى سجل العضو ورقم عضويته.'))return;try{await commit(v=>{const x=v.entries.find(y=>y.id===id);x.password='';x.status='changed';x.updatedAt=dateISO();});if(editingId===id)resetForm();revealId=null;notify('حُذفت كلمة المرور وبقي سجل العضو.');}catch{notify('تعذر الحذف.',true);}}
   async function deleteEntry(id){const e=vault.entries.find(x=>x.id===id);if(!e||!confirm('حذف سجل '+e.name+' بالكامل من هذا الجهاز؟ لا يمكن التراجع إلا باستعادة نسخة احتياطية سابقة.'))return;try{await commit(v=>v.entries=v.entries.filter(x=>x.id!==id));if(editingId===id)resetForm();revealId=null;notify('حُذف السجل المحلي.');}catch{notify('تعذر حذف السجل.',true);}}
-  function askReveal(id){revealId=null;pendingBackup=null;$('secretTitle').textContent='التحقق قبل كشف كلمة المرور';$('secretDescription').textContent='أدخل الكلمة الرئيسية لكشف كلمة المرور لفترة قصيرة.';$('secretMaster').value='';$('secretDialog').showModal();$('secretMaster').focus();$('secretForm').onsubmit=async event=>{event.preventDefault();const pass=$('secretMaster').value;$('secretConfirm').disabled=true;try{const env=currentEnvelope(),k=await derive(pass,unb64(env.salt));await open(env,k);revealId=id;$('secretDialog').close();render();clearTimeout(revealTimer);revealTimer=setTimeout(()=>{revealId=null;render();},20000);notify('تظهر كلمة المرور لمدة 20 ثانية فقط.');}catch{notify('الكلمة الرئيسية غير صحيحة.',true);}finally{$('secretMaster').value='';$('secretConfirm').disabled=false;}};}
+  function askReveal(id){revealId=null;pendingBackup=null;$('secretTitle').textContent='التحقق قبل كشف كلمة المرور';$('secretDescription').textContent='أدخل الكلمة الرئيسية لكشف كلمة المرور لفترة قصيرة.';$('secretMaster').value='';$('secretDialog').showModal();$('secretMaster').focus();$('secretForm').onsubmit=async event=>{event.preventDefault();const pass=$('secretMaster').value;$('secretConfirm').disabled=true;try{const env=remoteEnvelope;if(!env)throw Error('missing');const k=await derive(pass,unb64(env.salt));await open(env,k);revealId=id;$('secretDialog').close();render();clearTimeout(revealTimer);revealTimer=setTimeout(()=>{revealId=null;render();},20000);notify('تظهر كلمة المرور لمدة 20 ثانية فقط.');}catch{notify('الكلمة الرئيسية غير صحيحة.',true);}finally{$('secretMaster').value='';$('secretConfirm').disabled=false;}};}
   $('secretCancel').addEventListener('click',()=>{$('secretDialog').close();$('secretMaster').value='';});
   $('secretDialog').addEventListener('close',()=>{$('secretMaster').value='';});
   $('search').addEventListener('input',()=>{render();touch();});
@@ -525,7 +571,7 @@
       touch();
     }catch{notify('تعذر تصدير النسخة المشفرة.',true);}
   });
-  $('csvBtn').addEventListener('click',()=>{if(!vault)return;const rows=[['الاسم','رقم العضوية','الدولة','اسم الراعي','رقم عضوية الراعي','تاريخ الإضافة','حالة التسليم'],...vault.entries.map(e=>[e.name,e.code,e.country,e.sponsor,e.sponsorCode||'',e.createdAt,e.status])],csv=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');download('Mafateeh_DXN_Members_Without_Passwords.csv','\uFEFF'+csv,'text/csv;charset=utf-8');notify('تم تصدير الأسماء والأرقام فقط، دون كلمات المرور.');touch();});
+  $('csvBtn').addEventListener('click',()=>{if(!vault)return;const rows=[['الاسم','رقم العضوية','الدولة','البريد الإلكتروني','اسم الراعي','رقم عضوية الراعي','تاريخ الإضافة','حالة التسليم'],...vault.entries.map(e=>[e.name,e.code,e.country,e.email||'',e.sponsor,e.sponsorCode||'',e.createdAt,e.status])],csv=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');download('Mafateeh_DXN_Members_Without_Passwords.csv','\uFEFF'+csv,'text/csv;charset=utf-8');notify('تم تصدير الأسماء والأرقام فقط، دون كلمات المرور.');touch();});
   $('importLocked').addEventListener('click',()=>{$('fileInput').value='';$('fileInput').click();});
   $('mergeBtn').addEventListener('click',()=>{$('fileInput').value='';$('fileInput').click();touch();});
   $('fileInput').addEventListener('change',async event=>{const file=event.target.files?.[0];if(!file)return;if(file.size>30*1024*1024){notify('ملف النسخة الاحتياطية كبير على نحو غير متوقع.',true);return;}try{const env=JSON.parse(await file.text());if(!checkEnv(env))throw Error('invalid');pendingBackup=env;$('secretTitle').textContent='استعادة نسخة احتياطية مشفرة';$('secretDescription').textContent=vault?'أدخل الكلمة الرئيسية للنسخة المستوردة. سنضيف السجلات غير الموجودة فقط، ولن نستبدل أي سجل حالي.':'أدخل الكلمة الرئيسية للنسخة المستوردة لاستعادتها على هذا الجهاز.';$('secretMaster').value='';$('secretDialog').showModal();$('secretMaster').focus();$('secretForm').onsubmit=restoreBackup;}catch{notify('هذا ليس ملف نسخة احتياطية صالحاً.',true);}});
