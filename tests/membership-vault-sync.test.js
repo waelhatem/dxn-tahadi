@@ -145,3 +145,38 @@ test('membership vault: page integrates encrypted cloud loading and safe recover
   assert.match(host,/__dxnMembershipKeysSessionToken/);
   assert.match(host,/src="\/app\/membership-keys\.html\?v=20261114-sync1"/);
 });
+
+test('membership vault: complete member clipboard text, optional encrypted email and old entries',()=>{
+  const html=fs.readFileSync(path.join(__dirname,'../app/membership-keys.html'),'utf8');
+  const first=html.indexOf('  function memberClipboardText(e) {');
+  const after=html.indexOf('  async function copyMemberDetails(member)',first);
+  assert.ok(first>=0&&after>first,'copy formatter must exist');
+  const formatter=vm.runInNewContext(html.slice(first,after)+'\nmemberClipboardText',{});
+  const text=formatter({
+    name:'Example Member',code:'123456789',country:'العراق',
+    email:'member@example.com',sponsor:'Example Sponsor',
+    sponsorCode:'987654321',password:'AbCdeF123',status:'not_delivered'
+  });
+  assert.equal(text.split('\n').length,9,'format should use separate lines');
+  assert.match(text,/الاسم الكامل: Example Member/);
+  assert.match(text,/رقم العضوية: 123456789/);
+  assert.match(text,/الدولة: العراق/);
+  assert.match(text,/البريد الإلكتروني: member@example\.com/);
+  assert.match(text,/اسم الراعي: Example Sponsor/);
+  assert.match(text,/رقم عضوية الراعي: 987654321/);
+  assert.match(text,/كلمة المرور: AbCdeF123/);
+  assert.match(text,/حالة التسليم: لم تُسلَّم بعد/);
+  const old=formatter({name:'Old Record',password:'AAAzzz123'});
+  assert.match(old,/البريد الإلكتروني: غير مدخل/,'old records lacking email must remain usable');
+  const changed=formatter({name:'Member',password:'',status:'changed'});
+  assert.match(changed,/كلمة المرور: تم تغييرها وحذف الكلمة القديمة/);
+  assert.doesNotMatch(changed,/كلمة المرور: غير مدخلة/);
+  assert.match(html,/id="memberEmail" type="email"/);
+  assert.match(html,/Object.assign\(e,\{name,code,country,email,sponsor/);
+  assert.match(html,/v\.entries\.push\(\{id:uid\(\),name,code,country,email,sponsor/);
+  assert.match(html,/e\.email\|\|''/);
+  assert.match(html,/action\('نسخ بيانات العضو كاملة'/);
+  assert.match(html,/id="copyNewBtn"[^>]*>نسخ بيانات العضو كاملة/);
+  assert.match(html,/await navigator\.clipboard\.writeText\(output\)/);
+  assert.doesNotMatch(html,/copyText\(e\.password\)/);
+});
