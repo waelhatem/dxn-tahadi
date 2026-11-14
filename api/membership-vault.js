@@ -6,6 +6,9 @@ const https = require('https');
 const SUPABASE_URL = 'https://ryqpstkzppaifpvhezzn.supabase.co';
 const SECRET = String(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim().replace(/[\r\n]/g, '');
 const TABLE_PATH = '/rest/v1/membership_keys_vaults';
+const IMAGE_PATH = '/rest/v1/membership_keys_images';
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_IMAGE_ENVELOPE_BYTES = 1500000;
 const MAX_ENVELOPE_BYTES = 3950000;
 const TIMEOUT_MS = 15000;
 
@@ -51,6 +54,9 @@ function validEnvelope(env) {
   if(env.salt.length!==24 || env.iv.length!==16 || env.data.length<20)return false;
   return Buffer.byteLength(JSON.stringify(env),'utf8')<=MAX_ENVELOPE_BYTES;
 }
+function validImageEnvelope(env){
+  return validEnvelope(env) && Buffer.byteLength(JSON.stringify(env),'utf8')<=MAX_IMAGE_ENVELOPE_BYTES;
+}
 module.exports=async function handler(req,res) {
   if(req.method!=='POST')return reply(res,405,{error:'method-not-allowed'});
   if(!SECRET)return reply(res,503,{error:'خدمة التخزين المشفر غير مهيأة'});
@@ -74,6 +80,49 @@ module.exports=async function handler(req,res) {
       if(!row)return reply(res,200,{exists:false,revision:0,envelope:null});
       if(!validEnvelope(row.encrypted_envelope))return reply(res,503,{error:'سجل الخزنة على الخادم غير صالح. لا تنشئ خزنة جديدة'});
       return reply(res,200,{exists:true,revision:Number(row.revision),envelope:row.encrypted_envelope});
+    }
+    if(body.action==='image_list'){
+      const found=await sb('GET',IMAGE_PATH+'?select=member_id,revision&order=member_id.asc');
+      if(!found.ok || !Array.isArray(found.data))return reply(res,503,{error:'تعذر قراءة فهرس صور العضويات'});
+      return reply(res,200,{images:found.data});
+    }
+    if(['image_get','image_save','image_delete'].includes(body.action)){
+      const memberId=String(body.memberId||'').toLowerCase();
+      if(!UUID_PATTERN.test(memberId))return reply(res,400,{error:'معرف العضو غير صالح'});
+      const rowPath=IMAGE_PATH+'?member_id=eq.'+encodeURIComponent(memberId);
+      if(body.action==='image_get'){
+        const row=await sb('GET',rowPath+'&select=encrypted_envelope,revision&limit=1');
+        if(!row.ok || !Array.isArray(row.data))return reply(res,503,{error:'تعذر جلب صورة العضوية المشفرة'});
+        const existing=row.data[0]||null;
+        if(!existing)return reply(res,404,{error:'لا توجد صورة محفوظة للعضوية'});
+        if(!validImageEnvelope(existing.encrypted_envelope))return reply(res,503,{error:'صيغة الصورة المشفرة غير مدعومة'});
+        return reply(res,200,{envelope:existing.encrypted_envelope,revision:Number(existing.revision)});
+      }
+      const revision=body.baseRevision;
+      if(!Number.isSafeInteger(revision)||revision<0)return reply(res,400,{error:'إصدار الصورة غير صالح'});
+      if(body.action==='image_save'){
+        const env=body.envelope;
+        if(!validImageEnvelope(env))return reply(res,400,{error:'ملف الصورة المشفرة غير صالح أو كبير جداً'});
+        if(revision===0){
+          const inserted=await sb('POST',IMAGE_PATH,
+            {member_id:memberId,encrypted_envelope:env,revision:1},'return=representation');
+          if(inserted.status===409)return reply(res,409,{error:'توجد صورة أحدث لهذه العضوية؛ لم نستبدلها'});
+          if(!inserted.ok)return reply(res,503,{error:'تعذر حفظ صورة اكتمال العضوية'});
+          return reply(res,200,{saved:true,revision:1});
+        }
+        const updated=await sb('PATCH',rowPath+'&revision=eq.'+revision,
+          {encrypted_envelope:env,revision:revision+1,updated_at:new Date().toISOString()},'return=representation');
+        if(!updated.ok)return reply(res,503,{error:'تعذر تحديث صورة العضوية'});
+        if(!Array.isArray(updated.data)||updated.data.length!==1){
+          return reply(res,409,{error:'تغيّرت صورة العضوية من جهاز آخر؛ لم نستبدلها'});
+        }
+        return reply(res,200,{saved:true,revision:revision+1});
+      }
+      if(revision===0)return reply(res,409,{error:'تغيّرت الصورة؛ أعد تحميل السجلات'});
+      const removed=await sb('DELETE',rowPath+'&revision=eq.'+revision,undefined,'return=representation');
+      if(!removed.ok)return reply(res,503,{error:'تعذر حذف الصورة المشفرة'});
+      if(!Array.isArray(removed.data)||removed.data.length!==1)return reply(res,409,{error:'تغيّرت صورة العضوية من جهاز آخر'});
+      return reply(res,200,{deleted:true});
     }
     if(body.action==='save'){
       const env=body.envelope;
