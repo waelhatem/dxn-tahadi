@@ -113,16 +113,57 @@ function branchCard(b){
   hours+mainPhone+deliveryPhone+locationNotice+mapButton+
   cardActions('branch',b)+'</article>';
 }
+// Signed PDF URLs are requested only for visible price lists. They expire automatically.
+let inlinePreviewGeneration=0;
+const inlinePreviewCache=new Map();
 function priceCard(p){
  const country=state.data.countries.find(c=>c.id===p.country_id);
  const branch=state.data.branches.find(b=>b.id===p.branch_id);
- return '<article class="dxnd-item"><div class="dxnd-head"><strong>📄 '+esc(p.title)+'</strong>'+(!p.active?'<span class="dxnd-hidden">مخفي</span>':'')+'</div>'+
+ return '<article class="dxnd-item dxnd-price-item"><div class="dxnd-head"><strong>📄 '+esc(p.title)+'</strong>'+(!p.active?'<span class="dxnd-hidden">مخفي</span>':'')+'</div>'+
  '<p>🌍 '+esc(country?.name||'')+(branch?' — '+esc(branch.name):'')+'</p>'+
  '<p>🔄 آخر تحديث: '+esc(fmtDate(p.updated_at))+'</p>'+
- '<button class="dxnd-cta" type="button" data-action="view" data-id="'+p.id+'">📖 عرض وتحميل قائمة PDF</button>'+cardActions('price',p)+'</article>';
+ '<div class="dxnd-pdf-preview" id="dxndPricePreview-'+esc(p.id)+'" role="region" aria-label="المعاينة المباشرة: '+esc(p.title)+'"><p class="dxnd-pdf-loading">⏳ جارٍ عرض قائمة الأسعار مباشرة...</p></div>'+
+ cardActions('price',p)+'</article>';
+}
+async function loadInlinePrice(p,generation,force=false){
+ if(generation!==inlinePreviewGeneration)return;
+ const holder=$('dxndPricePreview-'+p.id);
+ if(!holder)return;
+ try{
+  const cached=inlinePreviewCache.get(p.id);
+  let url;
+  if(!force&&cached&&cached.updatedAt===p.updated_at&&cached.expiresAt>Date.now()+30000)url=cached.url;
+  else{
+   const answer=await storage({action:'view',price_id:p.id});
+   url=String(answer.url||'');
+   if(!/^https:\/\/[a-z0-9-]+\.supabase\.co\/storage\/v1\/object\/sign\//i.test(url))
+     throw new Error('الرابط المؤقت للملف غير صالح');
+   const ttl=Math.min(Math.max(Number(answer.expires_in)||900,60),900)*1000;
+   inlinePreviewCache.set(p.id,{url,updatedAt:p.updated_at,expiresAt:Date.now()+ttl-30000});
+  }
+  if(generation!==inlinePreviewGeneration||$('dxndPricePreview-'+p.id)!==holder)return;
+  holder.innerHTML='<iframe class="dxnd-inline-pdf" title="قائمة أسعار DXN: '+esc(p.title)+'" src="'+esc(url)+'" loading="eager" referrerpolicy="no-referrer"></iframe>'+
+   '<p class="dxnd-pdf-fallback">تظهر القائمة أعلاه داخل الصفحة تلقائيًا. إذا كان متصفح هاتفك لا يدعم عرض PDF، <a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">افتحها في عارض PDF</a>.</p>';
+ }catch(error){
+  if(generation!==inlinePreviewGeneration||$('dxndPricePreview-'+p.id)!==holder)return;
+  holder.innerHTML='<div class="dxnd-pdf-error">تعذرت معاينة القائمة تلقائيًا: '+esc(error?.message||error)+
+   ' <button type="button" data-action="retry-pdf" data-id="'+esc(p.id)+'">إعادة محاولة العرض</button></div>';
+ }
+}
+async function loadInlinePrices(prices,generation){
+ // Limit concurrent signed-URL requests on mobile; every visible list still opens automatically.
+ let next=0;
+ const worker=async()=>{
+  while(generation===inlinePreviewGeneration&&next<prices.length){
+   const price=prices[next++];
+   await loadInlinePrice(price,generation);
+  }
+ };
+ await Promise.all(Array.from({length:Math.min(prices.length,3)},worker));
 }
 function renderHost(){
  const host=$('dxnDirectoryHost');if(!host||!state.data)return;
+ const previewGeneration=++inlinePreviewGeneration;
  const d=state.data;
  const countries=d.countries||[];
  if(state.country&&!countries.some(c=>c.id===state.country))state.country='';
@@ -133,12 +174,13 @@ function renderHost(){
  const channelCards=(state.country?countries.filter(c=>c.id===state.country):countries).filter(c=>validChannelUrl(c.whatsapp_channel_url)).map(c=>'<a class="dxnd-channel" href="'+esc(validChannelUrl(c.whatsapp_channel_url))+'" target="_blank" rel="noopener noreferrer">📢 القناة الرسمية لـ DXN '+esc(c.name)+' على واتساب</a>').join('');
  const actions=isLeader()?'<div class="dxnd-actions"><button type="button" data-action="add" data-kind="country">➕ دولة</button><button type="button" data-action="add" data-kind="branch">➕ فرع</button><button type="button" data-action="add" data-kind="price">➕ قائمة أسعار PDF</button>'+(state.country?'<button type="button" data-action="edit" data-kind="country" data-id="'+state.country+'">✏️ تعديل الدولة</button><button type="button" data-action="delete" data-kind="country" data-id="'+state.country+'" class="danger">حذف الدولة</button>':'')+'</div>':'';
  host.innerHTML='<div class="dxnd-toolbar"><label>الدولة'+select+'</label><div class="dxnd-switch"><button type="button" data-action="section" data-section="branches" class="'+(state.section==='branches'?'selected':'')+'">📍 عناوين الفروع ('+branches.length+')</button><button type="button" data-action="section" data-section="prices" class="'+(state.section==='prices'?'selected':'')+'">📄 قوائم الأسعار ('+prices.length+')</button></div></div>'+actions+channelCards+
- '<div class="dxnd-list">'+(items.length?items.map(i=>state.section==='branches'?branchCard(i):priceCard(i)).join(''):'<div class="empty">لا توجد بيانات متاحة حاليًا لهذه الدولة. ستظهر هنا بعد إضافتها من القائد.</div>')+'</div><div id="dxndModal"></div>';
+ '<div class="dxnd-list'+(state.section==='prices'?' dxnd-price-list':'')+'">'+(items.length?items.map(i=>state.section==='branches'?branchCard(i):priceCard(i)).join(''):'<div class="empty">لا توجد بيانات متاحة حاليًا لهذه الدولة. ستظهر هنا بعد إضافتها من القائد.</div>')+'</div><div id="dxndModal"></div>';
  if(!host.dataset.bound){
    host.dataset.bound='1';
    host.addEventListener('click',click);
    host.addEventListener('change',ev=>{if(ev.target.id==='dxndCountryFilter'){state.country=ev.target.value;renderHost()}});
  }
+ if(state.section==='prices'&&items.length)void loadInlinePrices(items,previewGeneration);
 }
 function choices(items,selected,placeholder,filter){
  return '<option value="">'+esc(placeholder)+'</option>'+items.filter(filter||(()=>true)).map(x=>'<option value="'+x.id+'"'+(x.id===selected?' selected':'')+'>'+esc(x.name)+'</option>').join('');
@@ -218,22 +260,15 @@ async function remove(kind,id){
  try{await rpc('dxn_directory_manage',{p_entity:kind,p_action:'delete',p_payload:{id}});notify('تم الحذف');await load()}
  catch(e){notify(String(e?.message||e))}
 }
-async function viewPdf(id){
- const p=state.data?.prices?.find(x=>x.id===id);if(!p)return;
- const container=$('dxndModal');if(!container)return;
- container.innerHTML='<div class="dxnd-overlay" role="dialog" aria-modal="true"><div class="dxnd-viewer"><div class="dxnd-head"><strong>📄 '+esc(p.title)+'</strong><button type="button" data-action="close">✖ إغلاق</button></div><div id="dxndPdfFrame" class="muted">جارٍ تجهيز ملف PDF الآمن...</div></div></div>';
- try{
-  const answer=await storage({action:'view',price_id:id});
-  const frame=$('dxndPdfFrame');if(!frame)return;
-  frame.innerHTML='<p><a class="dxnd-cta" target="_blank" rel="noopener noreferrer" href="'+esc(answer.url)+'">📖 فتح PDF في المتصفح أو تطبيق القراءة</a></p><iframe title="قائمة أسعار DXN" src="'+esc(answer.url)+'" loading="lazy"></iframe><p class="muted">إذا لم يظهر الملف داخل الهاتف، اضغط «فتح PDF» أعلاه.</p>';
- }catch(e){const frame=$('dxndPdfFrame');if(frame)frame.textContent='تعذر فتح القائمة: '+String(e?.message||e)}
-}
 function click(ev){
  const btn=ev.target.closest('[data-action]');if(!btn)return;
  const action=btn.dataset.action,kind=btn.dataset.kind,id=btn.dataset.id;
  if(action==='section'){state.section=btn.dataset.section;renderHost()}
  else if(action==='close'){const modal=$('dxndModal');if(modal)modal.innerHTML=''}
- else if(action==='view')viewPdf(id);
+ else if(action==='retry-pdf'){
+  const p=state.data?.prices?.find(x=>x.id===id);
+  if(p){const holder=$('dxndPricePreview-'+p.id);if(holder)holder.innerHTML='<p class="dxnd-pdf-loading">⏳ جارٍ إعادة فتح قائمة الأسعار...</p>';void loadInlinePrice(p,inlinePreviewGeneration,true)}
+ }
  else if(action==='delete')remove(kind,id);
  else if(action==='add')editForm(kind,null);
  else if(action==='edit'){const list={country:'countries',branch:'branches',price:'prices'}[kind];editForm(kind,state.data?.[list]?.find(x=>x.id===id))}
@@ -252,6 +287,7 @@ const style=document.createElement('style');
 style.textContent='.dxn-directory{direction:rtl;text-align:right}.dxnd-toolbar{display:grid;gap:9px;margin:16px 0}.dxnd-toolbar label{font-weight:900}.dxnd-toolbar select{margin:5px 0}.dxnd-switch,.dxnd-actions{display:flex;flex-wrap:wrap;gap:8px}.dxnd-switch>button{flex:1;background:#eef4f0;color:#164b3d}.dxnd-switch>.selected,.dxnd-cta{background:#0f513f!important;color:#fff!important}.dxnd-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px;margin-top:12px}.dxnd-item{border:1px solid #dce8e1;border-radius:17px;padding:16px;background:#fff;box-shadow:0 4px 18px #0000000a}.dxnd-item p{font-size:13px;line-height:1.8;margin:8px 0;color:#4b5b55}.dxnd-head{display:flex;gap:9px;align-items:center;justify-content:space-between}.dxnd-cta{display:block;text-align:center;border:0;border-radius:12px;min-height:44px;padding:12px;margin:10px 0;text-decoration:none;font-weight:900;cursor:pointer;width:100%}.dxnd-actions button{min-height:40px}.dxnd-hidden{background:#fef3c7;color:#854d0e;border-radius:12px;padding:5px 8px;font-size:12px}.dxnd-overlay{position:fixed;inset:0;background:#091b18b0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:12px;overflow:auto}.dxnd-form,.dxnd-viewer{background:#fff;border-radius:18px;max-height:93vh;overflow:auto;width:min(100%,650px);padding:19px;box-shadow:0 15px 45px #0003}.dxnd-form label{display:block;font-size:13px;font-weight:900;margin:8px 0}.dxnd-form input,.dxnd-form select{margin:6px 0}.dxnd-form .dxnd-inline{display:flex;align-items:center;gap:10px}.dxnd-form input[type=checkbox]{width:auto}.dxnd-viewer{width:min(100%,850px)}.dxnd-viewer iframe{width:100%;height:65vh;border:1px solid #dce8e1;border-radius:10px}@media(max-width:600px){.dxnd-viewer iframe{height:52vh}.dxnd-form,.dxnd-viewer{padding:12px}}';
 style.textContent+='.dxnd-map-search{display:block;text-align:center;border:1px solid #0f513f;border-radius:12px;color:#0f513f;text-decoration:none;font-weight:900;padding:11px;margin:7px 0}';
 style.textContent+='.dxnd-channel{display:block;margin:12px 0;padding:14px;border-radius:14px;background:#e8f8ee;color:#0f513f;text-align:center;text-decoration:none;font-weight:900;border:1px solid #bce5c9}.dxnd-hours{background:#f4faf6;padding:9px;border-radius:10px}.dxnd-whatsapp{display:inline-flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;direction:rtl;min-height:48px;margin:9px 0 3px;padding:9px 13px;background:#ecfdf3;border:1px solid #b4e6c7;border-radius:13px;color:#087a43;text-decoration:none;font-size:16px;font-weight:900;max-width:100%;overflow-wrap:anywhere}.dxnd-whatsapp:focus-visible{outline:3px solid #169d64;outline-offset:2px}.dxnd-whatsapp:hover{background:#d9f8e7}.dxnd-whatsapp b{font-size:18px;unicode-bidi:isolate;direction:ltr;white-space:nowrap;color:#0a6840}.dxnd-wa-icon{width:24px;height:24px;flex:none;color:#25d366}.dxnd-wa-label{font-size:14px}';
+style.textContent+='.dxnd-price-list{display:block;max-width:100%}.dxnd-price-item{width:100%;max-width:100%;margin-bottom:16px;min-width:0}.dxnd-pdf-preview{width:100%;max-width:100%;margin:12px 0;overflow:hidden;border:1px solid #dce8e1;border-radius:13px;background:#f7faf8}.dxnd-inline-pdf{display:block;width:100%;height:min(82vh,900px);min-height:550px;border:0;background:#fff}.dxnd-pdf-loading{padding:28px 12px;text-align:center;color:#345a49;font-weight:800}.dxnd-pdf-fallback{font-size:12px!important;line-height:1.6;color:#52645b;padding:8px 12px;margin:0!important}.dxnd-pdf-fallback a{color:#0f513f;font-weight:800;text-decoration:underline}.dxnd-pdf-error{padding:20px;text-align:center;color:#9a3412}.dxnd-pdf-error button{display:inline-block;margin:10px;padding:9px 16px;border-radius:9px;font-weight:800}@media(max-width:600px){.dxnd-price-item{padding:10px}.dxnd-inline-pdf{height:76vh;min-height:480px}}';
 document.head.appendChild(style);
 window.dxnBranchesPricesPage=page;
 window.dxnBranchesPricesLoad=load;

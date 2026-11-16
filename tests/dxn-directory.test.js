@@ -72,7 +72,7 @@ test('WhatsApp links format Syrian and Egyptian branch numbers with country code
  assert.equal(contact('01012345678','دولة غير محددة'),null);
  assert.match(src,/dxnd-wa-icon/);
  assert.match(src,/const whatsappButton=/);
- assert.match(source('app/index.html'),/branches-prices\.js\?v=20261116-iraq-1/);
+ assert.match(source('app/index.html'),/branches-prices\.js\?v=20261116-inline-pdf-1/);
 });
 
 test('branch location buttons open a direct map, with verified Damascus map and delivery chat',()=>{
@@ -179,4 +179,77 @@ test('Egypt directory records five differentiated DXN service locations without 
  assert.match(sql,/\+201509967572/);
  assert.match(sql,/\+201080404135/);
  assert.match(sql,/'','',null,null,true/);
+});
+
+test('price lists open as inline PDFs automatically, without an extra open/download click',async()=>{
+ const src=source('app/branches-prices.js');
+ const isolated=src.replace('window.dxnBranchesPricesPage=page;',
+   'window.__priceTest={state,renderHost,priceCard,loadInlinePrice};window.dxnBranchesPricesPage=page;');
+ assert.notEqual(isolated,src);
+ const host={innerHTML:'',dataset:{},addEventListener(){}};
+ const holder={innerHTML:''};
+ const requests=[];
+ const url='https://ryqpstkzppaifpvhezzn.supabase.co/storage/v1/object/sign/dxn-directory-pdfs/leader/sample.pdf?token=signed';
+ const sandbox={
+  URL,Date,Intl,encodeURIComponent,window:{},
+  localStorage:{getItem(){return '11111111-1111-1111-1111-111111111111'}},
+  fetch:async(endpoint,options)=>{
+   requests.push({endpoint,options});
+   return {ok:true,json:async()=>({ok:true,url,expires_in:900})};
+  },
+  document:{
+   createElement(){return {textContent:''}},
+   head:{appendChild(){}},
+   getElementById(id){
+    if(id==='dxnDirectoryHost')return host;
+    if(id==='dxndPricePreview-pdf-1')return holder;
+    return null;
+   }
+  }
+ };
+ vm.runInNewContext(isolated,sandbox);
+ const {state,renderHost,priceCard}=sandbox.window.__priceTest;
+ const p={id:'pdf-1',country_id:'egypt',title:'قائمة أسعار DXN مصر',updated_at:'2026-11-16T18:00:00Z',active:true};
+ state.data={countries:[{id:'egypt',name:'مصر',active:true}],branches:[],prices:[p],is_leader:false};
+ state.country='egypt';
+ state.section='prices';
+ const card=priceCard(p);
+ assert.match(card,/dxndPricePreview-pdf-1/);
+ assert.doesNotMatch(card,/data-action="view"|عرض وتحميل قائمة PDF/);
+ renderHost();
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.match(host.innerHTML,/dxnd-price-list/);
+ assert.match(holder.innerHTML,/iframe class="dxnd-inline-pdf"/);
+ assert.match(holder.innerHTML,/loading="eager"/);
+ assert.match(holder.innerHTML,/src="https:\/\/ryqpstkzppaifpvhezzn\.supabase\.co\/storage\/v1\/object\/sign\//);
+ assert.match(holder.innerHTML,/إذا كان متصفح هاتفك لا يدعم عرض PDF/);
+ assert.equal(requests.length,1);
+ assert.equal(JSON.parse(requests[0].options.body).action,'view');
+ assert.equal(JSON.parse(requests[0].options.body).price_id,'pdf-1');
+ renderHost();
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(requests.length,1,'cached signed URL should not be re-requested on re-render');
+});
+test('inline PDF loading errors stay in the list and offer a retry',async()=>{
+ const src=source('app/branches-prices.js');
+ const isolated=src.replace('window.dxnBranchesPricesPage=page;',
+   'window.__priceTest={state,renderHost};window.dxnBranchesPricesPage=page;');
+ const host={innerHTML:'',dataset:{},addEventListener(){}}, holder={innerHTML:''};
+ const sandbox={
+  URL,Date,Intl,encodeURIComponent,window:{},
+  localStorage:{getItem(){return '11111111-1111-1111-1111-111111111111'}},
+  fetch:async()=>({ok:false,json:async()=>({error:'تعذر الحصول على الرابط'})}),
+  document:{createElement(){return {textContent:''}},head:{appendChild(){}},
+   getElementById(id){return id==='dxnDirectoryHost'?host:id==='dxndPricePreview-pdf-2'?holder:null}}
+ };
+ vm.runInNewContext(isolated,sandbox);
+ const {state,renderHost}=sandbox.window.__priceTest;
+ state.data={countries:[{id:'egypt',name:'مصر',active:true}],branches:[],
+  prices:[{id:'pdf-2',country_id:'egypt',title:'قائمة اختبار',updated_at:'2026-11-16',active:true}],is_leader:false};
+ state.country='egypt';state.section='prices';
+ renderHost();
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.match(holder.innerHTML,/تعذرت معاينة القائمة تلقائيًا/);
+ assert.match(holder.innerHTML,/data-action="retry-pdf"/);
+ assert.doesNotMatch(holder.innerHTML,/<iframe/);
 });
