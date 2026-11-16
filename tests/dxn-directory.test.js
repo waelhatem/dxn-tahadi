@@ -50,3 +50,27 @@ test('Syria seed retains 15 phone numbers and does not overwrite later edits',()
  assert.match(sql,/where not exists/i);
  assert.match(source('supabase/migrations/20261116182500_dxn_directory_optional_verified_coordinates.sql'),/alter column latitude drop not null/);
 });
+
+test('WhatsApp links format Syrian and Egyptian branch numbers with country codes',()=>{
+ const src=source('app/branches-prices.js');
+ const isolated=src.replace('window.dxnBranchesPricesPage=page;','window.__dxndTestContact=whatsappContact;window.dxnBranchesPricesPage=page;');
+ assert.notEqual(isolated,src);
+ const sandbox={
+   window:{},
+   document:{createElement(){return {textContent:''}},head:{appendChild(){}}},
+   localStorage:{getItem(){return ''}}
+ };
+ vm.runInNewContext(isolated,sandbox);
+ const contact=sandbox.window.__dxndTestContact;
+ const syria=contact('0934885089','سوريا');
+ assert.equal(syria.url,'https://wa.me/963934885089');
+ assert.equal(syria.display,'+963 934885089');
+ assert.equal(contact('+963934885089','سوريا').url,syria.url);
+ assert.equal(contact('00963934885089','سوريا').url,syria.url);
+ assert.equal(contact('٠٩٣٤٨٨٥٠٨٩','سوريا').url,syria.url);
+ assert.equal(contact('01012345678','مصر').url,'https://wa.me/201012345678');
+ assert.equal(contact('01012345678','دولة غير محددة'),null);
+ assert.match(src,/dxnd-wa-icon/);
+ assert.match(src,/target="_blank" rel="noopener noreferrer" aria-label="فتح محادثة واتساب/);
+ assert.match(source('app/index.html'),/branches-prices\.js\?v=20261116-whatsapp-1/);
+});
