@@ -71,7 +71,7 @@ test('WhatsApp links format Syrian and Egyptian branch numbers with country code
  assert.equal(contact('01012345678','مصر').url,'https://wa.me/201012345678');
  assert.equal(contact('01012345678','دولة غير محددة'),null);
  assert.match(src,/dxnd-wa-icon/);
- assert.match(src,/target="_blank" rel="noopener noreferrer" aria-label="فتح محادثة واتساب/);
+ assert.match(src,/const whatsappButton=/);
  assert.match(source('app/index.html'),/branches-prices\.js\?v=20261116-direct-map-2/);
 });
 
