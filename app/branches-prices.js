@@ -30,12 +30,21 @@ function cardActions(entity,item){
  return '<div class="dxnd-actions"><button type="button" data-action="edit" data-kind="'+entity+'" data-id="'+item.id+'">✏️ تعديل</button><button type="button" data-action="delete" data-kind="'+entity+'" data-id="'+item.id+'" class="danger">🗑️ حذف</button></div>';
 }
 function branchCard(b){
- const coords=Number(b.latitude)+','+Number(b.longitude);
- const url='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(coords)+'&travelmode=driving';
  const country=state.data.countries.find(c=>c.id===b.country_id);
+ const hasGps=b.latitude!==null&&b.latitude!==undefined&&b.longitude!==null&&b.longitude!==undefined
+   &&Number.isFinite(Number(b.latitude))&&Number.isFinite(Number(b.longitude));
+ const query=[b.name,b.city,country?.name||'سوريا',b.address].filter(Boolean).join('، ');
+ const destination=hasGps?(Number(b.latitude)+','+Number(b.longitude)):query;
+ const url='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destination)+'&travelmode=driving';
+ const searchUrl='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(query);
+ const dial=/^0[0-9]{9}$/.test(String(b.phone||''))?'+963'+String(b.phone).slice(1):String(b.phone||'');
+ const phone=b.phone?'<p>☎️ <a href="tel:'+encodeURIComponent(dial)+'" style="font-weight:900">'+esc(b.phone)+'</a></p>':'';
+ const gpsNotice=hasGps?'':'<p class="muted">⚠️ لم تُعتمد إحداثيات GPS لهذا الفرع بعد؛ اتجاهات الخريطة مبنية على العنوان المكتوب وقد لا تكون دقيقة. اتصل بالفرع لتأكيد الموقع قبل التوجه.</p>';
  return '<article class="dxnd-item"><div class="dxnd-head"><strong>📍 '+esc(b.name)+'</strong>'+(!b.active?'<span class="dxnd-hidden">مخفي</span>':'')+'</div><p>🌍 '+esc(country?.name||'')+' — '+esc(b.city)+'</p><p>🏠 '+esc(b.address)+'</p>'+
- (b.phone?'<p>☎️ '+esc(b.phone)+'</p>':'')+
- '<a class="dxnd-cta" href="'+url+'" target="_blank" rel="noopener noreferrer">🧭 الاتجاهات من موقعي عبر GPS</a>'+cardActions('branch',b)+'</article>';
+  phone+gpsNotice+
+  '<a class="dxnd-cta" href="'+url+'" target="_blank" rel="noopener noreferrer">'+(hasGps?'🧭 الاتجاهات من موقعي عبر GPS':'🧭 اتجاهات باستخدام العنوان المكتوب')+'</a>'+
+  (!hasGps?'<a class="dxnd-map-search" href="'+searchUrl+'" target="_blank" rel="noopener noreferrer">🔎 البحث عن الفرع في خرائط Google</a>':'')+
+  cardActions('branch',b)+'</article>';
 }
 function priceCard(p){
  const country=state.data.countries.find(c=>c.id===p.country_id);
@@ -78,9 +87,9 @@ function editForm(kind,item){
   inner='<label>الدولة<select name="country_id" required>'+choices(allCountries,preCountry,'اختر الدولة')+'</select></label>'+
    field('اسم الفرع','name',item?.name||'')+field('المدينة أو المحافظة','city',item?.city||'')+field('العنوان التفصيلي','address',item?.address||'')+
    field('رقم التواصل (اختياري)','phone',item?.phone||'','tel',false)+
-   '<p class="muted">انسخ إحداثيات الموقع الدقيقة من خرائط Google لضمان فتح الطريق إلى الفرع الصحيح.</p>'+
-   field('خط العرض (Latitude)','latitude',item?.latitude??'','number',true,'step="any" min="-90" max="90"')+
-   field('خط الطول (Longitude)','longitude',item?.longitude??'','number',true,'step="any" min="-180" max="180"')+
+   '<p class="muted">إحداثيات GPS اختيارية: أدخل خط العرض والطول معًا فقط عند التأكد من نقطة الفرع الفعلية. وإلا اتركهما فارغين، وسيظهر البحث بالعنوان بدل النقطة غير المؤكدة.</p>'+
+   field('خط العرض (Latitude) - اختياري','latitude',item?.latitude??'','number',false,'step="any" min="-90" max="90"')+
+   field('خط الطول (Longitude) - اختياري','longitude',item?.longitude??'','number',false,'step="any" min="-180" max="180"')+
    '<label class="dxnd-inline"><input type="checkbox" name="active" '+(item?.active!==false?'checked':'')+'> إظهار الفرع للأعضاء</label>';
  }else{
   inner='<label>الدولة<select name="country_id" required id="dxndPriceCountry">'+choices(allCountries,preCountry,'اختر الدولة')+'</select></label>'+
@@ -107,6 +116,9 @@ async function saveForm(ev){
  payload.id=id||null;
  payload.active=f.elements.active.checked;
  const msg=$('dxndFormMessage');const btn=f.querySelector('[type=submit]');
+ if(kind==='branch'&&Boolean(String(payload.latitude||'').trim())!==Boolean(String(payload.longitude||'').trim())){
+   msg.textContent='❌ يجب إدخال خط العرض وخط الطول معًا، أو تركهما فارغين.';return;
+ }
  btn.disabled=true;msg.textContent='جارٍ حفظ البيانات...';
  try{
   if(kind==='price'){
@@ -165,6 +177,7 @@ async function load(){
 }
 const style=document.createElement('style');
 style.textContent='.dxn-directory{direction:rtl;text-align:right}.dxnd-toolbar{display:grid;gap:9px;margin:16px 0}.dxnd-toolbar label{font-weight:900}.dxnd-toolbar select{margin:5px 0}.dxnd-switch,.dxnd-actions{display:flex;flex-wrap:wrap;gap:8px}.dxnd-switch>button{flex:1;background:#eef4f0;color:#164b3d}.dxnd-switch>.selected,.dxnd-cta{background:#0f513f!important;color:#fff!important}.dxnd-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px;margin-top:12px}.dxnd-item{border:1px solid #dce8e1;border-radius:17px;padding:16px;background:#fff;box-shadow:0 4px 18px #0000000a}.dxnd-item p{font-size:13px;line-height:1.8;margin:8px 0;color:#4b5b55}.dxnd-head{display:flex;gap:9px;align-items:center;justify-content:space-between}.dxnd-cta{display:block;text-align:center;border:0;border-radius:12px;min-height:44px;padding:12px;margin:10px 0;text-decoration:none;font-weight:900;cursor:pointer;width:100%}.dxnd-actions button{min-height:40px}.dxnd-hidden{background:#fef3c7;color:#854d0e;border-radius:12px;padding:5px 8px;font-size:12px}.dxnd-overlay{position:fixed;inset:0;background:#091b18b0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:12px;overflow:auto}.dxnd-form,.dxnd-viewer{background:#fff;border-radius:18px;max-height:93vh;overflow:auto;width:min(100%,650px);padding:19px;box-shadow:0 15px 45px #0003}.dxnd-form label{display:block;font-size:13px;font-weight:900;margin:8px 0}.dxnd-form input,.dxnd-form select{margin:6px 0}.dxnd-form .dxnd-inline{display:flex;align-items:center;gap:10px}.dxnd-form input[type=checkbox]{width:auto}.dxnd-viewer{width:min(100%,850px)}.dxnd-viewer iframe{width:100%;height:65vh;border:1px solid #dce8e1;border-radius:10px}@media(max-width:600px){.dxnd-viewer iframe{height:52vh}.dxnd-form,.dxnd-viewer{padding:12px}}';
+style.textContent+='.dxnd-map-search{display:block;text-align:center;border:1px solid #0f513f;border-radius:12px;color:#0f513f;text-decoration:none;font-weight:900;padding:11px;margin:7px 0}';
 document.head.appendChild(style);
 window.dxnBranchesPricesPage=page;
 window.dxnBranchesPricesLoad=load;
