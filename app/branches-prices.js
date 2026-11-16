@@ -65,7 +65,17 @@ function validMapsUrl(raw){
   const u=new URL(String(raw||'').trim());
   if(u.protocol!=='https:')return '';
   if(u.hostname==='maps.app.goo.gl'&&/^\/[A-Za-z0-9_-]+\/?$/.test(u.pathname))return u.href;
+  if(u.hostname==='goo.gl'&&/^\/maps\/[A-Za-z0-9_-]+\/?$/.test(u.pathname))return u.href;
+  if(u.hostname==='maps.google.com'&&u.pathname==='/'&&/^\d{1,20}$/.test(u.searchParams.get('cid')||''))return u.href;
   if(['www.google.com','google.com'].includes(u.hostname)&&u.pathname.startsWith('/maps/'))return u.href;
+ }catch(_){}
+ return '';
+}
+function validWhatsappUrl(raw){
+ try{
+  const u=new URL(String(raw||'').trim());
+  if(u.protocol==='https:'&&u.hostname==='wa.me'&&!u.search&&!u.hash
+    &&/^\/(?:[1-9][0-9]{6,14}|qr\/[A-Za-z0-9]+|message\/[A-Za-z0-9]+)\/?$/.test(u.pathname))return u.href;
  }catch(_){}
  return '';
 }
@@ -79,24 +89,28 @@ function validChannelUrl(raw){
 }
 function branchCard(b){
  const country=state.data.countries.find(c=>c.id===b.country_id);
+ const kind=['branch','sales_point','online'].includes(b.category)?b.category:'branch';
+ const isOnline=kind==='online';
  const hasGps=b.latitude!==null&&b.latitude!==undefined&&b.longitude!==null&&b.longitude!==undefined
    &&Number.isFinite(Number(b.latitude))&&Number.isFinite(Number(b.longitude))
    &&Math.abs(Number(b.latitude))<=90&&Math.abs(Number(b.longitude))<=180;
  const savedMap=validMapsUrl(b.maps_url);
  const query=hasGps?(Number(b.latitude)+','+Number(b.longitude))
    :['DXN',b.name,b.address,b.city,country?.name||''].filter(Boolean).join('، ');
- // A Google Maps search opens the place directly; never request a directions route.
  const mapUrl=savedMap||'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(query);
  const contact=whatsappContact(b.phone,country?.name);
  const delivery=whatsappContact(b.delivery_phone,country?.name);
- const whatsappButton=(c,label)=>c?'<a class="dxnd-whatsapp" href="'+esc(c.url)+'" target="_blank" rel="noopener noreferrer" aria-label="'+esc(label+' '+c.display)+'">'+whatsappIcon+'<span class="dxnd-wa-label">'+esc(label)+'</span><b dir="ltr">'+esc(c.display)+'</b></a>':'';
- const mainPhone=contact?whatsappButton(contact,'واتساب المركز'):(b.phone?'<p>☎️ '+esc(b.phone)+'</p>':'');
+ const originalWhatsApp=validWhatsappUrl(b.whatsapp_url);
+ const whatsappButton=(c,label,originalUrl)=>c?'<a class="dxnd-whatsapp" href="'+esc(originalUrl||c.url)+'" target="_blank" rel="noopener noreferrer" aria-label="'+esc(label+' '+c.display)+'">'+whatsappIcon+'<span class="dxnd-wa-label">'+esc(label)+'</span><b dir="ltr">'+esc(c.display)+'</b></a>':'';
+ const mainPhone=contact?whatsappButton(contact,'واتساب المركز',originalWhatsApp):(b.phone?'<p>☎️ '+esc(b.phone)+'</p>':'');
  const deliveryPhone=delivery?whatsappButton(delivery,'واتساب الطلبات والتوصيل'):(b.delivery_phone?'<p>🚚 رقم الطلبات والتوصيل: '+esc(b.delivery_phone)+'</p>':'');
- const locationNotice=savedMap||hasGps?'':'<p class="muted">📌 الموقع التقريبي: لم تُعتمد نقطة GPS دقيقة لهذا الفرع. تحقق من نتيجة البحث أو تواصل مع المركز قبل الزيارة.</p>';
+ const locationNotice=isOnline||savedMap||hasGps?'':'<p class="muted">📌 الموقع التقريبي: لم تُعتمد نقطة GPS دقيقة لهذا الفرع. تحقق من نتيجة البحث أو تواصل مع المركز قبل الزيارة.</p>';
  const hours=b.working_hours?'<p class="dxnd-hours">🕘 <b>أوقات الدوام:</b> '+esc(b.working_hours)+'</p>':'';
- return '<article class="dxnd-item"><div class="dxnd-head"><strong>📍 '+esc(b.name)+'</strong>'+(!b.active?'<span class="dxnd-hidden">مخفي</span>':'')+'</div><p>🌍 '+esc(country?.name||'')+' — '+esc(b.city)+'</p><p>🏠 '+esc(b.address)+'</p>'+
-  hours+mainPhone+deliveryPhone+locationNotice+
-  '<a class="dxnd-cta" href="'+esc(mapUrl)+'" target="_blank" rel="noopener noreferrer">📍 '+(savedMap||hasGps?'فتح موقع الفرع على الخريطة':'البحث عن موقع الفرع على الخريطة')+'</a>'+
+ const mapButton=isOnline?'':'<a class="dxnd-cta" href="'+esc(mapUrl)+'" target="_blank" rel="noopener noreferrer">📍 '+(savedMap||hasGps?'فتح موقع الفرع على الخريطة':'البحث عن موقع الفرع على الخريطة')+'</a>';
+ const titleIcon=kind==='online'?'🚚':kind==='sales_point'?'🛍️':'📍';
+ const addressIcon=isOnline?'📦':'🏠';
+ return '<article class="dxnd-item"><div class="dxnd-head"><strong>'+titleIcon+' '+esc(b.name)+'</strong>'+(!b.active?'<span class="dxnd-hidden">مخفي</span>':'')+'</div><p>🌍 '+esc(country?.name||'')+' — '+esc(b.city)+'</p><p>'+addressIcon+' '+esc(b.address)+'</p>'+
+  hours+mainPhone+deliveryPhone+locationNotice+mapButton+
   cardActions('branch',b)+'</article>';
 }
 function priceCard(p){
@@ -139,8 +153,10 @@ function editForm(kind,item){
   inner=field('اسم الدولة بالعربية','name',item?.name||'')+field('رابط قناة واتساب الرسمية للدولة (اختياري)','whatsapp_channel_url',item?.whatsapp_channel_url||'','url',false,'placeholder="https://whatsapp.com/channel/..."')+'<label class="dxnd-inline"><input type="checkbox" name="active" '+(item?.active!==false?'checked':'')+'> عرض الدولة للأعضاء</label>';
  }else if(kind==='branch'){
   inner='<label>الدولة<select name="country_id" required>'+choices(allCountries,preCountry,'اختر الدولة')+'</select></label>'+
+   '<label>نوع الجهة<select name="category"><option value="branch"'+((item?.category||'branch')==='branch'?' selected':'')+'>🏢 مركز خدمة</option><option value="sales_point"'+(item?.category==='sales_point'?' selected':'')+'>🛍️ نقطة بيع</option><option value="online"'+(item?.category==='online'?' selected':'')+'>🚚 توصيل إلكتروني فقط</option></select></label>'+
    field('اسم الفرع','name',item?.name||'')+field('المدينة أو المحافظة','city',item?.city||'')+field('العنوان التفصيلي','address',item?.address||'')+
    field('رقم التواصل مع المركز (اختياري)','phone',item?.phone||'','tel',false)+
+   field('رابط واتساب الأصلي للجهة (اختياري)','whatsapp_url',item?.whatsapp_url||'','url',false,'placeholder="https://wa.me/qr/..."')+
    field('رقم الطلبات والتوصيل عبر واتساب (اختياري)','delivery_phone',item?.delivery_phone||'','tel',false)+
    field('أوقات الدوام (اختياري)','working_hours',item?.working_hours||'','text',false)+
    field('رابط الموقع المباشر من خرائط Google (اختياري)','maps_url',item?.maps_url||'','url',false,'placeholder="https://maps.app.goo.gl/..."')+
