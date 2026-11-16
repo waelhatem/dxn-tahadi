@@ -38,8 +38,8 @@ test('unverified branch locations never generate fake GPS 0,0 pins',()=>{
  const js=source('app/branches-prices.js');
  assert.match(js,/b\.latitude!==null&&b\.latitude!==undefined/);
  assert.match(js,/b\.longitude!==null&&b\.longitude!==undefined/);
- assert.match(js,/const destination=hasGps\?/);
- assert.match(js,/الخرائط مبنية على العنوان المكتوب|اتجاهات الخريطة مبنية على العنوان المكتوب/);
+ assert.match(js,/const mapUrl=savedMap\|\|/);
+ assert.match(js,/لم تُعتمد نقطة GPS دقيقة/);
  assert.match(js,/https:\/\/wa\.me\//);
 });
 test('Syria seed retains 15 phone numbers and does not overwrite later edits',()=>{
@@ -72,5 +72,47 @@ test('WhatsApp links format Syrian and Egyptian branch numbers with country code
  assert.equal(contact('01012345678','دولة غير محددة'),null);
  assert.match(src,/dxnd-wa-icon/);
  assert.match(src,/target="_blank" rel="noopener noreferrer" aria-label="فتح محادثة واتساب/);
- assert.match(source('app/index.html'),/branches-prices\.js\?v=20261116-whatsapp-1/);
+ assert.match(source('app/index.html'),/branches-prices\.js\?v=20261116-direct-map-2/);
+});
+
+test('branch location buttons open a direct map, with verified Damascus map and delivery chat',()=>{
+ const src=source('app/branches-prices.js');
+ const isolated=src.replace('window.dxnBranchesPricesPage=page;', 'window.__dxndTestState=state;window.__dxndTestBranch=branchCard;window.__dxndTestMap=validMapsUrl;window.__dxndTestChannel=validChannelUrl;window.dxnBranchesPricesPage=page;');
+ assert.notEqual(isolated,src);
+ const sandbox={
+   URL,encodeURIComponent,window:{},
+   document:{createElement(){return {textContent:''}},head:{appendChild(){}}},
+   localStorage:{getItem(){return ''}}
+ };
+ vm.runInNewContext(isolated,sandbox);
+ const w=sandbox.window;
+ w.__dxndTestState.data={is_leader:false,countries:[{id:'syria',name:'سوريا'}]};
+ const damascus=w.__dxndTestBranch({
+   id:'branch',country_id:'syria',name:'المركز الرئيسي',city:'دمشق',address:'دمشق - القصور - شارع الكندي',
+   phone:'0987190014',delivery_phone:'00963987190019',
+   working_hours:'السبت إلى الخميس، 9:00 صباحًا – 6:00 مساءً',
+   maps_url:'https://maps.app.goo.gl/rRh8XYkJrZygpt7F8?g_st=ac',latitude:null,longitude:null,active:true
+ });
+ assert.match(damascus,/href="https:\/\/maps\.app\.goo\.gl\/rRh8XYkJrZygpt7F8\?g_st=ac"/);
+ assert.match(damascus,/https:\/\/wa\.me\/963987190019/);
+ assert.match(damascus,/https:\/\/wa\.me\/963987190014/);
+ assert.match(damascus,/9:00 صباحًا/);
+ assert.doesNotMatch(damascus,/\/maps\/dir\//);
+ const aleppo=w.__dxndTestBranch({country_id:'syria',name:'مركز خدمة حلب',city:'حلب',address:'الجميلية',phone:'0966757898',latitude:null,longitude:null,maps_url:''});
+ assert.match(aleppo,/https:\/\/www\.google\.com\/maps\/search/);
+ assert.match(aleppo,/لم تُعتمد نقطة GPS دقيقة/);
+ assert.doesNotMatch(aleppo,/\/maps\/dir\//);
+ assert.equal(w.__dxndTestMap('https://unsafe.example/attack'), '');
+ assert.equal(w.__dxndTestChannel('https://whatsapp.com/channel/0029Vb7Lwuz2v1IqZvisWx3H'),'https://whatsapp.com/channel/0029Vb7Lwuz2v1IqZvisWx3H');
+ assert.match(src,/القناة الرسمية لـ DXN/);
+});
+test('the Damascus details migration includes authenticated directory fields and keeps the main phone',()=>{
+ const sql=source('supabase/migrations/20261116194000_dxn_direct_maps_damascus_contact_details.sql');
+ assert.match(sql,/https:\/\/maps\.app\.goo\.gl\/rRh8XYkJrZygpt7F8/);
+ assert.match(sql,/00963987190019/);
+ assert.match(sql,/https:\/\/whatsapp\.com\/channel\/0029Vb7Lwuz2v1IqZvisWx3H/);
+ assert.match(sql,/create or replace function public\.dxn_directory_list/);
+ assert.match(sql,/create or replace function public\.dxn_directory_manage/);
+ assert.match(sql,/'maps_url',b\.maps_url/);
+ assert.match(sql,/whatsapp_channel_url/);
 });
