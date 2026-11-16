@@ -116,3 +116,52 @@ test('the Damascus details migration includes authenticated directory fields and
  assert.match(sql,/'maps_url',b\.maps_url/);
  assert.match(sql,/whatsapp_channel_url/);
 });
+
+test('Iraq directory has 18 physical centers, two sales points and three online-only services',()=>{
+ const sql=source('supabase/migrations/20261116200000_iraq_dxn_23_centers_and_online_services.sql');
+ assert.equal((sql.match(/'branch'\),?$/gm)||[]).length,18);
+ assert.equal((sql.match(/'sales_point'\),?$/gm)||[]).length,2);
+ assert.equal((sql.match(/'online'\),?$/gm)||[]).length,3);
+ assert.match(sql,/\+9647827579009/);
+ assert.match(sql,/where not exists/);
+ assert.match(sql,/مركز السليمانية/);
+ assert.match(sql,/سليمانية map deliberately left empty|Sulaymaniyah map deliberately left empty/);
+});
+test('Original Iraq map and WhatsApp URLs are safely handled and online service has no GPS link',()=>{
+ const src=source('app/branches-prices.js');
+ const isolated=src.replace('window.dxnBranchesPricesPage=page;',
+  'window.__dxndTestState=state;window.__dxndTestBranch=branchCard;window.__dxndTestMap=validMapsUrl;window.__dxndTestWhatsApp=validWhatsappUrl;window.dxnBranchesPricesPage=page;');
+ const sandbox={
+   URL,encodeURIComponent,window:{},
+   document:{createElement(){return {textContent:''}},head:{appendChild(){}}},
+   localStorage:{getItem(){return ''}}
+ };
+ vm.runInNewContext(isolated,sandbox);
+ const w=sandbox.window;
+ w.__dxndTestState.data={is_leader:false,countries:[{id:'iraq',name:'العراق'}]};
+ assert.equal(w.__dxndTestMap('https://maps.google.com/?cid=2694431016924597076&entry=gps'),
+ 'https://maps.google.com/?cid=2694431016924597076&entry=gps');
+ assert.equal(w.__dxndTestMap('https://goo.gl/maps/2fHPGTMMUJvYooyH6'),
+ 'https://goo.gl/maps/2fHPGTMMUJvYooyH6');
+ assert.equal(w.__dxndTestMap('https://maps.google.com/?cid=not-number'), '');
+ assert.equal(w.__dxndTestMap('https://danger.example/maps/'), '');
+ assert.equal(w.__dxndTestWhatsApp('https://wa.me/qr/4TNCXYQSARP6D1'),
+ 'https://wa.me/qr/4TNCXYQSARP6D1');
+ assert.equal(w.__dxndTestWhatsApp('https://evil.example/qr/4TNCXYQSARP6D1'), '');
+ const physical=w.__dxndTestBranch({
+  country_id:'iraq',name:'مركز الفلوجة',city:'الفلوجة',address:'حي 7 نيسان',
+  phone:'+9647827579009',whatsapp_url:'https://wa.me/qr/4TNCXYQSARP6D1',
+  maps_url:'https://maps.app.goo.gl/5HXiSCips6uE42R68',
+  latitude:null,longitude:null
+ });
+ assert.match(physical,/https:\/\/wa\.me\/qr\/4TNCXYQSARP6D1/);
+ assert.match(physical,/https:\/\/maps\.app\.goo\.gl\/5HXiSCips6uE42R68/);
+ assert.match(physical,/\+964 7827579009/);
+ const online=w.__dxndTestBranch({
+  country_id:'iraq',name:'خدمة توصيل أونلاين – بغداد',city:'بغداد',address:'توصيل لكل المحافظات',
+  phone:'+9647718387171',category:'online',latitude:null,longitude:null
+ });
+ assert.match(online,/توصيل لكل المحافظات/);
+ assert.doesNotMatch(online,/google\.com\/maps\/|maps\.app\.goo\.gl/);
+ assert.match(online,/https:\/\/wa\.me\/9647718387171/);
+});
