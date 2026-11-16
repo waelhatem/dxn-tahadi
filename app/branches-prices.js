@@ -60,23 +60,43 @@ function whatsappContact(phone,countryName){
  return {display:spaced,url:'https://wa.me/'+digits};
 }
 const whatsappIcon='<svg class="dxnd-wa-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M16 .8C7.62.8.8 7.62.8 16c0 2.68.7 5.3 2.04 7.6L.7 31.3l7.88-2.07a15.12 15.12 0 0 0 7.42 1.89c8.38 0 15.2-6.82 15.2-15.2S24.38.8 16 .8zm0 27.54c-2.36 0-4.68-.63-6.69-1.82l-.48-.29-4.68 1.23 1.25-4.57-.31-.5A12.4 12.4 0 0 1 3.62 16C3.62 9.17 9.18 3.62 16 3.62S28.38 9.17 28.38 16 22.83 28.34 16 28.34zm6.79-9.27c-.37-.19-2.2-1.09-2.54-1.21-.34-.13-.59-.19-.84.19s-.97 1.21-1.19 1.46c-.22.25-.44.28-.81.09s-1.57-.58-2.99-1.85c-1.1-.98-1.84-2.19-2.06-2.56s-.02-.58.17-.77c.17-.17.37-.44.56-.65.19-.22.25-.37.37-.62.13-.25.06-.47-.03-.65-.09-.19-.84-2.03-1.15-2.78-.3-.73-.61-.63-.84-.64h-.72c-.25 0-.65.09-.99.47s-1.3 1.27-1.3 3.09 1.33 3.58 1.52 3.83c.19.25 2.62 4 6.34 5.6.89.38 1.58.6 2.12.77.89.28 1.7.24 2.34.15.71-.11 2.2-.9 2.51-1.77.31-.87.31-1.62.22-1.77s-.34-.25-.72-.43z"/></svg>';
+function validMapsUrl(raw){
+ try{
+  const u=new URL(String(raw||'').trim());
+  if(u.protocol!=='https:')return '';
+  if(u.hostname==='maps.app.goo.gl'&&/^\/[A-Za-z0-9_-]+\/?$/.test(u.pathname))return u.href;
+  if(['www.google.com','google.com'].includes(u.hostname)&&u.pathname.startsWith('/maps/'))return u.href;
+ }catch(_){}
+ return '';
+}
+function validChannelUrl(raw){
+ try{
+  const u=new URL(String(raw||'').trim());
+  if(u.protocol==='https:'&&['whatsapp.com','www.whatsapp.com'].includes(u.hostname)
+     &&/^\/channel\/[A-Za-z0-9]+\/?$/.test(u.pathname))return u.href;
+ }catch(_){}
+ return '';
+}
 function branchCard(b){
  const country=state.data.countries.find(c=>c.id===b.country_id);
  const hasGps=b.latitude!==null&&b.latitude!==undefined&&b.longitude!==null&&b.longitude!==undefined
-   &&Number.isFinite(Number(b.latitude))&&Number.isFinite(Number(b.longitude));
- const query=[b.name,b.city,country?.name||'سوريا',b.address].filter(Boolean).join('، ');
- const destination=hasGps?(Number(b.latitude)+','+Number(b.longitude)):query;
- const url='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destination)+'&travelmode=driving';
- const searchUrl='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(query);
+   &&Number.isFinite(Number(b.latitude))&&Number.isFinite(Number(b.longitude))
+   &&Math.abs(Number(b.latitude))<=90&&Math.abs(Number(b.longitude))<=180;
+ const savedMap=validMapsUrl(b.maps_url);
+ const query=hasGps?(Number(b.latitude)+','+Number(b.longitude))
+   :['DXN',b.name,b.address,b.city,country?.name||''].filter(Boolean).join('، ');
+ // A Google Maps search opens the place directly; never request a directions route.
+ const mapUrl=savedMap||'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(query);
  const contact=whatsappContact(b.phone,country?.name);
- const phone=contact
-   ?'<a class="dxnd-whatsapp" href="'+esc(contact.url)+'" target="_blank" rel="noopener noreferrer" aria-label="فتح محادثة واتساب مع '+esc(b.name)+' على '+esc(contact.display)+'">'+whatsappIcon+'<span class="dxnd-wa-label">واتساب</span><b dir="ltr">'+esc(contact.display)+'</b></a>'
-   :(b.phone?'<p>☎️ <b dir="ltr">'+esc(b.phone)+'</b> <span class="muted">(يتطلب الرقم مفتاح الدولة لإتاحة واتساب)</span></p>':'');
- const gpsNotice=hasGps?'':'<p class="muted">⚠️ لم تُعتمد إحداثيات GPS لهذا الفرع بعد؛ اتجاهات الخريطة مبنية على العنوان المكتوب وقد لا تكون دقيقة. تواصل مع الفرع لتأكيد الموقع قبل التوجه.</p>';
+ const delivery=whatsappContact(b.delivery_phone,country?.name);
+ const whatsappButton=(c,label)=>c?'<a class="dxnd-whatsapp" href="'+esc(c.url)+'" target="_blank" rel="noopener noreferrer" aria-label="'+esc(label+' '+c.display)+'">'+whatsappIcon+'<span class="dxnd-wa-label">'+esc(label)+'</span><b dir="ltr">'+esc(c.display)+'</b></a>':'';
+ const mainPhone=contact?whatsappButton(contact,'واتساب المركز'):(b.phone?'<p>☎️ '+esc(b.phone)+'</p>':'');
+ const deliveryPhone=delivery?whatsappButton(delivery,'واتساب الطلبات والتوصيل'):(b.delivery_phone?'<p>🚚 رقم الطلبات والتوصيل: '+esc(b.delivery_phone)+'</p>':'');
+ const locationNotice=savedMap||hasGps?'':'<p class="muted">📌 الموقع التقريبي: لم تُعتمد نقطة GPS دقيقة لهذا الفرع. تحقق من نتيجة البحث أو تواصل مع المركز قبل الزيارة.</p>';
+ const hours=b.working_hours?'<p class="dxnd-hours">🕘 <b>أوقات الدوام:</b> '+esc(b.working_hours)+'</p>':'';
  return '<article class="dxnd-item"><div class="dxnd-head"><strong>📍 '+esc(b.name)+'</strong>'+(!b.active?'<span class="dxnd-hidden">مخفي</span>':'')+'</div><p>🌍 '+esc(country?.name||'')+' — '+esc(b.city)+'</p><p>🏠 '+esc(b.address)+'</p>'+
-  phone+gpsNotice+
-  '<a class="dxnd-cta" href="'+url+'" target="_blank" rel="noopener noreferrer">'+(hasGps?'🧭 الاتجاهات من موقعي عبر GPS':'🧭 اتجاهات باستخدام العنوان المكتوب')+'</a>'+
-  (!hasGps?'<a class="dxnd-map-search" href="'+searchUrl+'" target="_blank" rel="noopener noreferrer">🔎 البحث عن الفرع في خرائط Google</a>':'')+
+  hours+mainPhone+deliveryPhone+locationNotice+
+  '<a class="dxnd-cta" href="'+esc(mapUrl)+'" target="_blank" rel="noopener noreferrer">📍 '+(savedMap||hasGps?'فتح موقع الفرع على الخريطة':'البحث عن موقع الفرع على الخريطة')+'</a>'+
   cardActions('branch',b)+'</article>';
 }
 function priceCard(p){
@@ -96,8 +116,9 @@ function renderHost(){
  const prices=(d.prices||[]).filter(p=>!state.country||p.country_id===state.country);
  const items=state.section==='branches'?branches:prices;
  const select='<select id="dxndCountryFilter" aria-label="اختر الدولة"><option value="">🌐 جميع الدول</option>'+countries.map(c=>'<option value="'+c.id+'"'+(c.id===state.country?' selected':'')+'>'+esc(c.name)+(c.active?'':' (مخفية)')+'</option>').join('')+'</select>';
+ const channelCards=(state.country?countries.filter(c=>c.id===state.country):countries).filter(c=>validChannelUrl(c.whatsapp_channel_url)).map(c=>'<a class="dxnd-channel" href="'+esc(validChannelUrl(c.whatsapp_channel_url))+'" target="_blank" rel="noopener noreferrer">📢 القناة الرسمية لـ DXN '+esc(c.name)+' على واتساب</a>').join('');
  const actions=isLeader()?'<div class="dxnd-actions"><button type="button" data-action="add" data-kind="country">➕ دولة</button><button type="button" data-action="add" data-kind="branch">➕ فرع</button><button type="button" data-action="add" data-kind="price">➕ قائمة أسعار PDF</button>'+(state.country?'<button type="button" data-action="edit" data-kind="country" data-id="'+state.country+'">✏️ تعديل الدولة</button><button type="button" data-action="delete" data-kind="country" data-id="'+state.country+'" class="danger">حذف الدولة</button>':'')+'</div>':'';
- host.innerHTML='<div class="dxnd-toolbar"><label>الدولة'+select+'</label><div class="dxnd-switch"><button type="button" data-action="section" data-section="branches" class="'+(state.section==='branches'?'selected':'')+'">📍 عناوين الفروع ('+branches.length+')</button><button type="button" data-action="section" data-section="prices" class="'+(state.section==='prices'?'selected':'')+'">📄 قوائم الأسعار ('+prices.length+')</button></div></div>'+actions+
+ host.innerHTML='<div class="dxnd-toolbar"><label>الدولة'+select+'</label><div class="dxnd-switch"><button type="button" data-action="section" data-section="branches" class="'+(state.section==='branches'?'selected':'')+'">📍 عناوين الفروع ('+branches.length+')</button><button type="button" data-action="section" data-section="prices" class="'+(state.section==='prices'?'selected':'')+'">📄 قوائم الأسعار ('+prices.length+')</button></div></div>'+actions+channelCards+
  '<div class="dxnd-list">'+(items.length?items.map(i=>state.section==='branches'?branchCard(i):priceCard(i)).join(''):'<div class="empty">لا توجد بيانات متاحة حاليًا لهذه الدولة. ستظهر هنا بعد إضافتها من القائد.</div>')+'</div><div id="dxndModal"></div>';
  if(!host.dataset.bound){
    host.dataset.bound='1';
@@ -115,11 +136,14 @@ function editForm(kind,item){
  const d=state.data; const allCountries=d.countries||[];const preCountry=item?.country_id||state.country||'';
  let inner='';
  if(kind==='country'){
-  inner=field('اسم الدولة بالعربية','name',item?.name||'')+'<label class="dxnd-inline"><input type="checkbox" name="active" '+(item?.active!==false?'checked':'')+'> عرض الدولة للأعضاء</label>';
+  inner=field('اسم الدولة بالعربية','name',item?.name||'')+field('رابط قناة واتساب الرسمية للدولة (اختياري)','whatsapp_channel_url',item?.whatsapp_channel_url||'','url',false,'placeholder="https://whatsapp.com/channel/..."')+'<label class="dxnd-inline"><input type="checkbox" name="active" '+(item?.active!==false?'checked':'')+'> عرض الدولة للأعضاء</label>';
  }else if(kind==='branch'){
   inner='<label>الدولة<select name="country_id" required>'+choices(allCountries,preCountry,'اختر الدولة')+'</select></label>'+
    field('اسم الفرع','name',item?.name||'')+field('المدينة أو المحافظة','city',item?.city||'')+field('العنوان التفصيلي','address',item?.address||'')+
-   field('رقم التواصل (اختياري)','phone',item?.phone||'','tel',false)+
+   field('رقم التواصل مع المركز (اختياري)','phone',item?.phone||'','tel',false)+
+   field('رقم الطلبات والتوصيل عبر واتساب (اختياري)','delivery_phone',item?.delivery_phone||'','tel',false)+
+   field('أوقات الدوام (اختياري)','working_hours',item?.working_hours||'','text',false)+
+   field('رابط الموقع المباشر من خرائط Google (اختياري)','maps_url',item?.maps_url||'','url',false,'placeholder="https://maps.app.goo.gl/..."')+
    '<p class="muted">إحداثيات GPS اختيارية: أدخل خط العرض والطول معًا فقط عند التأكد من نقطة الفرع الفعلية. وإلا اتركهما فارغين، وسيظهر البحث بالعنوان بدل النقطة غير المؤكدة.</p>'+
    field('خط العرض (Latitude) - اختياري','latitude',item?.latitude??'','number',false,'step="any" min="-90" max="90"')+
    field('خط الطول (Longitude) - اختياري','longitude',item?.longitude??'','number',false,'step="any" min="-180" max="180"')+
@@ -211,7 +235,7 @@ async function load(){
 const style=document.createElement('style');
 style.textContent='.dxn-directory{direction:rtl;text-align:right}.dxnd-toolbar{display:grid;gap:9px;margin:16px 0}.dxnd-toolbar label{font-weight:900}.dxnd-toolbar select{margin:5px 0}.dxnd-switch,.dxnd-actions{display:flex;flex-wrap:wrap;gap:8px}.dxnd-switch>button{flex:1;background:#eef4f0;color:#164b3d}.dxnd-switch>.selected,.dxnd-cta{background:#0f513f!important;color:#fff!important}.dxnd-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px;margin-top:12px}.dxnd-item{border:1px solid #dce8e1;border-radius:17px;padding:16px;background:#fff;box-shadow:0 4px 18px #0000000a}.dxnd-item p{font-size:13px;line-height:1.8;margin:8px 0;color:#4b5b55}.dxnd-head{display:flex;gap:9px;align-items:center;justify-content:space-between}.dxnd-cta{display:block;text-align:center;border:0;border-radius:12px;min-height:44px;padding:12px;margin:10px 0;text-decoration:none;font-weight:900;cursor:pointer;width:100%}.dxnd-actions button{min-height:40px}.dxnd-hidden{background:#fef3c7;color:#854d0e;border-radius:12px;padding:5px 8px;font-size:12px}.dxnd-overlay{position:fixed;inset:0;background:#091b18b0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:12px;overflow:auto}.dxnd-form,.dxnd-viewer{background:#fff;border-radius:18px;max-height:93vh;overflow:auto;width:min(100%,650px);padding:19px;box-shadow:0 15px 45px #0003}.dxnd-form label{display:block;font-size:13px;font-weight:900;margin:8px 0}.dxnd-form input,.dxnd-form select{margin:6px 0}.dxnd-form .dxnd-inline{display:flex;align-items:center;gap:10px}.dxnd-form input[type=checkbox]{width:auto}.dxnd-viewer{width:min(100%,850px)}.dxnd-viewer iframe{width:100%;height:65vh;border:1px solid #dce8e1;border-radius:10px}@media(max-width:600px){.dxnd-viewer iframe{height:52vh}.dxnd-form,.dxnd-viewer{padding:12px}}';
 style.textContent+='.dxnd-map-search{display:block;text-align:center;border:1px solid #0f513f;border-radius:12px;color:#0f513f;text-decoration:none;font-weight:900;padding:11px;margin:7px 0}';
-style.textContent+='.dxnd-whatsapp{display:inline-flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;direction:rtl;min-height:48px;margin:9px 0 3px;padding:9px 13px;background:#ecfdf3;border:1px solid #b4e6c7;border-radius:13px;color:#087a43;text-decoration:none;font-size:16px;font-weight:900;max-width:100%;overflow-wrap:anywhere}.dxnd-whatsapp:focus-visible{outline:3px solid #169d64;outline-offset:2px}.dxnd-whatsapp:hover{background:#d9f8e7}.dxnd-whatsapp b{font-size:18px;unicode-bidi:isolate;direction:ltr;white-space:nowrap;color:#0a6840}.dxnd-wa-icon{width:24px;height:24px;flex:none;color:#25d366}.dxnd-wa-label{font-size:14px}';
+style.textContent+='.dxnd-channel{display:block;margin:12px 0;padding:14px;border-radius:14px;background:#e8f8ee;color:#0f513f;text-align:center;text-decoration:none;font-weight:900;border:1px solid #bce5c9}.dxnd-hours{background:#f4faf6;padding:9px;border-radius:10px}.dxnd-whatsapp{display:inline-flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;direction:rtl;min-height:48px;margin:9px 0 3px;padding:9px 13px;background:#ecfdf3;border:1px solid #b4e6c7;border-radius:13px;color:#087a43;text-decoration:none;font-size:16px;font-weight:900;max-width:100%;overflow-wrap:anywhere}.dxnd-whatsapp:focus-visible{outline:3px solid #169d64;outline-offset:2px}.dxnd-whatsapp:hover{background:#d9f8e7}.dxnd-whatsapp b{font-size:18px;unicode-bidi:isolate;direction:ltr;white-space:nowrap;color:#0a6840}.dxnd-wa-icon{width:24px;height:24px;flex:none;color:#25d366}.dxnd-wa-label{font-size:14px}';
 document.head.appendChild(style);
 window.dxnBranchesPricesPage=page;
 window.dxnBranchesPricesLoad=load;
