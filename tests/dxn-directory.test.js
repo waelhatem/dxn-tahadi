@@ -165,3 +165,18 @@ test('Original Iraq map and WhatsApp URLs are safely handled and online service 
  assert.doesNotMatch(online,/google\.com\/maps\/|maps\.app\.goo\.gl/);
  assert.match(online,/https:\/\/wa\.me\/9647718387171/);
 });
+
+test('Egypt directory records five differentiated DXN service locations without false agency attribution',()=>{
+ const sql=source('supabase/migrations/20261116205500_egypt_dxn_official_and_authorized_contacts.sql');
+ assert.equal((sql.match(/^\s*\('DXN الإدريسي/gm)||[]).length,3);
+ assert.equal((sql.match(/^\s*\('مركز خدمة DXN مصر الجديدة/gm)||[]).length,1);
+ assert.equal((sql.match(/^\s*\('موزع DXN المعتمد La Puri/gm)||[]).length,1);
+ assert.match(sql,/not an Alidrisi branch/);
+ assert.match(sql,/where not exists/);
+ assert.match(sql,/\+201066882897/);
+ assert.match(sql,/\+201066882754/);
+ assert.match(sql,/\+201066882797/);
+ assert.match(sql,/\+201509967572/);
+ assert.match(sql,/\+201080404135/);
+ assert.match(sql,/'','',null,null,true/);
+});
