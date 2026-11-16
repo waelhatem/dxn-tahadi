@@ -72,7 +72,7 @@ test('WhatsApp links format Syrian and Egyptian branch numbers with country code
  assert.equal(contact('01012345678','دولة غير محددة'),null);
  assert.match(src,/dxnd-wa-icon/);
  assert.match(src,/const whatsappButton=/);
- assert.match(source('app/index.html'),/branches-prices\.js\?v=20261116-direct-map-2/);
+ assert.match(source('app/index.html'),/branches-prices\.js\?v=20261116-iraq-1/);
 });
 
 test('branch location buttons open a direct map, with verified Damascus map and delivery chat',()=>{
