@@ -40,7 +40,7 @@ test('unverified branch locations never generate fake GPS 0,0 pins',()=>{
  assert.match(js,/b\.longitude!==null&&b\.longitude!==undefined/);
  assert.match(js,/const destination=hasGps\?/);
  assert.match(js,/الخرائط مبنية على العنوان المكتوب|اتجاهات الخريطة مبنية على العنوان المكتوب/);
- assert.match(js,/href="tel:/);
+ assert.match(js,/https:\/\/wa\.me\//);
 });
 test('Syria seed retains 15 phone numbers and does not overwrite later edits',()=>{
  const sql=source('supabase/migrations/20261116183000_syria_service_centers_20261007.sql');
