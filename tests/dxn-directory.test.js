@@ -33,3 +33,20 @@ test('database migration requires server-backed leader checks and protects table
   assert.match(sql,/public\.app_current_user_id\(p_token\)/);
   assert.match(sql,/dxn-directory-pdfs','dxn-directory-pdfs',false/);
 });
+
+test('unverified branch locations never generate fake GPS 0,0 pins',()=>{
+ const js=source('app/branches-prices.js');
+ assert.match(js,/b\.latitude!==null&&b\.latitude!==undefined/);
+ assert.match(js,/b\.longitude!==null&&b\.longitude!==undefined/);
+ assert.match(js,/const destination=hasGps\?/);
+ assert.match(js,/الخرائط مبنية على العنوان المكتوب|اتجاهات الخريطة مبنية على العنوان المكتوب/);
+ assert.match(js,/href="tel:/);
+});
+test('Syria seed retains 15 phone numbers and does not overwrite later edits',()=>{
+ const sql=source('supabase/migrations/20261116183000_syria_service_centers_20261007.sql');
+ const phones=sql.match(/'0[0-9]{9}'/g)||[];
+ assert.equal(phones.length,15);
+ assert.match(sql,/2026-10-07/);
+ assert.match(sql,/where not exists/i);
+ assert.match(source('supabase/migrations/20261116182500_dxn_directory_optional_verified_coordinates.sql'),/alter column latitude drop not null/);
+});
