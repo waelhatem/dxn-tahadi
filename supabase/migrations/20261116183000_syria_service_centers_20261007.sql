@@ -1,6 +1,12 @@
 -- Source: image titled "مراكز الخدمة المعتمدة في سوريا" dated 2026-10-07.
 -- Textual addresses and contact numbers only; no branch GPS pins were provided.
 -- Idempotent: do not overwrite edits made later by the leader.
+insert into public.dxn_directory_countries(name_ar,active)
+select 'سوريا',true
+where not exists (
+  select 1 from public.dxn_directory_countries where lower(btrim(name_ar))=lower('سوريا')
+);
+
 with source(name,city,address,phone) as (
  values
   ('المركز الرئيسي','دمشق','دمشق - القصور - شارع الكندي','0987190014'),
