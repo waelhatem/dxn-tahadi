@@ -38,7 +38,7 @@ function branchCard(b){
  const url='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destination)+'&travelmode=driving';
  const searchUrl='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(query);
  const dial=/^0[0-9]{9}$/.test(String(b.phone||''))?'+963'+String(b.phone).slice(1):String(b.phone||'');
- const phone=b.phone?'<p>☎️ <a href="tel:'+encodeURIComponent(dial)+'" style="font-weight:900">'+esc(b.phone)+'</a></p>':'';
+ const phone=b.phone?'<p>☎️ <a href="tel:'+esc(dial.replace(/[^+0-9]/g,''))+'" style="font-weight:900">'+esc(b.phone)+'</a></p>':'';
  const gpsNotice=hasGps?'':'<p class="muted">⚠️ لم تُعتمد إحداثيات GPS لهذا الفرع بعد؛ اتجاهات الخريطة مبنية على العنوان المكتوب وقد لا تكون دقيقة. اتصل بالفرع لتأكيد الموقع قبل التوجه.</p>';
  return '<article class="dxnd-item"><div class="dxnd-head"><strong>📍 '+esc(b.name)+'</strong>'+(!b.active?'<span class="dxnd-hidden">مخفي</span>':'')+'</div><p>🌍 '+esc(country?.name||'')+' — '+esc(b.city)+'</p><p>🏠 '+esc(b.address)+'</p>'+
   phone+gpsNotice+
