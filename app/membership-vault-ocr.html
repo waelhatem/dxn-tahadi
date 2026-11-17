@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ar">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- This document is ALWAYS embedded in a sandboxed, opaque-origin iframe.
+     External OCR code cannot access the password vault or its parent DOM. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline' 'unsafe-eval' blob:; worker-src blob:; child-src blob:; connect-src https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; img-src data: blob:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<title>قراءة صورة DXN في بيئة معزولة</title>
+</head>
+<body>
+<script src="/app/dxn-registration-ocr.js"></script>
+<script>
+(function(){
+  'use strict';
+  // The opaque-origin sandbox is not permitted to access the surrounding vault.
+  var parentOrigin = new URL(location.href).origin;
+  var tesseractPromise = null;
+  var queue = Promise.resolve();
+  var OCR_URL = 'https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/tesseract.min.js';
+  function report(type, id, data) {
+    window.parent.postMessage(Object.assign({scope:'dxn-vault-ocr',type:type,id:id}, data||{}), parentOrigin);
+  }
+  function loadTesseract() {
+    if (window.Tesseract && typeof window.Tesseract.createWorker==='function') return Promise.resolve();
+    if (!tesseractPromise) {
+      tesseractPromise = new Promise(function(resolve,reject) {
+        var script=document.createElement('script');
+        script.src=OCR_URL;
+        script.onload=function(){
+          window.Tesseract && typeof window.Tesseract.createWorker==='function'
+            ? resolve() : reject(Error('تعذر تشغيل محرك قراءة الصور'));
+        };
+        script.onerror=function(){reject(Error('تعذر تنزيل محرك القراءة. تحقق من الاتصال بالإنترنت.'));};
+        document.head.appendChild(script);
+      }).catch(function(error){tesseractPromise=null;throw error;});
+    }
+    return tesseractPromise;
+  }
+  async function scan(request) {
+    var id=request.id, file=request.file, worker=null;
+    try {
+      if (!(file instanceof Blob) || file.size<=0 || file.size>8*1024*1024
+          || !/^(image\/png|image\/jpeg|image\/webp)$/.test(file.type)) {
+        throw Error('الصورة غير صالحة؛ استخدم PNG أو JPG أو WebP بحجم لا يتجاوز 8 ميغابايت.');
+      }
+      report('progress',id,{message:'جارٍ تحميل محرك القراءة على الجهاز...'});
+      await loadTesseract();
+      report('progress',id,{message:'جارٍ قراءة النص العربي والإنجليزي من الصورة...'});
+      worker=await window.Tesseract.createWorker(['eng','ara'],1,{
+        logger:function(message) {
+          if (message && message.status==='recognizing text' && typeof message.progress==='number') {
+            report('progress',id,{message:'جارٍ تحليل الصورة: '+Math.min(100,Math.round(message.progress*100))+'٪'});
+          }
+        }
+      });
+      var response=await worker.recognize(file);
+      var raw=String(response && response.data && response.data.text || '');
+      var parser=window.DXNRegistrationOCR && window.DXNRegistrationOCR.parseSuccessText;
+      if (typeof parser!=='function') throw Error('تعذر الوصول إلى محلل بيانات DXN');
+      var data=parser(raw);
+      // Never transmit full OCR text to the password vault: only the five fields.
+      report('result',id,{fields:{
+        memberName:data.memberName||'',
+        memberCode:data.memberCode||'',
+        sponsorName:data.sponsorName||'',
+        sponsorCode:data.sponsorCode||'',
+        email:data.email||''
+      },needsReview:!!data.needsReview});
+    }catch(error) {
+      report('error',id,{message:String(error && error.message || 'تعذرت قراءة الصورة')});
+    }finally{
+      if(worker)try{await worker.terminate();}catch(_){}
+    }
+  }
+  window.addEventListener('message',function(event){
+    if(event.source!==window.parent || event.origin!==parentOrigin) return;
+    var m=event.data;
+    if(!m || m.scope!=='dxn-vault-ocr' || m.type!=='scan' || typeof m.id!=='string')return;
+    queue=queue.catch(function(){}).then(function(){return scan(m);});
+  });
+  report('ready','');
+})();
+</script>
+</body>
+</html>
