@@ -18,7 +18,12 @@
   const res=await fetch('/api/rpc',{method:'POST',cache:'no-store',
    headers:{'Content-Type':'application/json'},body:JSON.stringify({fn,args:{p_token:t,...args}})});
   let j;try{j=await res.json()}catch(_){throw Error('تعذّر قراءة استجابة الخادم')}
-  if(!res.ok||j?.error)throw Error(j?.error||j?.message||'تعذّر تحميل البيانات');
+  if(!res.ok||j?.error){
+   const message=String(j?.error||j?.message||'تعذّر تحميل البيانات');
+   if(j?.code==='PGRST202'||/could not find the function public\\.training_mentor_/i.test(message))
+    throw Error('خدمة متابعة المتدربين غير مفعّلة في قاعدة بيانات النسخة التجريبية بعد. لن تظهر الأسماء أو السجلات حتى اعتماد التحديث، دون تأثير على نتائج الأعضاء الأصلية.');
+   throw Error(message);
+  }
   return j;
  }
  function notify(message,error=false){
