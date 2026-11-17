@@ -45,7 +45,6 @@ video:fullscreen,video:-webkit-full-screen{width:100vw;height:100vh;object-fit:c
  <div class="message" id="status" role="status" aria-live="polite">جارٍ التحقق من جلسة العضو وتجهيز التشغيل الآمن…</div>
 </main>
 <div class="hint" id="hint">عند انتهاء الفيديو سنعيدك إلى صفحة المجتمع المفتوحة دون فقدان موضعها.</div>
-<script src="/app/video-resume.js?v=20261117-1"></script>
 <script>
 (function(){
  'use strict';
@@ -113,7 +112,6 @@ video:fullscreen,video:-webkit-full-screen{width:100vw;height:100vh;object-fit:c
      const stream=await request('/api/academy-video-storage',{action:'play',p_token:token,video_id:id});
      if(!stream||typeof stream.url!=='string'||!stream.url.startsWith('https://'))throw Error('تعذر تجهيز رابط تشغيل آمن.');
      player.src=stream.url;
-     window.DXNVideoResume?.attachNative(player,'academy-upload',id);
      player.hidden=false;
      start.hidden=false;
      message('جاهز للتشغيل — اضغط الزر الذهبي للمشاهدة بملء الشاشة.');
