@@ -133,8 +133,8 @@ test('the same trainer does not add an existing trainee twice',async()=>{
 test('one trainer per trainee is guaranteed at database level including concurrent requests and approvals',()=>{
  const migration=fs.readFileSync(path.join(root,'supabase/migrations/20261117194500_training_mentor_one_active_trainer.sql'),'utf8');
  assert.match(migration,/CREATE UNIQUE INDEX IF NOT EXISTS training_mentor_one_active_trainer_idx/);
- assert.match(migration,/ON public\\.training_mentor_trainees \\(trainee_member_no\\)/);
- assert.match(migration,/WHERE status IN \\('pending','approved'\\)/);
+  assert.ok(migration.includes('ON public.training_mentor_trainees (trainee_member_no)'));
+  assert.ok(migration.includes("WHERE status IN ('pending','approved')"));
  assert.match(migration,/IF v_assignment='occupied' THEN/);
  assert.match(migration,/EXCEPTION WHEN unique_violation THEN/g);
  assert.match(migration,/المتدرب تحت التدريب لدى مدرب آخر/);
@@ -142,6 +142,6 @@ test('one trainer per trainee is guaranteed at database level including concurre
  assert.match(migration,/v_assignment='mine'/);
  for(const table of ['basic_training_progress','professional_training_progress','advanced_financial_progress',
   'basic_training_attempts','professional_training_attempts','advanced_financial_attempts']){
-  assert.doesNotMatch(migration,new RegExp('(?:INSERT\\\\s+INTO|UPDATE|DELETE\\\\s+FROM)\\\\s+public\\\\.'+table,'i'));
+   assert.ok(!migration.includes('INSERT INTO public.'+table) && !migration.includes('UPDATE public.'+table) && !migration.includes('DELETE FROM public.'+table));
  }
 });
