@@ -106,7 +106,7 @@
   return {icon:passed?'✅':unlocked?'▶':'🔒',state,
    // V86.93 — A met watch condition is shown in words beside a full bar, not as "90%".
    pct:watchReady?100:0,pctLabel:'مشاهدة الجلسة الحالية',pctText:watchReady?E.completionLabel(quizPublished(no)):'0%',
-   play:unlocked?'basicBagStartVideo('+no+')':'',playLabel:unlocked?(watchReady?'▶ إعادة المشاهدة من البداية':'▶ ابدأ المشاهدة'):'🔒 '+E.STATE_TEXT.locked,
+   play:unlocked?'basicBagStartVideo('+no+')':'',playLabel:unlocked?(watchReady?'▶ استئناف الفيديو / إعادة المشاهدة':'▶ ابدأ / تابع المشاهدة'):'🔒 '+E.STATE_TEXT.locked,
    quiz:'basicBagStartQuiz('+no+')',quizEnabled,
    quizLabel:'📝 '+(!quizReady?E.MESSAGES.quizUnpublished:state==='passed'?'إعادة الاختبار':state==='failed'?'أعد الاختبار':quizEnabled?'ابدأ اختبار الدرس':'الاختبار مغلق حتى تأكيد 90%'),
    preview:canPreviewQuiz()?'<button type="button" class="name-list-btn basic-bag-preview-btn" onclick="basicBagPreviewFirstQuiz('+no+')">👁 معاينة الاختبار (غير محفوظة)</button>':'',
@@ -214,7 +214,7 @@
  // state instead of a one-time text set after the first load.
  function noticeText(){
   if(!loaded)return authToken()?'جارٍ التحقق من حفظ التقدم والنتائج…':'سجّل الدخول لحفظ التقدم والنتائج.';
-  if(backendReady)return '✅ حفظ النتائج مفعل. شرط الاجتياز: مشاهدة 90% في جلسة مشاهدة واحدة تبدأ من بداية الفيديو، ثم درجة 80 / 100 في اختبار من 20 سؤالًا. المشاهدة غير المكتملة لا تُحفظ بين الجلسات.';
+  if(backendReady)return '✅ حفظ نتائج التدريب مفعّل. يتيح نظام الاستئناف متابعة الفيديو من آخر موضع محفوظ عند توفر خدمته، دون تجاوز المشاهدة المطلوبة (90%)، ودرجة النجاح في الاختبار 80 / 100.';
   return 'المعاينة متاحة؛ لكن حفظ التقدم والاختبارات يحتاج تفعيل ترحيل Supabase المراجع. '+overviewError;
  }
  function courseHtml(){
