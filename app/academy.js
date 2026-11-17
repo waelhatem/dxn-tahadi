@@ -164,15 +164,18 @@
     const url=academySafeUrl(episode.url);
     const poster=academySafeUrl(episode.poster);
     const youtube=academyYouTubeEmbedUrl(episode.youtubeId);
+    const resumeKey=String(episode.id||episode.youtubeId||episode.url).slice(0,300);
+    const saved=window.DXNVideoResume?window.DXNVideoResume.youtubeStart('academy',resumeKey):0;
+    const iframeUrl=youtube?(youtube+'&enablejsapi=1&origin='+encodeURIComponent(location.origin)+(saved>0?'&start='+Math.floor(saved):'')):'';
     if(youtube){
       return `<div class="academy-screen academy-screen-youtube" id="academyScreen">
-        <iframe class="academy-video academy-youtube-frame" src="${academyEscape(youtube)}" title="${academyEscape(episode.title)}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        <iframe class="academy-video academy-youtube-frame" data-resume-key="${academyEscape(resumeKey)}" src="${academyEscape(iframeUrl)}" title="${academyEscape(episode.title)}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
       </div>`;
     }
     const events=['loadstart','waiting','loadeddata','canplay','playing','play','error']
       .map(type=>` on${type}="academyVideoEvent(this,'${type}')"`).join('');
     return `<div class="academy-screen academy-screen-loading" id="academyScreen">
-      <video class="academy-video" controls playsinline preload="metadata" src="${academyEscape(url)}"${poster?` poster="${academyEscape(poster)}"`:''}${events} ontimeupdate="academyTrackProgress(this,${index})" onended="academyMarkWatched(${index},true)"></video>
+      <video class="academy-video" controls playsinline preload="metadata" data-resume-key="${academyEscape(resumeKey)}" onloadedmetadata="window.DXNVideoResume&&window.DXNVideoResume.attachNative(this,\'academy\',this.dataset.resumeKey)" src="${academyEscape(url)}"${poster?` poster="${academyEscape(poster)}"`:''}${events} ontimeupdate="academyTrackProgress(this,${index})" onended="academyMarkWatched(${index},true)"></video>
       <div class="academy-screen-loader" role="status" aria-live="polite"><div class="academy-screen-loader-bar"><span></span></div><div class="academy-screen-loader-label">جارٍ تحميل الفيديو…</div></div>
       <div class="academy-screen-error-note" role="status">تعذّر تحميل الفيديو حاليًا، حاول مرة أخرى لاحقًا.</div>
     </div>`;
@@ -262,6 +265,8 @@
   }
 
   window.academyPage=function(){
+    // The caller inserts the returned markup synchronously; initialise the iframe afterwards.
+    setTimeout(()=>academyActivateVideoResume(academyEl('academyStage')),0);
     const total=academyState.episodes.length;
     return `<div class="academy-root">
       ${academyHeader()}
@@ -310,10 +315,20 @@
 
   // Sequential fade: the current video fades out completely, then the new one fades
   // in. Opacity only, so nothing is scaled and the two never overlap.
+  function academyActivateVideoResume(stage){
+    const frame=stage&&stage.querySelector('.academy-youtube-frame');
+    if(!frame||!window.DXNVideoResume)return;
+    const index=academyState.selectedIndex;
+    window.DXNVideoResume.attachYouTube(frame,'academy',frame.dataset.resumeKey,{
+      onEnded:()=>{if(academyState.selectedIndex===index)academyMarkWatched(index,true);}
+    });
+  }
+
   function academySwapStage(stage){
     clearTimeout(academyState.fadeTimer);
     const apply=()=>{
       stage.innerHTML=academyStageInner();
+      academyActivateVideoResume(stage);
       academyRefreshSide();
       if(academyReducedMotion()){stage.classList.remove('academy-stage-fading');return;}
       requestAnimationFrame(()=>requestAnimationFrame(()=>stage.classList.remove('academy-stage-fading')));
@@ -374,7 +389,16 @@
     if(!screen)return;
     academyHideUpNext(screen);
     const video=screen.querySelector('video');
-    if(video){video.currentTime=0;const played=video.play();if(played&&played.catch)played.catch(()=>{});}
+    if(video){
+      window.DXNVideoResume?.clear('academy',video.dataset.resumeKey);
+      video.currentTime=0;const played=video.play();if(played&&played.catch)played.catch(()=>{});
+    }else{
+      const frame=screen.querySelector('.academy-youtube-frame');
+      if(frame){
+        window.DXNVideoResume?.clear('academy',frame.dataset.resumeKey);
+        const stage=academyEl('academyStage');if(stage)academySwapStage(stage);
+      }
+    }
   };
 
   // Loading and error states of the player.
