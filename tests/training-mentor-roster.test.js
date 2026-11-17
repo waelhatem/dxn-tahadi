@@ -12,8 +12,8 @@ const index=fs.readFileSync(path.join(root,'app/index.html'),'utf8');
 
 test('mentor interface is mounted only inside the existing member training profile',()=>{
  assert.doesNotThrow(()=>new vm.Script(js,{filename:'training-mentor-roster.js'}));
- assert.match(index,/training-mentor-roster\.js\?v=20261117-mentors4/);
- assert.match(index,/training-mentor-roster\.css\?v=20261117-mentors1/);
+ assert.match(index,/training-mentor-roster\.js\?v=20261117-mentors5/);
+ assert.match(index,/training-mentor-roster\.css\?v=20261117-mentors5/);
  assert.match(index,/التدريب والمتابعة/);
  assert.match(js,/الأعضاء الذين أتابعهم — تقدم التدريبات/);
  assert.doesNotMatch(js,/متدربوني/);
@@ -144,4 +144,58 @@ test('one trainer per trainee is guaranteed at database level including concurre
   'basic_training_attempts','professional_training_attempts','advanced_financial_attempts']){
    assert.ok(!migration.includes('INSERT INTO public.'+table) && !migration.includes('UPDATE public.'+table) && !migration.includes('DELETE FROM public.'+table));
  }
+});
+
+test('member cannot add own membership number even before server lookup',async()=>{
+ const nodes={
+  trainingMentorRoster:{isConnected:true},
+  trainingMentorNumber:{value:'823456789'},
+  trainingMentorName:{value:''},
+  trainingMentorAddButton:{disabled:true},
+  trainingMentorMessage:{textContent:'',style:{}}
+ };
+ let requests=0,scheduled=0;
+ const ctx={window:{},me:{member_no:'823456789'},console,
+  document:{getElementById:id=>nodes[id]||null},
+  localStorage:{getItem:name=>name==='dxn_session'?'session':'823456789'},
+  setTimeout:()=>{scheduled++;return 1;},clearTimeout:()=>{},
+  fetch:async()=>{requests++;throw Error('self addition must not call the server');}};
+ vm.runInNewContext(js,ctx,{filename:'training-mentor-roster.js'});
+ ctx.window.trainingMentorInput();
+ assert.equal(scheduled,0);
+ assert.equal(requests,0);
+ assert.equal(nodes.trainingMentorName.value,'');
+ assert.equal(nodes.trainingMentorAddButton.disabled,true);
+ assert.match(nodes.trainingMentorMessage.textContent,/لا يمكن إضافة رقم عضويتك/);
+ assert.match(nodes.trainingMentorMessage.textContent,/سجلي التدريبي الشخصي/);
+ await ctx.window.trainingMentorAdd({preventDefault(){}});
+ assert.equal(requests,0);
+ assert.equal(nodes.trainingMentorAddButton.disabled,true);
+});
+
+test('member can view own training results independently of mentoring list',()=>{
+ const attrs={'aria-selected':'false'};
+ let scrolled=false,selected=[],reloaded=0;
+ const results={querySelector:()=>({getAttribute:name=>attrs[name]}),scrollIntoView:()=>{scrolled=true;}};
+ const ctx={window:{
+   trainingResultsChoose:(scope,track)=>selected.push([scope,track]),
+   basicTrainingLoadMemberPage:()=>reloaded++
+  },console,document:{getElementById:id=>id==='memberTrainingResultsSwitcher'?results:null},
+  localStorage:{getItem:()=>null}};
+ vm.runInNewContext(js,ctx,{filename:'training-mentor-roster.js'});
+ const html=ctx.window.trainingMentorRosterHtml();
+ assert.match(html,/عرض سجلي التدريبي الشخصي/);
+ assert.match(html,/trainingMentorShowMyResults/);
+ ctx.window.trainingMentorShowMyResults();
+ assert.equal(scrolled,true);
+ assert.equal(reloaded,1);
+ assert.deepEqual(JSON.parse(JSON.stringify(selected)),[['member','basic']]);
+ assert.match(switcher,/memberTrainingResultsSwitcher/);
+});
+
+test('database denies self-enrollment in live-bound mentor lookup and add',()=>{
+ const migration=fs.readFileSync(path.join(root,'supabase/migrations/20261117194500_training_mentor_one_active_trainer.sql'),'utf8');
+ assert.ok(migration.includes("IF v_no=v_own_no THEN RAISE EXCEPTION 'لا يمكنك إضافة عضويتك"));
+ assert.ok(migration.includes("public.training_mentor_lookup(p_token,p_member_no)"));
+ assert.match(js,/isOwnMemberNo\(no\)/);
 });
