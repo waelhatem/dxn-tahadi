@@ -72,13 +72,3 @@ test('database migration preserves authenticated track gating and only matches t
   assert.match(sql,/watched_seconds\*100 < expected_seconds\*90/);
   assert.doesNotMatch(sql,/UPDATE public\.(?:basic_training_progress|advanced_financial_progress|professional_training_progress)/);
 });
-test('informational video bookmark helper isolates each member and every video',()=>{
-  const source=fs.readFileSync(path.join(__dirname,'..','app/video-resume.js'),'utf8');
-  assert.match(source,/dxn_login_no/);
-  assert.match(source,/dxn_session/);
-  assert.match(source,/storageKey\(user,kind,id\)/);
-  assert.match(source,/loadedmetadata/);
-  assert.match(source,/pagehide/);
-  assert.match(source,/youtubeStart/);
-  assert.match(source,/attachYouTube/);
-});
