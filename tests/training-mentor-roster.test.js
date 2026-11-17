@@ -12,9 +12,11 @@ const index=fs.readFileSync(path.join(root,'app/index.html'),'utf8');
 
 test('mentor interface is mounted only inside the existing member training profile',()=>{
  assert.doesNotThrow(()=>new vm.Script(js,{filename:'training-mentor-roster.js'}));
- assert.match(index,/training-mentor-roster\.js\?v=20261117-mentors2/);
+ assert.match(index,/training-mentor-roster\.js\?v=20261117-mentors3/);
  assert.match(index,/training-mentor-roster\.css\?v=20261117-mentors1/);
  assert.match(index,/التدريب والمتابعة/);
+ assert.match(js,/الأعضاء الذين أتابعهم — تقدم التدريبات/);
+ assert.doesNotMatch(js,/متدربوني/);
  assert.match(switcher,/trainingMentorRosterHtml\?\.\(\)/);
  assert.match(switcher,/return \(window\.trainingMentorRosterHtml/);
 });
