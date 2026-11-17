@@ -64,7 +64,7 @@
  function createWatch(o){
   const w={track:o.track,lessonNo:o.lessonNo,preview:!!o.preview,lessonCompleted:!!o.watchCompleted,
    session:token(),player:null,timer:null,stopped:false,
-   attempt:null,beginning:false,max:0,previousTime:0,previousWall:0,pausedSince:0,idle:DEFAULT_IDLE_S,replayNeeded:false,resumeSupported:false};
+   attempt:null,beginning:false,max:0,previousTime:0,previousWall:0,pausedSince:0,idle:DEFAULT_IDLE_S,replayNeeded:false,resumeSupported:false,bookmarkLast:0,bookmarkQueue:Promise.resolve()};
   const msg=t=>{if(!w.stopped&&typeof o.onMessage==='function')o.onMessage(t);};
   // Whether this lesson's quiz bank is published, read at the moment it matters (the track may learn it later).
   const quizReady=()=>typeof o.quizReady==='function'?!!o.quizReady():o.quizReady!==false;
@@ -86,6 +86,36 @@
    o.onProgress({percent,label,conditionMet:false,watched:a?a.watched:0,duration:a?a.duration:0,attempt:!!a});
   };
   const sameAccount=()=>{if(token()===w.session)return true;w.stop();return false;};
+  // Playback bookmarks are separate from server-verified assessment credit.
+  // Only a lesson already watched to 90% may bookmark freely after the threshold.
+  function saveBookmark(force=false,position=null){
+   if(w.preview||w.stopped||!w.resumeSupported||!w.lessonCompleted||!w.player||token()!==w.session)return;
+   const now=Date.now();
+   if(!force&&now-w.bookmarkLast<4000)return;
+   let current=position,duration=w.playerDuration();
+   try{if(current===null)current=w.player.getCurrentTime();}catch(_){return;}
+   if(!Number.isFinite(Number(current))||!Number.isFinite(duration)||duration<60)return;
+   w.bookmarkLast=now;
+   const params={p_track:w.track,p_lesson_no:w.lessonNo,
+    p_position:Math.max(0,Math.floor(Number(current))),p_duration:Math.floor(duration)};
+   w.bookmarkQueue=w.bookmarkQueue.catch(()=>{}).then(()=>rpc('training_video_bookmark',params)).catch(()=>{});
+  }
+  const visibilityBookmark=()=>{if(document.hidden)saveBookmark(true);};
+  const pagehideBookmark=()=>{
+   // Keepalive sends the final few seconds even if the tab is closed immediately.
+   if(!w.resumeSupported||!w.lessonCompleted||w.stopped||token()!==w.session||!w.player)return;
+   const duration=w.playerDuration();
+   let current;try{current=Number(w.player.getCurrentTime());}catch(_){return;}
+   if(!Number.isFinite(current)||duration<60)return;
+   try{fetch('/api/rpc',{method:'POST',keepalive:true,cache:'no-store',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({fn:'training_video_bookmark',args:{
+     p_token:w.session,p_track:w.track,p_lesson_no:w.lessonNo,
+     p_position:Math.max(0,Math.floor(current)),p_duration:Math.floor(duration)
+    }})}).catch(()=>{});}catch(_){}
+  };
+  document.addEventListener?.('visibilitychange',visibilityBookmark);
+  window.addEventListener?.('pagehide',pagehideBookmark);
   // When a session expires, keep its last server-verified position for the next start.
   function dropAttempt(text){
    const saved=w.resumeSupported?Math.max(0,Math.floor(Number(w.attempt?.watched)||0)):0;
@@ -111,10 +141,11 @@
     if(r.watch_completed&&!w.lessonCompleted){w.lessonCompleted=true;if(typeof o.onCompleted==='function')o.onCompleted();}
     w.resumeSupported=Number.isFinite(Number(r.resume_seconds))&&r.resume_seconds!==undefined;
     const duration=Number(r.duration)||0;
-    const saved=!w.lessonCompleted&&Number.isFinite(Number(r.resume_seconds))
-     ? Math.max(0,Math.min(Math.floor(Number(r.resume_seconds)),Math.max(0,Math.ceil(duration*0.9)-1))):0;
-    w.attempt={id:r.attempt_id,duration,watched:saved,lastSent:0,saving:false,completed:false,rewatch:w.lessonCompleted};
-    w.max=saved;
+    const saved=w.resumeSupported&&Number.isFinite(Number(r.resume_seconds))
+     ? Math.max(0,Math.min(Math.floor(Number(r.resume_seconds)),Math.max(0,Math.floor(duration)-4))):0;
+    const credited=w.lessonCompleted?0:Math.max(0,Number(r.watched)||saved);
+    w.attempt={id:r.attempt_id,duration,watched:credited,lastSent:0,saving:false,completed:false,rewatch:w.lessonCompleted};
+    w.max=Math.max(saved,credited);
     try{
      if(saved>0)w.player.seekTo(saved,true);
      else if(w.player.getCurrentTime()>1)w.player.seekTo(0,true);
@@ -177,7 +208,7 @@
    }else w.pausedSince=0;
    if(w.beginning)return;
    if(state===PLAYING&&!w.preview&&!w.attempt){begin();w.previousTime=current;w.previousWall=now;return;}
-   if(current>w.max+FORWARD_TOLERANCE_S){
+   if(current>w.max+FORWARD_TOLERANCE_S&&!w.lessonCompleted){
     try{w.player.seekTo(Math.max(0,w.max),true);}catch(_){}
     msg('لا يمكن التقدم إلى جزء لم تتم مشاهدته؛ يمكنك الرجوع إلى الخلف.');
     w.previousTime=w.max;w.previousWall=now;return;
@@ -187,6 +218,7 @@
    w.previousTime=current;w.previousWall=now;
    if(state===PLAYING&&moving&&current>w.max){w.max=Math.min(duration,current);if(w.preview)progress();}
    report();
+   if(state===PLAYING&&w.lessonCompleted)saveBookmark();
   }
   w.attach=function(player){
    if(w.stopped)return;
@@ -202,10 +234,11 @@
    const ENDED=window.YT&&window.YT.PlayerState?window.YT.PlayerState.ENDED:0;
    const PLAYING=window.YT&&window.YT.PlayerState?window.YT.PlayerState.PLAYING:1;
    if(state===ENDED){
-    tick();report();
+    tick();report();saveBookmark(true,w.playerDuration());
     // A replay of the same YouTube player must never reuse the prior attempt's seconds.
     w.replayNeeded=true;
-   }else if(state===PLAYING&&w.replayNeeded&&!w.stopped){
+   }else if(state===2){saveBookmark(true);}
+   else if(state===PLAYING&&w.replayNeeded&&!w.stopped){
     w.replayNeeded=false;w.attempt=null;w.max=0;w.pausedSince=0;
     w.previousTime=0;w.previousWall=performance.now();
     try{if(w.player&&w.player.getCurrentTime()>1)w.player.seekTo(0,true);}catch(_){}
@@ -219,6 +252,9 @@
    if(w.stopped)return;w.stopped=true;
    // Best effort: send the latest eligible verified time before switching lessons.
    if(w.attempt&&!w.attempt.saving)report();
+   saveBookmark(true);
+   document.removeEventListener?.('visibilitychange',visibilityBookmark);
+   window.removeEventListener?.('pagehide',pagehideBookmark);
    if(w.timer)clearInterval(w.timer);w.timer=null;w.attempt=null;
   };
   w.tick=tick;
