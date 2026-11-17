@@ -610,12 +610,12 @@
     if(!fields||typeof fields!=='object')throw Error('لم يستخرج المحرك معلومات صالحة');
     let matched=0;
     for(const [key,id] of Object.entries(ocrFields)){
-      let value=String(fields[key]||'').trim().replace(/[\\u0000-\\u001f\\u007f]/g,'').slice(0,key==='email'?254:140);
+      let value=String(fields[key]||'').trim().replace(/[\u0000-\u001f\u007f]/g,'').slice(0,key==='email'?254:140);
       if(key==='memberCode'||key==='sponsorCode'){
         value=value.replace(/[٠-٩۰-۹]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)>=0?'٠١٢٣٤٥٦٧٨٩'.indexOf(d):'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)));
         if(!/^[0-9]{5,15}$/.test(value))continue;
       }else if(key==='email'){
-        if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value))continue;
+        if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))continue;
       }else if(value.length<3)continue;
       const field=$(id);
       // Respect any edits typed while scanning; a deliberate photo selection can
