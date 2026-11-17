@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'self'; form-action 'none'; base-uri 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'self'; frame-src 'self'; form-action 'none'; base-uri 'none'">
   <title>مفاتيح العضوية | مجتمع الصحة والثراء</title>
   <style>
     :root { --ink:#132e30; --muted:#657c7d; --deep:#0d3934; --green:#16856c; --mint:#e8f7ef; --gold:#d4ad64; --line:#dbe7e2; --bg:#f3f7f5; --warn:#9b5c04; --red:#b7383a; }
@@ -81,6 +81,10 @@
     .photo-form-preview { display:flex; flex-direction:column; gap:8px; margin-top:9px; align-items:flex-start; }
     .photo-form-preview img { max-width:200px; max-height:250px; width:auto; object-fit:contain; border-radius:8px; border:1px solid #c9ded2; }
     .photo-note { overflow-wrap:anywhere; }
+    .vault-ocr-status { margin-top:9px; padding:9px 10px; border-radius:9px; border:1px solid #c5dfd2; background:#fff; color:#245c4b; font-size:12px; }
+    .vault-ocr-review { margin-top:9px; border:1px solid #d2e2cb; background:#eff9ed; border-radius:9px; padding:9px; color:#234a38; font-size:12px; }
+    .vault-ocr-review label { display:flex; align-items:flex-start; gap:9px; cursor:pointer; font-weight:bold; }
+    .vault-ocr-review input[type=checkbox] { flex:0 0 20px; width:20px; height:20px; min-height:20px; margin:2px 0 0; accent-color:#0c7b50; }
     .image-dialog { width:min(940px,calc(100vw - 32px)); }
     .image-dialog .modal-body { padding:17px; }
     .image-dialog-head { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:12px; }
@@ -152,8 +156,12 @@
             <div class="field full photo-input-wrap">
               <label class="label" for="newRegistrationImageInput">📷 صورة اكتمال العضوية (اختيارية)</label>
               <input id="newRegistrationImageInput" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" aria-describedby="registrationPhotoHelp">
-              <div class="password-help" id="registrationPhotoHelp">أرفق لقطة شاشة من صفحة DXN التي تحمل عبارة «تم التسجيل بنجاح» ورمز العضو. تُحفظ الصورة مشفّرة ضمن سجل هذا العضو وتظهر على الهاتف والحاسوب.</div>
+              <div class="password-help" id="registrationPhotoHelp">أرفق لقطة شاشة من صفحة DXN «تم التسجيل بنجاح». سيحاول قارئ الصور ملء الاسم والرقم وبيانات الراعي والبريد تلقائياً؛ راجع النتائج قبل الحفظ. تُحفظ الصورة مشفّرة في الخزنة.</div>
               <div id="newRegistrationImagePreview" class="photo-form-preview hidden"><img id="newRegistrationImagePreviewImg" alt="معاينة صورة اكتمال العضوية المختارة"><button id="removeNewRegistrationImage" class="btn plain small" type="button">إلغاء الصورة المختارة</button></div>
+              <div id="vaultOcrStatus" class="vault-ocr-status" role="status" aria-live="polite" hidden></div>
+              <div id="vaultOcrReview" class="vault-ocr-review" hidden>
+                <label for="vaultOcrReviewed"><input type="checkbox" id="vaultOcrReviewed">راجعت الأسماء ورقمي العضوية والبريد الإلكتروني مقابل صورة DXN، وصححت أي خطأ في القراءة.</label>
+              </div>
             </div>
           </div>
           <div class="buttons" style="margin-top:12px"><button id="generateBtn" type="button" class="btn secondary">✦ توليد كلمة مرور معقدة (3+3+3)</button><button id="copyNewBtn" type="button" class="btn plain">نسخ بيانات العضو كاملة</button></div>
@@ -175,6 +183,8 @@
 <input type="file" id="fileInput" accept=".json,application/json" class="hidden">
 <input type="file" id="registrationImageInput" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" class="hidden" aria-label="اختيار صورة تأكيد التسجيل">
 <div id="toast" role="status" aria-live="polite"></div>
+<!-- A sandboxed, opaque-origin frame keeps the OCR dependency away from vault keys and passwords. -->
+<iframe id="vaultOcrFrame" data-src="/app/membership-vault-ocr.html" sandbox="allow-scripts" title="قارئ صورة DXN" aria-hidden="true" tabindex="-1" style="display:none"></iframe>
 
 <script>
 (() => {
@@ -355,7 +365,7 @@
   }
   function lock(silent=false){
     vault=null;key=null;salt=null;editingId=null;revealId=null;attachingImageId=null;
-    pendingFormImage=null;cloudImageRevisions.clear();cloudImageCache.clear();
+    pendingFormImage=null;resetOcrScan();cloudImageRevisions.clear();cloudImageCache.clear();
     clearTimeout(idleTimer);clearTimeout(revealTimer);
     $('entryForm').reset();$('memberPassword').value='';$('country').value='العراق';$('search').value='';
     $('newRegistrationImageInput').value='';$('newRegistrationImagePreview').classList.add('hidden');$('newRegistrationImagePreviewImg').removeAttribute('src');
@@ -455,10 +465,12 @@
   function validateName(name) { return name.length>=3 && name.length<=140; }
   const validCode = code => code==='' || /^[0-9]{5,15}$/.test(code);
   const validPassword = pass => /^[A-Za-z0-9]{9}$/.test(pass) && (pass.match(/[A-Z]/g)||[]).length===3 && (pass.match(/[a-z]/g)||[]).length===3 && (pass.match(/[0-9]/g)||[]).length===3;
-  function resetForm(){editingId=null;pendingFormImage=null;$('entryForm').reset();$('newRegistrationImagePreview').classList.add('hidden');$('newRegistrationImagePreviewImg').removeAttribute('src');$('country').value='العراق';$('memberPassword').type='password';$('memberPassword').required=true;$('formTitle').textContent='إضافة عضو جديد';$('saveEntryBtn').textContent='حفظ العضو مشفراً';$('cancelEditBtn').classList.add('hidden');}
+  function resetForm(){resetOcrScan();editingId=null;pendingFormImage=null;$('entryForm').reset();$('newRegistrationImagePreview').classList.add('hidden');$('newRegistrationImagePreviewImg').removeAttribute('src');$('country').value='العراق';$('memberPassword').type='password';$('memberPassword').required=true;$('formTitle').textContent='إضافة عضو جديد';$('saveEntryBtn').textContent='حفظ العضو مشفراً';$('cancelEditBtn').classList.add('hidden');}
   $('cancelEditBtn').addEventListener('click',resetForm);
   $('entryForm').addEventListener('submit',async event=>{
     event.preventDefault();touch();
+    if(ocrBusy){notify('انتظر اكتمال قراءة صورة DXN، أو احذف الصورة وأدخل البيانات يدوياً.',true);return;}
+    if(ocrNeedsReview&&!$('vaultOcrReviewed').checked){notify('راجع البيانات المستخرجة من الصورة وحدد مربع التأكيد قبل الحفظ.',true);return;}
     const name=$('memberName').value.trim(),code=$('memberCode').value.trim(),country=$('country').value.trim();
     const email=$('memberEmail').value.trim(),sponsor=$('sponsor').value.trim(),sponsorCode=$('sponsorCode').value.trim(),password=$('memberPassword').value,status=$('deliveryStatus').value;
     const old=editingId?vault.entries.find(e=>e.id===editingId):null,legacyUnchanged=old&&old.password===password;
@@ -553,6 +565,103 @@
     cloudImageRevisions.delete(id);
     cloudImageCache.delete(id);
   }
+  // On-device text recognition is isolated in a sandboxed, opaque-origin iframe:
+  // third-party OCR code never executes in the password-vault origin.
+  let ocrReady=false,ocrFrameStarted=false,ocrBusy=false,ocrNeedsReview=false;
+  let ocrRequestId=null,ocrQueued=null,ocrBaseline=null,ocrTimeout=null;
+  const ocrFields={
+    memberName:'memberName',
+    memberCode:'memberCode',
+    sponsorName:'sponsor',
+    sponsorCode:'sponsorCode',
+    email:'memberEmail'
+  };
+  function ocrStatus(text,isError=false){
+    const node=$('vaultOcrStatus');
+    node.hidden=!text;
+    node.textContent=text||'';
+    node.style.color=isError?'#a02222':'#245c4b';
+  }
+  function resetOcrScan(){
+    ocrBusy=false;ocrNeedsReview=false;ocrQueued=null;ocrRequestId=null;ocrBaseline=null;
+    clearTimeout(ocrTimeout);ocrTimeout=null;
+    $('vaultOcrReview').hidden=true;
+    $('vaultOcrReviewed').checked=false;
+    ocrStatus('');
+    if(!savingBusy)$('saveEntryBtn').disabled=false;
+  }
+  function sendOcrRequest(){
+    if(!ocrReady||!ocrQueued)return;
+    const request=ocrQueued;ocrQueued=null;
+    $('vaultOcrFrame').contentWindow.postMessage({
+      scope:'dxn-vault-ocr',type:'scan',id:request.id,file:request.file
+    },'*'); // An opaque-origin sandbox requires '*'; receiver authenticates parent origin.
+  }
+  function finishOcr(error){
+    ocrBusy=false;ocrQueued=null;
+    clearTimeout(ocrTimeout);ocrTimeout=null;
+    if(!savingBusy)$('saveEntryBtn').disabled=false;
+    if(error){
+      ocrNeedsReview=false;$('vaultOcrReview').hidden=true;
+      ocrStatus('تعذرت القراءة التلقائية: '+error+'. يمكنك تعبئة الحقول يدوياً مع إبقاء الصورة مرفقة.',true);
+    }
+  }
+  function applyOcrResult(fields,needsReview){
+    if(!fields||typeof fields!=='object')throw Error('لم يستخرج المحرك معلومات صالحة');
+    let matched=0;
+    for(const [key,id] of Object.entries(ocrFields)){
+      let value=String(fields[key]||'').trim().replace(/[\\u0000-\\u001f\\u007f]/g,'').slice(0,key==='email'?254:140);
+      if(key==='memberCode'||key==='sponsorCode'){
+        value=value.replace(/[٠-٩۰-۹]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)>=0?'٠١٢٣٤٥٦٧٨٩'.indexOf(d):'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)));
+        if(!/^[0-9]{5,15}$/.test(value))continue;
+      }else if(key==='email'){
+        if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value))continue;
+      }else if(value.length<3)continue;
+      const field=$(id);
+      // Respect any edits typed while scanning; a deliberate photo selection can
+      // replace pre-existing fields if they have not changed during recognition.
+      if(field.value===ocrBaseline?.[id]||!field.value.trim()){
+        field.value=value;
+        field.dispatchEvent(new Event('input',{bubbles:true}));
+        matched++;
+      }
+    }
+    if(!matched)throw Error('لم يتم التعرف على الحقول المطلوبة؛ تحقق من وضوح صورة نجاح التسجيل');
+    ocrNeedsReview=true;$('vaultOcrReview').hidden=false;$('vaultOcrReviewed').checked=false;
+    ocrStatus(needsReview||matched<5
+      ? 'تم ملء '+matched+' من الحقول. راجع جميع المعلومات وأدخل الحقول الناقصة يدوياً، ثم أكد المراجعة.'
+      : 'استُخرجت الحقول الخمسة. طابقها مع صورة DXN وحدد مربع تأكيد المراجعة.');
+  }
+  window.addEventListener('message',event=>{
+    const frame=$('vaultOcrFrame');
+    if(!frame||event.source!==frame.contentWindow||event.origin!=='null')return;
+    const message=event.data;
+    if(!message||message.scope!=='dxn-vault-ocr')return;
+    if(message.type==='ready'){ocrReady=true;sendOcrRequest();return;}
+    if(!ocrBusy||message.id!==ocrRequestId)return;
+    if(message.type==='progress'){
+      ocrStatus(String(message.message||'جارٍ تحليل الصورة...').slice(0,200));
+    }else if(message.type==='result'){
+      try{applyOcrResult(message.fields,message.needsReview);finishOcr();}
+      catch(error){finishOcr(error.message);}
+    }else if(message.type==='error'){
+      finishOcr(String(message.message||'خطأ غير معروف').slice(0,200));
+    }
+  });
+  function startOcrScan(file){
+    resetOcrScan();
+    ocrBusy=true;
+    ocrRequestId=crypto.randomUUID();
+    ocrBaseline=Object.fromEntries(Object.values(ocrFields).map(id=>[id,$(id).value]));
+    ocrQueued={id:ocrRequestId,file};
+    $('saveEntryBtn').disabled=true;
+    ocrStatus('جارٍ تجهيز قارئ صورة DXN على الجهاز، دون الوصول إلى محتويات الخزنة...');
+    ocrTimeout=setTimeout(()=>{if(ocrBusy)finishOcr('انتهت مهلة قراءة الصورة؛ أدخل البيانات يدوياً');},120000);
+    if(!ocrFrameStarted){
+      ocrFrameStarted=true;
+      $('vaultOcrFrame').src=$('vaultOcrFrame').dataset.src;
+    }else sendOcrRequest();
+  }
   $('newRegistrationImageInput').addEventListener('change',async event=>{
     const file=event.target.files?.[0];
     pendingFormImage=null;
@@ -565,7 +674,8 @@
       pendingFormImage=picture;
       $('newRegistrationImagePreviewImg').src=picture.dataUrl;
       $('newRegistrationImagePreview').classList.remove('hidden');
-      notify('صورة اكتمال العضوية جاهزة؛ ستُحفظ مشفّرة عند حفظ العضو.');
+      startOcrScan(file);
+      notify('الصورة جاهزة للحفظ مشفّرة، وبدأ استخراج بياناتها إلى حقول مفاتيح العضوية.');
     }catch(error){
       $('newRegistrationImageInput').value='';
       notify('تعذر تجهيز صورة اكتمال العضوية: '+error.message,true);
@@ -573,6 +683,7 @@
   });
   $('removeNewRegistrationImage').addEventListener('click',()=>{
     pendingFormImage=null;
+    resetOcrScan();
     $('newRegistrationImageInput').value='';
     $('newRegistrationImagePreviewImg').removeAttribute('src');
     $('newRegistrationImagePreview').classList.add('hidden');
@@ -692,7 +803,7 @@
       list.appendChild(box);
     }
   }
-  function edit(id){const e=vault.entries.find(x=>x.id===id);if(!e)return;editingId=id;$('memberName').value=e.name;$('memberCode').value=e.code;$('country').value=e.country;$('memberEmail').value=e.email||'';$('sponsor').value=e.sponsor;$('sponsorCode').value=e.sponsorCode||'';$('memberPassword').value=e.password;$('memberPassword').required=e.status!=='changed';$('deliveryStatus').value=e.status;$('formTitle').textContent='تعديل سجل العضو';$('saveEntryBtn').textContent='حفظ التغييرات مشفرة';$('cancelEditBtn').classList.remove('hidden');window.scrollTo({top:0,behavior:'smooth'});touch();}
+  function edit(id){const e=vault.entries.find(x=>x.id===id);if(!e)return;resetOcrScan();pendingFormImage=null;$('newRegistrationImageInput').value='';$('newRegistrationImagePreview').classList.add('hidden');$('newRegistrationImagePreviewImg').removeAttribute('src');editingId=id;$('memberName').value=e.name;$('memberCode').value=e.code;$('country').value=e.country;$('memberEmail').value=e.email||'';$('sponsor').value=e.sponsor;$('sponsorCode').value=e.sponsorCode||'';$('memberPassword').value=e.password;$('memberPassword').required=e.status!=='changed';$('deliveryStatus').value=e.status;$('formTitle').textContent='تعديل سجل العضو';$('saveEntryBtn').textContent='حفظ التغييرات مشفرة';$('cancelEditBtn').classList.remove('hidden');window.scrollTo({top:0,behavior:'smooth'});touch();}
   async function erasePassword(id){const e=vault.entries.find(x=>x.id===id);if(!e||!confirm('هل تريد حذف كلمة المرور المحفوظة لـ '+e.name+'؟ سيبقى سجل العضو ورقم عضويته.'))return;try{await commit(v=>{const x=v.entries.find(y=>y.id===id);x.password='';x.status='changed';x.updatedAt=dateISO();});if(editingId===id)resetForm();revealId=null;notify('حُذفت كلمة المرور وبقي سجل العضو.');}catch{notify('تعذر الحذف.',true);}}
   async function deleteEntry(id){
     const e=vault.entries.find(x=>x.id===id);
