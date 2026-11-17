@@ -146,13 +146,6 @@
         <div class="section-head"><h2 id="formTitle">إضافة عضو جديد</h2><span class="tag gray">الأرقام الإنجليزية فقط</span></div>
         <form id="entryForm" autocomplete="off">
           <div class="grid2">
-            <div class="field full"><label class="label" for="memberName">اسم العضو الكامل *</label><input id="memberName" required maxlength="140" placeholder="الاسم كما سُجّل في DXN"></div>
-            <div class="field"><label class="label" for="memberCode">رقم العضوية الصادر من DXN</label><input id="memberCode" inputmode="numeric" dir="ltr" maxlength="15" placeholder="أضفه بعد نجاح التسجيل"><div class="password-help">يمكن تركه فارغاً مؤقتاً، ثم إضافته لاحقاً.</div></div>
-            <div class="field"><label class="label" for="country">الدولة</label><input id="country" maxlength="70" value="العراق" placeholder="الدولة"></div>
-            <div class="field full"><label class="label" for="memberEmail">البريد الإلكتروني للعضو (اختياري)</label><input id="memberEmail" type="email" inputmode="email" dir="ltr" maxlength="254" autocomplete="off" spellcheck="false" placeholder="name@example.com"></div>
-            <div class="field"><label class="label" for="sponsor">اسم الراعي (السبونسر)</label><input id="sponsor" maxlength="140" placeholder="اسم الراعي الذي سجل العضو"></div>
-            <div class="field"><label class="label" for="sponsorCode">رقم عضوية الراعي</label><input id="sponsorCode" inputmode="numeric" dir="ltr" maxlength="15" placeholder="بالأرقام الإنجليزية فقط"></div>
-            <div class="field full"><label class="label" for="memberPassword">كلمة المرور الأولية *</label><div class="password-row"><input id="memberPassword" type="password" required minlength="9" maxlength="9" autocomplete="new-password" spellcheck="false" aria-describedby="passwordHelp"><button id="showNewPassword" type="button" class="btn plain" aria-label="إظهار أو إخفاء كلمة المرور">◉</button></div><div class="password-help" id="passwordHelp">9 خانات بالضبط: 3 أحرف إنجليزية كبيرة (A–Z)، و3 صغيرة (a–z)، و3 أرقام (0–9)، بترتيب عشوائي، دون رموز خاصة. تحقّق من قبولها في DXN.</div></div>
             <div class="field full photo-input-wrap">
               <label class="label" for="newRegistrationImageInput">📷 صورة اكتمال العضوية (اختيارية)</label>
               <input id="newRegistrationImageInput" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" aria-describedby="registrationPhotoHelp">
@@ -163,6 +156,14 @@
                 <label for="vaultOcrReviewed"><input type="checkbox" id="vaultOcrReviewed">راجعت الأسماء ورقمي العضوية والبريد الإلكتروني مقابل صورة DXN، وصححت أي خطأ في القراءة.</label>
               </div>
             </div>
+            <div class="field full"><label class="label" for="memberName">اسم العضو الكامل *</label><input id="memberName" required maxlength="140" placeholder="الاسم كما سُجّل في DXN"></div>
+            <div class="field"><label class="label" for="memberCode">رقم العضوية الصادر من DXN</label><input id="memberCode" inputmode="numeric" dir="ltr" maxlength="15" placeholder="أضفه بعد نجاح التسجيل"><div class="password-help">يمكن تركه فارغاً مؤقتاً، ثم إضافته لاحقاً.</div></div>
+            <div class="field"><label class="label" for="country">الدولة</label><input id="country" maxlength="70" value="العراق" placeholder="الدولة"></div>
+            <div class="field full"><label class="label" for="memberEmail">البريد الإلكتروني للعضو (اختياري)</label><input id="memberEmail" type="email" inputmode="email" dir="ltr" maxlength="254" autocomplete="off" spellcheck="false" placeholder="name@example.com"></div>
+            <div class="field"><label class="label" for="sponsor">اسم الراعي (السبونسر)</label><input id="sponsor" maxlength="140" placeholder="اسم الراعي الذي سجل العضو"></div>
+            <div class="field"><label class="label" for="sponsorCode">رقم عضوية الراعي</label><input id="sponsorCode" inputmode="numeric" dir="ltr" maxlength="15" placeholder="بالأرقام الإنجليزية فقط"></div>
+            <div class="field full"><label class="label" for="memberPassword">كلمة المرور الأولية *</label><div class="password-row"><input id="memberPassword" type="password" required minlength="9" maxlength="9" autocomplete="new-password" spellcheck="false" aria-describedby="passwordHelp"><button id="showNewPassword" type="button" class="btn plain" aria-label="إظهار أو إخفاء كلمة المرور">◉</button></div><div class="password-help" id="passwordHelp">9 خانات بالضبط: 3 أحرف إنجليزية كبيرة (A–Z)، و3 صغيرة (a–z)، و3 أرقام (0–9)، بترتيب عشوائي، دون رموز خاصة. تحقّق من قبولها في DXN.</div></div>
+
           </div>
           <div class="buttons" style="margin-top:12px"><button id="generateBtn" type="button" class="btn secondary">✦ توليد كلمة مرور معقدة (3+3+3)</button><button id="copyNewBtn" type="button" class="btn plain">نسخ بيانات العضو كاملة</button></div>
           <div class="form-actions"><label class="label" for="deliveryStatus">حالة التسليم</label><select id="deliveryStatus"><option value="not_delivered">لم تُسلَّم بعد</option><option value="delivered">سُلِّمت إلى العضو</option><option value="changed" hidden>غيّرها العضو، وحُذفت الكلمة القديمة</option></select><div class="buttons" style="margin-top:13px"><button type="submit" class="btn primary" id="saveEntryBtn">حفظ العضو مشفراً</button><button type="button" class="btn plain hidden" id="cancelEditBtn">إلغاء التعديل</button></div></div>
