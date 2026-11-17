@@ -91,3 +91,35 @@ test('database migration preserves authenticated track gating and only matches t
   assert.match(sql,/watched_seconds\*100 < expected_seconds\*90/);
   assert.doesNotMatch(sql,/UPDATE public\.(?:basic_training_progress|advanced_financial_progress|professional_training_progress)/);
 });
+
+test('closing a playing video sends both bookmarks and verified progress with keepalive',async()=>{
+ const env=setup({resumeEnabled:true,scripts:['training-engine.js']});
+ const watcher=env.ctx.DXNTrainingEngine.createWatch({track:'basic',lessonNo:1,watchCompleted:false});
+ const p=new env.ctx.YT.Player('checkpoint-player',{videoId:'lxhnkUov9sE',events:{}});
+ const fetch=env.ctx.fetch;
+ const keepalive=[];
+ env.ctx.fetch=(url,options)=>{
+  if(options.keepalive)keepalive.push(JSON.parse(options.body));
+  return fetch(url,options);
+ };
+ watcher.attach(p);
+ await env.play(38,{player:p});
+ assert.ok(env.server.attempts[Object.keys(env.server.attempts).at(-1)].watched>20);
+ p.state=2;p.t+=0.5;
+ watcher.onState(2);
+ watcher.stop();
+ await env.flush();
+ assert.ok(keepalive.some(x=>x.fn==='training_video_bookmark'),'final bookmark survives route change');
+ assert.ok(keepalive.some(x=>x.fn==='training_watch_report'),'final verified position survives route change');
+ const last=Object.values(env.server.bookmarks).at(-1);
+ assert.ok(last.position>=38,'saves latest playback second before releasing the player');
+});
+test('training interface does not promise fresh 0-based session after activating resume',()=>{
+ for(const file of ['basic-training.js','professional-training-course.js','advanced-financial-training.js']){
+  const text=fs.readFileSync(path.join(__dirname,'..',file),'utf8');
+  assert.doesNotMatch(text,/إعادة المشاهدة من البداية|المشاهدة غير المكتملة لا تُحفظ بين الجلسات|في جلسة واحدة أولًا/);
+ }
+ const engine=fs.readFileSync(path.join(__dirname,'..','training-engine.js'),'utf8');
+ assert.match(engine,/pagehideBookmark\(\); \/\/ final keepalive checkpoint/);
+ assert.match(engine,/استعادة موضع الفيديو غير مفعّلة/);
+});
