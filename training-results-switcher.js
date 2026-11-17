@@ -41,7 +41,7 @@
   });
  };
  window.trainingResultsMemberHtml=function(){
-  return shell('member',{
+  return (window.trainingMentorRosterHtml?.()||'')+shell('member',{
    basic:window.basicTrainingMemberPage?.()||'',
    professional:window.professionalTrainingMemberProfile?.()||'',
    advanced:window.advancedFinancialMemberProfile?.()||''
