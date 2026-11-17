@@ -88,7 +88,7 @@ function fakeServer(clockRef,{resumeEnabled=false}={}){
       2:{duration:157,video:'tVim2H5Elck',ready:true,published:true,title:'احترافي 2',instructor:'م. محمود المصري'},
       3:{duration:2718,video:'HOtDbw8-P3w',ready:true,published:false,title:'احترافي 3',instructor:'م. محمود المصري'}}}
   };
-  const progress={},attempts={};let seq=0;const idle=600;
+  const progress={},attempts={},bookmarks={};let seq=0;const idle=600;
   const row=(tok,t,n)=>{const k=tok+'|'+t+'|'+n;return progress[k]||(progress[k]={completed:false,passed:false,best:null});};
   const peek=(tok,t,n)=>progress[tok+'|'+t+'|'+n];
   const unlocked=(tok,t,n)=>n===1||!!(peek(tok,t,n-1)&&peek(tok,t,n-1).completed&&peek(tok,t,n-1).passed);
@@ -112,20 +112,44 @@ function fakeServer(clockRef,{resumeEnabled=false}={}){
     if(!result.ok)return result;
     const attempt=attempts[result.body.attempt_id];
     const video=tracks[t].lessons[n].video;
-    let seconds=0;
-    if(!row(tok,t,n).completed){
-      seconds=Object.values(attempts)
+    const completed=row(tok,t,n).completed;
+    let watched=0,playback=0;
+    if(!completed){
+      watched=Object.values(attempts)
         .filter(a=>a.id!==attempt.id&&a.tok===tok&&a.track===t&&a.n===n&&
           a.expected===attempt.expected&&(!a.source_video_id||a.source_video_id===video)&&
           a.watched*100<a.expected*90)
         .reduce((best,a)=>Math.max(best,a.watched),0);
-      seconds=Math.max(0,Math.min(seconds,Math.ceil(attempt.expected*0.9)-1));
+      watched=Math.max(0,Math.min(watched,Math.ceil(attempt.expected*0.9)-1));
+      playback=watched;
+    }else{
+      const key=tok+'|'+t+'|'+n+'|'+video;
+      const bookmark=bookmarks[key];
+      if(bookmark&&bookmark.duration===attempt.expected){
+        playback=bookmark.finished?0:bookmark.position;
+      }else{
+        playback=Object.values(attempts).filter(a=>a.id!==attempt.id&&a.tok===tok&&
+          a.track===t&&a.n===n&&a.completed&&a.expected===attempt.expected&&
+          (!a.source_video_id||a.source_video_id===video))
+          .reduce((best,a)=>Math.max(best,a.watched),0);
+      }
+      playback=Math.max(0,Math.min(playback,attempt.expected-4));
     }
-    attempt.watched=seconds;
+    attempt.watched=watched;
     attempt.source_video_id=video;
-    Object.assign(result.body,{watched:seconds,resume_seconds:seconds,
-      percent:Math.floor(100*seconds/attempt.expected)});
+    Object.assign(result.body,{watched,resume_seconds:playback,
+      percent:Math.floor(100*watched/attempt.expected)});
     return result;
+  }
+  function bookmark(tok,t,n,position,duration){
+    if(!resumeEnabled)return err('RPC not found');
+    if(!tracks[t]||!tracks[t].lessons[n]||!unlocked(tok,t,n))return err('الدرس مغلق');
+    const L=tracks[t].lessons[n];
+    if(!Number.isFinite(position)||position<0||position>duration+3||
+      duration<L.duration*0.85||duration>L.duration*1.15)return err('بيانات موضع الفيديو غير صالحة');
+    const finished=position>=duration-2;
+    bookmarks[tok+'|'+t+'|'+n+'|'+L.video]={position:finished?0:position,duration:L.duration,finished};
+    return {ok:true,body:{ok:true,finished}};
   }
   function report(tok,id,cur,dur){
     const a=attempts[id];if(!a||a.tok!==tok)return err('جلسة المشاهدة غير صالحة');
@@ -162,6 +186,7 @@ function fakeServer(clockRef,{resumeEnabled=false}={}){
     switch(fn){
       case 'training_watch_begin':return begin(tok,a.p_track,a.p_lesson_no);
       case 'training_watch_begin_resume':return beginResume(tok,a.p_track,a.p_lesson_no);
+      case 'training_video_bookmark':return bookmark(tok,a.p_track,a.p_lesson_no,a.p_position,a.p_duration);
       case 'training_watch_report':return report(tok,a.p_attempt_id,a.p_current,a.p_duration);
       case 'basic_training_watch_update':case 'advanced_financial_watch_update':return err('تم تحديث نظام المشاهدة؛ حدّث الصفحة لبدء مشاهدة جديدة');
       case 'basic_training_overview':return {ok:true,body:{role:'member',watch_requirement:90,pass_requirement:16,
@@ -181,7 +206,7 @@ function fakeServer(clockRef,{resumeEnabled=false}={}){
       default:return {ok:true,body:{}};
     }
   }
-  return {handle,tracks,attempts,peek,row};
+  return {handle,tracks,attempts,bookmarks,peek,row};
 }
 
 // Loads the real browser scripts into one context with the fake server, DOM and YouTube player.
