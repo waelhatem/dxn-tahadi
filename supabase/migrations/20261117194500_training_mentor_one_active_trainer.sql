@@ -118,7 +118,7 @@ CREATE OR REPLACE FUNCTION public.training_mentor_respond(
 DECLARE v_member_no text; v_user uuid;
 BEGIN
  v_user:=public.app_current_user_id(p_token);
- SELECT coalesce(nullif(trim(m.member_no),''),nullif(trim(u.login_no,'')))
+ SELECT coalesce(nullif(trim(m.member_no),''),nullif(trim(u.login_no),''))
  INTO v_member_no FROM public.app_users u
  LEFT JOIN public.members m ON m.id=u.member_id
  WHERE u.id=v_user AND u.role='member' AND u.active;
