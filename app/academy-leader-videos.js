@@ -5,8 +5,8 @@
   if(window.__DXN_ACADEMY_LEADER_VIDEOS__)return;
   window.__DXN_ACADEMY_LEADER_VIDEOS__=true;
   const BUCKET='platform-academy';
-  const UPGRADE_MAX_BYTES=100*1024*1024;
-  // Project is currently Supabase Free: request effective cap from the server.
+  const HARD_MAX_BYTES=1024*1024*1024; // 1 GiB; server/storage settings can be lower
+  // Always fetch the currently configured limit from the server, never assume paid storage.
   let MAX_BYTES=50*1024*1024;
   const PROJECT='https://ryqpstkzppaifpvhezzn.supabase.co';
   const COVER_SRC='/academy-leader-photo.avif';
@@ -102,7 +102,7 @@
         +'<div class="academy-leader-cover-preview" id="academyLeaderCoverPreview" aria-label="معاينة الغلاف الموحد"></div>'
         +'<small>🖼️ الغلاف ثابت بصورتك المعتمدة، ويتغير العنوان تلقائياً دون مونتاج.</small>'
         +'<a class="academy-leader-preview-link" href="/academy-cover-preview.html" target="_blank" rel="noopener">👁️ افتح معاينة الغلاف للموبايل واللابتوب</a>'
-        +'<small id="academyLeaderUploadLimit">MP4 / MOV / WebM — حد الخطة الحالية 50 ميغابايت. تقنية الرفع تدعم حتى 100 ميغابايت بعد ترقية Supabase.</small>'
+        +'<small id="academyLeaderUploadLimit">MP4 / MOV / WebM — جارٍ التحقق من حد الرفع المسموح. الملفات الكبيرة تُرفع على دفعات قابلة للاستكمال.</small>'
         +'<small>عند الضغط على «نشر» فقط سيُرفع الملف ويُرسل الإعلان للأعضاء.</small>'
         +'</div>'
         +'<div class="academy-leader-progress-wrap" id="academyLeaderProgressWrap" hidden role="status" aria-live="polite">'
@@ -156,12 +156,15 @@
     if(!isLeader())return;
     try{
       const info=await post('/api/academy-video-storage',{action:'limits',p_token:session()});
-      if(info.max_bytes===UPGRADE_MAX_BYTES)MAX_BYTES=UPGRADE_MAX_BYTES;
+      // This value is enforced server-side; the UI must never advertise a higher limit.
+      if(Number.isSafeInteger(info.max_bytes)&&info.max_bytes>=1&&info.max_bytes<=HARD_MAX_BYTES)
+        MAX_BYTES=info.max_bytes;
       else MAX_BYTES=50*1024*1024;
+      const capMB=Math.round(MAX_BYTES/1024/1024);
       const note=document.getElementById('academyLeaderUploadLimit');
-      if(note)note.textContent=MAX_BYTES===UPGRADE_MAX_BYTES
-        ?'MP4 / MOV / WebM — الحد المسموح حالياً: 100 ميغابايت. الرفع قابل للاستكمال عند انقطاع الإنترنت.'
-        :'MP4 / MOV / WebM — الحد الحالي 50 ميغابايت بسبب خطة Supabase المجانية. تقنية الرفع مجهزة حتى 100 ميغابايت بعد الترقية.';
+      if(note)note.textContent=MAX_BYTES<=50*1024*1024
+        ?'MP4 / MOV / WebM — الحد المهيأ حالياً: 50 ميغابايت. لتفعيل ملفات حتى 1 غيغابايت يلزم رفع حد Supabase Storage وترقية الخطة عند الحاجة.'
+        :'MP4 / MOV / WebM — الحد المهيأ حالياً: '+capMB+' ميغابايت. تدعم الملفات الكبيرة الرفع المتتابع والاستكمال بعد انقطاع الاتصال.';
       const current=document.getElementById('academyLeaderVideoFile')?.files?.[0];
       const publish=document.getElementById('academyLeaderPublishButton');
       if(current&&publish&&!window.__DXN_ACADEMY_RESUMABLE__?.hasActive())
@@ -374,8 +377,8 @@
     if(meta)meta.hidden=true;
     if(publish)publish.disabled=true;
     if(!file)return;
-    if(file.size<1||file.size>UPGRADE_MAX_BYTES){
-      showMessage('حجم الملف غير صالح أو يتجاوز 100 ميغابايت. اختر ملفاً أصغر.',true);
+    if(file.size<1||file.size>HARD_MAX_BYTES){
+      showMessage('حجم الملف غير صالح أو يتجاوز 1 غيغابايت (1024 ميغابايت). اختر ملفاً أصغر.',true);
       return;
     }
     if(!inferredType(file)){
@@ -397,7 +400,7 @@
       if(meta)meta.hidden=false;
       if(publish)publish.disabled=file.size>MAX_BYTES;
       if(file.size>MAX_BYTES){
-        showMessage('🎧 يمكنك معاينة الفيديو، لكن نشر ملف أكبر من 50 ميغابايت يحتاج ترقية خطة Supabase أولاً.',true);
+        showMessage('🎧 يمكنك معاينة الفيديو، لكن حجمه يتجاوز الحد المهيأ حالياً ('+Math.round(MAX_BYTES/1024/1024)+' ميغابايت). تفعيل حجم أكبر يتطلب إعداد التخزين في Supabase.',true);
       }else{
         showMessage('🎧 يمكنك الاستماع للفيديو الآن؛ لم يتم رفعه أو إرسال إعلان عنه.');
       }
@@ -415,7 +418,7 @@
     const file=document.getElementById('academyLeaderVideoFile')?.files?.[0];
     if(!localVideoPreviewUrl){showMessage('اختر الفيديو واستمع إليه قبل إدخال العنوان ونشره.',true);return}
     if(!button||!file||title.length<4||title.length>160||description.length<5){showMessage('اكتب عنوان الفيديو وموضوعه، ثم اختر ملف الفيديو.',true);return}
-    if(file.size>MAX_BYTES){showMessage('حجم الفيديو أكبر من الحد الذي تسمح به خطة Supabase الحالية ('+Math.round(MAX_BYTES/1024/1024)+' ميغابايت).',true);return}
+    if(file.size<1||file.size>MAX_BYTES){showMessage('حجم الفيديو خارج الحد المهيأ حالياً ('+Math.round(MAX_BYTES/1024/1024)+' ميغابايت). يلزم ضبط حد Supabase Storage قبل نشر فيديو أكبر.',true);return}
     const mime=inferredType(file);
     if(!mime){showMessage('صيغة الفيديو غير مدعومة. استخدم MP4 أو MOV أو WebM.',true);return}
     button.disabled=true;

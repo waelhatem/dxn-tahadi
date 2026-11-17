@@ -3,12 +3,20 @@ const {randomUUID}=require('node:crypto');
 
 const PROJECT_URL='https://ryqpstkzppaifpvhezzn.supabase.co';
 const BUCKET='platform-academy';
-// The project is currently Supabase Free: max 50 MB. 100 MB is only enabled
-// after a paid-plan upgrade AND raising Supabase Storage global limit.
-const MAX_VIDEO=100*1024*1024;
-const FREE_MAX_VIDEO=50*1024*1024;
+// TUS supports large files, but Supabase Storage's global and per-bucket limits
+// must ALSO allow the size. Free projects cannot raise the global limit above 50 MB.
+// A paid project can opt in via ACADEMY_VIDEO_MAX_MB (50..1024).
+const MB=1024*1024;
+const MAX_VIDEO=1024*MB; // 1 GiB: shared by guide videos and leader explanations
+const LEGACY_PAID_MAX_VIDEO=100*MB;
+const FREE_MAX_VIDEO=50*MB;
 function effectiveMaxVideo(){
-  return process.env.ACADEMY_VIDEO_100MB_ENABLED==='true'?MAX_VIDEO:FREE_MAX_VIDEO;
+  const raw=String(process.env.ACADEMY_VIDEO_MAX_MB||'').trim();
+  if(/^\d{2,4}$/.test(raw)){
+    const configured=Number(raw);
+    if(configured>=50&&configured<=1024)return configured*MB;
+  }
+  return process.env.ACADEMY_VIDEO_100MB_ENABLED==='true'?LEGACY_PAID_MAX_VIDEO:FREE_MAX_VIDEO;
 }
 const TOKEN_RE=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const TYPES={'video/mp4':'mp4','video/quicktime':'mov','video/webm':'webm','video/x-m4v':'m4v','video/3gpp':'3gp'};
@@ -68,10 +76,12 @@ async function handler(req,res){
       if(user.role!=='leader')return res.status(403).json({error:'رفع الفيديوهات متاح للقائد فقط'});
       const size=Number(req.body?.file_size);
       const mime=String(req.body?.content_type||'').toLowerCase();
-      if(!Number.isSafeInteger(size)||size<1||size>effectiveMaxVideo())
-        return res.status(400).json({error:effectiveMaxVideo()===FREE_MAX_VIDEO
-          ? 'حساب Supabase الحالي مجاني ويحد الفيديو إلى 50 ميغابايت. ارفع ملفاً أصغر، أو رقِّ خطة التخزين قبل رفع 100 ميغابايت.'
-          : 'حجم الفيديو يجب ألا يتجاوز 100 ميغابايت.'});
+      if(!Number.isSafeInteger(size)||size<1||size>effectiveMaxVideo()){
+        const capMB=Math.round(effectiveMaxVideo()/MB);
+        return res.status(400).json({error:capMB===50
+          ? 'حد رفع الفيديو المهيأ حالياً 50 ميغابايت. رفع ملفات أكبر يتطلب خطة Supabase مدفوعة وضبط الحد العام للتخزين.'
+          : 'حجم الفيديو يتجاوز الحد المهيأ لهذا الموقع ('+capMB+' ميغابايت). تحقق من إعدادات التخزين قبل المحاولة.'});
+      }
       if(!Object.hasOwn(TYPES,mime))return res.status(400).json({error:'صيغة الفيديو غير مدعومة. استخدم MP4 أو MOV أو WebM.'});
       if(!secret)return res.status(503).json({error:'مفتاح التخزين الآمن غير مُعدّ في بيئة المعاينة'});
       const path='leader/'+user.user_id+'/'+randomUUID()+'.'+TYPES[mime];
@@ -103,4 +113,4 @@ async function handler(req,res){
   }
 }
 module.exports=handler;
-module.exports.__test={signedDownloadUrl,TYPES,MAX_VIDEO,FREE_MAX_VIDEO,effectiveMaxVideo};
+module.exports.__test={signedDownloadUrl,TYPES,MAX_VIDEO,LEGACY_PAID_MAX_VIDEO,FREE_MAX_VIDEO,effectiveMaxVideo};

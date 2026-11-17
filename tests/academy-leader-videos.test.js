@@ -126,16 +126,61 @@ test('members get only a timed signed playable URL for an existing published vid
     });
   }finally{global.fetch=oldFetch}
 });
-test('Free plan stays capped at 50 MB; 100 MB code awaits paid-plan activation',()=>{
-  assert.equal(api.__test.MAX_VIDEO,100*1024*1024);
-  assert.equal(api.__test.FREE_MAX_VIDEO,50*1024*1024);
-  assert.equal(api.__test.effectiveMaxVideo(),50*1024*1024);
-  assert.ok(enhanced.includes('let MAX_BYTES=50*1024*1024'));
-  assert.ok(enhanced.includes('UPGRADE_MAX_BYTES=100*1024*1024'));
+test('both academy upload destinations accept up to 1 GiB when storage is configured, while Free defaults to 50 MB',async()=>{
+  const MB=1024*1024;
+  assert.equal(api.__test.MAX_VIDEO,1024*MB);
+  assert.equal(api.__test.LEGACY_PAID_MAX_VIDEO,100*MB);
+  assert.equal(api.__test.FREE_MAX_VIDEO,50*MB);
+  await withEnv({ACADEMY_VIDEO_MAX_MB:'',ACADEMY_VIDEO_100MB_ENABLED:'false'},()=>{
+    assert.equal(api.__test.effectiveMaxVideo(),50*MB);
+  });
+  await withEnv({ACADEMY_VIDEO_MAX_MB:'500',ACADEMY_VIDEO_100MB_ENABLED:'false'},()=>{
+    assert.equal(api.__test.effectiveMaxVideo(),500*MB);
+  });
+  await withEnv({ACADEMY_VIDEO_MAX_MB:'1024',ACADEMY_VIDEO_100MB_ENABLED:'false'},()=>{
+    assert.equal(api.__test.effectiveMaxVideo(),1024*MB);
+  });
+  await withEnv({ACADEMY_VIDEO_MAX_MB:'1500',ACADEMY_VIDEO_100MB_ENABLED:'false'},()=>{
+    assert.equal(api.__test.effectiveMaxVideo(),50*MB);
+  });
+  assert.match(enhanced,/HARD_MAX_BYTES=1024\*1024\*1024/);
+  assert.match(enhanced,/info\.max_bytes>=1&&info\.max_bytes<=HARD_MAX_BYTES/);
   assert.ok(enhanced.includes('window.__DXN_ACADEMY_RESUMABLE__.upload'));
   assert.ok(enhanced.includes('academyLeaderProgress'));
   assert.ok(index.includes('academy-resumable.js'));
   assert.ok(index.includes('tus-js-client@4.3.1'));
+  assert.match(index,/academy-leader-videos\.js\?v=20261118-large-upload-1/);
+  const pending=fs.readFileSync(path.join(ROOT,'supabase/migrations/20261118211000_academy_video_1gb.sql'),'utf8');
+  assert.match(pending,/academy_leader_videos_file_size_check/);
+  assert.match(pending,/1073741824/);
+  assert.match(pending,/academy_guide_video_publish/);
+  assert.match(pending,/academy_leader_video_publish/);
+  assert.match(pending,/storage\.objects/);
+  assert.match(pending,/global_announcements/);
+});
+test('large upload is gated by the configured server limit before issuing any signed token',async()=>{
+  const MB=1024*1024;
+  const oldFetch=global.fetch;
+  const requested=[];
+  global.fetch=async(url)=>{
+    requested.push(url);
+    if(url.endsWith('/rpc/bootstrap'))return fakeHttp({user_id:userId,role:'leader'});
+    if(url.includes('/object/upload/sign/'))return fakeHttp({token:'signed-large-file-only'});
+    throw Error('unexpected route '+url);
+  };
+  try{
+    await withEnv({SUPABASE_SECRET_KEY:'test-secret',ACADEMY_VIDEO_MAX_MB:'500',ACADEMY_VIDEO_100MB_ENABLED:'false'},async()=>{
+      const accepted=res();
+      await api({method:'POST',body:{action:'prepare',p_token:token,content_type:'video/mp4',file_size:400*MB}},accepted);
+      assert.equal(accepted.code,200);
+      assert.equal(accepted.body.max_bytes,500*MB);
+      const rejected=res();
+      const count=requested.length;
+      await api({method:'POST',body:{action:'prepare',p_token:token,content_type:'video/mp4',file_size:501*MB}},rejected);
+      assert.equal(rejected.code,400);
+      assert.equal(requested.length,count+1,'rejected before issuing a storage signature');
+    });
+  }finally{global.fetch=oldFetch}
 });
 
 
