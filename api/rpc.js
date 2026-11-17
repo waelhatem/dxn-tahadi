@@ -1237,11 +1237,11 @@ module.exports = async function handler(req, res) {
     // Also guard watch-start: a locked member must not start a new watch attempt.
     const isProtectedProfessional = ['professional_training_overview',
       'professional_training_get_quiz','professional_training_submit_quiz'].includes(fn) ||
-      (fn==='training_watch_begin' && args.p_track==='professional');
+      (['training_watch_begin','training_watch_begin_resume'].includes(fn) && args.p_track==='professional');
     const isProtectedAdvanced = ['advanced_financial_overview',
       'advanced_financial_get_quiz','advanced_financial_submit_quiz',
       'advanced_financial_watch_update'].includes(fn) ||
-      (fn==='training_watch_begin' && args.p_track==='advanced');
+      (['training_watch_begin','training_watch_begin_resume'].includes(fn) && args.p_track==='advanced');
     if(fn==='member_training_track_access' || isProtectedProfessional || isProtectedAdvanced){
       try{
         const access=await resolveTrainingTrackAccess(args.p_token);
