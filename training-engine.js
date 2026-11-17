@@ -114,6 +114,16 @@
      p_token:w.session,p_track:w.track,p_lesson_no:w.lessonNo,
      p_position:Math.max(0,Math.floor(current)),p_duration:Math.floor(duration)
     }})}).catch(()=>{});}catch(_){}
+    // Preserve verified watched seconds too when the page is destroyed.
+    const a=w.attempt;
+    if(a&&!a.completed&&Math.floor(w.max)>a.watched){
+     try{fetch('/api/rpc',{method:'POST',keepalive:true,cache:'no-store',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({fn:'training_watch_report',args:{
+       p_token:w.session,p_attempt_id:a.id,
+       p_current:Math.floor(w.max),p_duration:Math.floor(duration)
+      }})}).catch(()=>{});}catch(_){}
+    }
   };
   document.addEventListener?.('visibilitychange',visibilityBookmark);
   window.addEventListener?.('pagehide',pagehideBookmark);
@@ -155,7 +165,7 @@
     const real=Math.round(w.playerDuration());
     if(real>=60&&w.attempt.duration&&Math.abs(real-w.attempt.duration)>Math.max(5,w.attempt.duration*0.02))
      msg('⚠️ مدة الفيديو على YouTube '+clock(real)+' تختلف عن المدة المعتمدة للدرس '+clock(w.attempt.duration)+'؛ أبلغ إدارة التدريب.');
-    else msg(saved>0?'▶ استئناف المشاهدة من '+clock(saved)+' — تقدمك السابق محفوظ.':'▶ بدأت المشاهدة. يُحفظ التقدم المؤكد تلقائياً للعودة لاحقاً.');
+    else msg(!w.resumeSupported?'⚠️ استعادة موضع الفيديو غير مفعّلة على قاعدة البيانات؛ قد تبدأ جلسة المشاهدة التالية من البداية.':saved>0?'▶ استئناف المشاهدة من '+clock(saved)+' — تقدمك السابق محفوظ.':'▶ بدأت المشاهدة. يُحفظ موضع الفيديو تلقائياً للعودة لاحقاً.');
     progress();
    }catch(e){msg('تعذر بدء جلسة المشاهدة: '+e.message);try{w.player.pauseVideo();}catch(_){}}
    finally{w.beginning=false;}
@@ -254,6 +264,7 @@
    // Capture playback and final verified seconds before marking the watcher stopped.
    if(w.attempt&&!w.attempt.saving)report();
    saveBookmark(true);
+   pagehideBookmark(); // final keepalive checkpoint even on SPA lesson switch
    w.stopped=true;
    document.removeEventListener?.('visibilitychange',visibilityBookmark);
    window.removeEventListener?.('pagehide',pagehideBookmark);
