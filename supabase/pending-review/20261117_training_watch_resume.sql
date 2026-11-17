@@ -9,7 +9,7 @@
 --   prerequisites, limit, session and watch-completion check.
 -- * Resumes only the greatest previously SERVER-CONFIRMED contiguous second
 --   for the SAME user, SAME track, SAME lesson and SAME video/duration.
--- * No sums across unrelated attempts; no forward skipping and no quiz bypass.
+-- * No sums across unrelated attempts; unverified bookmarks never unlock quizzes.
 -- * Existing passes, scores, lesson completion and quiz results are untouched.
 BEGIN;
 
@@ -86,7 +86,19 @@ BEGIN
       AND watched_seconds*100 < expected_seconds*90;
     -- Do not mark the 90% threshold complete merely by resuming.
     v_resume := GREATEST(0,LEAST(v_resume,CEIL(v_duration*0.9)::integer-1));
-    v_playback := v_resume;
+    -- Playback may have advanced a few seconds beyond the most recent report.
+    -- A bookmark is ONLY a player position, not certified watch credit.
+    -- Limit it to eight seconds past the server-confirmed point so it cannot
+    -- be used to bypass meaningful parts of an uncompleted lesson.
+    SELECT position_seconds,finished INTO v_position,v_finished
+    FROM public.training_video_positions
+    WHERE user_id=v_user AND track=p_track AND lesson_no=p_lesson_no
+      AND source_video_id=v_video AND duration_seconds=v_duration;
+    IF FOUND AND NOT v_finished THEN
+      v_playback := GREATEST(0,LEAST(v_position,v_resume+8,v_duration-4));
+    ELSE
+      v_playback := v_resume;
+    END IF;
   ELSE
     -- Once the watch requirement is complete, resume the actual playback
     -- position (even beyond 90%) without giving any extra watched credit.
@@ -123,8 +135,8 @@ END
 $fn$;
 
 -- Updating a bookmark does not award watched seconds or change an exam.
--- The client can seek freely in a completed video; for incomplete lessons the
--- resume function deliberately ignores bookmarks and uses verified attempts.
+-- Before 90%, restored bookmarks are bounded by validated watch progress +8s.
+-- After 90%, a member can freely continue through the remainder of the video.
 CREATE OR REPLACE FUNCTION public.training_video_bookmark(
  p_token uuid,p_track text,p_lesson_no integer,p_position integer,p_duration integer
 ) RETURNS jsonb
