@@ -9,7 +9,6 @@
 <title>قراءة صورة DXN في بيئة معزولة</title>
 </head>
 <body>
-<script src="/app/dxn-registration-ocr.js"></script>
 <script>
 (function(){
   'use strict';
@@ -37,6 +36,111 @@
     }
     return tesseractPromise;
   }
+  function cleanedLine(line) {
+    return String(line || '').normalize('NFKC')
+      .replace(/[٠-٩]/g, function (digit) { return String(digit.charCodeAt(0) - 0x660); })
+      .replace(/[۰-۹]/g, function (digit) { return String(digit.charCodeAt(0) - 0x6f0); })
+      .replace(/[\u200e\u200f]/g, '').trim();
+  }
+
+  function extractCodes(line) {
+    return Array.from(String(line || '').matchAll(/(?:^|[^\d])([0-9]{9})(?!\d)/g), function (m) { return m[1]; });
+  }
+
+  function upperName(line) {
+    // Latin names on DXN's success screen are uppercase. Ignore OCR noise from Arabic labels.
+    var match = String(line || '').match(/(?:^|\s)([A-Z][A-Z'-]{1,}(?:\s+[A-Z][A-Z'-]{1,}){1,7})(?=\s|$)/);
+    if (!match) return '';
+    var result = match[1].trim().replace(/\s+/g, ' ');
+    return result.length >= 5 && result.length <= 140 ? result : '';
+  }
+
+  function arabicName(line, allowSingleWord) {
+    // The Arabic UI puts labels and the actual name on the same line. Strip
+    // known labels, but preserve the spelling and word order in the name.
+    var value = String(line || '')
+      .replace(/(?:اسم|إسم|الاسم)\s*(?:العضو|الراعي|الدليل)/g, ' ')
+      .replace(/(?:الراعي|العضو|الدليل)\s*(?:اسم|إسم|الاسم)/g, ' ')
+      .replace(/(?:رقم|رمز)\s*(?:العضو|الراعي|الدليل)/g, ' ')
+      .replace(/الراعي\s*أو\s*الدليل/g, ' ')
+      .replace(/(?:^|\s)(?:اسم|إسم|الاسم|العضو|الراعي|الدليل|أو|رقم|رمز)(?=\s|$)/g, ' ')
+      .replace(/[0-9@._%+\-]/g, ' ')
+      .replace(/[^\u0621-\u064a\u0671-\u06d3\s]/g, ' ')
+      .replace(/[\u064b-\u065f\u0670]/g, '')
+      .replace(/\s+/g, ' ').trim();
+    var words = value.split(' ').filter(Boolean);
+    if (words.length < (allowSingleWord ? 1 : 2) || words.length > 9 || value.length < (allowSingleWord ? 3 : 5) || value.length > 140) return '';
+    if (/(?:تم التسجيل|التسجيل بنجاح|رسالة تفعيل|البريد الإلكتروني|صندوق الوارد|لقد أرسلنا|الدخول إلى)/.test(value)) return '';
+    return value;
+  }
+
+  function latinNameFragment(line) {
+    var full = upperName(line);
+    if (full && !/\b(?:GMAIL|EMAIL|LOGIN|SUCCESS|WELCOME)\b/.test(full)) return full;
+    // DXN sometimes wraps a surname onto its own line: "AL-ALOUSH".
+    // Also accept a single first line if the OCR separated every name word.
+    var match = String(line || '').match(/(?:^|[^A-Za-z'-])([A-Z][A-Z'-]{2,})(?=[^A-Za-z'-]|$)/);
+    if (!match || /^(?:GMAIL|EMAIL|DXN|LOGIN|MEMBER|SPONSOR|SUCCESS|WORLD|HOME)$/.test(match[1])) return '';
+    return match[1];
+  }
+
+  function findNextName(lines, index) {
+    var parts = [];
+    var language = '';
+    // Read all adjacent name rows, stopping at the following membership code.
+    // A single line is not necessarily the complete name on the mobile DXN screen.
+    for (var i = index; i < Math.min(lines.length, index + 9); i++) {
+      var line = lines[i];
+      if (i !== index && extractCodes(line).length) break;
+      if (/@|(?:رسالة تفعيل|صندوق الوارد|تم التسجيل بنجاح|التسجيل بنجاح)/.test(line)) break;
+      if (i === index) line = line.replace(/(?:^|[^\d])[0-9]{9}(?!\d)/g, ' ');
+
+      if (!language) {
+        var firstArabic = arabicName(line);
+        var firstLatin = upperName(line);
+        if (firstArabic) { language = 'ar'; parts.push(firstArabic); }
+        else if (firstLatin && !/\b(?:GMAIL|EMAIL)\b/.test(firstLatin)) { language = 'en'; parts.push(firstLatin); }
+        else {
+          // One-word starts are kept only if subsequent rows complete the name.
+          var loneLatin = latinNameFragment(line);
+          var loneArabic = arabicName(line, true);
+          if (loneLatin) { language = 'en'; parts.push(loneLatin); }
+          else if (loneArabic) { language = 'ar'; parts.push(loneArabic); }
+        }
+      } else {
+        var continuation = language === 'ar' ? arabicName(line, true) : latinNameFragment(line);
+        if (continuation && parts.join(' ').split(/\s+/).length + continuation.split(/\s+/).length <= 9) {
+          parts.push(continuation);
+        }
+      }
+    }
+    var value = parts.join(' ').replace(/\s+/g, ' ').trim();
+    return value.split(' ').length >= 2 && value.length <= 140 ? value : '';
+  }
+
+  function parseSuccessText(rawText) {
+    var lines = String(rawText || '').split(/\r?\n/).map(cleanedLine).filter(Boolean);
+    var codeRows = [];
+    lines.forEach(function (line, index) {
+      extractCodes(line).forEach(function (code) { codeRows.push({code: code, index: index}); });
+    });
+    var memberCode = codeRows[0] ? codeRows[0].code : '';
+    var sponsorCode = codeRows[1] ? codeRows[1].code : '';
+    var memberName = codeRows[0] ? findNextName(lines, codeRows[0].index) : '';
+    var sponsorName = codeRows[1] ? findNextName(lines, codeRows[1].index) : '';
+    var emailMatch = String(rawText || '').match(/[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/);
+    return {
+      memberCode: memberCode,
+      memberName: memberName,
+      sponsorCode: sponsorCode,
+      sponsorName: sponsorName,
+      email: emailMatch ? emailMatch[0] : '',
+      needsReview: !memberCode || !memberName || !sponsorCode || !sponsorName,
+      lines: lines.length
+    };
+  }
+
+
   async function scan(request) {
     var id=request.id, file=request.file, worker=null;
     try {
@@ -56,9 +160,7 @@
       });
       var response=await worker.recognize(file);
       var raw=String(response && response.data && response.data.text || '');
-      var parser=window.DXNRegistrationOCR && window.DXNRegistrationOCR.parseSuccessText;
-      if (typeof parser!=='function') throw Error('تعذر الوصول إلى محلل بيانات DXN');
-      var data=parser(raw);
+      var data=parseSuccessText(raw);
       // Never transmit full OCR text to the password vault: only the five fields.
       report('result',id,{fields:{
         memberName:data.memberName||'',
