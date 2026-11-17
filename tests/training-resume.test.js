@@ -44,6 +44,7 @@ for(const [track,T] of Object.entries(TRACKS)){
   const env=setup({resumeEnabled:true});
   env.server.row('member-a',track,1).completed=true;
   await T.mount(env);await T.start(env,1);await env.play(20);
+  assert.match(T.pct(env),/المشاهدة|الاختبار/,'watch completion remains visibly satisfied during replay');
   const p=env.players.at(-1);
   const late=Math.floor(T.len(1)*0.93);
   p.t=late;env.advance(6000);env.activeTick().f();await env.flush();
