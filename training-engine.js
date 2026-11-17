@@ -64,7 +64,7 @@
  function createWatch(o){
   const w={track:o.track,lessonNo:o.lessonNo,preview:!!o.preview,lessonCompleted:!!o.watchCompleted,
    session:token(),player:null,timer:null,stopped:false,
-   attempt:null,beginning:false,max:0,previousTime:0,previousWall:0,pausedSince:0,idle:DEFAULT_IDLE_S,replayNeeded:false};
+   attempt:null,beginning:false,max:0,previousTime:0,previousWall:0,pausedSince:0,idle:DEFAULT_IDLE_S,replayNeeded:false,resumeSupported:false};
   const msg=t=>{if(!w.stopped&&typeof o.onMessage==='function')o.onMessage(t);};
   // Whether this lesson's quiz bank is published, read at the moment it matters (the track may learn it later).
   const quizReady=()=>typeof o.quizReady==='function'?!!o.quizReady():o.quizReady!==false;
@@ -88,9 +88,9 @@
   const sameAccount=()=>{if(token()===w.session)return true;w.stop();return false;};
   // When a session expires, keep its last server-verified position for the next start.
   function dropAttempt(text){
-   const saved=Math.max(0,Math.floor(Number(w.attempt?.watched)||0));
+   const saved=w.resumeSupported?Math.max(0,Math.floor(Number(w.attempt?.watched)||0)):0;
    w.attempt=null;w.max=saved;w.previousTime=saved;w.previousWall=performance.now();
-   try{w.player.pauseVideo();if(saved>0)w.player.seekTo(saved,true);}catch(_){}
+   try{w.player.pauseVideo();w.player.seekTo(saved,true);}catch(_){}
    progress();if(text)msg(text);
   }
   async function begin(){
@@ -109,6 +109,7 @@
     w.idle=Number(r.idle_timeout_seconds)||DEFAULT_IDLE_S;
     // Saved as watched already (e.g. in another tab): the page learns it now and opens the quiz.
     if(r.watch_completed&&!w.lessonCompleted){w.lessonCompleted=true;if(typeof o.onCompleted==='function')o.onCompleted();}
+    w.resumeSupported=Number.isFinite(Number(r.resume_seconds))&&r.resume_seconds!==undefined;
     const duration=Number(r.duration)||0;
     const saved=!w.lessonCompleted&&Number.isFinite(Number(r.resume_seconds))
      ? Math.max(0,Math.min(Math.floor(Number(r.resume_seconds)),Math.max(0,Math.ceil(duration*0.9)-1))):0;
