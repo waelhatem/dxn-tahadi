@@ -66,7 +66,7 @@
  window.trainingMentorRosterHtml=function(){
   setTimeout(()=>window.trainingMentorRefresh?.(),0);
   return '<section class="card training-mentor-roster" id="trainingMentorRoster" dir="rtl">'+
-   '<h2>👥 متدربوني — متابعة التدريبات</h2>'+
+   '<h2>👥 الأعضاء الذين أتابعهم — تقدم التدريبات</h2>'+
    '<p class="muted">أدخل رقم عضوية المتدرب ليظهر اسمه تلقائيًا. يمكنك متابعة المشاهدة والاختبارات في المسارات الثلاثة دون المساس بسجله الأصلي. أعضاء فريقك المباشر وغير المباشر يُربطون مباشرة؛ أما العضو من فريق آخر فيوافق من حسابه أولًا.</p>'+
    '<form class="training-mentor-form" onsubmit="return trainingMentorAdd(event)">'+
    '<label for="trainingMentorNumber">رقم عضوية المتدرب</label>'+
