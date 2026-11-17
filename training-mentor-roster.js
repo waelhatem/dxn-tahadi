@@ -93,7 +93,17 @@
    try{
     const d=await rpc('training_mentor_lookup',{p_member_no:no});
     if(!sessionActive(t)||seq!==state.lookupSeq||number.value!==no)return;
-    name.value=d.name||'';state.verifiedNo=no;add.disabled=!name.value;notify('تم العثور على العضوية.');
+    name.value=d.name||'';
+    if(d.assignment_status==='occupied'){
+     notify('المتدرب تحت التدريب لدى مدرب آخر، ولا يمكن إضافته مرة ثانية.',true);
+     return;
+    }
+    if(d.assignment_status==='mine'){
+     notify(d.own_status==='declined'?'هذا المتدرب موجود في سجلك وقد ألغى إذن المتابعة.':
+      'هذا المتدرب مضاف بالفعل إلى قائمة المتابعة الخاصة بك.');
+     return;
+    }
+    state.verifiedNo=no;add.disabled=!name.value;notify('تم العثور على العضوية، ويمكن إضافة المتدرب.');
    }catch(e){if(sessionActive(t)&&seq===state.lookupSeq)notify(e.message,true);}
   },350);
  };
@@ -107,7 +117,10 @@
    const d=await rpc('training_mentor_add',{p_member_no:no});
    if(!sessionActive(t))return false;
    el('trainingMentorNumber').value='';el('trainingMentorName').value='';
-   state.verifiedNo='';notify((d.name||'تمت الإضافة')+(d.status==='approved'?' — متاح للمتابعة الآن.':d.status==='declined'?' — العضو رفض المتابعة.':' — بانتظار موافقة المتدرب.'));
+   state.verifiedNo='';notify((d.name||'تمت الإضافة')+
+    (d.already_added?' — هذا المتدرب موجود مسبقًا في قائمتك.':
+     d.status==='approved'?' — متاح للمتابعة الآن.':
+     d.status==='declined'?' — العضو رفض المتابعة.':' — بانتظار موافقة المتدرب.'));
    await window.trainingMentorRefresh({preserveMessage:true});
   }catch(e){if(sessionActive(t))notify(e.message,true);}
   finally{if(btn)btn.disabled=true;}
