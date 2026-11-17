@@ -46,3 +46,7 @@
  .training-mentor-actions button{flex:1}
  .training-mentor-count{margin:7px 0 0 4px}
 }
+
+.training-mentor-self-link{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;margin-top:12px;border:1px solid #bcd8ca;border-radius:12px;background:#f3faf6;color:#1b5741;font-size:13px;font-weight:750;line-height:1.8}
+.training-mentor-self-link button{white-space:normal;min-height:40px}
+@media(max-width:710px){.training-mentor-self-link{align-items:stretch}.training-mentor-self-link button{width:100%}}
