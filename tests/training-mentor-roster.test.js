@@ -67,8 +67,8 @@ test('mentor permission is server-side and restricted to own roster, with traine
 });
 
 test('mentor reads existing basic, professional and advanced progress; never mutates them',()=>{
- for(const track of ['basic','professional','advanced']){
-  assert.match(sql,new RegExp('public\\.'+track+(track==='advanced'?'_financial':'')+'_training_progress'));
+ for(const table of ['basic_training_progress','professional_training_progress','advanced_financial_progress']){
+  assert.match(sql,new RegExp('public\\\\.'+table));
  }
  for(const table of ['basic_training_progress','professional_training_progress','advanced_financial_progress',
   'basic_training_attempts','professional_training_attempts','advanced_financial_attempts']){
