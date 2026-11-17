@@ -249,10 +249,11 @@
   };
   w.onRate=function(rate){if(Number(rate)>1.01)try{w.player.setPlaybackRate(1);msg('يجب تشغيل الفيديو بسرعة 1x.');}catch(_){}};
   w.stop=function(){
-   if(w.stopped)return;w.stopped=true;
-   // Best effort: send the latest eligible verified time before switching lessons.
+   if(w.stopped)return;
+   // Capture playback and final verified seconds before marking the watcher stopped.
    if(w.attempt&&!w.attempt.saving)report();
    saveBookmark(true);
+   w.stopped=true;
    document.removeEventListener?.('visibilitychange',visibilityBookmark);
    window.removeEventListener?.('pagehide',pagehideBookmark);
    if(w.timer)clearInterval(w.timer);w.timer=null;w.attempt=null;
