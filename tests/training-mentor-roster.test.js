@@ -181,7 +181,7 @@ test('member can view own training results independently of mentoring list',()=>
    trainingResultsChoose:(scope,track)=>selected.push([scope,track]),
    basicTrainingLoadMemberPage:()=>reloaded++
   },console,document:{getElementById:id=>id==='memberTrainingResultsSwitcher'?results:null},
-  localStorage:{getItem:()=>null}};
+  localStorage:{getItem:()=>null},setTimeout:()=>0};
  vm.runInNewContext(js,ctx,{filename:'training-mentor-roster.js'});
  const html=ctx.window.trainingMentorRosterHtml();
  assert.match(html,/عرض سجلي التدريبي الشخصي/);
