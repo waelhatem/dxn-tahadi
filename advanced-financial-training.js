@@ -108,7 +108,7 @@ const cards=()=>{
  '<div class="advanced-profit-viewer">'+
  '<strong id="advancedProfitVideoTitle">الدرس '+n+' من 10 — '+esc(selected.title)+'</strong>'+
  '<div class="advanced-financial-inline-actions" style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;width:100%;">'+
- '<span class="muted" style="margin-inline-end:auto;">'+(ready?'▶ عند التشغيل تبدأ جلسة مشاهدة جديدة من البداية':'⏳ هذا الدرس غير منشور بعد، والمشاهدة لا تُحتسب')+'</span>'+
+ '<span class="muted" style="margin-inline-end:auto;">'+(ready?'▶ يمكنك استئناف الفيديو من آخر موضع محفوظ عند العودة':'⏳ هذا الدرس غير منشور بعد، والمشاهدة لا تُحتسب')+'</span>'+
  (role==='leader'&&window.innerWidth>=900?'<button type="button" class="name-list-btn" data-preview="'+n+'">⏱ اعتماد مدة الفيديو</button>':'')+
  '</div>'+
  '<button type="button" class="name-list-btn unified-training__play" data-watch="'+n+'" '+(viewable?'':'disabled')+'>▶ تشغيل الفيديو / إعادة المشاهدة</button>'+ 
@@ -245,7 +245,7 @@ async function startQuiz(n){
  if(!x)return notify('الدرس غير موجود');
  if(!isReady(x))return notify('الاختبار ينتظر إكمال اعتماد أسئلته ونشر الدرس وتثبيت مدة الفيديو في إعدادات القائد. هذه المشاهدة لا تُحفظ بعد.');
  if(!prevDone(n))return notify('اجتز اختبار الدرس السابق أولًا');
- if(!x.completed)return notify('أكمل مشاهدة 90% من الفيديو في جلسة واحدة أولًا');
+ if(!x.completed)return notify('أكمل مشاهدة 90% من الفيديو أولًا؛ تُحفظ المشاهدة المؤكدة بين الجلسات');
  const body=modal('اختبار الدرس '+n+' — '+x.title);body.textContent='جارٍ تحميل الاختبار...';
  try{const r=await rpc('advanced_financial_get_quiz',{p_lesson_no:n});
  if(!Array.isArray(r.questions)||r.questions.length!==20||r.questions.some(q=>!Array.isArray(q.options)||q.options.length!==4))
