@@ -59,7 +59,7 @@ test('mentor permission is server-side and restricted to own roster, with traine
  assert.match(sql,/r\.trainer_user_id=v_trainer AND r\.trainee_member_no=v_no AND r\.status='approved'/);
  assert.match(sql,/WITH RECURSIVE descendants/);
  assert.match(sql,/p_approve boolean/);
- assert.match(sql,/status='declined'/);
+ assert.match(sql,/status<>'declined'/);
  assert.match(sql,/trainee_member_no=v_member_no/);
  assert.match(sql,/ENABLE ROW LEVEL SECURITY/);
  assert.match(sql,/REVOKE ALL ON public\.training_mentor_trainees FROM PUBLIC,anon,authenticated/);
