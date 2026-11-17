@@ -64,6 +64,9 @@
       video.style.background='#071a14';
       video.style.marginTop='8px';
       video.src=String(file&&file.url||'');
+      // Prefer stable resource IDs over short-lived signed playback URLs.
+      const stableKey=String(file&&(file.id||file.path||file.storage_path||file.name)||'step5-video-'+index);
+      window.DXNVideoResume?.attachNative(video,'professional-step5',stableKey);
       card.appendChild(video);
 
       section.appendChild(card);
