@@ -99,7 +99,11 @@
    w.bookmarkLast=now;
    const params={p_track:w.track,p_lesson_no:w.lessonNo,
     p_position:Math.max(0,Math.floor(Number(current))),p_duration:Math.floor(duration)};
-   w.bookmarkQueue=w.bookmarkQueue.catch(()=>{}).then(()=>rpc('training_video_bookmark',params)).catch(()=>{});
+   w.bookmarkQueue=w.bookmarkQueue.catch(()=>{}).then(()=>{
+    // A bookmark queued before logout must never be posted under the next member's token.
+    if(token()!==w.session)return;
+    return rpc('training_video_bookmark',params);
+   }).catch(()=>{});
   }
   const visibilityBookmark=()=>{if(document.hidden)saveBookmark(true);};
   const pagehideBookmark=()=>{
