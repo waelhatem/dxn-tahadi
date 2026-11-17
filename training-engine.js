@@ -76,7 +76,7 @@
    // V86.93 — The bar shows the watch condition, not the YouTube position. Before 90% it is the share
    // the server confirmed in this attempt; once the server confirms 90% the condition is met, so the bar
    // is full and says so in words (the video itself keeps playing to its end, untouched).
-   if(a&&a.completed||!a&&w.lessonCompleted){
+   if(w.lessonCompleted||(a&&a.completed)){
     o.onProgress({percent:100,label:completionLabel(quizReady()),conditionMet:true,watched:a?a.watched:0,duration:a?a.duration:0,attempt:!!a});
     return;
    }
