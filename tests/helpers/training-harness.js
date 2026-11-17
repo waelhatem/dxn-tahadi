@@ -121,7 +121,10 @@ function fakeServer(clockRef,{resumeEnabled=false}={}){
           a.watched*100<a.expected*90)
         .reduce((best,a)=>Math.max(best,a.watched),0);
       watched=Math.max(0,Math.min(watched,Math.ceil(attempt.expected*0.9)-1));
-      playback=watched;
+      const saved=bookmarks[tok+'|'+t+'|'+n+'|'+video];
+      playback=saved&&!saved.finished&&saved.duration===attempt.expected
+       ?Math.max(0,Math.min(saved.position,watched+8,attempt.expected-4))
+       :watched;
     }else{
       const key=tok+'|'+t+'|'+n+'|'+video;
       const bookmark=bookmarks[key];
