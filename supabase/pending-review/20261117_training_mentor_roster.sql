@@ -175,7 +175,7 @@ BEGIN
 
  SELECT coalesce(jsonb_agg(jsonb_build_object(
  'lesson_no',l.training_no,'title',l.title,'completed',coalesce(p.watch_completed,false),
- 'watch_percent',CASE WHEN p.watch_completed THEN 100 ELSE LEAST(89,
+ 'watch_percent',CASE WHEN p.watch_completed THEN 100 WHEN coalesce(l.expected_duration_seconds,0)=0 THEN 0 ELSE LEAST(89,
     floor(100.0*greatest(coalesce(p.watch_seconds,0),coalesce(w.watched,0))
         /nullif(l.expected_duration_seconds,0))::integer) END,
  'best_score',p.best_score,'passed',coalesce(p.passed,false),'passed_at',p.passed_at,
@@ -190,7 +190,7 @@ BEGIN
 
  SELECT coalesce(jsonb_agg(jsonb_build_object(
  'lesson_no',l.lesson_no,'title',l.title,'completed',coalesce(p.watch_completed,false),
- 'watch_percent',CASE WHEN p.watch_completed THEN 100 ELSE LEAST(89,
+ 'watch_percent',CASE WHEN p.watch_completed THEN 100 WHEN coalesce(l.expected_duration_seconds,0)=0 THEN 0 ELSE LEAST(89,
      floor(100.0*coalesce(w.watched,0)/nullif(l.expected_duration_seconds,0))::integer) END,
  'best_score',p.best_score,'passed',coalesce(p.passed,false),'passed_at',p.passed_at,
  'updated_at',p.updated_at,
@@ -203,7 +203,7 @@ BEGIN
 
  SELECT coalesce(jsonb_agg(jsonb_build_object(
  'lesson_no',l.lesson_no,'title',l.title,'completed',coalesce(p.watch_completed,false),
- 'watch_percent',CASE WHEN p.watch_completed THEN 100 ELSE LEAST(89,
+ 'watch_percent',CASE WHEN p.watch_completed THEN 100 WHEN coalesce(l.expected_duration_seconds,0)=0 THEN 0 ELSE LEAST(89,
      floor(100.0*greatest(coalesce(p.watch_seconds,0),coalesce(w.watched,0))
       /nullif(l.expected_duration_seconds,0))::integer) END,
  'best_score',p.best_score,'passed',coalesce(p.passed,false),'passed_at',p.passed_at,
