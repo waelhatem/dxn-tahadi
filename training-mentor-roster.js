@@ -6,6 +6,13 @@
  if(window.trainingMentorRosterHtml)return;
  const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const token=()=>String(localStorage.getItem('dxn_session')||'').trim();
+ const ownMemberNumbers=()=>{
+  const memberNo=typeof me!=='undefined'&&me?String(me.member_no||'').trim():'';
+  const loginNo=String(localStorage.getItem('dxn_login_no')||'').trim();
+  return [memberNo,loginNo].filter(n=>/^[0-9]{9}$/.test(n));
+ };
+ const isOwnMemberNo=no=>ownMemberNumbers().includes(String(no||'').trim());
+ const selfMessage='لا يمكن إضافة رقم عضويتك إلى قائمة المتدربين؛ لا يستطيع العضو متابعة نفسه بوصفه مدربًا. يمكنك عرض تقدمك من «سجلي التدريبي الشخصي» أدناه.';
  const state={lookupTimer:null,lookupSeq:0,verifiedNo:'',selected:'',fetchSeq:0};
  const el=id=>document.getElementById(id);
  const readOnlyStatus=s=>s==='approved'?'✅ المتابعة مفعلة':s==='declined'?'⛔ المتدرب ألغى الإذن':'⏳ بانتظار موافقة المتدرب';
@@ -68,6 +75,7 @@
   return '<section class="card training-mentor-roster" id="trainingMentorRoster" dir="rtl">'+
    '<h2>👥 الأعضاء الذين أتابعهم — تقدم التدريبات</h2>'+
    '<p class="muted">أدخل رقم عضوية المتدرب ليظهر اسمه تلقائيًا. يمكنك متابعة المشاهدة والاختبارات في المسارات الثلاثة دون المساس بسجله الأصلي. أعضاء فريقك المباشر وغير المباشر يُربطون مباشرة؛ أما العضو من فريق آخر فيوافق من حسابه أولًا.</p>'+
+   '<div class="training-mentor-self-link"><span>تريد الاطلاع على تدريبك أنت؟ سجلك الشخصي منفصل عن المتدربين الذين تتابعهم.</span><button type="button" class="primary" onclick="trainingMentorShowMyResults()">📊 عرض سجلي التدريبي الشخصي</button></div>'+
    '<form class="training-mentor-form" onsubmit="return trainingMentorAdd(event)">'+
    '<label for="trainingMentorNumber">رقم عضوية المتدرب</label>'+
    '<input id="trainingMentorNumber" type="text" inputmode="numeric" maxlength="9" autocomplete="off" placeholder="أدخل 9 أرقام" oninput="trainingMentorInput()" aria-describedby="trainingMentorMessage">'+
@@ -80,6 +88,16 @@
    '<div id="trainingMentorDetails"></div>'+
    '<div id="trainingMentorRequests"></div></section>';
  };
+ window.trainingMentorShowMyResults=function(){
+  const results=el('memberTrainingResultsSwitcher');
+  if(!results){notify('تعذّر العثور على نتائج سجلّك التدريبي.',true);return;}
+  const basic=results.querySelector?.('[data-training-result="basic"]');
+  if(basic&&basic.getAttribute('aria-selected')!=='true'){
+   window.trainingResultsChoose?.('member','basic');
+  }
+  results.scrollIntoView?.({behavior:'smooth',block:'start'});
+  window.basicTrainingLoadMemberPage?.();
+ };
  window.trainingMentorInput=function(){
   const number=el('trainingMentorNumber'),name=el('trainingMentorName'),add=el('trainingMentorAddButton');
   if(!number||!name||!add)return;
@@ -88,6 +106,7 @@
   clearTimeout(state.lookupTimer);
   const no=number.value;const seq=++state.lookupSeq,t=token();
   if(no.length!==9){notify(no.length?'أدخل رقم العضوية كاملًا (9 أرقام).':'');return;}
+  if(isOwnMemberNo(no)){notify(selfMessage,true);return;}
   notify('جارٍ التحقق من رقم العضوية...');
   state.lookupTimer=setTimeout(async()=>{
    try{
@@ -110,6 +129,7 @@
  window.trainingMentorAdd=async function(event){
   event?.preventDefault?.();
   const no=el('trainingMentorNumber')?.value||'';
+  if(isOwnMemberNo(no)){notify(selfMessage,true);return false;}
   if(!/^[0-9]{9}$/.test(no)||no!==state.verifiedNo){notify('تحقق من رقم العضوية أولًا.',true);return false;}
   const btn=el('trainingMentorAddButton');if(btn)btn.disabled=true;
   const t=token();
