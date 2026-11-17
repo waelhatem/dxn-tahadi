@@ -62,6 +62,25 @@ for(const [track,T] of Object.entries(TRACKS)){
  });
 }
 
+test('partial lesson: returning at the exact paused second preserves quiz restrictions',async()=>{
+ const env=setup({resumeEnabled:true});
+ const T=TRACKS.basic;
+ await T.mount(env);await T.start(env,1);await env.play(47);
+ const p=env.players.at(-1);
+ const pausedAt=Math.floor(p.t);
+ p.state=2;p.opts.events.onStateChange({data:2});await env.flush();
+ const first=Object.values(env.server.attempts).at(-1);
+ assert.ok(first.watched>30 && first.watched<=pausedAt);
+ const before=Object.values(env.server.bookmarks).at(-1);
+ assert.equal(before.position,pausedAt);
+ env.host.innerHTML='';env.advance(24*3600*1000);
+ await T.mount(env);await T.start(env,1);
+ const newPlayer=env.players.at(-1);
+ newPlayer.state=1;env.activeTick().f();await env.flush();
+ assert.equal(newPlayer.t,pausedAt,'returns to the paused second, including seconds beyond the last report');
+ assert.equal(T.quizOpen(env),false,'bookmark does not bypass 90% condition');
+});
+
 test('database migration preserves authenticated track gating and only matches the same video',()=>{
   const sql=fs.readFileSync(path.join(__dirname,'..','supabase/pending-review/20261117_training_watch_resume.sql'),'utf8');
   assert.match(sql,/public.training_watch_begin\(p_token,p_track,p_lesson_no\)/);
