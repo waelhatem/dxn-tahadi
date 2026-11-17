@@ -123,3 +123,19 @@ test('training interface does not promise fresh 0-based session after activating
  assert.match(engine,/pagehideBookmark\(\); \/\/ final keepalive checkpoint/);
  assert.match(engine,/استعادة موضع الفيديو غير مفعّلة/);
 });
+
+test('a delayed bookmark must not be saved under another member after account switch',async()=>{
+ const env=setup({resumeEnabled:true,scripts:['training-engine.js']});
+ const watcher=env.ctx.DXNTrainingEngine.createWatch({track:'basic',lessonNo:1,watchCompleted:false});
+ const player=new env.ctx.YT.Player('account-bound-bookmark',{videoId:'lxhnkUov9sE',events:{}});
+ watcher.attach(player);
+ await env.play(16,{player});
+ player.state=2;player.t=19;
+ watcher.onState(2);
+ env.setSession('member-b');
+ await env.flush();
+ assert.equal(Object.keys(env.server.bookmarks).some(key=>key.startsWith('member-b|')),false,
+  'bookmark queued under member A cannot be sent with member B token');
+ assert.match(fs.readFileSync(path.join(__dirname,'..','training-engine.js'),'utf8'),
+  /if\(token\(\)!==w\.session\)return;/);
+});
