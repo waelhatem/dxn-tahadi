@@ -190,12 +190,12 @@ test('member can view own training results independently of mentoring list',()=>
  assert.equal(scrolled,true);
  assert.equal(reloaded,1);
  assert.deepEqual(JSON.parse(JSON.stringify(selected)),[['member','basic']]);
- assert.match(switcher,/memberTrainingResultsSwitcher/);
+ assert.match(switcher,/shell\('member'/);
 });
 
 test('database denies self-enrollment in live-bound mentor lookup and add',()=>{
  const migration=fs.readFileSync(path.join(root,'supabase/migrations/20261117194500_training_mentor_one_active_trainer.sql'),'utf8');
  assert.ok(migration.includes("IF v_no=v_own_no THEN RAISE EXCEPTION 'لا يمكنك إضافة عضويتك"));
  assert.ok(migration.includes("public.training_mentor_lookup(p_token,p_member_no)"));
- assert.match(js,/isOwnMemberNo\(no\)/);
+ assert.ok(js.includes('isOwnMemberNo(no)'));
 });
