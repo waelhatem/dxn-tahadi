@@ -19,7 +19,7 @@ test('the five-second autoplay helper loads before all three separate course scr
  assert.ok(page.indexOf('training-auto-play.js')<page.indexOf('training-engine.js'));
  assert.ok(page.includes('training-engine.js?v=20261117-resume-3'));
  const names=['basic-training.js','professional-training-course.js','advanced-financial-training.js'];
- for(const n of names)assert.ok(page.includes(n+'?v=20261117-resume-2'),n);
+ for(const n of names)assert.ok(page.includes(n+'?v=20261117-resume-3'),n);
 });
 
 test('initial lesson and following passed quiz schedule five-second video without changing 90% or grades',()=>{
