@@ -86,10 +86,11 @@
    o.onProgress({percent,label,conditionMet:false,watched:a?a.watched:0,duration:a?a.duration:0,attempt:!!a});
   };
   const sameAccount=()=>{if(token()===w.session)return true;w.stop();return false;};
-  // Playback bookmarks are separate from server-verified assessment credit.
-  // Only a lesson already watched to 90% may bookmark freely after the threshold.
+  // Playback bookmarks never award assessment credit. Before 90% the server
+  // caps resume positions to within 8s of verified watching. After 90% the
+  // exact final-minute position is restored independently of the quiz.
   function saveBookmark(force=false,position=null){
-   if(w.preview||w.stopped||!w.resumeSupported||!w.lessonCompleted||!w.player||token()!==w.session)return;
+   if(w.preview||w.stopped||!w.resumeSupported||!w.attempt||!w.player||token()!==w.session)return;
    const now=Date.now();
    if(!force&&now-w.bookmarkLast<4000)return;
    let current=position,duration=w.playerDuration();
@@ -103,7 +104,7 @@
   const visibilityBookmark=()=>{if(document.hidden)saveBookmark(true);};
   const pagehideBookmark=()=>{
    // Keepalive sends the final few seconds even if the tab is closed immediately.
-   if(!w.resumeSupported||!w.lessonCompleted||w.stopped||token()!==w.session||!w.player)return;
+   if(!w.resumeSupported||!w.attempt||w.stopped||token()!==w.session||!w.player)return;
    const duration=w.playerDuration();
    let current;try{current=Number(w.player.getCurrentTime());}catch(_){return;}
    if(!Number.isFinite(current)||duration<60)return;
@@ -218,7 +219,7 @@
    w.previousTime=current;w.previousWall=now;
    if(state===PLAYING&&moving&&current>w.max){w.max=Math.min(duration,current);if(w.preview)progress();}
    report();
-   if(state===PLAYING&&w.lessonCompleted)saveBookmark();
+   if(state===PLAYING&&w.resumeSupported&&w.attempt)saveBookmark();
   }
   w.attach=function(player){
    if(w.stopped)return;
