@@ -81,7 +81,7 @@
   return '<div id="professionalViewerHead">'+headHtml(l,v)+'</div>'+
    '<div class="training-professional-video unified-training__video" id="professionalInlineBox" data-no="'+l.lesson_no+'">'+
    '<button type="button" class="unified-training__play" '+(can?'onclick="professionalCourseWatch('+l.lesson_no+')"':'disabled')+'>'+
-   (can?(l.completed?'▶ إعادة المشاهدة من البداية':'▶ ابدأ المشاهدة'):'🔒 '+esc(E().STATE_TEXT.locked))+'</button></div>'+
+   (can?(l.completed?'▶ استئناف الفيديو / إعادة المشاهدة':'▶ ابدأ / تابع المشاهدة'):'🔒 '+esc(E().STATE_TEXT.locked))+'</button></div>'+
    '<div class="basic-bag-inline-progress unified-training__progress"><div id="professionalWatchProgress" class="basic-bag-progress" role="progressbar" aria-label="مشاهدة الجلسة الحالية" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+(l.completed?100:0)+'"><div style="width:'+(l.completed?100:0)+'%"></div></div>'+
    '<strong id="professionalWatchPct">'+esc(l.completed?E().completionLabel(!!l.published):'0%')+'</strong></div>'+
    '<p id="professionalWatchInfo" class="basic-bag-status">'+esc(v.status)+'</p>'+
