@@ -80,7 +80,7 @@ const KEY3=Array.from({length:20},(_,i)=>i%3), KEY4=Array.from({length:20},(_,i)
 const BASIC_VIDEOS=['lxhnkUov9sE','K_N80xZlxXw','n7W9LoCMdPo','AMKtcQt8ltc','Wa_Kp2U7x0E','G09ztpXOBBM','kYJjJu2JQFI','v4gYSL-KuHQ'];
 const BASIC_SECONDS=[503,439,1363,707,851,1474,450,993];
 
-function fakeServer(clockRef){
+function fakeServer(clockRef,{resumeEnabled=false}={}){
   const tracks={
     basic:{key:KEY3,lessons:Object.fromEntries(BASIC_SECONDS.map((d,i)=>[i+1,{duration:d,video:BASIC_VIDEOS[i],ready:true,published:true}]))},
     advanced:{key:KEY4,lessons:Object.fromEntries(Array.from({length:3},(_,i)=>[i+1,{duration:600,video:'ANiPxicO7lM',ready:true,published:true,title:'متقدم '+(i+1)}]))},
@@ -88,7 +88,7 @@ function fakeServer(clockRef){
       2:{duration:157,video:'tVim2H5Elck',ready:true,published:true,title:'احترافي 2',instructor:'م. محمود المصري'},
       3:{duration:2718,video:'HOtDbw8-P3w',ready:true,published:false,title:'احترافي 3',instructor:'م. محمود المصري'}}}
   };
-  const progress={},attempts={};let seq=0;const idle=600;
+  const progress={},attempts={},bookmarks={};let seq=0;const idle=600;
   const row=(tok,t,n)=>{const k=tok+'|'+t+'|'+n;return progress[k]||(progress[k]={completed:false,passed:false,best:null});};
   const peek=(tok,t,n)=>progress[tok+'|'+t+'|'+n];
   const unlocked=(tok,t,n)=>n===1||!!(peek(tok,t,n-1)&&peek(tok,t,n-1).completed&&peek(tok,t,n-1).passed);
@@ -105,6 +105,54 @@ function fakeServer(clockRef){
     const id='att-'+(++seq);attempts[id]={id,tok,track:t,n,expected:L.duration,watched:0,last:now(),ended:false,reason:null,completed:false};
     return {ok:true,body:{attempt_id:id,track:t,lesson_no:n,duration:L.duration,watched:0,percent:0,attempt_completed:false,expired:false,
       watch_completed:!!(peek(tok,t,n)&&peek(tok,t,n).completed),idle_timeout_seconds:idle,watch_requirement:90}};
+  }
+  function beginResume(tok,t,n){
+    if(!resumeEnabled)return err('RPC not found');
+    const result=begin(tok,t,n);
+    if(!result.ok)return result;
+    const attempt=attempts[result.body.attempt_id];
+    const video=tracks[t].lessons[n].video;
+    const completed=row(tok,t,n).completed;
+    let watched=0,playback=0;
+    if(!completed){
+      watched=Object.values(attempts)
+        .filter(a=>a.id!==attempt.id&&a.tok===tok&&a.track===t&&a.n===n&&
+          a.expected===attempt.expected&&(!a.source_video_id||a.source_video_id===video)&&
+          a.watched*100<a.expected*90)
+        .reduce((best,a)=>Math.max(best,a.watched),0);
+      watched=Math.max(0,Math.min(watched,Math.ceil(attempt.expected*0.9)-1));
+      const saved=bookmarks[tok+'|'+t+'|'+n+'|'+video];
+      playback=saved&&!saved.finished&&saved.duration===attempt.expected
+       ?Math.max(0,Math.min(saved.position,watched+8,attempt.expected-4))
+       :watched;
+    }else{
+      const key=tok+'|'+t+'|'+n+'|'+video;
+      const bookmark=bookmarks[key];
+      if(bookmark&&bookmark.duration===attempt.expected){
+        playback=bookmark.finished?0:bookmark.position;
+      }else{
+        playback=Object.values(attempts).filter(a=>a.id!==attempt.id&&a.tok===tok&&
+          a.track===t&&a.n===n&&a.completed&&a.expected===attempt.expected&&
+          (!a.source_video_id||a.source_video_id===video))
+          .reduce((best,a)=>Math.max(best,a.watched),0);
+      }
+      playback=Math.max(0,Math.min(playback,attempt.expected-4));
+    }
+    attempt.watched=watched;
+    attempt.source_video_id=video;
+    Object.assign(result.body,{watched,resume_seconds:playback,
+      percent:Math.floor(100*watched/attempt.expected)});
+    return result;
+  }
+  function bookmark(tok,t,n,position,duration){
+    if(!resumeEnabled)return err('RPC not found');
+    if(!tracks[t]||!tracks[t].lessons[n]||!unlocked(tok,t,n))return err('الدرس مغلق');
+    const L=tracks[t].lessons[n];
+    if(!Number.isFinite(position)||position<0||position>duration+3||
+      duration<L.duration*0.85||duration>L.duration*1.15)return err('بيانات موضع الفيديو غير صالحة');
+    const finished=position>=duration-2;
+    bookmarks[tok+'|'+t+'|'+n+'|'+L.video]={position:finished?0:position,duration:L.duration,finished};
+    return {ok:true,body:{ok:true,finished}};
   }
   function report(tok,id,cur,dur){
     const a=attempts[id];if(!a||a.tok!==tok)return err('جلسة المشاهدة غير صالحة');
@@ -140,6 +188,8 @@ function fakeServer(clockRef){
     const tok=a.p_token;
     switch(fn){
       case 'training_watch_begin':return begin(tok,a.p_track,a.p_lesson_no);
+      case 'training_watch_begin_resume':return beginResume(tok,a.p_track,a.p_lesson_no);
+      case 'training_video_bookmark':return bookmark(tok,a.p_track,a.p_lesson_no,a.p_position,a.p_duration);
       case 'training_watch_report':return report(tok,a.p_attempt_id,a.p_current,a.p_duration);
       case 'basic_training_watch_update':case 'advanced_financial_watch_update':return err('تم تحديث نظام المشاهدة؛ حدّث الصفحة لبدء مشاهدة جديدة');
       case 'basic_training_overview':return {ok:true,body:{role:'member',watch_requirement:90,pass_requirement:16,
@@ -159,15 +209,15 @@ function fakeServer(clockRef){
       default:return {ok:true,body:{}};
     }
   }
-  return {handle,tracks,attempts,peek,row};
+  return {handle,tracks,attempts,bookmarks,peek,row};
 }
 
 // Loads the real browser scripts into one context with the fake server, DOM and YouTube player.
 // `reloadOf`: a full page reload of an earlier env — fresh scripts and DOM, same server data and clock.
-function setup({token='member-a',scripts=['training-engine.js','basic-training.js','advanced-financial-training.js','professional-training-course.js'],realSeconds={},hold=null,reloadOf=null}={}){
+function setup({token='member-a',scripts=['training-engine.js','basic-training.js','advanced-financial-training.js','professional-training-course.js'],realSeconds={},hold=null,reloadOf=null,resumeEnabled=false}={}){
   const {document,body}=makeDom();
   const clockRef=reloadOf?reloadOf.clockRef:{now:1_000_000};let perf=0,activeToken=token;
-  const server=reloadOf?reloadOf.server:fakeServer(clockRef);
+  const server=reloadOf?reloadOf.server:fakeServer(clockRef,{resumeEnabled});
   const calls=[],timers=[],intervals=[],players=[],held=[];
   const ctx={console,Math,Number,String,Array,Object,JSON,Error,Promise,Set,Map,innerWidth:1200,document,
     Date:{now:()=>clockRef.now},performance:{now:()=>perf},

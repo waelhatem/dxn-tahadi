@@ -1,7 +1,7 @@
 /* V86.93 — Unified training engine (browser side), shared by the basic, professional and advanced tracks.
- * One watch attempt per viewing: it starts at 0 s when the member presses play, credits only time the
- * server confirms (training_watch_begin / training_watch_report), and is never resumed in a later
- * session. 90% confirmed by the server marks the lesson watched for good; the quiz and the next lesson
+ * Each viewing creates its own authenticated attempt. The resume RPC carries forward only the
+ * server-validated contiguous seconds from earlier attempts for the same member/lesson; unfinished
+ * watching resumes on a later visit without crediting skipped or unverified time. 90% confirmed by the server marks the lesson watched for good; the quiz and the next lesson
  * still depend on the server's own checks. Content, question banks and results stay per track.
  * YouTube player data cannot prove attention; this only checks real-time 1x playback without skipping.
  */
@@ -44,7 +44,7 @@
  };
  // The words beside the full bar once the watch condition is met (saved or confirmed now).
  const completionLabel=quizReady=>quizReady?MESSAGES.conditionMetQuizOpen:MESSAGES.conditionMetQuizUnpublished;
- const POLICY_NOTE='تُحتسب المشاهدة داخل جلسة واحدة تبدأ من بداية الفيديو بسرعة 1x؛ عند بلوغ 90% يؤكد الخادم الإكمال ويُفتح الاختبار. المشاهدة غير المكتملة لا تُحفظ بين الجلسات، والنجاح في الاختبار (80 / 100) يفتح الدرس التالي.';
+ const POLICY_NOTE='يُحفظ موضع المشاهدة المؤكَّد على الخادم لكل عضو ودرس، ويمكن متابعة الفيديو من آخر موضع محفوظ بعد الخروج والعودة. تُحتسب المشاهدة بسرعة 1x دون تجاوز المقاطع غير المشاهدة. عند بلوغ 90% يؤكد الخادم الإكمال ويفتح الاختبار، والنجاح فيه (80 / 100) يفتح الدرس التالي.';
 
  const token=()=>String(localStorage.getItem('dxn_session')||'').trim();
  async function rpc(fn,args){
@@ -64,7 +64,7 @@
  function createWatch(o){
   const w={track:o.track,lessonNo:o.lessonNo,preview:!!o.preview,lessonCompleted:!!o.watchCompleted,
    session:token(),player:null,timer:null,stopped:false,
-   attempt:null,beginning:false,max:0,previousTime:0,previousWall:0,pausedSince:0,idle:DEFAULT_IDLE_S,replayNeeded:false};
+   attempt:null,beginning:false,max:0,previousTime:0,previousWall:0,pausedSince:0,idle:DEFAULT_IDLE_S,replayNeeded:false,resumeSupported:false,bookmarkLast:0,bookmarkQueue:Promise.resolve()};
   const msg=t=>{if(!w.stopped&&typeof o.onMessage==='function')o.onMessage(t);};
   // Whether this lesson's quiz bank is published, read at the moment it matters (the track may learn it later).
   const quizReady=()=>typeof o.quizReady==='function'?!!o.quizReady():o.quizReady!==false;
@@ -86,29 +86,90 @@
    o.onProgress({percent,label,conditionMet:false,watched:a?a.watched:0,duration:a?a.duration:0,attempt:!!a});
   };
   const sameAccount=()=>{if(token()===w.session)return true;w.stop();return false;};
-  // Forget the current attempt; the next play starts a new one from the beginning.
+  // Playback bookmarks never award assessment credit. Before 90% the server
+  // caps resume positions to within 8s of verified watching. After 90% the
+  // exact final-minute position is restored independently of the quiz.
+  function saveBookmark(force=false,position=null){
+   if(w.preview||w.stopped||!w.resumeSupported||!w.attempt||!w.player||token()!==w.session)return;
+   const now=Date.now();
+   if(!force&&now-w.bookmarkLast<4000)return;
+   let current=position,duration=w.playerDuration();
+   try{if(current===null)current=w.player.getCurrentTime();}catch(_){return;}
+   if(!Number.isFinite(Number(current))||!Number.isFinite(duration)||duration<60)return;
+   w.bookmarkLast=now;
+   const params={p_track:w.track,p_lesson_no:w.lessonNo,
+    p_position:Math.max(0,Math.floor(Number(current))),p_duration:Math.floor(duration)};
+   w.bookmarkQueue=w.bookmarkQueue.catch(()=>{}).then(()=>{
+    // A bookmark queued before logout must never be posted under the next member's token.
+    if(token()!==w.session)return;
+    return rpc('training_video_bookmark',params);
+   }).catch(()=>{});
+  }
+  const visibilityBookmark=()=>{if(document.hidden)saveBookmark(true);};
+  const pagehideBookmark=()=>{
+   // Keepalive sends the final few seconds even if the tab is closed immediately.
+   if(!w.resumeSupported||!w.attempt||w.stopped||token()!==w.session||!w.player)return;
+   const duration=w.playerDuration();
+   let current;try{current=Number(w.player.getCurrentTime());}catch(_){return;}
+   if(!Number.isFinite(current)||duration<60)return;
+   try{fetch('/api/rpc',{method:'POST',keepalive:true,cache:'no-store',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({fn:'training_video_bookmark',args:{
+     p_token:w.session,p_track:w.track,p_lesson_no:w.lessonNo,
+     p_position:Math.max(0,Math.floor(current)),p_duration:Math.floor(duration)
+    }})}).catch(()=>{});}catch(_){}
+    // Preserve verified watched seconds too when the page is destroyed.
+    const a=w.attempt;
+    if(a&&!a.completed&&Math.floor(w.max)>a.watched){
+     try{fetch('/api/rpc',{method:'POST',keepalive:true,cache:'no-store',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({fn:'training_watch_report',args:{
+       p_token:w.session,p_attempt_id:a.id,
+       p_current:Math.floor(w.max),p_duration:Math.floor(duration)
+      }})}).catch(()=>{});}catch(_){}
+    }
+  };
+  document.addEventListener?.('visibilitychange',visibilityBookmark);
+  window.addEventListener?.('pagehide',pagehideBookmark);
+  // When a session expires, keep its last server-verified position for the next start.
   function dropAttempt(text){
-   w.attempt=null;w.max=0;w.previousTime=0;w.previousWall=performance.now();
-   try{w.player.pauseVideo();w.player.seekTo(0,true);}catch(_){}
+   const saved=w.resumeSupported?Math.max(0,Math.floor(Number(w.attempt?.watched)||0)):0;
+   w.attempt=null;w.max=saved;w.previousTime=saved;w.previousWall=performance.now();
+   try{w.player.pauseVideo();w.player.seekTo(saved,true);}catch(_){}
    progress();if(text)msg(text);
   }
   async function begin(){
    if(w.beginning||w.attempt||w.preview||w.stopped)return;
    w.beginning=true;
    try{
-    const r=await rpc('training_watch_begin',{p_track:w.track,p_lesson_no:w.lessonNo});
+    // The resume endpoint preserves the previous verified position. Older installations
+    // gracefully fall back to a fresh legacy attempt until the additive migration is installed.
+    let r;
+    try{r=await rpc('training_watch_begin_resume',{p_track:w.track,p_lesson_no:w.lessonNo});}
+    catch(error){
+     if(!/PGRST202|could not find the function|function .* does not exist|RPC not found/i.test(error.message||''))throw error;
+     r=await rpc('training_watch_begin',{p_track:w.track,p_lesson_no:w.lessonNo});
+    }
     if(w.stopped||!sameAccount())return;
     w.idle=Number(r.idle_timeout_seconds)||DEFAULT_IDLE_S;
     // Saved as watched already (e.g. in another tab): the page learns it now and opens the quiz.
     if(r.watch_completed&&!w.lessonCompleted){w.lessonCompleted=true;if(typeof o.onCompleted==='function')o.onCompleted();}
-    w.attempt={id:r.attempt_id,duration:Number(r.duration)||0,watched:0,lastSent:0,saving:false,completed:false,rewatch:w.lessonCompleted};
-    // The attempt is new: whatever was played before it counts from 0 again.
-    w.max=0;try{if(w.player.getCurrentTime()>1)w.player.seekTo(0,true);}catch(_){}
-    w.previousTime=0;w.previousWall=performance.now();
+    w.resumeSupported=Number.isFinite(Number(r.resume_seconds))&&r.resume_seconds!==undefined;
+    const duration=Number(r.duration)||0;
+    const saved=w.resumeSupported&&Number.isFinite(Number(r.resume_seconds))
+     ? Math.max(0,Math.min(Math.floor(Number(r.resume_seconds)),Math.max(0,Math.floor(duration)-4))):0;
+    const credited=w.lessonCompleted?0:Math.max(0,Number(r.watched)||saved);
+    w.attempt={id:r.attempt_id,duration,watched:credited,lastSent:0,saving:false,completed:false,rewatch:w.lessonCompleted};
+    w.max=Math.max(saved,credited);
+    try{
+     if(saved>0)w.player.seekTo(saved,true);
+     else if(w.player.getCurrentTime()>1)w.player.seekTo(0,true);
+    }catch(_){}
+    w.previousTime=saved;w.previousWall=performance.now();
     const real=Math.round(w.playerDuration());
     if(real>=60&&w.attempt.duration&&Math.abs(real-w.attempt.duration)>Math.max(5,w.attempt.duration*0.02))
      msg('⚠️ مدة الفيديو على YouTube '+clock(real)+' تختلف عن المدة المعتمدة للدرس '+clock(w.attempt.duration)+'؛ أبلغ إدارة التدريب.');
-    else msg('بدأت جلسة مشاهدة جديدة من البداية. يُفتح الاختبار عند تأكيد 90% داخل هذه الجلسة.');
+    else msg(!w.resumeSupported?'⚠️ استعادة موضع الفيديو غير مفعّلة على قاعدة البيانات؛ قد تبدأ جلسة المشاهدة التالية من البداية.':saved>0?'▶ استئناف المشاهدة من '+clock(saved)+' — تقدمك السابق محفوظ.':'▶ بدأت المشاهدة. يُحفظ موضع الفيديو تلقائياً للعودة لاحقاً.');
     progress();
    }catch(e){msg('تعذر بدء جلسة المشاهدة: '+e.message);try{w.player.pauseVideo();}catch(_){}}
    finally{w.beginning=false;}
@@ -125,8 +186,8 @@
     // A late answer for an attempt that is no longer current is ignored entirely.
     if(w.stopped||w.attempt!==a||r.attempt_id!==a.id||token()!==w.session)return;
     if(r.expired){
-     dropAttempt(r.reason==='idle'?'انتهت جلسة المشاهدة بسبب الخمول؛ عند التشغيل تبدأ جلسة جديدة من البداية.':
-      'بدأت جلسة مشاهدة أحدث لهذا الدرس؛ هذه الجلسة لم تعد تُحتسب.');
+     dropAttempt(r.reason==='idle'?'انتهت جلسة المشاهدة بسبب الخمول؛ يمكنك متابعة التقدم المحفوظ عند التشغيل.':
+      'بدأت جلسة أحدث لهذا الدرس؛ يمكنك استعادة التقدم المؤكد في الجلسة الجديدة.');
      return;
     }
     a.watched=Math.max(a.watched,Number(r.watched)||0);a.duration=Number(r.duration)||a.duration;
@@ -156,12 +217,13 @@
     // A long pause ends the attempt here as well as on the server.
     if(!w.pausedSince)w.pausedSince=now;
     if(w.attempt&&!w.attempt.completed&&now-w.pausedSince>w.idle*1000){
-     dropAttempt('انتهت جلسة المشاهدة بسبب الخمول؛ عند التشغيل تبدأ جلسة جديدة من البداية.');
+     dropAttempt('انتهت جلسة المشاهدة بسبب الخمول؛ يمكنك المتابعة من آخر موضع محفوظ.');
      return; // the position read above is from before the rewind
     }
    }else w.pausedSince=0;
+   if(w.beginning)return;
    if(state===PLAYING&&!w.preview&&!w.attempt){begin();w.previousTime=current;w.previousWall=now;return;}
-   if(current>w.max+FORWARD_TOLERANCE_S){
+   if(current>w.max+FORWARD_TOLERANCE_S&&!w.lessonCompleted){
     try{w.player.seekTo(Math.max(0,w.max),true);}catch(_){}
     msg('لا يمكن التقدم إلى جزء لم تتم مشاهدته؛ يمكنك الرجوع إلى الخلف.');
     w.previousTime=w.max;w.previousWall=now;return;
@@ -171,6 +233,7 @@
    w.previousTime=current;w.previousWall=now;
    if(state===PLAYING&&moving&&current>w.max){w.max=Math.min(duration,current);if(w.preview)progress();}
    report();
+   if(state===PLAYING&&w.resumeSupported&&w.attempt)saveBookmark();
   }
   w.attach=function(player){
    if(w.stopped)return;
@@ -186,21 +249,29 @@
    const ENDED=window.YT&&window.YT.PlayerState?window.YT.PlayerState.ENDED:0;
    const PLAYING=window.YT&&window.YT.PlayerState?window.YT.PlayerState.PLAYING:1;
    if(state===ENDED){
-    tick();report();
+    tick();report();saveBookmark(true,w.playerDuration());
     // A replay of the same YouTube player must never reuse the prior attempt's seconds.
     w.replayNeeded=true;
-   }else if(state===PLAYING&&w.replayNeeded&&!w.stopped){
+   }else if(state===2){saveBookmark(true);}
+   else if(state===PLAYING&&w.replayNeeded&&!w.stopped){
     w.replayNeeded=false;w.attempt=null;w.max=0;w.pausedSince=0;
     w.previousTime=0;w.previousWall=performance.now();
     try{if(w.player&&w.player.getCurrentTime()>1)w.player.seekTo(0,true);}catch(_){}
     progress();
-    msg('بدأت إعادة المشاهدة من 0%؛ المشاهدات الجزئية السابقة لا تُجمع.');
+    msg('إعادة التشغيل — ستُستعاد المشاهدة غير المكتملة من آخر موضع مؤكد.');
     // The next tick starts a fresh authenticated server attempt.
    }
   };
   w.onRate=function(rate){if(Number(rate)>1.01)try{w.player.setPlaybackRate(1);msg('يجب تشغيل الفيديو بسرعة 1x.');}catch(_){}};
   w.stop=function(){
-   if(w.stopped)return;w.stopped=true;
+   if(w.stopped)return;
+   // Capture playback and final verified seconds before marking the watcher stopped.
+   if(w.attempt&&!w.attempt.saving)report();
+   saveBookmark(true);
+   pagehideBookmark(); // final keepalive checkpoint even on SPA lesson switch
+   w.stopped=true;
+   document.removeEventListener?.('visibilitychange',visibilityBookmark);
+   window.removeEventListener?.('pagehide',pagehideBookmark);
    if(w.timer)clearInterval(w.timer);w.timer=null;w.attempt=null;
   };
   w.tick=tick;

@@ -1,0 +1,52 @@
+/* Member trainer roster — scoped visual rules, mobile-first. */
+.training-mentor-roster{max-width:960px;margin:14px auto;padding:20px;text-align:right;border:1px solid #cfe3d9}
+.training-mentor-roster h2{margin:0 0 9px;font-size:23px;color:#104f3a}
+.training-mentor-roster h3{font-size:17px;color:#184d3c}
+.training-mentor-form{display:grid;grid-template-columns:minmax(150px,1fr) minmax(170px,1.5fr) auto;align-items:end;gap:10px;margin-top:16px}
+.training-mentor-form label{font-size:13px;font-weight:800;color:#245846;grid-row:1}
+.training-mentor-form label[for="trainingMentorNumber"]{grid-column:1}
+.training-mentor-form label[for="trainingMentorName"]{grid-column:2}
+.training-mentor-form input{margin:0!important;width:100%;min-width:0;padding:11px 12px;border:1px solid #b8d4c8;border-radius:12px;background:#fff;color:#163e30;font:inherit}
+.training-mentor-form input[readonly]{background:#f2f7f4;font-weight:700}
+.training-mentor-form #trainingMentorNumber{grid-column:1;grid-row:2}
+.training-mentor-form #trainingMentorName{grid-column:2;grid-row:2}
+.training-mentor-form button{grid-column:3;grid-row:2;min-height:44px;white-space:nowrap}
+.training-mentor-form button:disabled{opacity:.5;cursor:not-allowed}
+#trainingMentorMessage{min-height:22px;margin:10px 0 6px;font-size:13px}
+.training-mentor-roster-title,.training-mentor-person-head,.training-mentor-details-head,.training-mentor-request{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.training-mentor-roster-title{margin-top:14px;border-top:1px solid #e0eae4;padding-top:12px}
+.training-mentor-roster-title h3{margin:0}
+.training-mentor-person{border:1px solid #dce9e2;border-radius:13px;padding:14px;margin:10px 0;background:#fbfdfb}
+.training-mentor-person strong{font-size:16px;color:#164e39}
+.training-mentor-person .muted{margin-top:4px;line-height:1.8;font-size:13px}
+.training-mentor-count{display:inline-flex;padding:6px 9px;border-radius:8px;background:#eaf6ee;color:#155b3e;font-size:12px;font-weight:800;margin:8px 0 0 7px}
+.training-mentor-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.training-mentor-actions button{white-space:nowrap;min-height:38px}
+.training-mentor-request{border:1px solid #dfe9e3;border-radius:12px;padding:12px;margin:8px 0;background:#f7faf8}
+#trainingMentorRequests{margin-top:17px}
+#trainingMentorDetails{margin-top:16px;scroll-margin-top:16px}
+#trainingMentorDetails:empty{display:none}
+#trainingMentorDetails:not(:empty){border:1px solid #b8d7c8;border-radius:16px;padding:16px;background:#f5faf7}
+.training-mentor-details-head h3{margin:0}
+.training-mentor-details-head small{font-size:12px;font-weight:500}
+.training-mentor-track{background:#fff;border:1px solid #d9e6dd;border-radius:12px;margin:10px 0;overflow:hidden}
+.training-mentor-track summary{list-style:revert;cursor:pointer;padding:14px;font-size:14px;font-weight:700;color:#174734}
+.training-mentor-track summary b{margin-inline-start:10px;color:#08714c}
+.training-mentor-lesson{padding:11px 14px;border-top:1px solid #e5eee9}
+.training-mentor-lesson .muted{font-size:12px;line-height:1.8;margin-top:5px}
+.training-mentor-meter{height:7px;background:#e6efe9;border-radius:99px;overflow:hidden;margin-top:7px}
+.training-mentor-meter span{display:block;height:100%;background:#19865d;transition:width .2s ease}
+@media(max-width:710px){
+ .training-mentor-roster{padding:12px}
+ .training-mentor-form{display:flex;flex-direction:column;align-items:stretch;gap:7px}
+ .training-mentor-form label{margin-top:5px}
+ .training-mentor-form button{width:100%;margin-top:5px}
+ .training-mentor-person-head{align-items:stretch}
+ .training-mentor-actions{width:100%}
+ .training-mentor-actions button{flex:1}
+ .training-mentor-count{margin:7px 0 0 4px}
+}
+
+.training-mentor-self-link{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;margin-top:12px;border:1px solid #bcd8ca;border-radius:12px;background:#f3faf6;color:#1b5741;font-size:13px;font-weight:750;line-height:1.8}
+.training-mentor-self-link button{white-space:normal;min-height:40px}
+@media(max-width:710px){.training-mentor-self-link{align-items:stretch}.training-mentor-self-link button{width:100%}}
