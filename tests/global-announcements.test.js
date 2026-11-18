@@ -46,3 +46,21 @@ test('member UI shows the announcement centrally with acknowledge and close acti
   assert.match(INDEX,/✓ فهمت/);
   assert.match(INDEX,/إغلاق/);
 });
+
+test('daily and ordinary manual announcements expire on their Baghdad publication day; important and video alerts stay distinct',()=>{
+  const fs=require('node:fs');
+  const sql=fs.readFileSync(path.join(ROOT,'supabase/migrations/20261118213000_announcement_day_scope_and_dismissal.sql'),'utf8');
+  assert.match(sql,/a\.source='daily_ai'/);
+  assert.match(sql,/a\.publish_date=\(now\(\) at time zone 'Asia\/Baghdad'\)::date/i);
+  assert.match(sql,/a\.expires_at>now\(\)/);
+  assert.match(sql,/a\.source='manual'/);
+  assert.match(sql,/a\.announcement_type in \('important','warning'\)/);
+  assert.match(sql,/a\.created_at at time zone 'Asia\/Baghdad'/i);
+  assert.match(sql,/a\.source='video'/);
+  assert.match(sql,/academy_leader_videos/);
+  assert.match(INDEX,/function isCurrentAnnouncement\(item\)/);
+  assert.match(INDEX,/function rememberDismissal\(id,persist\)/);
+  assert.match(INDEX,/function wasDismissed\(id\)/);
+  assert.match(INDEX,/rows\.find\(function\(row\)\{return isCurrentAnnouncement\(row\)&&!wasDismissed\(row\.id\)\}/);
+  assert.doesNotMatch(INDEX,/closeMemberModal\(\);loadMemberAnnouncements\(\)/);
+});

@@ -10105,6 +10105,61 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
   if(window.__DXN_GLOBAL_ANNOUNCEMENTS_V1__)return;
   window.__DXN_GLOBAL_ANNOUNCEMENTS_V1__=true;
   var loadingMemberAnnouncements=false,memberAnnouncementShown=false,previewNode=null;
+  var dismissedThisVisit=new Set(),dismissalSession='',lastModalClosedAt=0;
+  // A locally stored dismissal prevents rapid repeats if a server acknowledgement
+  // is delayed or fails. Important/warning alerts are suppressed for this visit only.
+  function dismissalKey(){
+    var login='';
+    try{login=String(localStorage.getItem('dxn_login_no')||'')}catch(_){}
+    return 'dxn_announcement_dismissals_v1_'+(typeof role==='undefined'?'':role)+'_'+(login||tokenValue());
+  }
+  function syncDismissalSession(){
+    var session=tokenValue();
+    if(session!==dismissalSession){dismissalSession=session;dismissedThisVisit.clear();lastModalClosedAt=0}
+  }
+  function savedDismissals(){
+    try{
+      var ids=JSON.parse(localStorage.getItem(dismissalKey())||'[]');
+      return Array.isArray(ids)?ids.filter(function(id){return typeof id==='string'}):[];
+    }catch(_){return []}
+  }
+  function rememberDismissal(id,persist){
+    syncDismissalSession();
+    var value=String(id||'');if(!value)return;
+    dismissedThisVisit.add(value);
+    lastModalClosedAt=Date.now();
+    if(persist){
+      try{
+        var ids=savedDismissals().filter(function(x){return x!==value});
+        ids.push(value);
+        localStorage.setItem(dismissalKey(),JSON.stringify(ids.slice(-150)));
+      }catch(_){}
+    }
+  }
+  function wasDismissed(id){
+    syncDismissalSession();
+    var value=String(id||'');
+    return dismissedThisVisit.has(value)||savedDismissals().includes(value);
+  }
+  function dateInBaghdad(value){
+    var date=new Date(value);
+    if(Number.isNaN(date.getTime()))return '';
+    var parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Baghdad',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);
+    var field=function(k){return (parts.find(function(p){return p.type===k})||{}).value||''};
+    return field('year')+'-'+field('month')+'-'+field('day');
+  }
+  function isCurrentAnnouncement(item){
+    if(!item)return false;
+    var today=dateInBaghdad(new Date());
+    if(item.source==='daily_ai'){
+      if(String(item.publish_date||dateInBaghdad(item.created_at))!==today)return false;
+      if(item.expires_at&&new Date(item.expires_at)<=new Date())return false;
+    }
+    if(item.source==='manual'&&item.announcement_type!=='important'&&item.announcement_type!=='warning'){
+      if(dateInBaghdad(item.created_at)!==today)return false;
+    }
+    return true;
+  }
   // A member who chooses to watch a lesson should not be interrupted by the next popup.
   // Key this to the signed-in session, so a fresh login can receive new announcements.
   var videoWatchPausedSession='';
@@ -10163,8 +10218,13 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
   }
   function closeMemberModal(){var n=document.getElementById('dxnGlobalAnnouncementModal');removeNode(n);memberAnnouncementShown=false}
   async function acknowledgeAnnouncement(id){
-    try{await gaRpc('acknowledge_global_announcement',{p_token:tokenValue(),p_announcement_id:id});closeMemberModal();loadMemberAnnouncements()}
-    catch(e){toast(e.message||'تعذر حفظ التأكيد.')}
+    // Close immediately and persist locally before waiting for the network.
+    // The server remains the canonical read history; failure must not reopen
+    // the same announcement every few seconds.
+    rememberDismissal(id,true);
+    closeMemberModal();
+    try{await gaRpc('acknowledge_global_announcement',{p_token:tokenValue(),p_announcement_id:id})}
+    catch(e){console.warn('تعذر حفظ تأكيد الإعلان بالخادم؛ لن تتكرر النافذة على هذا الجهاز.',e)}
   }
   async function showMemberAnnouncement(item){
     if(!item||memberAnnouncementShown||videoWatchPausedSession===tokenValue())return;
@@ -10195,6 +10255,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       // Suppress subsequent popups *before* removing the modal. The mutation
       // observer otherwise opens another announcement on top of the video.
       videoWatchPausedSession=sessionAtClick;
+      rememberDismissal(item.id,true);
       closeMemberModal();
       try{
         if(window.academyOpenLeaderVideo(item.video_id)===false)throw new Error('تعذر فتح تبويب المشاهدة');
@@ -10210,7 +10271,14 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
         p_token:sessionAtClick,p_announcement_id:item.id
       }).catch(function(e){console.warn('تعذر تأكيد قراءة إعلان الفيديو',e)});
     };
-    window.__DXN_GA_CLOSE__=(item.source==='daily_ai'||videoNotice)?function(){acknowledgeAnnouncement(item.id)}:closeMemberModal;
+    window.__DXN_GA_CLOSE__=function(){
+      // Critical manual messages still require a confirmed acknowledgement:
+      // closing suppresses the modal only until the next sign-in.
+      if(item.source==='manual'&&(item.announcement_type==='important'||item.announcement_type==='warning')){
+        rememberDismissal(item.id,false);
+        closeMemberModal();
+      }else acknowledgeAnnouncement(item.id);
+    };
   }
   // After the separate viewer finishes/closes, restore ordinary notification
   // processing without re-rendering or navigating the member's current tab.
@@ -10222,7 +10290,14 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     if(loadingMemberAnnouncements||memberAnnouncementShown||videoWatchPausedSession===tokenValue())return;
     if(typeof role==='undefined'||(role!=='member'&&role!=='leader')||!tokenValue())return;
     loadingMemberAnnouncements=true;
-    try{var rows=await gaRpc('list_global_announcements_for_member',{p_token:tokenValue()});if(Array.isArray(rows)&&rows.length&&videoWatchPausedSession!==tokenValue())await showMemberAnnouncement(rows[0])}
+    try{
+      var rows=await gaRpc('list_global_announcements_for_member',{p_token:tokenValue()});
+      // Also filter locally to protect already-open or cached pages against
+      // replay of old daily and ordinary messages.
+      var next=Array.isArray(rows)?rows.find(function(row){return isCurrentAnnouncement(row)&&!wasDismissed(row.id)}):null;
+      if(next&&videoWatchPausedSession!==tokenValue()&&Date.now()-lastModalClosedAt>=15000)
+        await showMemberAnnouncement(next);
+    }
     catch(e){console.debug('global announcement load failed',e)}
     finally{loadingMemberAnnouncements=false}
   }

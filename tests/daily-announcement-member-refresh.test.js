@@ -45,8 +45,8 @@ test('open member session receives the daily announcement without reloading the 
   assert.equal(modals.length,0);
 
   // At 08:00+ the message becomes available; the minute refresh displays it.
-  available=[{id:'daily-2026-10-27',title:'صباح الصحة والثراء',body:'فكرة اليوم',
-    source:'daily_ai',announcement_type:'announcement',created_at:'2026-10-27T05:00:26Z'}];
+  available=[{id:'daily-today',title:'صباح الصحة والثراء',body:'فكرة اليوم',
+    source:'daily_ai',announcement_type:'announcement',created_at:new Date().toISOString()}];
   await intervals[0].fn();
   assert.equal(fetchCount,2);
   assert.equal(modals.length,1);
