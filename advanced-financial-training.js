@@ -176,7 +176,7 @@ function status(s){const el=document.getElementById('advFinancialWatchMessage');
 function watchUi(p){
  const bar=document.getElementById('advFinancialWatchBar');
  if(bar){bar.style.width=p.percent+'%';const track=bar.closest('[role="progressbar"]');if(track)track.setAttribute('aria-valuenow',String(p.percent));}
- const n=document.getElementById('advFinancialWatchPct');if(n)n.textContent=p.label||p.percent+'%';
+ const n=document.getElementById('advFinancialWatchPct');if(n)n.textContent=p.percent+'%';
 }
 async function previewVideo(n){
  if(role!=='leader'||window.innerWidth<900)return notify('المعاينة للقائد على الحاسوب فقط');
