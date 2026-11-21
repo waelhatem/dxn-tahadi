@@ -17,7 +17,7 @@ test('all inline scripts in the actual app HTML parse successfully',()=>{
 test('main-targeted basic training scripts are loaded once',()=>{
  // basic-training.js follows the engine's cache version (checked in unified-training-layout.test.js).
  assert.equal((page.match(/<script src="\.\.\/basic-training\.js\?v=[\w-]+"><\/script>/g)||[]).length,1,'basic-training.js loaded once');
- const deps=['../basic-training.css?v=20261014-onequestion','../unified-training-ui.css?v=20261015-unified',
+ const deps=['../basic-training.css?v=20261014-onequestion','../unified-training-ui.css?v=20261121-responsive-preview2',
   '../basic-training-member-profile.js?v=20261015-engine','../basic-training-leader-profile.js?v=20261015-engine',
   '../basic-training-admin.js?v=20261014-uistate'];
  deps.forEach(src=>assert.equal(page.split(src).length-1,1,src));

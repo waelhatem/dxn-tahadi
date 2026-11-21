@@ -103,20 +103,20 @@ const cards=()=>{
  const shown=selected.completed?100:0;
  const score=selected.best_score==null?'لم يُختبر':(5*selected.best_score)+' / 100';
  return '<p class="muted">'+(previewAccess?'وضع معاينة خاص: يمكنك فتح الدروس والاختبارات العشرة دون تغيير سجلّك التدريبي.':'اختر الدرس من القائمة. الفيديو العاشر خلاصة الدروس السابقة.')+'</p>'+
- '<div class="advanced-profit-grid">'+
+ '<div class="advanced-profit-grid unified-training__layout">'+
  '<div id="advancedProfitLessonList" class="advanced-profit-list" aria-label="دروس خطة أرباح DXN">'+side+'</div>'+
- '<div class="advanced-profit-viewer">'+
+ '<div class="advanced-profit-viewer unified-training__viewer">'+
  '<strong id="advancedProfitVideoTitle">الدرس '+n+' من 10 — '+esc(selected.title)+'</strong>'+
  '<div class="advanced-financial-inline-actions" style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;width:100%;">'+
  '<span class="muted" style="margin-inline-end:auto;">'+(previewAccess?'👁 معاينة خاصة غير محتسبة':ready?'▶ يمكنك استئناف الفيديو من آخر موضع محفوظ عند العودة':'⏳ هذا الدرس غير منشور بعد، والمشاهدة لا تُحتسب')+'</span>'+
  (role==='leader'&&window.innerWidth>=900?'<button type="button" class="name-list-btn" data-preview="'+n+'">⏱ اعتماد مدة الفيديو</button>':'')+
  '</div>'+
- '<button type="button" class="name-list-btn unified-training__play" data-watch="'+n+'" '+(viewable?'':'disabled')+'>▶ تشغيل الفيديو / إعادة المشاهدة</button>'+ 
- '<div class="training-professional-video" id="advancedFinancialInlineBox"><div id="advFinancialYT"></div></div>'+
- '<div class="basic-bag-inline-progress"><div class="basic-bag-progress"><div id="advFinancialWatchBar" style="width:'+shown+'%"></div></div><strong id="advFinancialWatchPct">'+esc(selected.completed?E.completionLabel(isReady(selected)):'0%')+'</strong></div>'+ 
+ '<button type="button" class="name-list-btn advanced-financial-start-button" data-watch="'+n+'" '+(viewable?'':'disabled')+'>▶ تشغيل الفيديو / إعادة المشاهدة</button>'+ 
+ '<div class="training-professional-video unified-training__video" id="advancedFinancialInlineBox"><div id="advFinancialYT"></div></div>'+
+ '<div class="basic-bag-inline-progress unified-training__progress advanced-financial-progress"><span class="unified-training__progress-label">نسبة المشاهدة</span><div id="advFinancialWatchProgress" class="basic-bag-progress" role="progressbar" aria-label="نسبة مشاهدة الدرس" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+shown+'"><div id="advFinancialWatchBar" style="width:'+shown+'%"></div></div><span id="advFinancialWatchPct" class="advanced-financial-progress-status" aria-live="polite">'+esc(selected.completed?E.completionLabel(isReady(selected)):'0%')+'</span><strong id="advFinancialWatchPercent">'+shown+'%</strong></div>'+ 
   '<p id="advFinancialWatchMessage" class="muted">'+esc(label)+'</p>'+
   '<div class="advanced-financial-quiz-location">'+
- '<button type="button" class="name-list-btn primary advanced-financial-test-cta" data-test="'+n+'" style="display:inline-flex;justify-content:center;align-items:center;gap:8px;margin-inline-start:0;padding:13px 22px;min-width:0;font-size:1.05rem;font-weight:800;background:'+q.background+';color:'+q.color+';border:2px solid #0b805c;border-radius:12px;cursor:pointer;" '+(q.open?'':'disabled')+'>'+q.text+'</button>'+
+ '<button type="button" class="name-list-btn primary advanced-financial-test-cta unified-training__quiz-button" data-test="'+n+'" style="display:inline-flex;justify-content:center;align-items:center;gap:8px;margin-inline-start:0;padding:13px 22px;min-width:0;font-size:1.05rem;font-weight:800;background:'+q.background+';color:'+q.color+';border:2px solid #0b805c;border-radius:12px;cursor:pointer;" '+(q.open?'':'disabled')+'>'+q.text+'</button>'+
   '</div>'+
   '<p class="muted">الدرجة: '+esc(score)+'</p>'+
  '</div></div>';
@@ -142,7 +142,7 @@ window.advancedFinancialCoursePage=function(){
  // Coming back to the page (it was rebuilt): show the lessons already loaded instead of "loading".
  else if(loaded)setTimeout(render,0);
  const vids=window.advancedProfitVideos||[];
- return '<section class="card advanced-financial-course" dir="rtl"><div class="title">🚀 التدريب المتقدم</div>'+
+ return '<section class="card advanced-financial-course unified-training" dir="rtl"><div class="title">🚀 التدريب المتقدم</div>'+
  '<details class="advanced-profit-course academy-camps-course"><summary><span class="advanced-profit-course-emoji">📈</span>'+
  '<span class="advanced-profit-course-copy"><strong>التدريب المتقدم</strong>'+
  '<small>المهندس محمود المصري — 10 دروس متتابعة واختبار لكل درس</small></span>'+
@@ -174,8 +174,9 @@ async function youtube(){
 }
 function status(s){const el=document.getElementById('advFinancialWatchMessage');if(el)el.textContent=s;}
 function watchUi(p){
- const bar=document.getElementById('advFinancialWatchBar');if(bar)bar.style.width=p.percent+'%';
- const n=document.getElementById('advFinancialWatchPct');if(n)n.textContent=p.label||p.percent+'%';
+ const bar=document.getElementById('advFinancialWatchBar');
+ if(bar){bar.style.width=p.percent+'%';const track=document.getElementById('advFinancialWatchProgress');if(track&&typeof track.setAttribute==='function')track.setAttribute('aria-valuenow',String(p.percent));}
+ const n=document.getElementById('advFinancialWatchPct');if(n)n.textContent=p.label||p.percent+'%';const numeric=document.getElementById('advFinancialWatchPercent');if(numeric)numeric.textContent=p.percent+'%';
 }
 async function previewVideo(n){
  if(role!=='leader'||window.innerWidth<900)return notify('المعاينة للقائد على الحاسوب فقط');
@@ -224,7 +225,7 @@ async function mountInline(x){
   w.engine=window.DXNTrainingEngine.createWatch({track:'advanced',lessonNo:n,watchCompleted:!!x.completed,preview:!tracked,
    quizReady:()=>isReady(data.find(l=>l.lesson_no===n)),
    onMessage:t=>{if(watch===w)status(t);},
-   onProgress:p=>{if(watch===w&&tracked)watchUi(p);},
+   onProgress:p=>{if(watch===w)watchUi(p);},
    onCompleted:()=>{
     // Saved state first (startQuiz reads it), then the existing button — no render, so no new player.
     if(previewAccess){status('انتهت المعاينة؛ لم تُسجّل ضمن تقدمك.');return;}
@@ -282,7 +283,16 @@ function renderExam(body){
  body.replaceChildren();const resultBox=document.createElement('section');resultBox.className='basic-bag-result';
  resultBox.textContent=(result.preview_only?'نتيجة المعاينة (غير محفوظة): ':'درجة الاختبار: ')+result.score*5+' / 100 — '+(result.passed?window.DXNTrainingEngine.MESSAGES.passed:window.DXNTrainingEngine.MESSAGES.failed)+(result.preview_only?' — لم يتغير تقدمك أو سجلك التدريبي.':'');
  body.append(resultBox);
- if(!result.preview_only){await refresh();if(result.passed&&data.some(l=>l.lesson_no===e.no+1))scheduleAdvancedNext(e.no+1,resultBox);}
+ if(result.preview_only){
+  const nextLesson=data.find(l=>l.lesson_no===e.no+1);
+  if(nextLesson){
+   const nextButton=document.createElement('button');nextButton.type='button';
+   nextButton.className='name-list-btn primary advanced-financial-preview-next';
+   nextButton.textContent='الانتقال إلى الدرس '+nextLesson.lesson_no+' للمعاينة';
+   nextButton.addEventListener('click',()=>{selectedLesson=nextLesson.lesson_no;selectedAuto=false;close();});
+   body.append(nextButton);
+  }
+ }else{await refresh();if(result.passed&&data.some(l=>l.lesson_no===e.no+1))scheduleAdvancedNext(e.no+1,resultBox);}
  }catch(err){notify(err.message);e.busy=false;updateFooter()}};
  foot.append(back,next,submit);body.append(foot);
  function updateFooter(){next.disabled=e.answers[index]<0||index===19;submit.disabled=e.busy||index!==19||e.answers.includes(-1)}

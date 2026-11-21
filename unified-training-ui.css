@@ -48,3 +48,177 @@
 /* Navigation under the options fills the window width, as the advanced quiz footer does. */
 .basic-bag-overlay:not(.advanced-financial-overlay) .basic-bag-exam button.name-list-btn{flex:1 1 0;min-width:100px;min-height:46px}
 .basic-bag-overlay:not(.advanced-financial-overlay) .basic-bag-exam [id$="Count"]{flex:1 0 100%;text-align:center}
+
+
+/* V87.5 — Keep training titles, players, and viewing percentages clear on every screen. */
+.unified-training .unified-training__layout{
+  grid-template-columns:minmax(220px,.68fr) minmax(0,2.25fr);
+  align-items:start;
+  gap:24px
+}
+.unified-training .unified-training__viewer{
+  min-width:0;
+  width:100%;
+  max-width:1180px;
+  justify-self:center;
+  margin-inline:auto;
+  padding:clamp(14px,2vw,24px);
+  border:1px solid #d6e6de;
+  border-radius:18px;
+  background:#fff;
+  box-shadow:0 5px 20px rgba(15,70,53,.08)
+}
+.unified-training .unified-training__viewer>#advancedProfitVideoTitle,
+.unified-training .unified-training__viewer #basicBagViewerHead>strong,
+.unified-training .unified-training__viewer #professionalViewerHead>strong{
+  display:block;
+  margin:0 0 14px;
+  color:#153f32;
+  font-size:clamp(20px,2vw,28px);
+  font-weight:950;
+  line-height:1.55;
+  text-align:center;
+  overflow-wrap:anywhere
+}
+.unified-training .unified-training__video{
+  box-sizing:border-box;
+  width:min(100%,1080px);
+  height:auto;
+  aspect-ratio:16/9;
+  padding-top:0!important;
+  margin:14px auto;
+  border-radius:16px;
+  background:#102c24
+}
+.unified-training .unified-training__video iframe,
+.unified-training .unified-training__video #basicBagYT,
+.unified-training .unified-training__video #advFinancialYT{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  border:0
+}
+.unified-training .advanced-financial-start-button{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:min(100%,460px);
+  min-height:50px;
+  margin:12px auto;
+  font-weight:900
+}
+.unified-training .unified-training__progress{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:12px;
+  width:100%;
+  max-width:1080px;
+  margin:12px auto 16px
+}
+.unified-training .unified-training__progress .basic-bag-progress{
+  width:100%;
+  height:16px;
+  margin:0
+}
+.unified-training .unified-training__progress>strong{
+  box-sizing:border-box;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:auto;
+  min-width:86px;
+  min-height:44px;
+  max-width:220px;
+  padding:6px 12px;
+  border:1px solid #9ac9ad;
+  border-radius:12px;
+  background:#e3f4ea;
+  color:#104d38;
+  font-size:20px;
+  font-weight:950;
+  line-height:1.35;
+  text-align:center;
+  white-space:normal;
+  font-variant-numeric:tabular-nums
+}
+.unified-training .advanced-financial-progress{
+  grid-template-columns:auto minmax(0,1fr) auto
+}
+.unified-training .unified-training__progress-label{
+  color:#154937;
+  font-size:15px;
+  font-weight:900;
+  white-space:nowrap
+}
+.unified-training .unified-training__quiz-location,
+.unified-training .advanced-financial-quiz-location{
+  display:flex;
+  justify-content:center;
+  width:100%;
+  max-width:1080px;
+  margin:12px auto 0
+}
+.unified-training .advanced-financial-test-cta{
+  width:min(100%,480px);
+  min-height:50px
+}
+.unified-training .advanced-financial-preview-next{
+  display:flex;
+  justify-content:center;
+  width:min(100%,480px);
+  min-height:50px;
+  margin:14px auto
+}
+.unified-training .advanced-profit-lesson{min-height:54px}
+@media(max-width:850px){
+  .unified-training .unified-training__layout{
+    grid-template-columns:minmax(0,1fr);
+    gap:16px
+  }
+  .unified-training .unified-training__viewer{
+    order:1;
+    width:100%;
+    max-width:none;
+    padding:16px
+  }
+  .unified-training .advanced-profit-list{order:2}
+  .unified-training .unified-training__video{width:100%;max-width:none}
+}
+@media(max-width:560px){
+  .unified-training .unified-training__viewer{
+    padding:12px;
+    border-radius:14px
+  }
+  .unified-training .unified-training__video{
+    width:100%;
+    margin:12px auto;
+    border-radius:11px
+  }
+  .unified-training .advanced-financial-progress{
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:8px
+  }
+  .unified-training .advanced-financial-progress .unified-training__progress-label{grid-column:1/-1}
+  .unified-training .unified-training__progress{gap:8px}
+  .unified-training .unified-training__progress>strong{
+    min-width:70px;
+    min-height:42px;
+    font-size:18px
+  }
+  .unified-training .advanced-financial-test-cta,
+  .unified-training .advanced-financial-preview-next{width:100%}
+}
+
+.unified-training .advanced-financial-progress-status{
+  position:absolute;
+  width:1px;
+  height:1px;
+  padding:0;
+  margin:-1px;
+  overflow:hidden;
+  clip:rect(0,0,0,0);
+  white-space:nowrap;
+  border:0
+}
