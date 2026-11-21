@@ -200,7 +200,7 @@
     grid-template-columns:minmax(0,1fr) auto;
     gap:8px
   }
-  .unified-training .advanced-financial-progress-label{grid-column:1/-1}
+  .unified-training .advanced-financial-progress .unified-training__progress-label{grid-column:1/-1}
   .unified-training .unified-training__progress{gap:8px}
   .unified-training .unified-training__progress>strong{
     min-width:70px;
