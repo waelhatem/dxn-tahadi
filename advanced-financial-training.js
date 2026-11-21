@@ -113,7 +113,7 @@ const cards=()=>{
  '</div>'+
  '<button type="button" class="name-list-btn advanced-financial-start-button" data-watch="'+n+'" '+(viewable?'':'disabled')+'>▶ تشغيل الفيديو / إعادة المشاهدة</button>'+ 
  '<div class="training-professional-video unified-training__video" id="advancedFinancialInlineBox"><div id="advFinancialYT"></div></div>'+
- '<div class="basic-bag-inline-progress unified-training__progress advanced-financial-progress"><span class="unified-training__progress-label">نسبة المشاهدة</span><div class="basic-bag-progress" role="progressbar" aria-label="نسبة مشاهدة الدرس" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+shown+'"><div id="advFinancialWatchBar" style="width:'+shown+'%"></div></div><strong id="advFinancialWatchPct">'+shown+'%</strong></div>'+ 
+ '<div class="basic-bag-inline-progress unified-training__progress advanced-financial-progress"><span class="unified-training__progress-label">نسبة المشاهدة</span><div id="advFinancialWatchProgress" class="basic-bag-progress" role="progressbar" aria-label="نسبة مشاهدة الدرس" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+shown+'"><div id="advFinancialWatchBar" style="width:'+shown+'%"></div></div><strong id="advFinancialWatchPct">'+shown+'%</strong></div>'+ 
   '<p id="advFinancialWatchMessage" class="muted">'+esc(label)+'</p>'+
   '<div class="advanced-financial-quiz-location unified-training__quiz-location">'+
  '<button type="button" class="name-list-btn primary advanced-financial-test-cta unified-training__quiz-button" data-test="'+n+'" style="display:inline-flex;justify-content:center;align-items:center;gap:8px;margin-inline-start:0;padding:13px 22px;min-width:0;font-size:1.05rem;font-weight:800;background:'+q.background+';color:'+q.color+';border:2px solid #0b805c;border-radius:12px;cursor:pointer;" '+(q.open?'':'disabled')+'>'+q.text+'</button>'+
@@ -175,7 +175,7 @@ async function youtube(){
 function status(s){const el=document.getElementById('advFinancialWatchMessage');if(el)el.textContent=s;}
 function watchUi(p){
  const bar=document.getElementById('advFinancialWatchBar');
- if(bar){bar.style.width=p.percent+'%';const track=bar.closest('[role="progressbar"]');if(track)track.setAttribute('aria-valuenow',String(p.percent));}
+ if(bar){bar.style.width=p.percent+'%';const track=document.getElementById('advFinancialWatchProgress');if(track&&typeof track.setAttribute==='function')track.setAttribute('aria-valuenow',String(p.percent));}
  const n=document.getElementById('advFinancialWatchPct');if(n)n.textContent=p.percent+'%';
 }
 async function previewVideo(n){
