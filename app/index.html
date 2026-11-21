@@ -9384,42 +9384,86 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
 
   let teamSearchMode='member_number';
 
-  function teamNameSearchKey(value){
-    let s=String(value||'').toLowerCase().trim();
-
-    s=s.replace(/[أإآٱ]/g,'ا')
-      .replace(/ى/g,'ي')
-      .replace(/ة/g,'ه')
+  function normalizeTeamNameText(value){
+    return String(value||'')
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g,'')
+      .replace(/[\u064b-\u065f\u0670\u06d6-\u06ed]/g,'')
+      .replace(/[أإآٱ]/g,'ا')
+      .replace(/[ىئ]/g,'ي')
       .replace(/ؤ/g,'و')
-      .replace(/ئ/g,'ي')
+      .replace(/ة/g,'ه')
       .replace(/ء/g,'')
-      .replace(/[ًٌٍَُِّْـ]/g,'')
-      .replace(/[^a-z0-9ء-ي\s]+/g,' ')
+      .replace(/ـ/g,'')
+      .replace(/[^a-z0-9\u0600-\u06ff\s]+/g,' ')
       .replace(/\s+/g,' ')
       .trim();
+  }
 
-    const digraphs=[
-      ['ش','sh'],
-      ['خ','kh'],
-      ['غ','gh'],
-      ['ث','th'],
-      ['ذ','dh'],
-      ['چ','ch']
-    ];
+  function teamNameSearchForms(token){
+    const value=normalizeTeamNameText(token);
+    if(!value)return [];
 
-    digraphs.forEach(([ar,en])=>{s=s.split(ar).join(en)});
-
-    const map={
-      'ا':'a','ب':'b','ت':'t','ج':'j','ح':'h','د':'d','ر':'r','ز':'z',
-      'س':'s','ص':'s','ض':'d','ط':'t','ظ':'z','ع':'a','ف':'f','ق':'q',
-      'ك':'k','ل':'l','م':'m','ن':'n','ه':'h','و':'w','ي':'y',
-      'پ':'p','گ':'g','ڤ':'v'
+    const forms=new Set();
+    const add=(form)=>{
+      const clean=String(form||'').toLowerCase().replace(/\s+/g,'').trim();
+      if(!clean)return;
+      forms.add(clean);
+      const consonants=clean.replace(/[aeiou]/g,'').replace(/(.)\1+/g,'$1');
+      if(consonants.length>=2)forms.add(consonants);
     };
 
-    s=s.split('').map(ch=>map[ch]||ch).join('');
-    s=s.replace(/[^a-z0-9\s]+/g,'');
-    s=s.replace(/[aeiouy]+/g,'');
-    return s.replace(/\s+/g,'').trim();
+    add(value);
+    if(/[\u0600-\u06ff]/.test(value)){
+      const roots=new Set([value]);
+      if(value.startsWith('ال')&&value.length>2)roots.add(value.slice(2));
+
+      const latinMap={
+        'ا':'a','ب':'b','ت':'t','ث':'th','ج':'j','ح':'h','خ':'kh',
+        'د':'d','ذ':'dh','ر':'r','ز':'z','س':'s','ش':'sh','ص':'s',
+        'ض':'d','ط':'t','ظ':'z','ع':'a','غ':'gh','ف':'f','ق':'q',
+        'ك':'k','ل':'l','م':'m','ن':'n','ه':'h','پ':'p','چ':'ch',
+        'ژ':'zh','گ':'g','ڤ':'v','ڨ':'q'
+      };
+      for(const root of roots){
+        for(const ya of ['y','i']){
+          for(const waw of ['w','u','o','']){
+            const latin=Array.from(root).map(ch=>{
+              if(ch==='ي')return ya;
+              if(ch==='و')return waw;
+              return latinMap[ch]||ch;
+            }).join('');
+            add(latin);
+            if(latin.endsWith('h')&&latin.length>2)add(latin.slice(0,-1));
+          }
+        }
+      }
+    }
+    return Array.from(forms);
+  }
+
+  function teamNameFormsMatch(left,right){
+    const a=teamNameSearchForms(left);
+    const b=teamNameSearchForms(right);
+    return a.some(x=>x.length>=2&&b.some(y=>
+      y.length>=2&&(x===y||x.includes(y)||y.includes(x))
+    ));
+  }
+
+  function teamNameMatches(query,name){
+    const q=normalizeTeamNameText(query);
+    const n=normalizeTeamNameText(name);
+    if(!q||!n)return false;
+    if(n.includes(q))return true;
+
+    const queryParts=q.split(' ').filter(Boolean);
+    const nameParts=n.split(' ').filter(Boolean);
+    const wholeName=n.replace(/\s+/g,'');
+    return queryParts.every(part=>
+      nameParts.some(candidate=>teamNameFormsMatch(part,candidate))||
+      teamNameFormsMatch(part,wholeName)
+    );
   }
 
   function teamSearchConfig(mode){
@@ -9434,7 +9478,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
         placeholder:'اكتب اسم العضو أو جزءًا منه...',
         inputMode:'text',
         maxLength:120,
-        help:'بحث داخل الفريق باسم العضو بالعربية أو الإنجليزية.'
+        help:'بحث بالاسم العربي أو الإنجليزي، أو بأي جزء من الاسم.'
       },
       sponsor_number:{
         placeholder:'اكتب رقم عضوية الراعي المكوّن من 9 أرقام...',
@@ -9508,21 +9552,11 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     }
 
     if(mode==='member_name'){
-      const direct=String(row&&row.member_name||'').toLowerCase().includes(q.toLowerCase());
-      if(direct)return true;
-
-      const queryKey=teamNameSearchKey(q);
-      const nameKey=teamNameSearchKey(row&&row.member_name||'');
-      return !!queryKey&&nameKey.includes(queryKey);
+      return teamNameMatches(q,row&&row.member_name||'');
     }
 
     if(mode==='sponsor_name'){
-      const direct=String(row&&row.sponsor_name||'').toLowerCase().includes(q.toLowerCase());
-      if(direct)return true;
-
-      const queryKey=teamNameSearchKey(q);
-      const nameKey=teamNameSearchKey(row&&row.sponsor_name||'');
-      return !!queryKey&&nameKey.includes(queryKey);
+      return teamNameMatches(q,row&&row.sponsor_name||'');
     }
 
     return false;
