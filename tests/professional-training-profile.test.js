@@ -10,7 +10,7 @@ const page=fs.readFileSync(path.join(root,'app/index.html'),'utf8');
 const migration=fs.readFileSync(path.join(root,'supabase/migrations/20261016110000_professional_training_leader_profile.sql'),'utf8');
 
 function sample(scores){
- return Array.from({length:5},(_,i)=>({
+ return Array.from({length:6},(_,i)=>({
   lesson_no:i+1,title:'التدريب رقم '+(i+1),completed:scores[i]!=null,
   best_score:scores[i]??null,passed:scores[i]!=null&&scores[i]>=16,
   passed_at:scores[i]!=null&&scores[i]>=16?'2026-10-16T00:00:00Z':null,
@@ -32,26 +32,26 @@ async function memberHtml(scores){
 test('member professional grades are shown as /100 in correct lesson order, including 0/100',async()=>{
  const html=await memberHtml([20,16,0]);
  assert.match(html,/100 \/ 100/);assert.match(html,/80 \/ 100/);assert.match(html,/0 \/ 100/);
- for(let i=1;i<5;i++)assert.ok(html.indexOf('التدريب الاحترافي '+i)<html.indexOf('التدريب الاحترافي '+(i+1)));
+ for(let i=1;i<6;i++)assert.ok(html.indexOf('التدريب الاحترافي '+i)<html.indexOf('التدريب الاحترافي '+(i+1)));
  assert.match(html,/المشاهدات المكتملة/);
 });
-test('final professional average is hidden until all five videos and tests are passed',async()=>{
- const pending=await memberHtml([20,20,20,20,null]);
+test('final professional average is hidden until all six videos and tests are passed',async()=>{
+ const pending=await memberHtml([20,20,20,20,20,null]);
  assert.doesNotMatch(pending,/basic-training-average-card/);
- const failed=await memberHtml([20,20,20,20,15]);
+ const failed=await memberHtml([20,20,20,20,20,15]);
  assert.doesNotMatch(failed,/basic-training-average-card/);
- const done=await memberHtml([20,20,20,20,16]);
+ const done=await memberHtml([20,20,20,20,20,16]);
  assert.match(done,/basic-training-average-card/);
- assert.match(done,/96 \/ 100/);
+ assert.match(done,/96\.7 \/ 100/);
 });
 test('record never displays a provisional zero for an unattempted quiz',async()=>{
  const html=await memberHtml([]);
  assert.match(html,/لم يؤدِّ الاختبار/);
- assert.match(html,/0 \/ 5/);
+ assert.match(html,/0 \/ 6/);
  assert.doesNotMatch(html,/basic-training-average-card/);
 });
 test('profile integration keeps track order and loads professional script exactly once',()=>{
- assert.equal((page.match(/professional-training-profile\.js\?v=20261016-profile1/g)||[]).length,1);
+ assert.equal((page.match(/professional-training-profile\.js\?v=20261124-six-lessons/g)||[]).length,1);
  assert.match(page,/basicTrainingMemberPage\?\.\(\).*professionalTrainingMemberProfile\?\.\(\).*advancedFinancialMemberProfile\?\.\(\)/);
  const basic=page.indexOf('window.loadBasicTrainingLeaderMemberProfile(id)');
  const pro=page.indexOf('window.professionalTrainingLeaderProfile(id)');

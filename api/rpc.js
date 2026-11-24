@@ -1168,7 +1168,7 @@ async function resolveTrainingTrackAccess(pToken) {
   if(role==='leader'){
     return {role,exempt:true,basic_complete:true,professional_complete:true,
       professional_allowed:true,advanced_allowed:true,basic_passed:8,basic_total:8,
-      professional_passed:5,professional_total:5};
+      professional_passed:6,professional_total:6};
   }
   if(role!=='member')throw new Error('حساب العضو غير مصرح له بفتح التدريبات');
   const boot=await supabaseRpcRequest('bootstrap',args,SUPABASE_KEY,12000);
@@ -1178,10 +1178,10 @@ async function resolveTrainingTrackAccess(pToken) {
   const validBasic=basic.data.progress.filter(x=>x&&x.completed===true&&x.passed===true).length;
   const basicTotal=basic.data.progress.length;
   const basicComplete=basicTotal===8&&validBasic===8;
-  let professionalTotal=5,professionalPassed=0,professionalComplete=false;
+  let professionalTotal=6,professionalPassed=0,professionalComplete=false;
   // The verified account exemption is unconditional: no prerequisite query may block it.
   if(exempt)return {role,exempt,basic_complete:basicComplete,professional_complete:false,
-    basic_passed:validBasic,basic_total:basicTotal,professional_passed:0,professional_total:5,
+    basic_passed:validBasic,basic_total:basicTotal,professional_passed:0,professional_total:6,
     professional_allowed:true,advanced_allowed:true};
   // Check the professional stage only after all eight basic lessons are passed.
   if(basicComplete){
@@ -1192,7 +1192,12 @@ async function resolveTrainingTrackAccess(pToken) {
     const active=pro.data.lessons.filter(x=>x&&x.active===true);
     professionalTotal=active.length;
     professionalPassed=active.filter(x=>x.completed===true&&x.passed===true).length;
-    professionalComplete=professionalTotal===5&&professionalPassed===5;
+    // Require six lessons for new graduates; preserve advanced access for members
+    // who had already completed all five lessons before the sixth was published.
+    const firstFive=active.filter(x=>Number(x.lesson_no)<=5);
+    const legacyPassed=firstFive.length===5&&firstFive.every(x=>x.completed===true&&x.passed===true&&
+      x.passed_at&&Date.parse(x.passed_at)<1795500987099);
+    professionalComplete=(professionalTotal===6&&professionalPassed===6)||legacyPassed;
   }
   return {role,exempt,basic_complete:basicComplete,professional_complete:professionalComplete,
     basic_passed:validBasic,basic_total:basicTotal,professional_passed:professionalPassed,

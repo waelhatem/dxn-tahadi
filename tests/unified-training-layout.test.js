@@ -89,10 +89,10 @@ test('professional course page: same layout, server locks, quiz below the video,
   assert.match(byId(env,'professionalViewerHead').textContent,/م\. محمود المصري/);
 });
 
-test('professional preview data: five independent trainings, old cards as fallback',()=>{
+test('professional preview data: six independent trainings, old cards as fallback',()=>{
   const ctx={document:{getElementById:()=>null}};ctx.window=ctx;vm.createContext(ctx);
-  const expected=[['zO3U8yj0Sig','المدرب: '],['tVim2H5Elck','المدرب: '],['HOtDbw8-P3w','المدرب: '],['nzezoIaIRVg','المدرب: '],['HxID9tMHoVw','المحاضر: ']];
-  for(let n=1;n<=5;n++){
+  const expected=[['zO3U8yj0Sig','المدرب: '],['tVim2H5Elck','المدرب: '],['HOtDbw8-P3w','المدرب: '],['nzezoIaIRVg','المدرب: '],['HxID9tMHoVw','المحاضر: '],['XONhR6rZ7t8','المحاضر: ']];
+  for(let n=1;n<=6;n++){
     vm.runInContext(read('professional-training-0'+n+'.js'),ctx);
     const info=ctx['professionalTraining0'+n+'Info']();
     assert.equal(info.videoId,expected[n-1][0]);
@@ -107,7 +107,7 @@ test('professional preview data: five independent trainings, old cards as fallba
   const make=win=>new Function('window','esc','document',page.slice(start,end)+'\nreturn professionalTrainingPage();')(win,esc,{getElementById:()=>null});
   const html=make(ctx);
   assert.match(html,/class="advanced-profit-course academy-camps-course unified-training"/);
-  assert.equal((html.match(/class="advanced-profit-lesson"/g)||[]).length,5);
+  assert.equal((html.match(/class="advanced-profit-lesson"/g)||[]).length,6);
   assert.match(html,/youtube-nocookie\.com\/embed\/zO3U8yj0Sig\?rel=0/);
   assert.match(make({...ctx,professionalTrainingCoursePage:()=>'<section>ENGINE_PAGE</section>'}),/ENGINE_PAGE/,'the engine page takes over when loaded');
   assert.match(make({professionalTraining01Page:()=>'<article>OLD_CARD</article>'}),/OLD_CARD/);
