@@ -266,8 +266,10 @@ test('professional lesson six ships with the approved YouTube video and 20 disti
  assert.ok(l.questions.every((q,i)=>q.number===i+1&&q.options.length===4));
  assert.match(src,/XONhR6rZ7t8/);
  assert.doesNotMatch(src,/correct_index|answer_key/,'answer keys are not sent to a public script');
+ const index=fs.readFileSync(path.join(__dirname,'..','app/index.html'),'utf8');
+ assert.match(index,/professional-training-06\.js/);
+ assert.match(index,/return \[1,2,3,4,5,6\]\.map/);
  const course=fs.readFileSync(path.join(__dirname,'..','professional-training-course.js'),'utf8');
- assert.match(course,/professional-training-06\.js/);
  assert.match(course,/r\.lessons\.length===0/,'empty server catalog falls back to preview');
 });
 
