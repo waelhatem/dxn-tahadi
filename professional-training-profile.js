@@ -25,22 +25,22 @@
  }
  function render(data){
   const lessons=lessonsOf(data);
-  if(lessons.length!==5)return '<p class="muted">سجل التدريبات الاحترافية غير مكتمل؛ تعذّر عرض النتائج بصورة موثوقة.</p>';
+  if(lessons.length!==6)return '<p class="muted">سجل التدريبات الاحترافية غير مكتمل؛ تعذّر عرض النتائج بصورة موثوقة.</p>';
   if(data.account_linked===false)return '<p class="muted">هذا العضو ليس لديه حساب منصة مرتبط، لذلك لا توجد نتائج محفوظة.</p>';
   const passed=lessons.filter(x=>x.passed===true&&completed(x)).length;
   const watched=lessons.filter(completed).length;
   const tested=lessons.filter(x=>x.best_score!=null).length;
-  const allPassed=passed===5&&lessons.every(x=>x.best_score!=null);
-  const final=allPassed?lessons.reduce((sum,x)=>sum+Number(x.best_score)*5,0)/5:null;
+  const allPassed=passed===6&&lessons.every(x=>x.best_score!=null);
+  const final=allPassed?lessons.reduce((sum,x)=>sum+Number(x.best_score)*5,0)/6:null;
   return (allPassed?'<section class="basic-training-average-card" aria-label="المعدل النهائي للتدريبات الاحترافية">'+
    '<div class="basic-training-average-title">🏆 المعدل النهائي للتدريبات الاحترافية</div>'+
    '<div class="basic-training-average-score" dir="ltr">'+esc(Number.isInteger(final)?final:final.toFixed(1))+' / 100</div>'+
    '</section>':'')+
    '<div class="mini-grid" style="margin:12px 0">'+
-   '<div><b>📚 التدريبات</b><h3>5</h3></div>'+
-   '<div><b>✅ المجتازة</b><h3>'+passed+' / 5</h3></div>'+
-   '<div><b>🎬 المشاهدات المكتملة</b><h3>'+watched+' / 5</h3></div>'+
-   '<div><b>📝 الاختبارات المؤداة</b><h3>'+tested+' / 5</h3></div></div>'+
+   '<div><b>📚 التدريبات</b><h3>6</h3></div>'+
+   '<div><b>✅ المجتازة</b><h3>'+passed+' / 6</h3></div>'+
+   '<div><b>🎬 المشاهدات المكتملة</b><h3>'+watched+' / 6</h3></div>'+
+   '<div><b>📝 الاختبارات المؤداة</b><h3>'+tested+' / 6</h3></div></div>'+
    lessons.map(card).join('');
  }
  async function rpc(fn,args,key){
@@ -53,7 +53,7 @@
  window.professionalTrainingMemberProfile=function(){
   setTimeout(()=>window.professionalTrainingMemberRefresh?.(),0);
   return '<section class="card" id="professionalTrainingMemberProfile" dir="rtl" style="max-width:960px;margin:14px auto;padding:20px;text-align:right">'+
-   '<h2>🎓 التدريبات الاحترافية — نتائجي</h2><p class="muted">خمسة تدريبات مرتبة بالتسلسل مع درجات الاختبارات المحفوظة.</p>'+
+   '<h2>🎓 التدريبات الاحترافية — نتائجي</h2><p class="muted">ستة تدريبات مرتبة بالتسلسل مع درجات الاختبارات المحفوظة.</p>'+
    '<div id="professionalTrainingMemberBody" role="status">جارٍ قراءة النتائج...</div>'+
    '<button type="button" class="primary" onclick="professionalTrainingMemberRefresh()" style="margin-top:12px">🔄 تحديث النتائج</button></section>';
  };
