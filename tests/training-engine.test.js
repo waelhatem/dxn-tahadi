@@ -253,3 +253,28 @@ test('the six unified states are the same strings in every track',()=>{
   assert.equal(E.lessonState({unlocked:true,watchCompleted:true,attempted:true}),'failed');
   assert.equal(E.lessonState({unlocked:true,watchCompleted:true,attempted:true,passed:true}),'passed');
 });
+
+test('professional lesson six ships with the approved YouTube video and 20 distinct four-choice scenarios',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const src=fs.readFileSync(path.join(__dirname,'..','professional-training-06.js'),'utf8');
+ const match=src.match(/const lesson=(\{[^\n]+\});/);
+ assert.ok(match,'the sixth lesson has an intact JSON payload');
+ const l=JSON.parse(match[1]);
+ assert.equal(l.id,'professional-06');
+ assert.equal(l.questions.length,20);
+ assert.equal(new Set(l.questions.map(q=>q.prompt)).size,20);
+ assert.ok(l.questions.every((q,i)=>q.number===i+1&&q.options.length===4));
+ assert.match(src,/XONhR6rZ7t8/);
+ assert.doesNotMatch(src,/correct_index|answer_key/,'answer keys are not sent to a public script');
+ const course=fs.readFileSync(path.join(__dirname,'..','professional-training-course.js'),'utf8');
+ assert.match(course,/professional-training-06\.js/);
+ assert.match(course,/r\.lessons\.length===0/,'empty server catalog falls back to preview');
+});
+
+test('professional: an empty server lesson catalog falls back to the existing preview',async()=>{
+ const env=setup();
+ env.ctx.professionalTrainingPreviewHtml=()=>'<p>PROFESSIONAL_PREVIEW</p>';
+ env.server.tracks.professional.lessons=[];
+ env.host.innerHTML=env.ctx.professionalTrainingCoursePage();await env.flush();
+ assert.match(env.byId('professionalCourseBody').textContent,/PROFESSIONAL_PREVIEW/);
+});
