@@ -11,24 +11,6 @@
  const LABELS=['الأول','الثاني','الثالث','الرابع','الخامس','السادس','السابع','الثامن','التاسع','العاشر'];
  let lessons=[],loaded=false,loading=false,backendReady=false,session=token(),selected=1,selectedAuto=true,movie=null,exam=null,autoInitialScheduled=false;
 
- // Keep the current five lessons unchanged and extend their read-only preview with lesson six.
- // The server-grade quiz remains protected; do not publish answer keys in browser assets.
- const originalPreviewInfos=window.professionalTrainingInfos;
- if(typeof originalPreviewInfos==='function'&&!window.__DXN_PROFESSIONAL_SIXTH_INFO__){
-  window.__DXN_PROFESSIONAL_SIXTH_INFO__=true;
-  window.professionalTrainingInfos=function(){
-   const existing=originalPreviewInfos();
-   const sixth=window.professionalTraining06Info?.();
-   return sixth?[...existing,{...sixth,no:6}]:existing;
-  };
- }
- const sixthScript=document.createElement('script');
- sixthScript.src='../professional-training-06.js?v=20261123-close-circle-1';
- sixthScript.async=true;
- sixthScript.addEventListener('load',()=>{if(!backendReady)render();});
- document.head.appendChild(sixthScript);
-
-
  function resetIfAccountChanged(){
   if(token()===session)return;
   session=token();stopMovie();lessons=[];loaded=false;loading=false;backendReady=false;selected=1;selectedAuto=true;exam=null;autoInitialScheduled=false;window.DXNTrainingAutoPlay?.cancel('professional');
