@@ -42,16 +42,16 @@ test('final professional average is hidden until all six videos and tests are pa
  assert.doesNotMatch(failed,/basic-training-average-card/);
  const done=await memberHtml([20,20,20,20,20,16]);
  assert.match(done,/basic-training-average-card/);
- assert.match(done,/96 \/ 100/);
+ assert.match(done,/96\.7 \/ 100/);
 });
 test('record never displays a provisional zero for an unattempted quiz',async()=>{
  const html=await memberHtml([]);
  assert.match(html,/لم يؤدِّ الاختبار/);
- assert.match(html,/0 \/ 5/);
+ assert.match(html,/0 \/ 6/);
  assert.doesNotMatch(html,/basic-training-average-card/);
 });
 test('profile integration keeps track order and loads professional script exactly once',()=>{
- assert.equal((page.match(/professional-training-profile\.js\?v=20261016-profile1/g)||[]).length,1);
+ assert.equal((page.match(/professional-training-profile\.js\?v=20261124-six-lessons/g)||[]).length,1);
  assert.match(page,/basicTrainingMemberPage\?\.\(\).*professionalTrainingMemberProfile\?\.\(\).*advancedFinancialMemberProfile\?\.\(\)/);
  const basic=page.indexOf('window.loadBasicTrainingLeaderMemberProfile(id)');
  const pro=page.indexOf('window.professionalTrainingLeaderProfile(id)');
