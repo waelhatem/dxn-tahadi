@@ -162,7 +162,7 @@
             <div class="field full"><label class="label" for="memberEmail">البريد الإلكتروني للعضو (اختياري)</label><input id="memberEmail" type="email" inputmode="email" dir="ltr" maxlength="254" autocomplete="off" spellcheck="false" placeholder="name@example.com"></div>
             <div class="field"><label class="label" for="sponsor">اسم الراعي (السبونسر)</label><input id="sponsor" maxlength="140" placeholder="اسم الراعي الذي سجل العضو"></div>
             <div class="field"><label class="label" for="sponsorCode">رقم عضوية الراعي</label><input id="sponsorCode" inputmode="numeric" dir="ltr" maxlength="15" placeholder="بالأرقام الإنجليزية فقط"></div>
-            <div class="field full"><label class="label" for="memberPassword">كلمة المرور الأولية *</label><div class="password-row"><input id="memberPassword" type="password" required minlength="9" maxlength="9" autocomplete="new-password" spellcheck="false" aria-describedby="passwordHelp"><button id="showNewPassword" type="button" class="btn plain" aria-label="إظهار أو إخفاء كلمة المرور">◉</button></div><div class="password-help" id="passwordHelp">9 خانات بالضبط: 3 أحرف إنجليزية كبيرة (A–Z)، و3 صغيرة (a–z)، و3 أرقام (0–9)، بترتيب عشوائي، دون رموز خاصة. تحقّق من قبولها في DXN.</div></div>
+            <div class="field full"><label id="memberPasswordLabel" class="label" for="memberPassword">كلمة المرور الأولية *</label><div class="password-row"><input id="memberPassword" type="password" required minlength="9" maxlength="9" autocomplete="new-password" spellcheck="false" aria-describedby="passwordHelp"><button id="showNewPassword" type="button" class="btn plain" aria-label="إظهار أو إخفاء كلمة المرور">◉</button></div><div class="password-help" id="passwordHelp">عند إضافة عضو: 9 خانات بالضبط، 3 أحرف إنجليزية كبيرة و3 صغيرة و3 أرقام. عند التعديل يمكنك إدخال كلمة مرور جديدة من 8 إلى 128 خانة، أو إبقاء المحفوظة كما هي.</div></div>
 
           </div>
           <div class="buttons" style="margin-top:12px"><button id="generateBtn" type="button" class="btn secondary">✦ توليد كلمة مرور معقدة (3+3+3)</button><button id="copyNewBtn" type="button" class="btn plain">نسخ بيانات العضو كاملة</button></div>
@@ -466,21 +466,24 @@
   function validateName(name) { return name.length>=3 && name.length<=140; }
   const validCode = code => code==='' || /^[0-9]{5,15}$/.test(code);
   const validPassword = pass => /^[A-Za-z0-9]{9}$/.test(pass) && (pass.match(/[A-Z]/g)||[]).length===3 && (pass.match(/[a-z]/g)||[]).length===3 && (pass.match(/[0-9]/g)||[]).length===3;
-  function resetForm(){resetOcrScan();editingId=null;pendingFormImage=null;$('entryForm').reset();$('newRegistrationImagePreview').classList.add('hidden');$('newRegistrationImagePreviewImg').removeAttribute('src');$('country').value='العراق';$('memberPassword').type='password';$('memberPassword').required=true;$('formTitle').textContent='إضافة عضو جديد';$('saveEntryBtn').textContent='حفظ العضو مشفراً';$('cancelEditBtn').classList.add('hidden');}
+  function resetForm(){resetOcrScan();editingId=null;pendingFormImage=null;$('entryForm').reset();$('newRegistrationImagePreview').classList.add('hidden');$('newRegistrationImagePreviewImg').removeAttribute('src');$('country').value='العراق';$('memberPassword').type='password';$('memberPassword').required=true;$('memberPasswordLabel').textContent='كلمة المرور الأولية *';$('passwordHelp').textContent='عند إضافة عضو: 9 خانات بالضبط، 3 أحرف إنجليزية كبيرة و3 صغيرة و3 أرقام. عند التعديل يمكنك إدخال كلمة مرور جديدة من 8 إلى 128 خانة، أو إبقاء المحفوظة كما هي.';$('formTitle').textContent='إضافة عضو جديد';$('saveEntryBtn').textContent='حفظ العضو مشفراً';$('cancelEditBtn').classList.add('hidden');}
   $('cancelEditBtn').addEventListener('click',resetForm);
   $('entryForm').addEventListener('submit',async event=>{
     event.preventDefault();touch();
     if(ocrBusy){notify('انتظر اكتمال قراءة صورة DXN، أو احذف الصورة وأدخل البيانات يدوياً.',true);return;}
     if(ocrNeedsReview&&!$('vaultOcrReviewed').checked){notify('راجع البيانات المستخرجة من الصورة وحدد مربع التأكيد قبل الحفظ.',true);return;}
     const name=$('memberName').value.trim(),code=$('memberCode').value.trim(),country=$('country').value.trim();
-    const email=$('memberEmail').value.trim(),sponsor=$('sponsor').value.trim(),sponsorCode=$('sponsorCode').value.trim(),password=$('memberPassword').value,status=$('deliveryStatus').value;
+    const email=$('memberEmail').value.trim(),sponsor=$('sponsor').value.trim(),sponsorCode=$('sponsorCode').value.trim(),password=$('memberPassword').value;let status=$('deliveryStatus').value;
     const old=editingId?vault.entries.find(e=>e.id===editingId):null,legacyUnchanged=old&&old.password===password;
     if(!validateName(name)){notify('اكتب الاسم الكامل للعضو (3 أحرف على الأقل).',true);return;}
     if(!validCode(code)){notify('رقم العضوية يجب أن يتكون من 5–15 رقماً إنجليزياً فقط.',true);return;}
     if(!validCode(sponsorCode)){notify('رقم عضوية الراعي يجب أن يتكون من 5–15 رقماً إنجليزياً فقط.',true);return;}
     if(email && (email.length>254 || !$('memberEmail').checkValidity())){notify('يرجى إدخال بريد إلكتروني صحيح للعضو.',true);return;}
-    if(status!=='changed'&&!validPassword(password)&&!legacyUnchanged){notify('كلمة المرور يجب أن تتكون من 9 خانات بالضبط: 3 أحرف كبيرة و3 صغيرة و3 أرقام إنجليزية، دون رموز.',true);return;}
-    if(status==='changed'&&password){notify('احذف كلمة المرور القديمة عند تغييرها من DXN.',true);return;}
+    if(editingId){
+      if(password.length<8||password.length>128){notify('كلمة المرور الجديدة يجب أن تتكون من 8 إلى 128 خانة.',true);return;}
+      if(status==='changed'){status='not_delivered';$('deliveryStatus').value=status;}
+    }else if(status!=='changed'&&!validPassword(password)){notify('كلمة المرور عند إضافة عضو يجب أن تكون 9 خانات: 3 أحرف كبيرة و3 صغيرة و3 أرقام إنجليزية.',true);return;}
+    if(status==='changed'&&password){notify('اترك كلمة المرور فارغة إذا لم تعد معروفة، أو أدخل كلمة جديدة من 8 إلى 128 خانة.',true);return;}
     if(code && vault.entries.some(e=>e.code===code&&e.id!==editingId)){notify('رقم العضوية مسجل بالفعل؛ لن ننشئ سجلاً مكرراً.',true);return;}
     const now=dateISO();
     const targetId=editingId||uid();
@@ -804,7 +807,7 @@
       list.appendChild(box);
     }
   }
-  function edit(id){const e=vault.entries.find(x=>x.id===id);if(!e)return;resetOcrScan();pendingFormImage=null;$('newRegistrationImageInput').value='';$('newRegistrationImagePreview').classList.add('hidden');$('newRegistrationImagePreviewImg').removeAttribute('src');editingId=id;$('memberName').value=e.name;$('memberCode').value=e.code;$('country').value=e.country;$('memberEmail').value=e.email||'';$('sponsor').value=e.sponsor;$('sponsorCode').value=e.sponsorCode||'';$('memberPassword').value=e.password;$('memberPassword').required=e.status!=='changed';$('deliveryStatus').value=e.status;$('formTitle').textContent='تعديل سجل العضو';$('saveEntryBtn').textContent='حفظ التغييرات مشفرة';$('cancelEditBtn').classList.remove('hidden');window.scrollTo({top:0,behavior:'smooth'});touch();}
+  function edit(id){const e=vault.entries.find(x=>x.id===id);if(!e)return;resetOcrScan();pendingFormImage=null;$('newRegistrationImageInput').value='';$('newRegistrationImagePreview').classList.add('hidden');$('newRegistrationImagePreviewImg').removeAttribute('src');editingId=id;$('memberName').value=e.name;$('memberCode').value=e.code;$('country').value=e.country;$('memberEmail').value=e.email||'';$('sponsor').value=e.sponsor;$('sponsorCode').value=e.sponsorCode||'';$('memberPassword').value=e.password;$('memberPassword').required=e.status!=='changed';$('memberPasswordLabel').textContent='كلمة المرور المحفوظة (يمكن استبدالها)';$('passwordHelp').textContent='اكتب كلمة المرور الجديدة من 8 إلى 128 خانة مكان القديمة ثم احفظ. إذا كانت حالة العضو «غيّرها العضو»، اكتب كلمة المرور الحالية المعروفة لتسجيلها من جديد؛ اترك الحقل فارغاً لحذفها.';$('deliveryStatus').value=e.status;$('formTitle').textContent='تعديل سجل العضو';$('saveEntryBtn').textContent='حفظ التغييرات مشفرة';$('cancelEditBtn').classList.remove('hidden');window.scrollTo({top:0,behavior:'smooth'});touch();}
   async function erasePassword(id){const e=vault.entries.find(x=>x.id===id);if(!e||!confirm('هل تريد حذف كلمة المرور المحفوظة لـ '+e.name+'؟ سيبقى سجل العضو ورقم عضويته.'))return;try{await commit(v=>{const x=v.entries.find(y=>y.id===id);x.password='';x.status='changed';x.updatedAt=dateISO();});if(editingId===id)resetForm();revealId=null;notify('حُذفت كلمة المرور وبقي سجل العضو.');}catch{notify('تعذر الحذف.',true);}}
   async function deleteEntry(id){
     const e=vault.entries.find(x=>x.id===id);
