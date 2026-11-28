@@ -480,8 +480,8 @@
     if(!validCode(sponsorCode)){notify('رقم عضوية الراعي يجب أن يتكون من 5–15 رقماً إنجليزياً فقط.',true);return;}
     if(email && (email.length>254 || !$('memberEmail').checkValidity())){notify('يرجى إدخال بريد إلكتروني صحيح للعضو.',true);return;}
     if(editingId){
-      if(password.length<8||password.length>128){notify('كلمة المرور الجديدة يجب أن تتكون من 8 إلى 128 خانة.',true);return;}
-      if(status==='changed'){status='not_delivered';$('deliveryStatus').value=status;}
+      if(password&&(password.length<8||password.length>128)){notify('كلمة المرور الجديدة يجب أن تتكون من 8 إلى 128 خانة.',true);return;}
+      if(status==='changed'&&password){status='not_delivered';$('deliveryStatus').value=status;}
     }else if(status!=='changed'&&!validPassword(password)){notify('كلمة المرور عند إضافة عضو يجب أن تكون 9 خانات: 3 أحرف كبيرة و3 صغيرة و3 أرقام إنجليزية.',true);return;}
     if(status==='changed'&&password){notify('اترك كلمة المرور فارغة إذا لم تعد معروفة، أو أدخل كلمة جديدة من 8 إلى 128 خانة.',true);return;}
     if(code && vault.entries.some(e=>e.code===code&&e.id!==editingId)){notify('رقم العضوية مسجل بالفعل؛ لن ننشئ سجلاً مكرراً.',true);return;}
