@@ -394,7 +394,10 @@ async function directTeamIntelligenceFromTable(args){
   const fields=[
     'member_no','member_name','sponsor_member_no','sponsor_name','generation',
     'rank','dxn_status','downline_status','join_date',
-    'personal_pv','personal_group_pv','total_group_pv'
+    'personal_pv','personal_group_pv','total_group_pv',
+    'accumulated_group_pv','accumulated_promotion_pv','diamond_group_pv',
+    'accumulated_group_pv_masked','accumulated_promotion_pv_masked','diamond_group_pv_masked',
+    'source','source_updated_at','created_at','updated_at'
   ].join(',');
   const url='/rest/v1/dxn_team_members?select='+encodeURIComponent(fields)+'&limit=10000';
   const rows=await supabaseRestRequest(url,SUPABASE_SECRET_KEY,15000);
