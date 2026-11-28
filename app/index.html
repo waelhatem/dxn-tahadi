@@ -7267,9 +7267,9 @@ const DXN_SYNC_ALIASES={
   dxn_status:['dxn_status','dxn status','status','حالة dxn','حالة العضوية','الحالة'],
   downline_status:['downline_status','downline status','حالة الفريق','حالة الخط','حالة الداونلاين'],
   join_date:['join_date','join date','date joined','تاريخ الانضمام','تاريخ الاشتراك','تاريخ العضوية'],
-  personal_pv:['personal_pv','personal pv','pv','pv الشخصي','الـpv','النقاط الشخصية','النقاط الشخصيه'],
-  personal_group_pv:['personal_group_pv','personal group pv','pgpv','pv المجموعة الشخصية','pv المجموعة الشخصيه','pv شخصي جماعي'],
-  total_group_pv:['total_group_pv','total group pv','group pv','إجمالي pv المجموعة','اجمالي pv المجموعة','مجموع pv المجموعة','إجمالي المجموعة','مجموع المجموعة'],
+  personal_pv:['personal_pv','personal pv','pv personal','personal points','personal pv points','pv','pv الشخصي','الـpv','النقاط الشخصية','النقاط الشخصيه','نقاط شخصية','نقاط العضو الشخصية'],
+  personal_group_pv:['personal_group_pv','personal group pv','group personal pv','personal group points','group personal points','pgpv','pv المجموعة الشخصية','pv المجموعة الشخصيه','نقاط المجموعة الشخصية','نقاط المجموعة الشخصيه','pv شخصي جماعي'],
+  total_group_pv:['total_group_pv','total group pv','group total pv','group total points','group pv','إجمالي pv المجموعة','اجمالي pv المجموعة','مجموع pv المجموعة','إجمالي نقاط المجموعة','مجموع نقاط المجموعة','إجمالي المجموعة','مجموع المجموعة'],
   accumulated_group_pv:['accumulated_group_pv','accumulated group pv','group accumulated pv','accumulated pv','التراكمي','النقاط التراكمية','التراكمي للمجموعة','تراكمي المجموعة'],
   accumulated_promotion_pv:['accumulated_promotion_pv','accumulated promotion pv','promotion pv','promotion','تراكمي الترقية','التراكمي للترقية','تراكمي الترفيع'],
   diamond_group_pv:['diamond_group_pv','diamond group pv','diamond pv','diamond','pv الماس','المجموعة الماسية','الماس']
@@ -7292,8 +7292,15 @@ function dxnSyncDigits(v){
   return String(v??'').replace(/[٠-٩]/g,ch=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(ch))).trim();
 }
 function dxnSyncHeaderIndex(headers,aliases){
-  const set=new Set(aliases.map(dxnSyncNorm));
-  for(let i=0;i<headers.length;i++) if(set.has(dxnSyncNorm(headers[i]))) return i;
+  const normalized=headers.map(dxnSyncNorm),set=new Set(aliases.map(dxnSyncNorm));
+  for(let i=0;i<normalized.length;i++) if(set.has(normalized[i])) return i;
+  // تقارير Excel قد تضيف وحدات أو وصفًا إلى عنوان العمود؛ طابق العبارات
+  // المميزة فقط حتى لا يختلط PV الشخصي مع PV المجموعة.
+  const distinctive=Array.from(set).filter(alias=>alias.length>=7);
+  for(let i=0;i<normalized.length;i++){
+    const header=normalized[i];
+    if(header&&distinctive.some(alias=>header.includes(alias))) return i;
+  }
   return -1;
 }
 function dxnSyncParseGrid(text){
@@ -7336,6 +7343,7 @@ function dxnSyncNumber(v){
     s=s.replace(/,/g,'');
   }
   s=s.replace(/[^0-9.+-]/g,'');
+  if(!s||!/[0-9]/.test(s)) return {value:null,masked:false};
   const n=Number(s);
   return Number.isFinite(n)?{value:n,masked:false}:{value:null,masked:false};
 }
@@ -7444,7 +7452,7 @@ function dxnSyncBuildRows(){
     const get=k=>String(dxnSyncInferField(row,memberIdx,idx,k)??'').trim();
     const numAt=(key,fallbackOffset)=>{
       const v=dxnSyncNumber(get(key));
-      if(v.value!==null||v.masked||idx[key]>=0||fallbackOffset==null) return v;
+      if(v.value!==null||v.masked||idx[key]>=0||fallbackOffset==null||!headerless) return v;
       return dxnSyncNumber(row[memberIdx+fallbackOffset]);
     };
 
@@ -9563,6 +9571,37 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
     return false;
   }
 
+  function teamRegistrySearchTableHtml(rows){
+    const rowsHtml=rows.map(row=>'<tr>'+ 
+      '<td><b>'+escapeHtml(teamCellValue(row.member_no))+'</b></td>'+ 
+      '<td><b>'+escapeHtml(teamCellValue(row.member_name))+'</b></td>'+ 
+      '<td>'+escapeHtml(teamCellValue(row.sponsor_member_no))+'</td>'+ 
+      '<td>'+escapeHtml(teamCellValue(row.sponsor_name))+'</td>'+ 
+      '<td>'+escapeHtml(teamCellValue(row.generation??row.depth_from_target))+'</td>'+ 
+      '<td>'+escapeHtml(teamCellValue(row.rank))+'</td>'+ 
+      '<td>'+escapeHtml(teamCellValue(row.dxn_status))+'</td>'+ 
+      '<td>'+escapeHtml(teamCellValue(row.downline_status))+'</td>'+ 
+      '<td>'+escapeHtml(teamCellValue(row.join_date))+'</td>'+ 
+      '<td>'+escapeHtml(teamCellPv(row.personal_pv,false))+'</td>'+ 
+      '<td>'+escapeHtml(teamCellPv(row.personal_group_pv,false))+'</td>'+ 
+      '<td>'+escapeHtml(teamCellPv(row.total_group_pv,false))+'</td>'+ 
+      '<td>'+escapeHtml(teamCellPv(row.accumulated_group_pv,row.accumulated_group_pv_masked))+'</td>'+ 
+      '<td>'+escapeHtml(teamCellPv(row.accumulated_promotion_pv,row.accumulated_promotion_pv_masked))+'</td>'+ 
+      '<td>'+escapeHtml(teamCellPv(row.diamond_group_pv,row.diamond_group_pv_masked))+'</td>'+ 
+      '<td>'+escapeHtml(teamCellValue(row.source))+'</td>'+ 
+      '<td>'+escapeHtml(teamCellValue(row.source_updated_at))+'</td>'+ 
+      '<td>'+escapeHtml(teamCellValue(row.created_at))+'</td>'+ 
+      '<td>'+escapeHtml(teamCellValue(row.updated_at))+'</td>'+ 
+      '</tr>').join('');
+    return '<div class="dxn-record-search-table-wrap"><table class="dxn-record-search-table"><thead><tr>'+ 
+      '<th>رقم العضوية</th><th>اسم العضو</th><th>رقم الراعي</th><th>اسم الراعي</th><th>الجيل</th><th>الرتبة</th>'+ 
+      '<th>حالة DXN</th><th>حالة Downline</th><th>تاريخ الانضمام</th><th>Personal PV</th><th>Personal Group PV</th>'+ 
+      '<th>Total Group PV</th><th>Accumulated Group PV</th><th>Accumulated Promotion PV</th><th>Diamond Group PV</th>'+ 
+      '<th>المصدر</th><th>آخر تحديث للمصدر</th><th>تاريخ الإنشاء</th><th>آخر تحديث</th>'+ 
+      '</tr></thead><tbody>'+rowsHtml+'</tbody></table></div>'+ 
+      '<div class="muted" style="margin-top:8px">عرض '+rows.length+' نتيجة. القيم المقنّعة في سجل DXN تظهر بالشكل <b>***</b>.</div>';
+  }
+
   function renderTeamSearchResults(panel,rows){
     const result=panel.querySelector('#teamSearchResult');
     const status=panel.querySelector('#teamSearchStatus');
@@ -9592,11 +9631,7 @@ window.switchTab=switchTab;window.dxnNavGoBack=dxnNavGoBack;window.dxnNavGoForwa
       status.className='team-search-status team-search-success';
     }
 
-    result.innerHTML=teamTableHtml(
-      rows,
-      panel.__teamSearchSort||{key:'',mode:''},
-      'search'
-    );
+    result.innerHTML=teamRegistrySearchTableHtml(rows);
   }
 
   function sortTeamTable(panel,key,mode,target){
