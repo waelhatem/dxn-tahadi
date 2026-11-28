@@ -7508,8 +7508,8 @@ function dxnSyncRenderPreview(meta){
     '<div class="admin-stat"><div class="emoji">⚠️</div><div class="label">صفوف غير صالحة</div><b>'+meta.invalid.length+'</b></div>'+
     '<div class="admin-stat"><div class="emoji">♻️</div><div class="label">مكررة داخل الملف</div><b>'+meta.duplicates+'</b></div>';
   preview.innerHTML=meta.rows.length
-    ? '<div class="admin-table" style="overflow:auto"><table style="width:100%;border-collapse:collapse;min-width:760px"><thead><tr><th>رقم العضوية</th><th>الاسم</th><th>الراعي</th><th>الجيل</th><th>PV</th><th>التراكمي</th></tr></thead><tbody>'+
-      meta.rows.slice(0,20).map(m=>'<tr><td>'+esc(m.member_no)+'</td><td>'+esc(m.member_name||'—')+'</td><td>'+esc(m.sponsor_member_no||'—')+'</td><td>'+esc(m.generation??'—')+'</td><td>'+esc(m.personal_pv??'—')+'</td><td>'+esc(m.accumulated_group_pv??m.total_group_pv??'—')+'</td></tr>').join('')+
+    ? '<div class="admin-table" style="overflow:auto"><table style="width:100%;border-collapse:collapse;min-width:1120px"><thead><tr><th>رقم العضوية</th><th>الاسم</th><th>الراعي</th><th>الجيل</th><th>Personal PV</th><th>Personal Group PV</th><th>Total Group PV</th><th>Accumulated Group PV</th></tr></thead><tbody>'+
+      meta.rows.slice(0,20).map(m=>'<tr><td>'+esc(m.member_no)+'</td><td>'+esc(m.member_name||'—')+'</td><td>'+esc(m.sponsor_member_no||'—')+'</td><td>'+esc(m.generation??'—')+'</td><td>'+esc(m.personal_pv??'—')+'</td><td>'+esc(m.personal_group_pv??'—')+'</td><td>'+esc(m.total_group_pv??'—')+'</td><td>'+esc(m.accumulated_group_pv??'—')+'</td></tr>').join('')+
       '</tbody></table></div>'+
       (meta.rows.length>20?'<div class="muted small" style="margin-top:8px">يتم عرض أول 20 عضوًا فقط في المعاينة.</div>':'')
     : '<div class="empty">لا توجد صفوف صالحة للعرض.</div>';
